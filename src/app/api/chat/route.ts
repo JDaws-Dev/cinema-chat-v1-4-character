@@ -1,22 +1,25 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { buildSystemPrompt } from "@/lib/vinny-prompt";
 
-function getClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+function getClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured");
+    throw new Error("OPENAI_API_KEY is not configured");
   }
-  return new Anthropic({ apiKey });
+  return new OpenAI({ apiKey });
 }
 
 export async function POST(req: Request) {
-  let anthropic: Anthropic;
+  let openai: OpenAI;
   try {
-    anthropic = getClient();
+    openai = getClient();
   } catch {
     return new Response(
-      JSON.stringify({ error: "The store is closed — Vinny's waiting on the owner to set up the API key." }),
-      { status: 503, headers: { "Content-Type": "application/json" } },
+      JSON.stringify({
+        error:
+          "The store is closed — Vinny's waiting on the owner to set up the API key.",
+      }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
     );
   }
 
@@ -24,19 +27,21 @@ export async function POST(req: Request) {
 
   const systemPrompt = buildSystemPrompt(preferences || []);
 
-  // Convert messages to Anthropic format
-  const anthropicMessages = messages.map(
-    (m: { role: string; content: string }) => ({
+  // Convert messages to OpenAI format
+  const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...messages.map((m: { role: string; content: string }) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
-    })
-  );
+    })),
+  ];
 
-  const stream = anthropic.messages.stream({
-    model: "claude-3-5-sonnet-20241022",
+  const stream = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
     max_tokens: 1024,
-    system: systemPrompt,
-    messages: anthropicMessages,
+    temperature: 0.85,
+    messages: openaiMessages,
+    stream: true,
   });
 
   // Create a ReadableStream that sends SSE
@@ -44,22 +49,19 @@ export async function POST(req: Request) {
   const readableStream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            const data = JSON.stringify({ text: event.delta.text });
-            controller.enqueue(
-              encoder.encode(`data: ${data}\n\n`)
-            );
+        for await (const chunk of stream) {
+          const text = chunk.choices[0]?.delta?.content;
+          if (text) {
+            const data = JSON.stringify({ text });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           }
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       } catch (error) {
         console.error("Stream error:", error);
-        const isAuthError = error instanceof Anthropic.AuthenticationError;
+        const isAuthError =
+          error instanceof OpenAI.AuthenticationError;
         const msg = isAuthError
           ? "Vinny's keys don't work — the API key might be invalid."
           : "Vinny stepped away for a moment. Try again.";

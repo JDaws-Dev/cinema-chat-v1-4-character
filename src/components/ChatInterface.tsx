@@ -73,7 +73,10 @@ export function ChatInterface() {
           body: JSON.stringify({ messages: history, preferences: prefs }),
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => null);
+          throw new Error(errBody?.error || `HTTP ${response.status}`);
+        }
 
         const reader = response.body?.getReader();
         if (!reader) throw new Error("No reader");
@@ -137,12 +140,15 @@ export function ChatInterface() {
         extractPreferences(content, preferences, setPreferences);
       } catch (error) {
         console.error("Chat error:", error);
+        const errMsg = error instanceof Error ? error.message : "Unknown error";
+        const isConfigError = errMsg.includes("API key") || errMsg.includes("store is closed");
         setMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = {
             role: "assistant",
-            content:
-              "Sorry, I stepped away from the counter for a second. Hit me again \u2014 what were you looking for?",
+            content: isConfigError
+              ? errMsg
+              : "Sorry, I stepped away from the counter for a second. Hit me again \u2014 what were you looking for?",
           };
           return updated;
         });
