@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
+import { TrendingBar } from "./TrendingBar";
+import { FilmDetailModal } from "./FilmDetailModal";
+import { WatchlistPanel } from "./WatchlistPanel";
 import {
   getMessages,
   saveMessage,
@@ -21,6 +24,8 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [preferences, setPreferences] = useState<StoredPreference[]>([]);
+  const [detailFilmId, setDetailFilmId] = useState<number | null>(null);
+  const [watchlistOpen, setWatchlistOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
@@ -39,6 +44,10 @@ export function ChatInterface() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleShowDetail = useCallback((id: number) => {
+    setDetailFilmId(id);
+  }, []);
 
   const handleSend = useCallback(
     async (content: string) => {
@@ -165,19 +174,25 @@ export function ChatInterface() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto">
           {messages.length === 0 && (
-            <div className="text-center py-20">
+            <div className="text-center py-12">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-3xl font-bold border-4 border-amber-400/30 shadow-2xl shadow-amber-900/40">
                 V
               </div>
               <h2 className="text-amber-400 text-2xl font-bold mb-2">
                 Hey, welcome in.
               </h2>
-              <p className="text-gray-400 max-w-md mx-auto text-sm leading-relaxed">
+              <p className="text-gray-400 max-w-md mx-auto text-sm leading-relaxed mb-6">
                 I&apos;m Vinny. I&apos;ve been behind this counter since &apos;87.
                 Tell me what you&apos;re in the mood for and I&apos;ll find you
                 something good.
               </p>
-              <div className="flex flex-wrap justify-center gap-2 mt-8">
+
+              {/* Trending bar */}
+              <div className="text-left mt-6 mb-6">
+                <TrendingBar onSelectFilm={handleShowDetail} />
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-2">
                 {[
                   "I want something like Jaws but for the whole family",
                   "Give me a sci-fi film that\u2019ll make me think",
@@ -201,14 +216,42 @@ export function ChatInterface() {
               role={msg.role}
               content={msg.content}
               isStreaming={msg.isStreaming}
+              onShowDetail={handleShowDetail}
             />
           ))}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input */}
-      <ChatInput onSend={handleSend} disabled={isStreaming} />
+      {/* Input area with watchlist toggle */}
+      <div className="border-t border-amber-500/20 bg-gray-950/90 backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto px-4 pt-2 flex justify-end">
+          <button
+            onClick={() => setWatchlistOpen(true)}
+            className="text-[10px] text-gray-500 hover:text-amber-400 transition-colors"
+          >
+            My Watchlist
+          </button>
+        </div>
+        <ChatInput onSend={handleSend} disabled={isStreaming} />
+      </div>
+
+      {/* Film detail modal */}
+      <FilmDetailModal
+        filmId={detailFilmId}
+        onClose={() => setDetailFilmId(null)}
+        onSelectFilm={handleShowDetail}
+      />
+
+      {/* Watchlist panel */}
+      <WatchlistPanel
+        open={watchlistOpen}
+        onClose={() => setWatchlistOpen(false)}
+        onSelectFilm={(id) => {
+          setWatchlistOpen(false);
+          handleShowDetail(id);
+        }}
+      />
     </div>
   );
 }

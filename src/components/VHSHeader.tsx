@@ -46,6 +46,12 @@ export function VHSHeader() {
           >
             Talk to Vinny
           </Link>
+          <Link
+            href="/chat"
+            className="text-gray-500 hover:text-amber-400 text-xs transition-colors"
+          >
+            Watchlist
+          </Link>
         </div>
       </div>
     </header>
