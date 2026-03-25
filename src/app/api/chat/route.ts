@@ -1,11 +1,25 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { buildSystemPrompt } from "@/lib/vinny-prompt";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+function getClient(): Anthropic {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not configured");
+  }
+  return new Anthropic({ apiKey });
+}
 
 export async function POST(req: Request) {
+  let anthropic: Anthropic;
+  try {
+    anthropic = getClient();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "The store is closed — Vinny's waiting on the owner to set up the API key." }),
+      { status: 503, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   const { messages, preferences } = await req.json();
 
   const systemPrompt = buildSystemPrompt(preferences || []);
@@ -45,9 +59,11 @@ export async function POST(req: Request) {
         controller.close();
       } catch (error) {
         console.error("Stream error:", error);
-        const errData = JSON.stringify({
-          error: "Vinny stepped away for a moment. Try again.",
-        });
+        const isAuthError = error instanceof Anthropic.AuthenticationError;
+        const msg = isAuthError
+          ? "Vinny's keys don't work — the API key might be invalid."
+          : "Vinny stepped away for a moment. Try again.";
+        const errData = JSON.stringify({ error: msg });
         controller.enqueue(encoder.encode(`data: ${errData}\n\n`));
         controller.close();
       }
