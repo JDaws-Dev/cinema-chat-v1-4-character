@@ -158,8 +158,9 @@ export function FirstPersonControls() {
       // Blocked both ways — don't move
     }
 
-    // Keep at eye height
-    camera.position.y = 1.6;
+    // Crouch mechanic: hold Shift or C to lower camera
+    const crouchTarget = (keys.current.has("shift") || keys.current.has("c")) ? 0.8 : 1.6;
+    camera.position.y += (crouchTarget - camera.position.y) * 0.15;
   });
 
   return null;

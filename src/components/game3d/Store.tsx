@@ -132,14 +132,14 @@ const SHELF_ROWS = [
   { x: 1.5, z: 3, genre: "DOCS", color: "#65a30d" },
 ];
 
-function ShelfUnit({ x, z, genre, color }: { x: number; z: number; genre: string; color: string }) {
+function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; genre: string; color: string; isMobile?: boolean }) {
   const posters = usePosterUrls(genre, 40);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
 
-  // Pack shelves full — 10 per row, 3 tiers, both sides = 60 boxes total
+  // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = 10;
+    const count = isMobile ? 5 : 10;
     const spacing = 0.24;
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
@@ -152,7 +152,7 @@ function ShelfUnit({ x, z, genre, color }: { x: number; z: number; genre: string
       }
     }
     return result;
-  }, []);
+  }, [isMobile]);
 
   return (
     <group position={[x, 0, z]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
@@ -190,12 +190,12 @@ function ShelfUnit({ x, z, genre, color }: { x: number; z: number; genre: string
         <meshStandardMaterial color="#6a4226" roughness={0.8} />
       </mesh>
 
-      {/* VHS Boxes — ALWAYS render all 10 */}
+      {/* VHS Boxes — skip poster textures on mobile for performance */}
       {positions.map((pos) => {
         const posterIdx = pos.idx % Math.max(posters.length, 1);
         const poster = posters[posterIdx];
         const flipRot = pos.side === "back" ? Math.PI : 0;
-        return poster ? (
+        return (!isMobile && poster) ? (
           <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} />
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
@@ -235,6 +235,87 @@ function ShelfUnit({ x, z, genre, color }: { x: number; z: number; genre: string
         font={undefined}
       >
         {genre}
+      </Text>
+    </group>
+  );
+}
+
+const ENDCAP_CONFIGS: { z: number; label: string; vhsColors: string[] }[] = [
+  { z: -3, label: "STAFF PICKS", vhsColors: ["#dc2626", "#3b82f6", "#f59e0b"] },
+  { z: 0, label: "JUST ADDED", vhsColors: ["#7c3aed", "#22c55e", "#ec4899"] },
+  { z: 3, label: "STAFF PICKS", vhsColors: ["#06b6d4", "#ef4444", "#ca8a04"] },
+];
+
+function EndcapDisplay({ z, label, vhsColors }: { z: number; label: string; vhsColors: string[] }) {
+  return (
+    <group position={[7, 0, z]} rotation={[0, Math.PI / 2, 0]}>
+      {/* Endcap shelf body */}
+      <mesh position={[0, 0.75, 0]}>
+        <boxGeometry args={[1.0, 1.5, 0.4]} />
+        <meshStandardMaterial color={SHELF_COLOR} roughness={0.8} />
+      </mesh>
+      {/* Top surface */}
+      <mesh position={[0, 1.52, 0]}>
+        <boxGeometry args={[1.05, 0.04, 0.45]} />
+        <meshStandardMaterial color="#8a6838" roughness={0.5} metalness={0.05} />
+      </mesh>
+      {/* Side panels */}
+      <mesh position={[-0.5, 0.75, 0]}>
+        <boxGeometry args={[0.03, 1.5, 0.4]} />
+        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.5, 0.75, 0]}>
+        <boxGeometry args={[0.03, 1.5, 0.4]} />
+        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+      </mesh>
+
+      {/* Face-out VHS boxes — 3 boxes displayed on front */}
+      {vhsColors.map((color, i) => (
+        <group key={`endcap-vhs-${i}`}>
+          {/* VHS case */}
+          <mesh position={[-0.28 + i * 0.28, 1.1, -0.22]}>
+            <boxGeometry args={[0.2, 0.3, 0.04]} />
+            <meshStandardMaterial color={color} roughness={0.6} />
+          </mesh>
+          {/* VHS label strip */}
+          <mesh position={[-0.28 + i * 0.28, 1.0, -0.245]}>
+            <boxGeometry args={[0.16, 0.06, 0.005]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Bottom row VHS box */}
+      <mesh position={[0, 0.55, -0.22]}>
+        <boxGeometry args={[0.2, 0.3, 0.04]} />
+        <meshStandardMaterial color="#4a3a6a" roughness={0.6} />
+      </mesh>
+
+      {/* Label sign */}
+      <mesh position={[0, 1.62, 0]}>
+        <boxGeometry args={[0.9, 0.16, 0.03]} />
+        <meshStandardMaterial color="#b91c1c" roughness={0.5} />
+      </mesh>
+      <Text
+        position={[0, 1.62, -0.02]}
+        rotation={[0, Math.PI, 0]}
+        fontSize={0.06}
+        color="#ffd700"
+        anchorX="center"
+        anchorY="middle"
+        font={undefined}
+      >
+        {label}
+      </Text>
+      <Text
+        position={[0, 1.62, 0.02]}
+        fontSize={0.06}
+        color="#ffd700"
+        anchorX="center"
+        anchorY="middle"
+        font={undefined}
+      >
+        {label}
       </Text>
     </group>
   );
@@ -304,6 +385,57 @@ function Counter() {
       </mesh>
       <Text position={[2.3, 1.35, -0.38]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>
         RETURNS
+      </Text>
+
+      {/* Computer monitor behind counter */}
+      <group position={[0.5, 1.5, 0.3]}>
+        {/* Monitor body */}
+        <mesh>
+          <boxGeometry args={[0.4, 0.35, 0.05]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+        </mesh>
+        {/* Screen */}
+        <mesh position={[0, 0.01, -0.026]}>
+          <planeGeometry args={[0.34, 0.26]} />
+          <meshStandardMaterial color="#1a3a6a" emissive="#1a4a8a" emissiveIntensity={0.6} />
+        </mesh>
+        {/* Monitor stand */}
+        <mesh position={[0, -0.22, 0.02]}>
+          <boxGeometry args={[0.08, 0.1, 0.06]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+        </mesh>
+        {/* Monitor base */}
+        <mesh position={[0, -0.27, 0.02]}>
+          <boxGeometry args={[0.18, 0.02, 0.12]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+        </mesh>
+      </group>
+
+      {/* Barcode scanner */}
+      <mesh position={[1.0, 1.1, -0.2]}>
+        <boxGeometry args={[0.15, 0.08, 0.2]} />
+        <meshStandardMaterial color="#333333" roughness={0.5} />
+      </mesh>
+      {/* Scanner red line */}
+      <mesh position={[1.0, 1.145, -0.2]}>
+        <boxGeometry args={[0.12, 0.005, 0.02]} />
+        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.8} />
+      </mesh>
+
+      {/* Stack of VHS cases on counter */}
+      {[0, 1, 2, 3].map((i) => (
+        <mesh key={`vhs-stack-${i}`} position={[-0.5, 1.15 + i * 0.04, -0.2]} rotation={[0, (i * 0.15), 0]}>
+          <boxGeometry args={[0.2, 0.035, 0.12]} />
+          <meshStandardMaterial
+            color={["#1a3a6a", "#6a1a3a", "#3a6a1a", "#5a3a6a"][i]}
+            roughness={0.6}
+          />
+        </mesh>
+      ))}
+
+      {/* "MEMBERSHIP CARDS" sign */}
+      <Text position={[2, 1.4, -0.6]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+        MEMBERSHIP CARDS
       </Text>
     </group>
   );
@@ -630,7 +762,94 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
   );
 }
 
+// ── Aisle sign config per shelf row ──────────────────────
+const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
+  { z: -3, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 DRAMA", colors: ["#dc2626", "#3b82f6", "#f97316", "#6366f1"] },
+  { z: 0, label: "ACTION \u2022 CLASSICS \u2022 FAMILY \u2022 ROMANCE", colors: ["#ef4444", "#ca8a04", "#22c55e", "#f43f5e"] },
+  { z: 3, label: "THRILLER \u2022 ANIMATED \u2022 DOCS", colors: ["#7c3aed", "#06b6d4", "#65a30d"] },
+];
+
+function AisleSign({ z, label, colors }: { z: number; label: string; colors: string[] }) {
+  const textColor = colors[0];
+  return (
+    <group position={[0, 0, z]}>
+      {/* Hanging pole from ceiling */}
+      <mesh position={[0, ROOM_H - 0.35, 0]}>
+        <boxGeometry args={[0.02, 0.7, 0.02]} />
+        <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.3} />
+      </mesh>
+      {/* Sign body */}
+      <mesh position={[0, 2.8, 0]}>
+        <boxGeometry args={[2.0, 0.3, 0.03]} />
+        <meshStandardMaterial color="#0a1830" roughness={0.6} />
+      </mesh>
+      {/* Text — front side */}
+      <Text
+        position={[0, 2.8, -0.02]}
+        rotation={[0, Math.PI, 0]}
+        fontSize={0.08}
+        color={textColor}
+        anchorX="center"
+        anchorY="middle"
+        font={undefined}
+      >
+        {label}
+      </Text>
+      {/* Text — back side */}
+      <Text
+        position={[0, 2.8, 0.02]}
+        fontSize={0.08}
+        color={textColor}
+        anchorX="center"
+        anchorY="middle"
+        font={undefined}
+      >
+        {label}
+      </Text>
+    </group>
+  );
+}
+
+// ── Hardcoded poster paths for wall posters (classic films) ──
+const WALL_POSTER_PATHS: Record<string, string> = {
+  JAWS: "https://image.tmdb.org/t/p/w342/lxM6kqilAdpdhqUl2biYp5frUxE.jpg",
+  ALIEN: "https://image.tmdb.org/t/p/w342/vfrQk5IPloGg1v9Rzbh2Eg3VGyM.jpg",
+  "BLADE RUNNER": "https://image.tmdb.org/t/p/w342/63N9uy8nd9j7Eog2axPQ8lbr3Wj.jpg",
+  RAIDERS: "https://image.tmdb.org/t/p/w342/ceG9VzoRAVGwivFU403Wc0AHAb0.jpg",
+  "THE SHINING": "https://image.tmdb.org/t/p/w342/nRj5511mZdTl4saWEPoj9QroTIu.jpg",
+  "STAR WARS": "https://image.tmdb.org/t/p/w342/6FfCtHmKCfCb77ri5jUFpGMsKCD.jpg",
+  "BACK TO THE FUTURE": "https://image.tmdb.org/t/p/w342/fNOH9f1aA7XRTzl1sAOx9iF553Q.jpg",
+  "E.T.": "https://image.tmdb.org/t/p/w342/an0nD6uq6bfxXZM44zGhQJBp1OV.jpg",
+};
+
 function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number; z: number; rotY?: number; color: string; title: string }) {
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+
+  useEffect(() => {
+    const tmdbUrl = WALL_POSTER_PATHS[title];
+    if (!tmdbUrl) return;
+    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(tmdbUrl)}`;
+    fetch(proxyUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new window.Image();
+        img.onload = () => {
+          if (matRef.current) {
+            const t = new THREE.Texture(img);
+            t.colorSpace = THREE.SRGBColorSpace;
+            t.needsUpdate = true;
+            matRef.current.map = t;
+            matRef.current.color.set("#ffffff");
+            matRef.current.needsUpdate = true;
+          }
+          URL.revokeObjectURL(objectUrl);
+        };
+        img.src = objectUrl;
+      })
+      .catch(() => {});
+  }, [title]);
+
   return (
     <group position={[x, y, z]} rotation={[0, rotY, 0]}>
       {/* Frame */}
@@ -641,7 +860,7 @@ function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number;
       {/* Poster art — facing into the room */}
       <mesh position={[0, 0, -0.025]}>
         <planeGeometry args={[0.9, 1.3]} />
-        <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+        <meshBasicMaterial ref={matRef} color={color} side={THREE.DoubleSide} />
       </mesh>
       {/* Title on front */}
       <Text position={[0, -0.8, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
@@ -652,6 +871,27 @@ function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number;
         {title}
       </Text>
     </group>
+  );
+}
+
+function FlickeringLight({ position }: { position: [number, number, number] }) {
+  const lightRef = useRef<THREE.SpotLight>(null);
+  useFrame((state) => {
+    if (lightRef.current) {
+      lightRef.current.intensity = 4.0 + Math.sin(state.clock.elapsedTime * 3.7) * 0.5;
+    }
+  });
+  return (
+    <spotLight
+      ref={lightRef}
+      position={position}
+      angle={0.6}
+      penumbra={0.5}
+      intensity={4}
+      distance={6}
+      color="#fff4d0"
+      target-position={[position[0], 0, position[2]]}
+    />
   );
 }
 
@@ -673,7 +913,7 @@ function Baseboard({ pos, rot, width }: { pos: [number, number, number]; rot: [n
   );
 }
 
-export function Store() {
+export function Store({ isMobile }: { isMobile?: boolean }) {
   return (
     <group>
       {/* Floor — blue commercial carpet like Blockbuster */}
@@ -767,7 +1007,7 @@ export function Store() {
         <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
 
-      {/* Fluorescent ceiling lights — warm pools */}
+      {/* Fluorescent ceiling lights — warm pools with spotlights */}
       {[-6, -2, 2, 6].map((x) => (
         <group key={x}>
           <mesh position={[x, ROOM_H - 0.04, -1.5]}>
@@ -775,13 +1015,17 @@ export function Store() {
             <meshStandardMaterial color="#f0f0e8" emissive="#fffde8" emissiveIntensity={1.2} />
           </mesh>
           <pointLight position={[x, ROOM_H - 0.3, -1.5]} color="#fff4d0" intensity={8} distance={14} />
+          <spotLight position={[x, ROOM_H - 0.3, -1.5]} angle={0.6} penumbra={0.5} intensity={3} distance={6} color="#fff4d0" />
           <mesh position={[x, ROOM_H - 0.04, 2]}>
             <boxGeometry args={[1.8, 0.06, 0.35]} />
             <meshStandardMaterial color="#f0f0e8" emissive="#fffde8" emissiveIntensity={1.2} />
           </mesh>
           <pointLight position={[x, ROOM_H - 0.3, 2]} color="#fff4d0" intensity={8} distance={14} />
+          <spotLight position={[x, ROOM_H - 0.3, 2]} angle={0.6} penumbra={0.5} intensity={3} distance={6} color="#fff4d0" />
         </group>
       ))}
+      {/* One flickering fluorescent light */}
+      <FlickeringLight position={[2, ROOM_H - 0.3, -1.5]} />
 
       {/* Ambient fill — bright like real fluorescent store */}
       <ambientLight intensity={1.2} color="#e8e0d0" />
@@ -790,18 +1034,28 @@ export function Store() {
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
-        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} />
+        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} isMobile={isMobile} />
+      ))}
+
+      {/* Hanging aisle signs */}
+      {AISLE_SIGNS.map((sign, i) => (
+        <AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />
+      ))}
+
+      {/* Endcap displays at end of each shelf row */}
+      {ENDCAP_CONFIGS.map((cfg, i) => (
+        <EndcapDisplay key={`endcap-${i}`} z={cfg.z} label={cfg.label} vhsColors={cfg.vhsColors} />
       ))}
 
       {/* Counter + Vinny */}
       <Counter />
       <VinnyCharacter />
 
-      {/* NPCs */}
+      {/* NPCs — reduce to 2 on mobile for performance */}
       <NPCCustomer startPos={[-4, 0, -1.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
       <NPCCustomer startPos={[3, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
-      <NPCCustomer startPos={[-1, 0, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />
-      <NPCCustomer startPos={[6, 0, -2]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />
+      {!isMobile && <NPCCustomer startPos={[-1, 0, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
+      {!isMobile && <NPCCustomer startPos={[6, 0, -2]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
 
       {/* New Releases wall display */}
       <NewReleasesWall />
@@ -965,6 +1219,44 @@ export function Store() {
         <planeGeometry args={[2, 1]} />
         <meshStandardMaterial color="#4a2020" roughness={0.95} />
       </mesh>
+
+      {/* ── Entrance door ──────────────────────────────────── */}
+      <group position={[0, 0, ROOM_D / 2 - 0.05]}>
+        {/* Glass panel */}
+        <mesh position={[0, 1.4, 0]}>
+          <planeGeometry args={[2, 2.8]} />
+          <meshStandardMaterial color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} />
+        </mesh>
+        {/* Metal frame — left */}
+        <mesh position={[-1.02, 1.4, 0]}>
+          <boxGeometry args={[0.04, 2.84, 0.04]} />
+          <meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} />
+        </mesh>
+        {/* Metal frame — right */}
+        <mesh position={[1.02, 1.4, 0]}>
+          <boxGeometry args={[0.04, 2.84, 0.04]} />
+          <meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} />
+        </mesh>
+        {/* Metal frame — top */}
+        <mesh position={[0, 2.82, 0]}>
+          <boxGeometry args={[2.08, 0.04, 0.04]} />
+          <meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} />
+        </mesh>
+        {/* Metal frame — bottom */}
+        <mesh position={[0, -0.02, 0]}>
+          <boxGeometry args={[2.08, 0.04, 0.04]} />
+          <meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} />
+        </mesh>
+        {/* Push bar */}
+        <mesh position={[0, 1.0, -0.03]}>
+          <boxGeometry args={[1.6, 0.06, 0.04]} />
+          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.7} />
+        </mesh>
+        {/* "PUSH" text on glass */}
+        <Text position={[0, 1.8, -0.01]} fontSize={0.12} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+          PUSH
+        </Text>
+      </group>
 
       {/* Candy/snack rack near counter */}
       <mesh position={[6, 0.7, 5]}>

@@ -14,6 +14,8 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import "./game.css";
 
+const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
+
 const Canvas = dynamic(() => import("@react-three/fiber").then(m => ({ default: m.Canvas })), { ssr: false });
 const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ default: m.Store })), { ssr: false });
 const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerson").then(m => ({ default: m.FirstPersonControls })), { ssr: false });
@@ -36,6 +38,11 @@ type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" 
 export default function GamePage() {
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile('ontouchstart' in window || window.innerWidth < 768);
+  }, []);
   const [overlay, setOverlay] = useState<Overlay>("none");
   const [shelfGenre, setShelfGenre] = useState("");
   const [filmId, setFilmId] = useState<number | null>(null);
@@ -193,12 +200,14 @@ export default function GamePage() {
         shadows={false}
         gl={{ antialias: true, failIfMajorPerformanceCaveat: false }}
         camera={{ fov: 70, near: 0.1, far: 50 }}
+        dpr={isMobile ? [1, 1.5] : [1, 2]}
+        performance={{ min: 0.5 }}
         style={{ background: "#0a0e18" }}
         onCreated={({ gl }) => { gl.setClearColor("#0a0e18"); setTimeout(() => setLoading(false), 500); }}
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 15, 35]} />
-          <Store />
+          <Store isMobile={isMobile} />
           {!hasOverlay && <FirstPersonControls />}
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} />}
         </Suspense>
@@ -213,6 +222,9 @@ export default function GamePage() {
 
       {/* Crosshair */}
       {!hasOverlay && <div className="g3-crosshair" />}
+
+      {/* Mobile touch controls */}
+      {!hasOverlay && <MobileControls />}
 
       {/* HUD */}
       <div className="g3-hud">
