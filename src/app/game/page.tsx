@@ -1,0 +1,380 @@
+"use client";
+
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
+import dynamic from "next/dynamic";
+import { DialogueBox } from "@/components/game3d/DialogueOverlay";
+import { ShelfBrowser } from "@/components/game/ShelfBrowser";
+import { FilmDetailModal } from "@/components/FilmDetailModal";
+import {
+  SCENARIOS, QUOTES, SYNOPSES,
+  getSeen, markSeen, addCorrectAnswer, addWrongAnswer,
+  type Scenario, type QuoteChallenge, type SynopsisChallenge,
+} from "@/lib/friday-night";
+import { fetchSearch, fetchTrending } from "@/lib/api";
+import type { SearchResult } from "@/lib/types";
+import "./game.css";
+
+const Canvas = dynamic(() => import("@react-three/fiber").then(m => ({ default: m.Canvas })), { ssr: false });
+const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ default: m.Store })), { ssr: false });
+const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerson").then(m => ({ default: m.FirstPersonControls })), { ssr: false });
+const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction").then(m => ({ default: m.InteractionSystem })), { ssr: false });
+
+const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
+const STATS_KEY = "vnv_stats";
+function loadStats(): Record<string, number> { try { return JSON.parse(localStorage.getItem(STATS_KEY) || "{}"); } catch { return {}; } }
+function saveStats(s: Record<string, number>) { localStorage.setItem(STATS_KEY, JSON.stringify(s)); }
+
+function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
+  const seen = getSeen();
+  const avail = arr.filter(x => !seen.has(getId(x)));
+  const pool = avail.length > 0 ? avail : arr;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis";
+
+export default function GamePage() {
+  const [started, setStarted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [overlay, setOverlay] = useState<Overlay>("none");
+  const [shelfGenre, setShelfGenre] = useState("");
+  const [filmId, setFilmId] = useState<number | null>(null);
+
+  // Vinny's Five state
+  const [puzzle, setPuzzle] = useState<{ clues: string[]; movieId: number; backdrop: string | null; poster: string | null; answer: Record<string, unknown> } | null>(null);
+  const [puzzleClue, setPuzzleClue] = useState(0);
+  const [puzzleGuess, setPuzzleGuess] = useState("");
+  const [puzzleResults, setPuzzleResults] = useState<SearchResult[]>([]);
+  const [puzzleWon, setPuzzleWon] = useState<boolean | null>(null);
+  const [puzzleBackdropReady, setPuzzleBackdropReady] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Quote/Synopsis state
+  const [quote, setQuote] = useState<QuoteChallenge | null>(null);
+  const [synopsis, setSynopsis] = useState<SynopsisChallenge | null>(null);
+  const [quizAnswer, setQuizAnswer] = useState<number | null>(null);
+
+  const [stats, setStats] = useState<Record<string, number>>({});
+  const [hintText, setHintText] = useState<string | null>(null);
+
+  useEffect(() => { setStats(loadStats()); }, []);
+
+  // ── Interaction handler from 3D world ──────────────────
+  const handleInteract = useCallback((type: string, data?: string) => {
+    if (overlay !== "none") return;
+    // Exit pointer lock when opening overlay
+    document.exitPointerLock();
+
+    if (type === "vinny") {
+      // Random: chat, quote, or synopsis
+      const roll = Math.random();
+      if (roll < 0.4) {
+        setOverlay("dialogue");
+      } else if (roll < 0.7) {
+        setQuote(pickRandom(QUOTES, q => q.id));
+        setQuizAnswer(null);
+        setOverlay("quote");
+      } else {
+        setSynopsis(pickRandom(SYNOPSES, s => s.id));
+        setQuizAnswer(null);
+        setOverlay("synopsis");
+      }
+    } else if (type === "shelf") {
+      setShelfGenre(data || "horror");
+      setOverlay("shelf");
+    } else if (type === "tv") {
+      startPuzzle();
+    }
+  }, [overlay]);
+
+  // ── Puzzle (Vinny's Five) ──────────────────────────────
+  const startPuzzle = useCallback(async () => {
+    setOverlay("pick");
+    setPuzzleClue(0); setPuzzleGuess(""); setPuzzleResults([]); setPuzzleWon(null); setPuzzleBackdropReady(false);
+    try {
+      const res = await fetch("/api/puzzle?mode=random");
+      const data = await res.json();
+      if (data.puzzle) {
+        setPuzzle(data.puzzle);
+        if (data.puzzle.backdrop) {
+          const img = new Image();
+          img.onload = () => setPuzzleBackdropReady(true);
+          img.onerror = () => setPuzzleBackdropReady(true);
+          img.src = data.puzzle.backdrop;
+        } else setPuzzleBackdropReady(true);
+        setTimeout(() => inputRef.current?.focus(), 500);
+      }
+    } catch { setOverlay("none"); }
+  }, []);
+
+  const handlePuzzleSearch = useCallback((q: string) => {
+    setPuzzleGuess(q);
+    clearTimeout(searchTimer.current);
+    if (q.length < 2) { setPuzzleResults([]); return; }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?query=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        setPuzzleResults((data.results || []).slice(0, 5).map((r: Record<string, unknown>) => ({
+          id: r.id as number, title: r.title as string, year: r.year as number | null, posterUrl: r.posterUrl as string | null, overview: "", voteAverage: 0, genre: "",
+        })));
+      } catch {}
+    }, 300);
+  }, []);
+
+  const submitPuzzleGuess = useCallback((title: string, id: number) => {
+    if (!puzzle) return;
+    setPuzzleGuess(""); setPuzzleResults([]);
+    if (id === puzzle.movieId) {
+      setPuzzleWon(true);
+      const s = loadStats(); s.played = (s.played || 0) + 1; s.won = (s.won || 0) + 1; saveStats(s); setStats(s);
+    } else {
+      if (puzzleClue < 4) setPuzzleClue(c => c + 1);
+      else { setPuzzleWon(false); const s = loadStats(); s.played = (s.played || 0) + 1; saveStats(s); setStats(s); }
+    }
+  }, [puzzle, puzzleClue]);
+
+  const skipPuzzleClue = useCallback(() => {
+    if (puzzleClue < 4) setPuzzleClue(c => c + 1);
+    else { setPuzzleWon(false); const s = loadStats(); s.played = (s.played || 0) + 1; saveStats(s); setStats(s); }
+  }, [puzzleClue]);
+
+  // ── Quiz answer ────────────────────────────────────────
+  const handleQuizAnswer = useCallback((idx: number, correct: number, id: string) => {
+    setQuizAnswer(idx);
+    markSeen(id);
+    if (idx === correct) addCorrectAnswer(); else addWrongAnswer();
+  }, []);
+
+  const closeOverlay = useCallback(() => {
+    setOverlay("none");
+    setPuzzle(null);
+    setQuote(null);
+    setSynopsis(null);
+    setQuizAnswer(null);
+  }, []);
+
+  // Q or Backspace to close overlays (ESC exits pointer lock, so don't use it)
+  useEffect(() => {
+    if (overlay === "none") return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "q" || e.key === "Q" || e.key === "Backspace") {
+        e.preventDefault();
+        closeOverlay();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [overlay, closeOverlay]);
+
+  // ── Splash ─────────────────────────────────────────────
+  if (!started) {
+    return (
+      <div className="g3-splash">
+        <div className="g3-splash-content">
+          <div className="g3-splash-badge">V</div>
+          <h1 className="g3-splash-title">Friday Night Video</h1>
+          <p className="g3-splash-sub">Walk around. Browse the shelves. Talk to Vinny.<br/>Click things to interact.</p>
+          <button className="g3-splash-btn" onClick={() => { setStarted(true); setLoading(true); }}>ENTER THE STORE</button>
+          <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; Click to interact</p>
+        </div>
+      </div>
+    );
+  }
+
+  const hasOverlay = overlay !== "none";
+  const puzzleBlur = puzzleWon !== null ? 0 : [40, 28, 16, 6, 0][puzzleClue];
+
+  return (
+    <div className="g3-container">
+      {/* 3D Canvas */}
+      <Canvas
+        shadows={false}
+        gl={{ antialias: true, failIfMajorPerformanceCaveat: false }}
+        camera={{ fov: 70, near: 0.1, far: 50 }}
+        style={{ background: "#0a0e18" }}
+        onCreated={({ gl }) => { gl.setClearColor("#0a0e18"); setTimeout(() => setLoading(false), 500); }}
+      >
+        <Suspense fallback={null}>
+          <fog attach="fog" args={["#0a0e18", 15, 35]} />
+          <Store />
+          {!hasOverlay && <FirstPersonControls />}
+          {!hasOverlay && <InteractionSystem onInteract={handleInteract} />}
+        </Suspense>
+      </Canvas>
+
+      {/* Loading overlay */}
+      <div className={`g3-loading-overlay${!loading ? " g3-loaded" : ""}`}>
+        <div className="g3-splash-badge">V</div>
+        <h1 className="g3-splash-title">Friday Night Video</h1>
+        <p className="g3-loading-text">Loading...</p>
+      </div>
+
+      {/* Crosshair */}
+      {!hasOverlay && <div className="g3-crosshair" />}
+
+      {/* HUD */}
+      <div className="g3-hud">
+        <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
+        {!hasOverlay && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
+        {hasOverlay && <span className="g3-hud-hint">Press Q or click ✕ to close</span>}
+      </div>
+
+      {/* ── OVERLAYS ────────────────────────────────────────── */}
+
+      {/* Talk to Vinny (AI Chat) */}
+      {overlay === "dialogue" && (
+        <div className="g3-overlay">
+          <div className="g3-overlay-header">
+            <span className="g3-overlay-title">VINNY</span>
+            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
+          </div>
+          <div className="g3-overlay-body">
+            <DialogueBox onClose={closeOverlay} />
+          </div>
+        </div>
+      )}
+
+      {/* Shelf Browser */}
+      {overlay === "shelf" && (
+        <ShelfBrowser genre={shelfGenre} open onClose={closeOverlay} onFilmClick={(id) => { setFilmId(id); setOverlay("film_detail"); }} />
+      )}
+
+      {/* Film Detail */}
+      {overlay === "film_detail" && (
+        <FilmDetailModal filmId={filmId} onClose={closeOverlay} onSelectFilm={(id) => setFilmId(id)} />
+      )}
+
+      {/* Vinny's Five (Puzzle) */}
+      {overlay === "pick" && puzzle && (
+        <div className="g3-puzzle-overlay">
+          {puzzle.backdrop && puzzleBackdropReady && (
+            <div className="vf-backdrop" style={{ backgroundImage: `url(${puzzle.backdrop})`, filter: `blur(${puzzleBlur}px) brightness(0.6)` }} />
+          )}
+          <div className="vf-scrim" />
+          <div className="g3-puzzle-content">
+            <div className="g3-puzzle-top">
+              <button className="vf-back" onClick={closeOverlay}>✕ Close</button>
+              <div className="vf-star-track">
+                {[5,4,3,2,1].map(s => <span key={s} className={`vf-star ${puzzleWon === null && s <= 5 - puzzleClue ? "vf-star-lit" : ""} ${puzzleWon && s <= 5 - puzzleClue ? "vf-star-won" : ""}`}>★</span>)}
+              </div>
+              <span className="vf-clue-num">{puzzleWon === null ? `${puzzleClue + 1}/5` : ""}</span>
+            </div>
+
+            {puzzleWon === null ? (
+              <>
+                <div className="vf-clue-stack">
+                  <div className="vf-clue-item vf-clue-vinny">
+                    <div className="vf-v-badge">V</div>
+                    <p className="vf-clue-poetic">&ldquo;{puzzle.clues[0]}&rdquo;</p>
+                  </div>
+                  {puzzleClue >= 1 && <div className="vf-clue-item vf-clue-fact-item"><span className="vf-clue-tag">GENRE</span><span className="vf-clue-val">{puzzle.clues[1]}</span></div>}
+                  {puzzleClue >= 2 && <div className="vf-clue-item vf-clue-fact-item"><span className="vf-clue-tag">STARRING</span><span className="vf-clue-val">{puzzle.clues[2]}</span></div>}
+                  {puzzleClue >= 3 && <div className="vf-clue-item vf-clue-tagline"><span className="vf-clue-tag">TAGLINE</span><p className="vf-clue-tagline-text">&ldquo;{puzzle.clues[3]}&rdquo;</p></div>}
+                  {puzzleClue >= 4 && puzzle.poster && <div className="vf-clue-item vf-clue-poster-reveal"><img src={puzzle.poster} alt="" className="vf-poster-big" /></div>}
+                </div>
+                <div className="vf-input-bottom">
+                  <div className="vf-input-wrap">
+                    <input ref={inputRef} type="text" className="vf-input" placeholder="Type a movie title..." value={puzzleGuess} onChange={e => handlePuzzleSearch(e.target.value)} autoComplete="off" />
+                    <button className="vf-skip" onClick={skipPuzzleClue}>{puzzleClue < 4 ? "Skip →" : "Give up"}</button>
+                  </div>
+                  {puzzleResults.length > 0 && (
+                    <div className="vf-results">
+                      {puzzleResults.map(r => (
+                        <button key={r.id} className="vf-result" onClick={() => submitPuzzleGuess(r.title, r.id)}>
+                          {r.posterUrl && <img src={r.posterUrl} alt="" className="vf-result-poster" />}
+                          <span className="vf-result-title">{r.title}</span>
+                          {r.year && <span className="vf-result-year">({r.year})</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="vf-reveal">
+                <div className="vf-reveal-card">
+                  {puzzle.poster && <img src={puzzle.poster} className="vf-reveal-poster" alt="" />}
+                  <div className="vf-reveal-info">
+                    <h2 className="vf-reveal-title">{puzzle.answer.title as string}</h2>
+                    <p className="vf-reveal-meta">{puzzle.answer.year as number} &bull; {puzzle.answer.director as string}</p>
+                  </div>
+                </div>
+                <div className={`vf-score-banner ${puzzleWon ? "vf-score-win" : "vf-score-lose"}`}>
+                  {puzzleWon ? `⭐ Got it on Clue ${puzzleClue + 1}!` : `Missed it — ${puzzle.answer.title as string}`}
+                </div>
+                <div className="g3-puzzle-actions">
+                  <button className="vf-btn vf-btn-primary" onClick={startPuzzle}>Another Round</button>
+                  <button className="vf-btn vf-btn-secondary" onClick={closeOverlay}>Back to Store</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Quote */}
+      {overlay === "quote" && quote && (
+        <div className="g3-overlay g3-overlay-center">
+          <div className="g3-overlay-header">
+            <span className="g3-overlay-title">NAME THAT QUOTE</span>
+            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
+          </div>
+          <div className="g3-overlay-body">
+            <div className="fnv-quote-display">&ldquo;{quote.quote}&rdquo;</div>
+            <div className="fnv-options">
+              {quote.options.map((opt, i) => (
+                <button key={i} className={`fnv-option ${quizAnswer !== null ? (i === quote.correctIndex ? "fnv-opt-correct" : i === quizAnswer ? "fnv-opt-wrong" : "fnv-opt-dim") : ""}`}
+                  onClick={() => quizAnswer === null && handleQuizAnswer(i, quote.correctIndex, quote.id)} disabled={quizAnswer !== null}>
+                  <span className="fnv-opt-letter">{String.fromCharCode(65 + i)}</span>{opt}
+                </button>
+              ))}
+            </div>
+            {quizAnswer !== null && (
+              <>
+                <div className="fnv-vinny-greet fnv-vinny-small" style={{ marginTop: 16 }}>
+                  <div className="fnv-vinny-avatar">V</div>
+                  <div className="fnv-vinny-text"><p>{quizAnswer === quote.correctIndex ? quote.vinnyRight : quote.vinnyWrong}</p></div>
+                </div>
+                <button className="vf-btn vf-btn-primary" style={{ marginTop: 12 }} onClick={() => { setQuote(pickRandom(QUOTES, q => q.id)); setQuizAnswer(null); }}>Next Quote</button>
+                <button className="vf-btn vf-btn-ghost" onClick={closeOverlay}>Back to Store</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Synopsis */}
+      {overlay === "synopsis" && synopsis && (
+        <div className="g3-overlay g3-overlay-center">
+          <div className="g3-overlay-header">
+            <span className="g3-overlay-title">BACK OF THE BOX</span>
+            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
+          </div>
+          <div className="g3-overlay-body">
+            <div className="fnv-synopsis-display"><div className="fnv-synopsis-label">📼 TURN THE BOX OVER...</div><p>{synopsis.synopsis}</p></div>
+            <div className="fnv-options">
+              {synopsis.options.map((opt, i) => (
+                <button key={i} className={`fnv-option ${quizAnswer !== null ? (i === synopsis.correctIndex ? "fnv-opt-correct" : i === quizAnswer ? "fnv-opt-wrong" : "fnv-opt-dim") : ""}`}
+                  onClick={() => quizAnswer === null && handleQuizAnswer(i, synopsis.correctIndex, synopsis.id)} disabled={quizAnswer !== null}>
+                  <span className="fnv-opt-letter">{String.fromCharCode(65 + i)}</span>{opt}
+                </button>
+              ))}
+            </div>
+            {quizAnswer !== null && (
+              <>
+                <div className="fnv-vinny-greet fnv-vinny-small" style={{ marginTop: 16 }}>
+                  <div className="fnv-vinny-avatar">V</div>
+                  <div className="fnv-vinny-text"><p>{quizAnswer === synopsis.correctIndex ? synopsis.vinnyRight : synopsis.vinnyWrong}</p></div>
+                </div>
+                <button className="vf-btn vf-btn-primary" style={{ marginTop: 12 }} onClick={() => { setSynopsis(pickRandom(SYNOPSES, s => s.id)); setQuizAnswer(null); }}>Next Box</button>
+                <button className="vf-btn vf-btn-ghost" onClick={closeOverlay}>Back to Store</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
