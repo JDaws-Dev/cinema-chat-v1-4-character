@@ -2586,8 +2586,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <meshBasicMaterial color="#555555" />
       </mesh>
 
-      {/* ── Parked car — 90s sedan ──────── */}
-      <group position={[5, 0, ROOM_D / 2 + 5]}>
+      {/* ── Parked car — 90s sedan, parked perpendicular to store */}
+      <group position={[5, 0, ROOM_D / 2 + 5]} rotation={[0, Math.PI / 2, 0]}>
         {/* Body */}
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[2.0, 0.8, 1.0]} />
@@ -2634,8 +2634,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </mesh>
       </group>
 
-      {/* ── 90s Minivan ──────── */}
-      <group position={[-4, 0, ROOM_D / 2 + 5]}>
+      {/* ── 90s Minivan, parked perpendicular to store */}
+      <group position={[-4, 0, ROOM_D / 2 + 5]} rotation={[0, Math.PI / 2, 0]}>
         {/* Body — boxy and tall */}
         <mesh position={[0, 0.6, 0]}>
           <boxGeometry args={[2.2, 1.0, 1.1]} />
