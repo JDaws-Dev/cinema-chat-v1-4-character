@@ -196,7 +196,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
         <meshStandardMaterial color="#6a4226" roughness={0.8} />
       </mesh>
 
-      {/* VHS Boxes — skip poster textures on mobile for performance */}
+      {/* VHS Boxes — face-out with poster art */}
       {positions.map((pos) => {
         const posterIdx = pos.idx % Math.max(posters.length, 1);
         const poster = posters[posterIdx];
