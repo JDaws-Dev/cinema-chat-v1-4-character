@@ -3504,7 +3504,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* "LATE FEES" warning sign near checkout */}
-      <group position={[-ROOM_W / 2 + 0.1, 1.5, 6.2]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.1, 1.5, 5.2]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.0, 0.6, 0.02]} />
           <Mat color="#0a1a3a" roughness={0.6} />
@@ -3736,7 +3736,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Coming attractions, lost & found, gumball machines all removed */}
 
       {/* ─── Phone on wall behind counter ─── */}
-      <group position={[-9.8, 1.3, 6]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-9.8, 2.2, 6.3]} rotation={[0, Math.PI / 2, 0]}>
         {/* Wall mount plate */}
         <mesh position={[0, 0.1, 0]}>
           <boxGeometry args={[0.15, 0.25, 0.02]} />
