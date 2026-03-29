@@ -17,18 +17,19 @@ const elements = [
   // Walls
   { x: 0, z: 0, w: ROOM_W, d: ROOM_D, label: "STORE", color: "#1a3468", type: "room" },
 
-  // Shelf rows
-  { x: -5.5, z: -3, w: 2.8, d: 0.55, label: "HORROR", color: "#dc2626" },
-  { x: -2, z: -3, w: 2.8, d: 0.55, label: "SCI-FI", color: "#3b82f6" },
-  { x: 1.5, z: -3, w: 2.8, d: 0.55, label: "COMEDY", color: "#f97316" },
+  // Shelf rows (updated positions: -5, -1.7, 1.7, 5)
+  { x: -5, z: -3, w: 2.8, d: 0.55, label: "HORROR", color: "#dc2626" },
+  { x: -1.7, z: -3, w: 2.8, d: 0.55, label: "SCI-FI", color: "#3b82f6" },
+  { x: 1.7, z: -3, w: 2.8, d: 0.55, label: "COMEDY", color: "#f97316" },
   { x: 5, z: -3, w: 2.8, d: 0.55, label: "DRAMA", color: "#6366f1" },
-  { x: -5.5, z: 0, w: 2.8, d: 0.55, label: "ACTION", color: "#ef4444" },
-  { x: -2, z: 0, w: 2.8, d: 0.55, label: "CLASSICS", color: "#ca8a04" },
-  { x: 1.5, z: 0, w: 2.8, d: 0.55, label: "FAMILY", color: "#22c55e" },
+  { x: -5, z: 0, w: 2.8, d: 0.55, label: "ACTION", color: "#ef4444" },
+  { x: -1.7, z: 0, w: 2.8, d: 0.55, label: "CLASSICS", color: "#ca8a04" },
+  { x: 1.7, z: 0, w: 2.8, d: 0.55, label: "FAMILY", color: "#22c55e" },
   { x: 5, z: 0, w: 2.8, d: 0.55, label: "ROMANCE", color: "#f43f5e" },
-  { x: -5.5, z: 3, w: 2.8, d: 0.55, label: "THRILLER", color: "#7c3aed" },
-  { x: -2, z: 3, w: 2.8, d: 0.55, label: "ANIMATED", color: "#06b6d4" },
-  { x: 1.5, z: 3, w: 2.8, d: 0.55, label: "DOCS", color: "#65a30d" },
+  { x: -5, z: 3, w: 2.8, d: 0.55, label: "THRILLER", color: "#7c3aed" },
+  { x: -1.7, z: 3, w: 2.8, d: 0.55, label: "ANIMATED", color: "#06b6d4" },
+  { x: 1.7, z: 3, w: 2.8, d: 0.55, label: "DOCS", color: "#65a30d" },
+  { x: 5, z: 3, w: 2.8, d: 0.55, label: "WESTERN", color: "#92400e" },
 
   // Counter (left side near entrance)
   { x: -6, z: 5.5, w: 6, d: 1.2, label: "COUNTER", color: "#9a7850" },
@@ -78,11 +79,7 @@ const elements = [
   // Employees only door (left wall)
   { x: -9.94, z: -4, w: 0.04, d: 0.9, label: "EMPLOYEES", color: "#4a3020" },
 
-  // Candy rack
-  { x: -4, z: 5, w: 0.8, d: 0.4, label: "CANDY", color: "#ef4444" },
-
-  // Standee
-  { x: 3, z: 5, w: 0.6, d: 0.03, label: "STANDEE", color: "#c0a080" },
+  // (Candy rack and standee removed)
 
   // Bulletin board (left wall)
   { x: -9.92, z: 4, w: 0.04, d: 1.2, label: "BULLETIN", color: "#7a5a30" },
@@ -106,9 +103,13 @@ const elements = [
 
   // Exterior
   { x: 0, z: 12, w: ROOM_W + 8, d: 14, label: "PARKING LOT", color: "#1a1a20", type: "exterior" },
-  { x: 5, z: 12, w: 2, d: 1, label: "CAR", color: "#1a2a4a" },
-  { x: -13, z: 7, w: 6, d: 0.1, label: "PIZZA PALACE", color: "#2a2a30" },
-  { x: 13, z: 7, w: 6, d: 0.1, label: "LAUNDROMAT", color: "#2a2a30" },
+  { x: 5, z: 12, w: 2, d: 1, label: "CAR (SEDAN)", color: "#1a2a4a" },
+  { x: -4, z: 12, w: 2.2, d: 1.1, label: "MINIVAN", color: "#556644" },
+  { x: -13, z: 7, w: 6, d: 0.1, label: "PIZZA PALACE", color: "#cc3333" },
+  { x: 13, z: 7, w: 6, d: 0.1, label: "LAUNDROMAT", color: "#5599cc" },
+  { x: 8, z: 8, w: 0.5, d: 0.5, label: "BIKE", color: "#ee3344" },
+  { x: 2, z: 14, w: 1.8, d: 1.2, label: "CART RETURN", color: "#2244aa" },
+  { x: -1.5, z: 10.5, w: 0.4, d: 0.4, label: "HANDICAP", color: "#2255bb" },
 
   // Late fees sign
   { x: -9.9, z: 5, w: 0.04, d: 1.0, label: "LATE FEES", color: "#ef4444" },
