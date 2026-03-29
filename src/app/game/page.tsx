@@ -206,7 +206,7 @@ export default function GamePage() {
         onCreated={({ gl }) => { gl.setClearColor("#0a0e18"); setTimeout(() => setLoading(false), 500); }}
       >
         <Suspense fallback={null}>
-          <fog attach="fog" args={["#0a0e18", 15, 35]} />
+          <fog attach="fog" args={["#0a0e18", 20, 45]} />
           <Store isMobile={isMobile} />
           {!hasOverlay && <FirstPersonControls />}
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} />}

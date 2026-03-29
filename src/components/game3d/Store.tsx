@@ -360,7 +360,7 @@ function Counter() {
       </mesh>
 
       {/* "CHECKOUT" sign */}
-      <Text position={[0, 1.15, -0.6]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
+      <Text position={[0, 1.15, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
         CHECKOUT
       </Text>
 
@@ -540,7 +540,7 @@ function VinnyCharacter() {
       </mesh>
 
       {/* Floating name */}
-      <Text position={[0, 1.85, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
+      <Text position={[0, 1.85, 0]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
         VINNY
       </Text>
 
@@ -1022,9 +1022,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <FlickeringLight position={[2, ROOM_H - 0.3, -1.5]} />
 
       {/* Ambient fill — bright like real fluorescent store */}
-      <ambientLight intensity={1.2} color="#e8e0d0" />
+      <ambientLight intensity={1.8} color="#e8e0d0" />
       {/* Hemisphere light — warm from above, cool bounce from floor */}
-      <hemisphereLight args={["#fff4e0", "#2a3050", 0.8]} />
+      <hemisphereLight args={["#fff4e0", "#3a4060", 1.2]} />
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
@@ -1101,13 +1101,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[1.2, 0.8, 0.03]} />
           <meshStandardMaterial color="#0a1a3a" roughness={0.6} />
         </mesh>
-        <Text position={[0, 0.2, 0.02]} fontSize={0.06} color="#ffffff" anchorX="center" font={undefined}>
+        <Text position={[0, 0.2, 0.02]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffffff" anchorX="center" font={undefined}>
           STORE HOURS
         </Text>
-        <Text position={[0, -0.05, 0.02]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
+        <Text position={[0, -0.05, 0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
           MON-SAT 10AM-11PM
         </Text>
-        <Text position={[0, -0.2, 0.02]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
+        <Text position={[0, -0.2, 0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
           SUN 11AM-9PM
         </Text>
       </group>
