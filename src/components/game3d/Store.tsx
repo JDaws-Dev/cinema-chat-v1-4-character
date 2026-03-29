@@ -15,6 +15,13 @@ const GENRE_TMDB_IDS: Record<string, string> = {
 
 interface PosterData { url: string; title: string; id: number; }
 
+// Global registry of movies actually loaded on shelves — challenge picks from this
+const shelfMovieRegistry: Map<string, { title: string; genre: string; id: number }> = new Map();
+
+export function getShelfMovies(): { title: string; genre: string; id: number }[] {
+  return Array.from(shelfMovieRegistry.values());
+}
+
 function usePosterUrls(genre: string, count: number): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
 
@@ -63,6 +70,16 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
       }).catch(() => {});
     }
   }, [genre, count]);
+
+  // Register loaded movies in global registry for challenge system
+  useEffect(() => {
+    const genreName = genre.charAt(0).toUpperCase() + genre.slice(1).toLowerCase().replace(/-/g, " ");
+    for (const p of posters) {
+      if (p.title && p.id) {
+        shelfMovieRegistry.set(`${p.id}`, { title: p.title, genre: genreName, id: p.id });
+      }
+    }
+  }, [posters, genre]);
 
   return posters;
 }

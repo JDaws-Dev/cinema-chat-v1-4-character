@@ -12,6 +12,7 @@ import {
 } from "@/lib/friday-night";
 import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
+import { getShelfMovies } from "@/components/game3d/Store";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -153,44 +154,32 @@ export default function GamePage() {
     } else if (type === "challenge") {
       // Start Movie Night Challenge from in-store sign
       if (challenge) return; // already running
-      // Genre ID → genre name map for hints
-      const genreNames: Record<number, string> = {
-        28: "Action", 12: "Adventure", 16: "Animated", 35: "Comedy", 80: "Crime",
-        99: "Docs", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History",
-        27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance",
-        878: "Sci-Fi", 53: "Thriller", 10752: "War", 37: "Western",
-      };
-      // Fetch from multiple sources to get well-known movies that are on the shelves
-      Promise.all([
-        fetch("/api/trending?window=week").then(r => r.json()),
-        fetch("/api/search?genreId=28&ratingMin=7&page=1").then(r => r.json()), // Action
-        fetch("/api/search?genreId=35&ratingMin=7&page=1").then(r => r.json()), // Comedy
-        fetch("/api/search?genreId=27&ratingMin=7&page=1").then(r => r.json()), // Horror
-      ]).then(([trending, action, comedy, horror]) => {
-        const all = [
-          ...(trending.movies || []).map((m: Record<string, unknown>) => ({ ...m, genre: "New Releases" })),
-          ...(action.results || []).map((m: Record<string, unknown>) => ({ ...m, genre: "Action" })),
-          ...(comedy.results || []).map((m: Record<string, unknown>) => ({ ...m, genre: "Comedy" })),
-          ...(horror.results || []).map((m: Record<string, unknown>) => ({ ...m, genre: "Horror" })),
-        ].filter((m: Record<string, unknown>) => m.title && (m.voteAverage as number || 0) >= 6);
-        if (all.length < 3) return;
-        // Pick 3 from different genres when possible
-        const shuffled = [...all].sort(() => Math.random() - 0.5);
-        const seen = new Set<string>();
-        const picks: ChallengeMovie[] = [];
-        for (const m of shuffled) {
-          if (picks.length >= 3) break;
-          const title = m.title as string;
-          if (seen.has(title.toLowerCase())) continue;
-          seen.add(title.toLowerCase());
-          const genreIds = (m.genreIds as number[]) || [];
-          const genre = (m.genre as string) || (genreIds.length > 0 ? (genreNames[genreIds[0]] || "New Releases") : "New Releases");
-          picks.push({ title, genre });
-        }
-        if (picks.length < 3) return;
-        setHeldMovies([]);
-        setChallenge({ movies: picks, startTime: Date.now(), hintsUsed: new Set() });
-      }).catch(() => {});
+      // Pick from movies ACTUALLY loaded on the shelves
+      const shelfMovies = getShelfMovies();
+      if (shelfMovies.length < 3) return; // shelves not loaded yet
+      // Shuffle and pick 3, prefer different genres
+      const shuffled = [...shelfMovies].sort(() => Math.random() - 0.5);
+      const seen = new Set<string>();
+      const usedGenres = new Set<string>();
+      const picks: ChallengeMovie[] = [];
+      // First pass: try to get different genres
+      for (const m of shuffled) {
+        if (picks.length >= 3) break;
+        if (seen.has(m.title.toLowerCase()) || usedGenres.has(m.genre)) continue;
+        seen.add(m.title.toLowerCase());
+        usedGenres.add(m.genre);
+        picks.push({ title: m.title, genre: m.genre });
+      }
+      // Second pass: fill remaining if needed
+      for (const m of shuffled) {
+        if (picks.length >= 3) break;
+        if (seen.has(m.title.toLowerCase())) continue;
+        seen.add(m.title.toLowerCase());
+        picks.push({ title: m.title, genre: m.genre });
+      }
+      if (picks.length < 3) return;
+      setHeldMovies([]);
+      setChallenge({ movies: picks, startTime: Date.now(), hintsUsed: new Set() });
       return; // don't exit pointer lock
     } else if (type === "shelf") {
       setShelfGenre(data || "horror");
