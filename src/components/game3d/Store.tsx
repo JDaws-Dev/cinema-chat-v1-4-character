@@ -772,21 +772,168 @@ function NeonSign() {
   );
 }
 
-function TV() {
+function TVScreen() {
+  const matRef = useRef<THREE.MeshStandardMaterial>(null);
+  // Animate screen color to simulate VHS playback flicker
+  useFrame((state) => {
+    if (matRef.current) {
+      const t = state.clock.elapsedTime;
+      const r = 0.1 + Math.sin(t * 0.7) * 0.05;
+      const g = 0.2 + Math.sin(t * 1.1 + 1) * 0.08;
+      const b = 0.4 + Math.sin(t * 0.5 + 2) * 0.1;
+      matRef.current.emissive.setRGB(r, g, b);
+      // Occasional brightness flicker
+      matRef.current.emissiveIntensity = 0.8 + Math.sin(t * 8.3) * 0.1 + (Math.sin(t * 37) > 0.95 ? 0.4 : 0);
+    }
+  });
   return (
     <group position={[-8, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-      {/* TV body */}
+      {/* CRT TV body — chunky retro shape */}
       <mesh userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-        <boxGeometry args={[1.2, 0.9, 0.3]} />
+        <boxGeometry args={[1.2, 0.9, 0.4]} />
         <meshStandardMaterial color="#2a2a2a" roughness={0.5} />
       </mesh>
-      {/* Screen — facing into the store */}
-      <mesh position={[0, 0, 0.16]}>
-        <planeGeometry args={[1.0, 0.7]} />
-        <meshStandardMaterial color="#1a3a5a" emissive="#1a4a6a" emissiveIntensity={0.8} side={THREE.DoubleSide} />
+      {/* Rounded bezel */}
+      <mesh position={[0, 0, 0.18]}>
+        <boxGeometry args={[1.1, 0.8, 0.05]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
       </mesh>
+      {/* Screen — animated */}
+      <mesh position={[0, 0, 0.21]}>
+        <planeGeometry args={[0.95, 0.65]} />
+        <meshStandardMaterial ref={matRef} color="#000000" emissive="#1a4a6a" emissiveIntensity={0.8} side={THREE.DoubleSide} />
+      </mesh>
+      {/* VHS tracking lines — thin horizontal stripes */}
+      {[-0.2, -0.05, 0.15].map((dy, i) => (
+        <mesh key={`scan-${i}`} position={[0, dy, 0.215]}>
+          <planeGeometry args={[0.9, 0.008]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.06} />
+        </mesh>
+      ))}
       {/* Screen glow */}
-      <pointLight position={[0, 0, 0.3]} color="#4a8aff" intensity={1} distance={3} />
+      <pointLight position={[0, 0, 0.5]} color="#4a8aff" intensity={1.5} distance={4} />
+      {/* TV stand bracket */}
+      <mesh position={[0, -0.55, -0.05]}>
+        <boxGeometry args={[0.15, 0.2, 0.08]} />
+        <meshStandardMaterial color="#333" roughness={0.5} metalness={0.3} />
+      </mesh>
+      {/* Wall mount plate */}
+      <mesh position={[0, 0, -0.21]}>
+        <boxGeometry args={[0.3, 0.3, 0.02]} />
+        <meshStandardMaterial color="#444" roughness={0.5} metalness={0.4} />
+      </mesh>
+    </group>
+  );
+}
+
+// Gumball machine near entrance
+function GumballMachine() {
+  return (
+    <group position={[2, 0, ROOM_D / 2 - 1.5]}>
+      {/* Base pedestal */}
+      <mesh position={[0, 0.4, 0]}>
+        <cylinderGeometry args={[0.12, 0.15, 0.8, 12]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.5} metalness={0.2} />
+      </mesh>
+      {/* Base plate */}
+      <mesh position={[0, 0.01, 0]}>
+        <cylinderGeometry args={[0.18, 0.18, 0.02, 12]} />
+        <meshStandardMaterial color="#222" roughness={0.5} />
+      </mesh>
+      {/* Globe (glass sphere with gumballs) */}
+      <mesh position={[0, 1.0, 0]}>
+        <sphereGeometry args={[0.2, 16, 16]} />
+        <meshStandardMaterial color="#ff4444" transparent opacity={0.3} roughness={0.05} metalness={0.1} />
+      </mesh>
+      {/* Gumballs inside — colored spheres */}
+      {[
+        [0, 0.95, 0, "#ff3333"], [-0.06, 1.02, 0.04, "#3388ff"], [0.05, 0.98, -0.05, "#33cc33"],
+        [-0.04, 1.06, -0.03, "#ffaa00"], [0.06, 1.04, 0.03, "#ff33aa"], [0, 0.92, 0.06, "#8833ff"],
+      ].map(([x, y, z, c], i) => (
+        <mesh key={`gb-${i}`} position={[x as number, y as number, z as number]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <meshStandardMaterial color={c as string} roughness={0.3} />
+        </mesh>
+      ))}
+      {/* Metal cap on top */}
+      <mesh position={[0, 1.22, 0]}>
+        <cylinderGeometry args={[0.08, 0.2, 0.05, 12]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.5} metalness={0.2} />
+      </mesh>
+      {/* Coin slot */}
+      <mesh position={[0, 0.75, -0.13]}>
+        <boxGeometry args={[0.06, 0.04, 0.02]} />
+        <meshStandardMaterial color="#888" roughness={0.3} metalness={0.6} />
+      </mesh>
+      {/* Dispensing tray */}
+      <mesh position={[0, 0.15, -0.15]}>
+        <boxGeometry args={[0.1, 0.04, 0.06]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
+// Security dome mirror in ceiling corner
+function SecurityDome({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Mounting plate */}
+      <mesh position={[0, 0.02, 0]}>
+        <cylinderGeometry args={[0.15, 0.15, 0.02, 16]} />
+        <meshStandardMaterial color="#333" roughness={0.5} />
+      </mesh>
+      {/* Dome — dark reflective */}
+      <mesh>
+        <sphereGeometry args={[0.15, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#111" roughness={0.05} metalness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+// Slow-spinning ceiling fan
+function CeilingFan({ position }: { position: [number, number, number] }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.y = state.clock.elapsedTime * 0.3;
+    }
+  });
+  return (
+    <group position={position}>
+      {/* Motor housing */}
+      <mesh position={[0, -0.08, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 0.12, 12]} />
+        <meshStandardMaterial color="#b8960a" roughness={0.4} metalness={0.4} />
+      </mesh>
+      {/* Mounting rod */}
+      <mesh position={[0, 0.02, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.15, 6]} />
+        <meshStandardMaterial color="#888" roughness={0.4} metalness={0.5} />
+      </mesh>
+      {/* Blades — 4 paddles */}
+      <group ref={ref} position={[0, -0.12, 0]}>
+        {[0, Math.PI / 2, Math.PI, Math.PI * 1.5].map((angle, i) => (
+          <mesh key={`blade-${i}`} position={[Math.cos(angle) * 0.4, 0, Math.sin(angle) * 0.4]} rotation={[0, -angle, 0.05]}>
+            <boxGeometry args={[0.6, 0.01, 0.12]} />
+            <meshStandardMaterial color="#5a3820" roughness={0.7} />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  );
+}
+
+// Neon accent strip for shelves
+function ShelfNeonStrip({ position, color, width = 2.6 }: { position: [number, number, number]; color: string; width?: number }) {
+  return (
+    <group position={position}>
+      <mesh>
+        <boxGeometry args={[width, 0.02, 0.02]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} />
+      </mesh>
+      <pointLight position={[0, -0.1, 0]} color={color} intensity={0.3} distance={1.5} />
     </group>
   );
 }
@@ -1207,8 +1354,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Neon sign */}
       <NeonSign />
 
-      {/* TV */}
-      <TV />
+      {/* CRT TV with animated screen */}
+      <TVScreen />
 
       {/* Wall posters — back wall */}
       {/* Back wall posters — flanking the new releases rack */}
@@ -1523,6 +1670,213 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           </mesh>
         ))}
       </group>
+
+      {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
+
+      {/* Gumball machine near entrance */}
+      <GumballMachine />
+
+      {/* Security dome mirrors in ceiling corners */}
+      <SecurityDome position={[-ROOM_W / 2 + 0.5, ROOM_H - 0.05, -ROOM_D / 2 + 0.5]} />
+      <SecurityDome position={[ROOM_W / 2 - 0.5, ROOM_H - 0.05, ROOM_D / 2 - 0.5]} />
+
+      {/* Neon accent strips under shelf top surfaces — genre colored glow */}
+      {SHELF_ROWS.map((s, i) => (
+        <ShelfNeonStrip key={`neon-${i}`} position={[s.x, 1.50, s.z]} color={s.color} />
+      ))}
+
+      {/* "EMPLOYEES ONLY" door on back wall */}
+      <group position={[-9, 0, -ROOM_D / 2 + 0.06]}>
+        {/* Door */}
+        <mesh position={[0, 1.15, 0]}>
+          <boxGeometry args={[0.9, 2.3, 0.04]} />
+          <meshStandardMaterial color="#4a3020" roughness={0.8} />
+        </mesh>
+        {/* Door frame */}
+        <mesh position={[-0.48, 1.15, 0]}>
+          <boxGeometry args={[0.04, 2.4, 0.06]} />
+          <meshStandardMaterial color="#3a2010" roughness={0.7} />
+        </mesh>
+        <mesh position={[0.48, 1.15, 0]}>
+          <boxGeometry args={[0.04, 2.4, 0.06]} />
+          <meshStandardMaterial color="#3a2010" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 2.37, 0]}>
+          <boxGeometry args={[1.0, 0.04, 0.06]} />
+          <meshStandardMaterial color="#3a2010" roughness={0.7} />
+        </mesh>
+        {/* Door handle */}
+        <mesh position={[0.32, 1.0, 0.03]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <meshStandardMaterial color="#b8960a" roughness={0.3} metalness={0.6} />
+        </mesh>
+        {/* Sign */}
+        <mesh position={[0, 1.7, 0.03]}>
+          <boxGeometry args={[0.5, 0.15, 0.01]} />
+          <meshStandardMaterial color="#cc2222" roughness={0.5} />
+        </mesh>
+        <Text position={[0, 1.7, 0.04]} fontSize={0.05} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+          EMPLOYEES ONLY
+        </Text>
+      </group>
+
+      {/* "LATE FEES" warning sign near checkout */}
+      <group position={[ROOM_W / 2 - 0.1, 1.5, 3]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[1.0, 0.6, 0.02]} />
+          <meshStandardMaterial color="#0a1a3a" roughness={0.6} />
+        </mesh>
+        <Text position={[0, 0.15, 0.015]} fontSize={0.08} color="#ef4444" anchorX="center" font={undefined}>
+          LATE FEES
+        </Text>
+        <Text position={[0, 0, 0.015]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
+          1-DAY: $1.50 | 2-DAY: $3.00
+        </Text>
+        <Text position={[0, -0.12, 0.015]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>
+          BE KIND, RETURN ON TIME!
+        </Text>
+      </group>
+
+      {/* "2-DAY RENTAL" / "NEW RELEASE" sticker signs on shelf ends */}
+      {[
+        { pos: [-5.5, 1.7, -3.3] as [number, number, number], label: "2-DAY RENTAL", bg: "#1a6abb" },
+        { pos: [5, 1.7, -3.3] as [number, number, number], label: "5-DAY RENTAL", bg: "#059669" },
+        { pos: [-5.5, 1.7, 2.7] as [number, number, number], label: "NEW!", bg: "#ef4444" },
+      ].map((sign, i) => (
+        <group key={`rental-${i}`} position={sign.pos}>
+          <mesh>
+            <boxGeometry args={[0.6, 0.15, 0.01]} />
+            <meshStandardMaterial color={sign.bg} roughness={0.5} />
+          </mesh>
+          <Text position={[0, 0, 0.01]} fontSize={0.06} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+            {sign.label}
+          </Text>
+        </group>
+      ))}
+
+      {/* VHS rewinder on counter */}
+      <group position={[8.5, 1.08, 5.2]}>
+        {/* Rewinder body */}
+        <mesh>
+          <boxGeometry args={[0.25, 0.08, 0.18]} />
+          <meshStandardMaterial color="#1a1a2a" roughness={0.5} />
+        </mesh>
+        {/* VHS slot */}
+        <mesh position={[0, 0.04, -0.04]}>
+          <boxGeometry args={[0.2, 0.01, 0.12]} />
+          <meshStandardMaterial color="#0a0a1a" roughness={0.4} />
+        </mesh>
+        {/* Power LED */}
+        <mesh position={[0.08, 0.045, -0.09]}>
+          <sphereGeometry args={[0.008, 6, 6]} />
+          <meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={2} />
+        </mesh>
+        {/* "REWIND" label */}
+        <Text position={[-0.02, 0.045, -0.091]} fontSize={0.015} color="#888" anchorX="center" font={undefined}>
+          REWIND
+        </Text>
+      </group>
+
+      {/* Magazine/rental guide rack near entrance */}
+      <group position={[-2, 0, ROOM_D / 2 - 1.8]}>
+        {/* Wire rack */}
+        <mesh position={[0, 0.6, 0]}>
+          <boxGeometry args={[0.5, 1.2, 0.15]} />
+          <meshStandardMaterial color="#555555" roughness={0.5} metalness={0.4} wireframe />
+        </mesh>
+        {/* Magazines/guides — colorful thin boxes */}
+        {[0.9, 0.7, 0.5, 0.3].map((y, i) => (
+          <mesh key={`mag-${i}`} position={[0, y, -0.05]} rotation={[0.15, 0, 0]}>
+            <boxGeometry args={[0.35, 0.25, 0.01]} />
+            <meshStandardMaterial color={["#ef4444", "#3b82f6", "#ffd700", "#22c55e"][i]} roughness={0.5} />
+          </mesh>
+        ))}
+        {/* "FREE GUIDES" sign */}
+        <Text position={[0, 1.25, -0.05]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>
+          FREE RENTAL GUIDES
+        </Text>
+      </group>
+
+      {/* Rope stanchion near counter queue area */}
+      {[4.5, 5.5].map((qx) => (
+        <group key={`stanch-${qx}`} position={[qx, 0, 3.5]}>
+          {/* Post */}
+          <mesh position={[0, 0.45, 0]}>
+            <cylinderGeometry args={[0.03, 0.03, 0.9, 8]} />
+            <meshStandardMaterial color="#b8960a" roughness={0.3} metalness={0.5} />
+          </mesh>
+          {/* Base */}
+          <mesh position={[0, 0.01, 0]}>
+            <cylinderGeometry args={[0.12, 0.12, 0.02, 12]} />
+            <meshStandardMaterial color="#333" roughness={0.5} />
+          </mesh>
+          {/* Top ball */}
+          <mesh position={[0, 0.92, 0]}>
+            <sphereGeometry args={[0.04, 8, 8]} />
+            <meshStandardMaterial color="#b8960a" roughness={0.3} metalness={0.5} />
+          </mesh>
+        </group>
+      ))}
+      {/* Velvet rope between stanchions */}
+      <mesh position={[5, 0.8, 3.5]}>
+        <cylinderGeometry args={[0.015, 0.015, 1.0, 6]} />
+        <meshStandardMaterial color="#8b0000" roughness={0.8} />
+      </mesh>
+
+      {/* "REWARDS MEMBER?" sign above counter */}
+      <group position={[7.5, 2.8, 5]} rotation={[0, Math.PI, 0]}>
+        <mesh>
+          <boxGeometry args={[2.5, 0.4, 0.03]} />
+          <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} />
+        </mesh>
+        <Text position={[0, 0, 0.02]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          REWARDS MEMBER? ASK!
+        </Text>
+      </group>
+
+      {/* Potted plant in corner */}
+      <group position={[ROOM_W / 2 - 0.5, 0, -ROOM_D / 2 + 0.5]}>
+        {/* Pot */}
+        <mesh position={[0, 0.2, 0]}>
+          <cylinderGeometry args={[0.15, 0.12, 0.4, 8]} />
+          <meshStandardMaterial color="#6a3a1a" roughness={0.8} />
+        </mesh>
+        {/* Soil */}
+        <mesh position={[0, 0.41, 0]}>
+          <cylinderGeometry args={[0.14, 0.14, 0.02, 8]} />
+          <meshStandardMaterial color="#3a2a1a" roughness={0.9} />
+        </mesh>
+        {/* Plant — simple sphere cluster */}
+        <mesh position={[0, 0.7, 0]}>
+          <sphereGeometry args={[0.2, 8, 8]} />
+          <meshStandardMaterial color="#1a5a1a" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.1, 0.85, 0.05]}>
+          <sphereGeometry args={[0.15, 8, 8]} />
+          <meshStandardMaterial color="#1a6a1a" roughness={0.8} />
+        </mesh>
+        <mesh position={[-0.08, 0.8, -0.05]}>
+          <sphereGeometry args={[0.12, 8, 8]} />
+          <meshStandardMaterial color="#2a5a2a" roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* Trash can near entrance */}
+      <group position={[-1.5, 0, ROOM_D / 2 - 1]}>
+        <mesh position={[0, 0.3, 0]}>
+          <cylinderGeometry args={[0.15, 0.13, 0.6, 8]} />
+          <meshStandardMaterial color="#333333" roughness={0.7} />
+        </mesh>
+        {/* Rim */}
+        <mesh position={[0, 0.61, 0]}>
+          <cylinderGeometry args={[0.16, 0.16, 0.02, 8]} />
+          <meshStandardMaterial color="#444444" roughness={0.5} metalness={0.2} />
+        </mesh>
+      </group>
+
+      {/* Ceiling fan — slow rotating */}
+      <CeilingFan position={[0, ROOM_H - 0.1, 0]} />
+
     </group>
   );
 }
