@@ -2204,7 +2204,32 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* ── Storefront windows + night sky exterior ──────── */}
-      {/* Sky/stars/moon removed — sky plane was blocking interior view from outside */}
+      {/* Night sky backdrop — surrounds the scene so there's no black void */}
+      {/* Back sky */}
+      <mesh position={[0, 8, -25]}>
+        <planeGeometry args={[80, 30]} />
+        <meshBasicMaterial color="#050a18" />
+      </mesh>
+      {/* Front sky (behind parking lot, far away) */}
+      <mesh position={[0, 8, 30]} rotation={[0, Math.PI, 0]}>
+        <planeGeometry args={[80, 30]} />
+        <meshBasicMaterial color="#050a18" />
+      </mesh>
+      {/* Left sky */}
+      <mesh position={[-30, 8, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[80, 30]} />
+        <meshBasicMaterial color="#050a18" />
+      </mesh>
+      {/* Right sky */}
+      <mesh position={[30, 8, 0]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[80, 30]} />
+        <meshBasicMaterial color="#050a18" />
+      </mesh>
+      {/* Sky ceiling */}
+      <mesh position={[0, 20, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[80, 80]} />
+        <meshBasicMaterial color="#060c1a" />
+      </mesh>
       {/* Parking lot ground plane — extended for walking approach */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}>
         <planeGeometry args={[ROOM_W + 8, 14]} />
@@ -2237,6 +2262,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       ))}
 
       {/* ── EXTERIOR ──────────────────────────────────────────── */}
+      {/* Fascia wall above storefront — fills the gap between ceiling and sign */}
+      <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.2]}>
+        <boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} />
+        <meshBasicMaterial color="#1a1a28" />
+      </mesh>
       {/* ── Store front signage — "FRIDAY NIGHT VIDEO" ──────── */}
       <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
         {/* Sign backing */}
@@ -2853,9 +2883,37 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       ))}
       {/* ── End exterior ──── */}
 
-      {/* Left storefront window (x = -5, between wall edge and door gap) */}
-      <mesh position={[-5, ROOM_H / 2, ROOM_D / 2 + 0.01]}>
-        <planeGeometry args={[5.5, ROOM_H - 0.5]} />
+      {/* Transom wall above doors — fills the gap between door top and ceiling */}
+      <mesh position={[0, ROOM_H - 0.25, ROOM_D / 2]}>
+        <boxGeometry args={[4, 0.7, 0.15]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+      {/* Solid wall above windows — from y=2.5 to ceiling */}
+      <mesh position={[-5, ROOM_H - 0.4, ROOM_D / 2]}>
+        <boxGeometry args={[5.6, 1.0, 0.15]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+      <mesh position={[5, ROOM_H - 0.4, ROOM_D / 2]}>
+        <boxGeometry args={[5.6, 1.0, 0.15]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+      {/* Header panels above storefront windows — accent trim */}
+      <mesh position={[-5, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}>
+        <boxGeometry args={[5.6, 0.5, 0.06]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+      <mesh position={[5, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}>
+        <boxGeometry args={[5.6, 0.5, 0.06]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+      <mesh position={[0, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}>
+        <boxGeometry args={[1.2, 0.5, 0.06]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+
+      {/* Left storefront window (x = -5) — real stores have windows from ~0.3 to ~2.5m */}
+      <mesh position={[-5, 1.4, ROOM_D / 2 + 0.01]}>
+        <planeGeometry args={[5.5, 2.2]} />
         <Mat
           color="#8ab8dd"
           transparent
@@ -2866,15 +2924,15 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         />
       </mesh>
       {/* Left window frame strips */}
-      <mesh position={[-2.2, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
-        <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
+      <mesh position={[-2.2, 1.4, ROOM_D / 2 + 0.02]}>
+        <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[-7.8, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
-        <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
+      <mesh position={[-7.8, 1.4, ROOM_D / 2 + 0.02]}>
+        <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[-5, ROOM_H - 0.2, ROOM_D / 2 + 0.02]}>
+      <mesh position={[-5, 2.5, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
@@ -2883,9 +2941,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
 
-      {/* Right storefront window (x = 5, between door gap and wall edge) */}
-      <mesh position={[5, ROOM_H / 2, ROOM_D / 2 + 0.01]}>
-        <planeGeometry args={[5.5, ROOM_H - 0.5]} />
+      {/* Right storefront window (x = 5) */}
+      <mesh position={[5, 1.4, ROOM_D / 2 + 0.01]}>
+        <planeGeometry args={[5.5, 2.2]} />
         <Mat
           color="#8ab8dd"
           transparent
@@ -2896,15 +2954,15 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         />
       </mesh>
       {/* Right window frame strips */}
-      <mesh position={[2.2, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
-        <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
+      <mesh position={[2.2, 1.4, ROOM_D / 2 + 0.02]}>
+        <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[7.8, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
-        <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
+      <mesh position={[7.8, 1.4, ROOM_D / 2 + 0.02]}>
+        <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[5, ROOM_H - 0.2, ROOM_D / 2 + 0.02]}>
+      <mesh position={[5, 2.5, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>

@@ -12,12 +12,28 @@ interface InteractionProps {
 
 // Raycaster for detecting what the player is looking at
 export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
-  const { camera, scene } = useThree();
+  const { camera, scene, gl } = useThree();
   const raycaster = useRef(new THREE.Raycaster());
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const prevLabel = useRef<string | null>(null);
   const frameCount = useRef(0);
   const RAYCAST_INTERVAL = 6; // raycast every 6th frame (~10Hz at 60fps)
+
+  // Shared raycast-and-interact helper
+  const doInteract = useCallback(() => {
+    raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycaster.current.intersectObjects(scene.children, true);
+    for (const hit of intersects) {
+      if (hit.distance > 4) continue;
+      const obj = hit.object;
+      const type = obj.userData?.interactType || findParentData(obj);
+      const data = obj.userData?.interactData || findParentInteractData(obj);
+      if (type) {
+        onInteract(type, data);
+        return;
+      }
+    }
+  }, [camera, scene, onInteract]);
 
   useFrame(() => {
     frameCount.current++;
@@ -52,42 +68,30 @@ export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
     // Check mobile interact button — every frame so taps are never missed
     if (mobileInput.interact) {
       mobileInput.interact = false;
-      raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
-      const hits = raycaster.current.intersectObjects(scene.children, true);
-      for (const hit of hits) {
-        if (hit.distance > 4) continue;
-        const obj = hit.object;
-        const type = obj.userData?.interactType || findParentData(obj);
-        const data = obj.userData?.interactData || findParentInteractData(obj);
-        if (type) {
-          onInteract(type, data);
-          break;
-        }
-      }
+      doInteract();
     }
   });
 
-  // Only interact when pointer is locked (not the click that locks it)
+  // Click to interact (when pointer is locked)
   const handleClick = useCallback(() => {
-    if (document.pointerLockElement === null) return; // ignore click that locks pointer
+    if (document.pointerLockElement === null) return;
+    doInteract();
+  }, [doInteract]);
 
-    raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.current.intersectObjects(scene.children, true);
-
-    for (const hit of intersects) {
-      if (hit.distance > 4) continue;
-      const obj = hit.object;
-      const type = obj.userData?.interactType || findParentData(obj);
-      const data = obj.userData?.interactData || findParentInteractData(obj);
-      if (type) {
-        onInteract(type, data);
-        break;
+  // E key to interact (when pointer is locked)
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
+      if ((e.key === "e" || e.key === "E" || e.key === "f" || e.key === "F") && document.pointerLockElement) {
+        e.preventDefault();
+        doInteract();
       }
-    }
-  }, [camera, scene, onInteract]);
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [doInteract]);
 
-  // Attach click to canvas element (fires when pointer is locked)
-  const { gl } = useThree();
+  // Attach click to canvas element
   useEffect(() => {
     const el = gl.domElement;
     el.addEventListener("click", handleClick);

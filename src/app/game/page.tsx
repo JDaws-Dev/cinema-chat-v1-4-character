@@ -19,6 +19,7 @@ import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockP
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
+import { getRandomDialogue, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -40,7 +41,7 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy";
+type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue";
 
 export default function GamePage() {
   const [started, setStarted] = useState(false);
@@ -111,6 +112,11 @@ export default function GamePage() {
   const [npcLine, setNpcLine] = useState<string | null>(null);
   const npcConvoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const npcConvoPlaying = useRef(false);
+
+  // RPG dialogue state
+  const [rpgDialogue, setRpgDialogue] = useState<DialogueTree | null>(null);
+  const [rpgNode, setRpgNode] = useState<DialogueNode | null>(null);
+  const [rpgHistory, setRpgHistory] = useState<{ speaker: string; portrait?: string; text: string }[]>([]);
 
   // Load props count on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
@@ -260,7 +266,7 @@ export default function GamePage() {
     }
 
     if (type === "charlie") {
-      // Charlie gives hints and movie tips — doesn't open overlays, just speaks
+      // During challenges, Charlie gives gameplay hints (stays in-game)
       if (challenge) {
         const unfound = challenge.movies.filter(cm =>
           !heldMovies.some(m => m.title.toLowerCase() === cm.title.toLowerCase())
@@ -271,21 +277,25 @@ export default function GamePage() {
         } else {
           playVinnyLine("Looks like you found them all! Go see Vinny.", "Charlie");
         }
-      } else if (mysteryClue) {
-        // Give progressive hints for mystery challenge
+        return;
+      }
+      if (mysteryClue) {
         if (mysteryHintsUsed < mysteryClue.hints.length) {
           playVinnyLine(mysteryClue.hints[mysteryHintsUsed], "Charlie");
           setMysteryHintsUsed(h => h + 1);
         } else {
           playVinnyLine("I've told you everything I know about that one!", "Charlie");
         }
-      } else {
-        // Random movie recommendation
-        const lines = VINNY_LINES.charlie_tips;
-        const line = lines[Math.floor(Math.random() * lines.length)];
-        playVinnyLine(line, "Charlie");
+        return;
       }
-      return; // Don't exit pointer lock — stay in game
+      // RPG dialogue with Charlie
+      document.exitPointerLock();
+      const tree = getRandomDialogue("charlie");
+      setRpgDialogue(tree);
+      setRpgNode(tree.opener);
+      setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+      setOverlay("rpg_dialogue");
+      return;
     }
 
     // Exit pointer lock when opening overlay
@@ -360,12 +370,17 @@ export default function GamePage() {
         setOverlay("film_detail");
         return;
       }
-      // Random: chat, quote, or synopsis
+      // RPG dialogue with Vinny — sometimes quiz, sometimes conversation
       playRandomLine("greetings");
       const roll = Math.random();
-      if (roll < 0.4) {
-        setOverlay("dialogue");
-      } else if (roll < 0.7) {
+      if (roll < 0.5) {
+        // RPG-style conversation
+        const tree = getRandomDialogue("vinny");
+        setRpgDialogue(tree);
+        setRpgNode(tree.opener);
+        setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+        setOverlay("rpg_dialogue");
+      } else if (roll < 0.75) {
         setQuote(pickRandom(QUOTES, q => q.id));
         setQuizAnswer(null);
         setOverlay("quote");
@@ -521,20 +536,39 @@ export default function GamePage() {
     setQuote(null);
     setSynopsis(null);
     setQuizAnswer(null);
+    setRpgDialogue(null);
+    setRpgNode(null);
+    setRpgHistory([]);
   }, []);
 
   // Q or Backspace to close overlays (ESC exits pointer lock, so don't use it)
+  // Number keys 1-4 to select RPG dialogue responses
   useEffect(() => {
     if (overlay === "none") return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "q" || e.key === "Q" || e.key === "Backspace") {
         e.preventDefault();
         closeOverlay();
+        return;
+      }
+      // Number keys for RPG dialogue choices
+      if (overlay === "rpg_dialogue" && rpgNode?.responses) {
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= rpgNode.responses.length) {
+          e.preventDefault();
+          const resp = rpgNode.responses[num - 1];
+          setRpgHistory(prev => [
+            ...prev,
+            { speaker: "You", text: resp.text },
+            { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
+          ]);
+          setRpgNode(resp.next);
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [overlay, closeOverlay]);
+  }, [overlay, closeOverlay, rpgNode]);
 
   // Screenshot helper — forces a render frame then captures (works with preserveDrawingBuffer: false)
   const takeScreenshot = useCallback(() => {
@@ -616,7 +650,7 @@ export default function GamePage() {
               try { document.documentElement.requestFullscreen?.(); } catch {}
             }
           }}>ENTER THE STORE</button>
-          <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; Click to interact</p>
+          <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; E to interact</p>
         </div>
       </div>
     );
@@ -634,8 +668,8 @@ export default function GamePage() {
         camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.6, 5] }}
         dpr={isMobile ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
-        style={{ background: "#0a0e18" }}
-        onCreated={({ gl }) => { gl.setClearColor("#0a0e18"); setTimeout(() => setLoading(false), 500); }}
+        style={{ background: "#050a18" }}
+        onCreated={({ gl }) => { gl.setClearColor("#050a18"); setTimeout(() => setLoading(false), 500); }}
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
@@ -663,7 +697,7 @@ export default function GamePage() {
 
       {/* Hover label near crosshair */}
       {!hasOverlay && hoverLabel && (
-        <div className="g3-hover-label">{hoverLabel}</div>
+        <div className="g3-hover-label"><span className="g3-hover-key">E</span> {hoverLabel}</div>
       )}
 
       {/* Subtitle display — Vinny's voice lines */}
@@ -930,10 +964,11 @@ export default function GamePage() {
       <div className="g3-hud">
         <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
         <span className="g3-hud-hint">
-          {hasOverlay ? "Press Q or click ✕ to close" :
+          {overlay === "rpg_dialogue" ? "1-4 to respond · Q to leave" :
+           hasOverlay ? "Press Q or click ✕ to close" :
            heldMovies.length > 0 ? `Take your ${heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny!` :
            challenge ? "" :
-           "WASD move · Click to interact"}
+           "WASD move · E to interact"}
         </span>
         <div className="g3-hud-right">
           <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
@@ -1094,6 +1129,54 @@ export default function GamePage() {
               </>
             )}
           </div>
+        </div>
+      )}
+      {/* RPG-style NPC Dialogue */}
+      {overlay === "rpg_dialogue" && rpgNode && (
+        <div className="g3-rpg-overlay">
+          <div className="g3-rpg-scene">
+            {/* Conversation history */}
+            <div className="g3-rpg-history">
+              {rpgHistory.map((line, i) => (
+                <div key={i} className={`g3-rpg-line ${i === rpgHistory.length - 1 ? "g3-rpg-line-current" : "g3-rpg-line-past"}`}>
+                  <div className="g3-rpg-portrait">{line.portrait || "?"}</div>
+                  <div className="g3-rpg-bubble">
+                    <span className="g3-rpg-speaker">{line.speaker}</span>
+                    <p className="g3-rpg-text">{line.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Player response options */}
+            <div className="g3-rpg-responses">
+              {rpgNode.responses ? (
+                rpgNode.responses.map((resp, i) => (
+                  <button
+                    key={i}
+                    className="g3-rpg-choice"
+                    onClick={() => {
+                      // Add player response and NPC reply to history
+                      setRpgHistory(prev => [
+                        ...prev,
+                        { speaker: "You", text: resp.text },
+                        { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
+                      ]);
+                      setRpgNode(resp.next);
+                    }}
+                  >
+                    <span className="g3-rpg-choice-num">{i + 1}</span>
+                    <span className="g3-rpg-choice-text">{resp.text}</span>
+                  </button>
+                ))
+              ) : (
+                <button className="g3-rpg-choice g3-rpg-choice-end" onClick={closeOverlay}>
+                  <span className="g3-rpg-choice-text">[ End conversation ]</span>
+                </button>
+              )}
+            </div>
+          </div>
+          <button className="g3-rpg-leave" onClick={closeOverlay}>Walk away</button>
         </div>
       )}
     </div>

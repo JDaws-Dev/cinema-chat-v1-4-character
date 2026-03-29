@@ -1220,3 +1220,217 @@
 .mobile-interact-btn:active {
   background: rgba(212, 168, 83, 0.5);
 }
+
+/* ── Hover key badge ───────────────────────────────────────── */
+.g3-hover-key {
+  display: inline-block;
+  background: rgba(255, 215, 0, 0.25);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  margin-right: 6px;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+
+/* ── RPG Dialogue Overlay ──────────────────────────────────── */
+.g3-rpg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0.9) 100%);
+  animation: g3-rpg-fadein 0.3s ease-out;
+}
+
+@keyframes g3-rpg-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.g3-rpg-scene {
+  max-width: 700px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.g3-rpg-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 215, 0, 0.3) transparent;
+}
+
+.g3-rpg-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: opacity 0.3s;
+}
+
+.g3-rpg-line-past {
+  opacity: 0.45;
+}
+
+.g3-rpg-line-current {
+  opacity: 1;
+  animation: g3-rpg-slidein 0.3s ease-out;
+}
+
+@keyframes g3-rpg-slidein {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.g3-rpg-portrait {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: rgba(15, 25, 50, 0.95);
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1rem;
+  color: #ffd700;
+  flex-shrink: 0;
+}
+
+.g3-rpg-bubble {
+  background: rgba(10, 18, 40, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.g3-rpg-speaker {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+
+.g3-rpg-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #e8e2d6;
+}
+
+/* Response choices */
+.g3-rpg-responses {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 215, 0, 0.15);
+}
+
+.g3-rpg-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 25, 50, 0.9);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  font-family: inherit;
+  color: #e8e2d6;
+}
+
+.g3-rpg-choice:hover {
+  background: rgba(25, 40, 70, 0.95);
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateX(4px);
+}
+
+.g3-rpg-choice:active {
+  transform: translateX(2px);
+}
+
+.g3-rpg-choice-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #ffd700;
+  flex-shrink: 0;
+}
+
+.g3-rpg-choice-text {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.g3-rpg-choice-end {
+  justify-content: center;
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+.g3-rpg-choice-end:hover {
+  opacity: 1;
+}
+
+.g3-rpg-leave {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 12px;
+  letter-spacing: 0.05em;
+}
+
+.g3-rpg-leave:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Mobile RPG adjustments */
+@media (max-width: 768px) {
+  .g3-rpg-overlay {
+    padding: 12px;
+  }
+  .g3-rpg-history {
+    max-height: 200px;
+  }
+  .g3-rpg-text {
+    font-size: 0.8rem;
+  }
+  .g3-rpg-choice {
+    padding: 8px 12px;
+  }
+  .g3-rpg-choice-text {
+    font-size: 0.75rem;
+  }
+}
