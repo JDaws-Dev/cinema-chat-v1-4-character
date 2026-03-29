@@ -586,8 +586,10 @@ export default function GamePage() {
           <p className="g3-splash-tagline">Your neighborhood video store</p>
           <button className="g3-splash-btn" onClick={() => {
             setStarted(true); setLoading(true);
-            // Request fullscreen on mobile to hide Safari chrome
-            try { document.documentElement.requestFullscreen?.(); } catch {}
+            // Request fullscreen on mobile only to hide Safari chrome
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+              try { document.documentElement.requestFullscreen?.(); } catch {}
+            }
           }}>ENTER THE STORE</button>
           <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; Click to interact</p>
         </div>

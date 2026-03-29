@@ -1490,53 +1490,7 @@ function TVScreen({ isMobile }: { isMobile?: boolean }) {
   );
 }
 
-// Gumball machine near entrance
-function GumballMachine() {
-  return (
-    <group position={[2, 0, ROOM_D / 2 - 1.5]}>
-      {/* Base pedestal */}
-      <mesh position={[0, 0.4, 0]}>
-        <cylinderGeometry args={[0.12, 0.15, 0.8, 12]} />
-        <Mat color="#cc2222" roughness={0.5} metalness={0.2} />
-      </mesh>
-      {/* Base plate */}
-      <mesh position={[0, 0.01, 0]}>
-        <cylinderGeometry args={[0.18, 0.18, 0.02, 12]} />
-        <Mat color="#222" roughness={0.5} />
-      </mesh>
-      {/* Globe (glass sphere with gumballs) */}
-      <mesh position={[0, 1.0, 0]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <Mat color="#ff4444" transparent opacity={0.3} roughness={0.05} metalness={0.1} />
-      </mesh>
-      {/* Gumballs inside — colored spheres */}
-      {[
-        [0, 0.95, 0, "#ff3333"], [-0.06, 1.02, 0.04, "#3388ff"], [0.05, 0.98, -0.05, "#33cc33"],
-        [-0.04, 1.06, -0.03, "#ffaa00"], [0.06, 1.04, 0.03, "#ff33aa"], [0, 0.92, 0.06, "#8833ff"],
-      ].map(([x, y, z, c], i) => (
-        <mesh key={`gb-${i}`} position={[x as number, y as number, z as number]}>
-          <sphereGeometry args={[0.04, 8, 8]} />
-          <Mat color={c as string} roughness={0.3} />
-        </mesh>
-      ))}
-      {/* Metal cap on top */}
-      <mesh position={[0, 1.22, 0]}>
-        <cylinderGeometry args={[0.08, 0.2, 0.05, 12]} />
-        <Mat color="#cc2222" roughness={0.5} metalness={0.2} />
-      </mesh>
-      {/* Coin slot */}
-      <mesh position={[0, 0.75, -0.13]}>
-        <boxGeometry args={[0.06, 0.04, 0.02]} />
-        <Mat color="#888" roughness={0.3} metalness={0.6} />
-      </mesh>
-      {/* Dispensing tray */}
-      <mesh position={[0, 0.15, -0.15]}>
-        <boxGeometry args={[0.1, 0.04, 0.06]} />
-        <Mat color="#cc2222" roughness={0.5} />
-      </mesh>
-    </group>
-  );
-}
+// Gumball machine removed
 
 // Security dome mirror in ceiling corner
 function SecurityDome({ position }: { position: [number, number, number] }) {
@@ -3030,24 +2984,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </mesh>
       </group>
 
-      {/* Promotional cardboard standee near entrance */}
-      <group position={[3, 0.9, ROOM_D / 2 - 2]}>
-        <mesh>
-          <boxGeometry args={[0.6, 1.8, 0.03]} />
-          <Mat color="#c0a080" roughness={0.8} />
-        </mesh>
-        {/* Standee support triangle behind */}
-        <mesh position={[0, -0.5, 0.15]} rotation={[0.3, 0, 0]}>
-          <boxGeometry args={[0.3, 0.8, 0.02]} />
-          <Mat color="#a08060" roughness={0.8} />
-        </mesh>
-        <Text position={[0, 0.5, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#1a1a1a" anchorX="center" font={undefined}>
-          COMING SOON
-        </Text>
-        <Text position={[0, 0.2, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#333" anchorX="center" font={undefined}>
-          ASK VINNY
-        </Text>
-      </group>
+      {/* Standee removed — was cluttering entrance */}
 
       {/* Old drop box removed — return window is now outside */}
 
@@ -3209,25 +3146,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </Text>
       </group>
 
-      {/* Magazine/rental guide rack near entrance */}
-      <group position={[-2, 0, ROOM_D / 2 - 1.8]}>
-        {/* Wire rack */}
-        <mesh position={[0, 0.6, 0]}>
-          <boxGeometry args={[0.5, 1.2, 0.15]} />
-          <Mat color="#555555" roughness={0.5} metalness={0.4} wireframe />
-        </mesh>
-        {/* Magazines/guides — colorful thin boxes */}
-        {[0.9, 0.7, 0.5, 0.3].map((y, i) => (
-          <mesh key={`mag-${i}`} position={[0, y, -0.05]} rotation={[0.15, 0, 0]}>
-            <boxGeometry args={[0.35, 0.25, 0.01]} />
-            <Mat color={["#ef4444", "#3b82f6", "#ffd700", "#22c55e"][i]} roughness={0.5} />
-          </mesh>
-        ))}
-        {/* "FREE GUIDES" sign */}
-        <Text position={[0, 1.25, -0.05]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>
-          FREE RENTAL GUIDES
-        </Text>
-      </group>
+      {/* Rental guide rack removed — was cluttering entrance */}
 
 
       {/* "REWARDS MEMBER?" sign above counter */}
@@ -3503,53 +3422,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </Text>
       </group>
 
-      {/* ─── Second gumball/quarter machine near entrance ─── */}
-      <group position={[1.8, 0, ROOM_D / 2 - 1.2]} scale={[0.7, 0.7, 0.7]}>
-        {/* Base pedestal */}
-        <mesh position={[0, 0.4, 0]}>
-          <cylinderGeometry args={[0.12, 0.15, 0.8, 12]} />
-          <Mat color="#cc2222" roughness={0.5} metalness={0.2} />
-        </mesh>
-        {/* Base plate */}
-        <mesh position={[0, 0.01, 0]}>
-          <cylinderGeometry args={[0.18, 0.18, 0.02, 12]} />
-          <Mat color="#222" roughness={0.5} />
-        </mesh>
-        {/* Globe */}
-        <mesh position={[0, 1.0, 0]}>
-          <sphereGeometry args={[0.2, 16, 16]} />
-          <Mat color="#ff4444" transparent opacity={0.3} roughness={0.05} metalness={0.1} />
-        </mesh>
-        {/* Gumballs */}
-        {[
-          [0, 0.95, 0, "#ff3333"], [-0.06, 1.02, 0.04, "#3388ff"], [0.05, 0.98, -0.05, "#33cc33"],
-          [-0.04, 1.06, -0.03, "#ffaa00"], [0.06, 1.04, 0.03, "#ff33aa"], [0, 0.92, 0.06, "#8833ff"],
-        ].map(([x, y, z, c], i) => (
-          <mesh key={`gb2-${i}`} position={[x as number, y as number, z as number]}>
-            <sphereGeometry args={[0.04, 8, 8]} />
-            <Mat color={c as string} roughness={0.3} />
-          </mesh>
-        ))}
-        {/* Metal cap */}
-        <mesh position={[0, 1.22, 0]}>
-          <cylinderGeometry args={[0.08, 0.2, 0.05, 12]} />
-          <Mat color="#cc2222" roughness={0.5} metalness={0.2} />
-        </mesh>
-        {/* Coin slot */}
-        <mesh position={[0, 0.75, -0.13]}>
-          <boxGeometry args={[0.06, 0.04, 0.02]} />
-          <Mat color="#888" roughness={0.3} metalness={0.6} />
-        </mesh>
-        {/* Dispensing tray */}
-        <mesh position={[0, 0.15, -0.15]}>
-          <boxGeometry args={[0.1, 0.04, 0.06]} />
-          <Mat color="#cc2222" roughness={0.5} />
-        </mesh>
-        {/* "25¢" label */}
-        <Text position={[0, 0.55, -0.14]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>
-          25¢
-        </Text>
-      </group>
+      {/* Gumball machines removed */}
 
       {/* ─── Phone on wall behind counter ─── */}
       <group position={[-9.8, 1.3, 6]} rotation={[0, Math.PI / 2, 0]}>
