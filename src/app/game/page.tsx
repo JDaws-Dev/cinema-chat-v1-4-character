@@ -70,6 +70,19 @@ export default function GamePage() {
   const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const [pickupFlash, setPickupFlash] = useState(false);
+  const [pickupTitle, setPickupTitle] = useState<string | null>(null);
+
+  // Movie Night Challenge state
+  const [challenge, setChallenge] = useState<{ titles: string[]; startTime: number } | null>(null);
+  const [challengeComplete, setChallengeComplete] = useState<number | null>(null); // elapsed seconds
+  const [challengeTimer, setChallengeTimer] = useState(0);
+
+  // Update challenge timer every second
+  useEffect(() => {
+    if (!challenge) { setChallengeTimer(0); return; }
+    const iv = setInterval(() => setChallengeTimer(Math.round((Date.now() - challenge.startTime) / 1000)), 1000);
+    return () => clearInterval(iv);
+  }, [challenge]);
 
   useEffect(() => { setStats(loadStats()); }, []);
 
@@ -92,7 +105,9 @@ export default function GamePage() {
           return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl }];
         });
         setPickupFlash(true);
-        setTimeout(() => setPickupFlash(false), 600);
+        setPickupTitle(movie.title);
+        setTimeout(() => setPickupFlash(false), 800);
+        setTimeout(() => setPickupTitle(null), 1500);
       } catch { /* ignore parse errors */ }
       return;
     }
@@ -101,7 +116,21 @@ export default function GamePage() {
     document.exitPointerLock();
 
     if (type === "vinny") {
-      // If holding movies, show the first one's detail (checkout)
+      // If in a challenge and have all movies, complete it
+      if (challenge && heldMovies.length > 0) {
+        const found = challenge.titles.filter(t =>
+          heldMovies.some(m => m.title.toLowerCase() === t.toLowerCase())
+        );
+        if (found.length === challenge.titles.length) {
+          const elapsed = Math.round((Date.now() - challenge.startTime) / 1000);
+          setChallengeComplete(elapsed);
+          setChallenge(null);
+          setHeldMovies([]);
+          document.exitPointerLock();
+          return;
+        }
+      }
+      // If holding movies (no challenge), show the first one's detail
       if (heldMovies.length > 0) {
         setFilmId(heldMovies[0].id);
         setOverlay("film_detail");
@@ -126,7 +155,7 @@ export default function GamePage() {
     } else if (type === "tv") {
       startPuzzle();
     }
-  }, [overlay, heldMovies]);
+  }, [overlay, heldMovies, challenge]);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
   const startPuzzle = useCallback(async () => {
@@ -294,8 +323,45 @@ export default function GamePage() {
         <div className="g3-hover-label">{hoverLabel}</div>
       )}
 
-      {/* Pickup flash effect */}
+      {/* Pickup flash + title toast */}
       {pickupFlash && <div className="g3-pickup-flash" />}
+      {pickupTitle && (
+        <div className="g3-pickup-toast">
+          <span className="g3-pickup-toast-icon">📼</span> {pickupTitle}
+        </div>
+      )}
+
+      {/* Movie Night Challenge — shopping list HUD */}
+      {challenge && !hasOverlay && (
+        <div className="g3-challenge-list">
+          <div className="g3-challenge-header">MOVIE NIGHT LIST</div>
+          {challenge.titles.map((title, i) => {
+            const found = heldMovies.some(m => m.title.toLowerCase() === title.toLowerCase());
+            return (
+              <div key={i} className={`g3-challenge-item ${found ? "g3-challenge-found" : ""}`}>
+                {found ? "✓" : "○"} {title}
+              </div>
+            );
+          })}
+          <div className="g3-challenge-timer">
+            {challengeTimer}s
+          </div>
+        </div>
+      )}
+
+      {/* Challenge complete overlay */}
+      {challengeComplete !== null && (
+        <div className="g3-challenge-complete" onClick={() => setChallengeComplete(null)}>
+          <div className="g3-challenge-complete-card">
+            <div className="g3-challenge-complete-icon">🎬</div>
+            <div className="g3-challenge-complete-title">MOVIE NIGHT READY!</div>
+            <div className="g3-challenge-complete-time">Found all movies in {challengeComplete}s</div>
+            <button className="g3-splash-btn" onClick={() => setChallengeComplete(null)} style={{ marginTop: 12, padding: "12px 24px", fontSize: "0.9rem" }}>
+              NICE!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Held movies inventory HUD */}
       {heldMovies.length > 0 && !hasOverlay && (
@@ -326,6 +392,23 @@ export default function GamePage() {
         {!hasOverlay && heldMovies.length === 0 && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
         {!hasOverlay && heldMovies.length > 0 && <span className="g3-hud-hint">Take your {heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny at the counter!</span>}
         {hasOverlay && <span className="g3-hud-hint">Press Q or click ✕ to close</span>}
+        {!hasOverlay && !challenge && (
+          <button className="g3-challenge-btn" onClick={async () => {
+            try {
+              const res = await fetch("/api/trending?window=week");
+              const data = await res.json();
+              const movies = (data.movies || []).filter((m: Record<string, unknown>) => m.title);
+              if (movies.length < 3) return;
+              // Pick 3 random unique titles
+              const shuffled = [...movies].sort(() => Math.random() - 0.5);
+              const titles = shuffled.slice(0, 3).map((m: Record<string, unknown>) => m.title as string);
+              setHeldMovies([]);
+              setChallenge({ titles, startTime: Date.now() });
+            } catch { /* ignore */ }
+          }}>
+            🎬 MOVIE NIGHT
+          </button>
+        )}
         <button className="g3-screenshot-btn" onClick={() => {
           const canvas = document.querySelector('canvas');
           if (!canvas) return;
