@@ -180,9 +180,15 @@ export default function GamePage() {
     return (
       <div className="g3-splash">
         <div className="g3-splash-content">
-          <div className="g3-splash-badge">V</div>
-          <h1 className="g3-splash-title">Friday Night Video</h1>
-          <p className="g3-splash-sub">Walk around. Browse the shelves. Talk to Vinny.<br/>Click things to interact.</p>
+          {/* Blockbuster-style torn ticket logo */}
+          <div className="g3-logo">
+            <div className="g3-logo-ticket">
+              <div className="g3-logo-left" />
+              <div className="g3-logo-right" />
+            </div>
+          </div>
+          <h1 className="g3-splash-title">FRIDAY NIGHT<br/>VIDEO</h1>
+          <p className="g3-splash-tagline">Your neighborhood video store</p>
           <button className="g3-splash-btn" onClick={() => { setStarted(true); setLoading(true); }}>ENTER THE STORE</button>
           <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; Click to interact</p>
         </div>
@@ -215,9 +221,14 @@ export default function GamePage() {
 
       {/* Loading overlay */}
       <div className={`g3-loading-overlay${!loading ? " g3-loaded" : ""}`}>
-        <div className="g3-splash-badge">V</div>
-        <h1 className="g3-splash-title">Friday Night Video</h1>
-        <p className="g3-loading-text">Loading...</p>
+        <div className="g3-logo">
+          <div className="g3-logo-ticket">
+            <div className="g3-logo-left" />
+            <div className="g3-logo-right" />
+          </div>
+        </div>
+        <h1 style={{ fontSize: "1.4rem", fontWeight: 900, color: "#ffd700", letterSpacing: "0.05em" }}>FRIDAY NIGHT VIDEO</h1>
+        <p className="g3-loading-text">Opening the store...</p>
       </div>
 
       {/* Crosshair */}

@@ -6,48 +6,83 @@
 .g3-splash {
   width: 100%;
   height: 100dvh;
-  background:
-    radial-gradient(ellipse at 50% 30%, rgba(212, 168, 83, 0.08) 0%, transparent 50%),
-    linear-gradient(180deg, #0a0e18 0%, #060810 100%);
+  background: linear-gradient(180deg, #0a1a3a 0%, #0f2244 40%, #162850 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e8e2d6;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Blockbuster yellow stripe across the screen */
+.g3-splash::before {
+  content: "";
+  position: absolute;
+  top: 30%;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(180deg, transparent, rgba(255, 215, 0, 0.08), transparent);
+  pointer-events: none;
 }
 
 .g3-splash-content {
   text-align: center;
-  max-width: 400px;
+  max-width: 420px;
   padding: 0 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.g3-splash-badge {
-  width: 72px;
-  height: 72px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #8a6830, #d4a853);
+/* Blockbuster-style torn ticket logo */
+.g3-logo {
+  margin-bottom: 8px;
+}
+
+.g3-logo-ticket {
+  width: 80px;
+  height: 50px;
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 2rem;
-  color: #1a1a1a;
-  box-shadow: 0 8px 32px rgba(212, 168, 83, 0.3);
+}
+
+.g3-logo-left {
+  width: 50%;
+  height: 100%;
+  background: #ffd700;
+  border-radius: 6px 0 0 6px;
+  clip-path: polygon(0 0, 100% 0, 85% 50%, 100% 100%, 0 100%);
+}
+
+.g3-logo-right {
+  width: 50%;
+  height: 100%;
+  background: #1a3a6a;
+  border-radius: 0 6px 6px 0;
+  clip-path: polygon(15% 0, 100% 0, 100% 100%, 15% 100%, 0% 50%);
+  border: 2px solid #ffd700;
+  border-left: none;
 }
 
 .g3-splash-title {
-  font-size: 2.2rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  line-height: 1.1;
 }
 
-.g3-splash-sub {
-  font-size: 0.95rem;
-  color: rgba(232, 226, 214, 0.5);
+.g3-splash-tagline {
+  font-size: 0.9rem;
+  color: rgba(255, 215, 0, 0.5);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   line-height: 1.5;
 }
 
