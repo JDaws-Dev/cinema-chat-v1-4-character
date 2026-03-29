@@ -904,15 +904,22 @@ function VinnyCharacter() {
 }
 
 // Aisle waypoints NPCs can walk between (x, z) — stays between shelf rows
+// NPC waypoints — must be in the AISLES between shelves, not through them
+// Shelf centers: x = -5, -1.7, 1.7, 5 (each 2.8 wide)
+// Aisle centers between shelves: x = -3.35, 0, 3.35
+// Shelf rows at z = -3, 0, 3 — cross aisles at z = -1.5, 1.5
 const NPC_WAYPOINTS: [number, number][] = [
-  [-4, -5],   // back-left
-  [4, -5],    // back-right
-  [4, -1.5],  // mid-right (between row 1 & 2)
-  [-4, -1.5], // mid-left
-  [-4, 1.5],  // mid-left-2 (between row 2 & 3)
-  [4, 1.5],   // mid-right-2
-  [4, 4.5],   // front-right
-  [-4, 4.5],  // front-left
+  [0, -5.5],    // center back (behind shelf row 1)
+  [-3.35, -5],  // left back aisle
+  [-3.35, -1.5],// left aisle between row 1 & 2
+  [0, -1.5],    // center between row 1 & 2
+  [3.35, -1.5], // right aisle between row 1 & 2
+  [3.35, 1.5],  // right aisle between row 2 & 3
+  [0, 1.5],     // center between row 2 & 3
+  [-3.35, 1.5], // left aisle between row 2 & 3
+  [-3.35, 4.5], // left front (past shelves)
+  [0, 4.5],     // center front
+  [3.35, 4.5],  // right front
 ];
 
 function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
@@ -968,8 +975,8 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
       ref.current.position.z += nz * speed * dt;
       // Walk bob
       ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
-      // Face direction of movement
-      ref.current.rotation.y = Math.atan2(nx, nz);
+      // Face direction of movement (model faces -z, so add PI)
+      ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
     }
   });
 
@@ -1127,7 +1134,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       ref.current.position.x += nx * speed * dt;
       ref.current.position.z += nz * speed * dt;
       ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
-      ref.current.rotation.y = Math.atan2(nx, nz);
+      ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
     }
 
     if (headRef.current) {

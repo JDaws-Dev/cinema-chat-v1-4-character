@@ -90,14 +90,42 @@ function stopAmbient() {
 
 // ── Customer conversation audio ─────────────────────────
 // Randomly plays customer chatter clips at intervals for atmosphere
-const CUSTOMER_CLIP_COUNT = 20;
+const CUSTOMER_LINES = [
+  "Have you seen Die Hard? It's not just a Christmas movie, it's THE Christmas movie.",
+  "No way, the sequel is ALWAYS worse. Name one sequel that's better.",
+  "Empire Strikes Back. Boom. Argument over.",
+  "Excuse me, do you know if they have Jurassic Park? My kids have been begging me all week.",
+  "Oh my gosh, they finally got Titanic back in stock!",
+  "I can never decide between comedy and horror on a Friday night.",
+  "My mom said I can rent two if I pick something the whole family can watch.",
+  "Dude, you HAVE to watch The Matrix. It will blow your mind.",
+  "Be kind, rewind! I almost forgot last time and got charged extra.",
+  "What do you mean there's a late fee? I returned it on Tuesday!",
+  "Can we PLEASE get pizza after this? There's a pizza place right next door.",
+  "This is the third Friday in a row you've picked an action movie. It's my turn to choose.",
+  "I heard the new Adam Sandler movie is hilarious. Let's get that one.",
+  "Look at these candy prices. A dollar fifty for Junior Mints? Totally worth it though.",
+  "Remember when we used to come here every single Friday? Those were the best days.",
+  "Five day rental? Sweet, that means we don't have to rush back Sunday.",
+  "I just want something scary. Like really scary. Like hide under the blanket scary.",
+  "The guy at the counter recommended this one. He hasn't steered me wrong yet.",
+  "Ooh they have a new releases wall! Let's see what's hot this week.",
+  "Last time we rented three movies and only watched one. Classic Friday night.",
+];
+const CUSTOMER_NAMES = ["Roger", "Jessica", "Liam", "Mom", "Laura", "George", "Kid", "Chris", "Sarah", "Roger", "Jessica", "Lily", "Brian", "Laura", "George", "Liam", "Jessica", "Bella", "Sarah", "Brian"];
 let customerInterval: ReturnType<typeof setInterval> | null = null;
 let customerPlaying = false;
 
 async function playRandomCustomerClip() {
   if (muted || customerPlaying || !audioUnlocked) return;
   customerPlaying = true;
-  const idx = Math.floor(Math.random() * CUSTOMER_CLIP_COUNT);
+  const idx = Math.floor(Math.random() * CUSTOMER_LINES.length);
+  // Show subtitle
+  const line = CUSTOMER_LINES[idx];
+  const name = CUSTOMER_NAMES[idx];
+  const wordCount = line.split(/\s+/).length;
+  const duration = Math.max(2500, wordCount * 350);
+  subtitleCallback?.(`${name}: "${line}"`, duration);
   try {
     const ctx = getAudioContext();
     if (ctx.state === "suspended") await ctx.resume();
@@ -108,7 +136,7 @@ async function playRandomCustomerClip() {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     const gain = ctx.createGain();
-    gain.gain.value = 0.25; // moderate volume — background chatter
+    gain.gain.value = 0.3;
     source.connect(gain);
     gain.connect(ctx.destination);
     source.onended = () => { customerPlaying = false; };
