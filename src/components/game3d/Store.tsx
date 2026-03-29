@@ -1,10 +1,25 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from "react";
+import React, { useRef, useMemo, useState, useEffect, useContext, createContext } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { Text, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
+
+// Mobile context — meshBasicMaterial on mobile, meshStandardMaterial on desktop
+const MobileCtx = createContext(false);
+
+/** Drop-in replacement for meshStandardMaterial that uses meshBasicMaterial on mobile */
+function Mat(props: Record<string, unknown>) {
+  const mob = useContext(MobileCtx);
+  if (mob) {
+    // On mobile: use unlit material. Use emissive color if it was the dominant visual.
+    const { roughness, metalness, emissiveIntensity, emissive, ...rest } = props;
+    const color = (emissive && (emissiveIntensity as number) > 0.5) ? emissive : rest.color;
+    return <meshBasicMaterial {...rest} color={color as string} />;
+  }
+  return <Mat {...(props as Record<string, unknown>)} />;
+}
 
 // ── Poster texture loader ────────────────────────────────
 const GENRE_TMDB_IDS: Record<string, string> = {
@@ -189,35 +204,35 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
       {/* Shelf frame — 3 tiers */}
       <mesh position={[0, 0.75, 0]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
         <boxGeometry args={[2.8, 1.5, 0.55]} />
-        <meshStandardMaterial color={SHELF_COLOR} roughness={0.8} />
+        <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
       {/* Shelf top surface */}
       <mesh position={[0, 1.52, 0]}>
         <boxGeometry args={[2.9, 0.05, 0.6]} />
-        <meshStandardMaterial color="#8a6838" roughness={0.5} metalness={0.05} />
+        <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
       {/* Side panels */}
       <mesh position={[-1.4, 0.75, 0]}>
         <boxGeometry args={[0.04, 1.5, 0.55]} />
-        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+        <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       <mesh position={[1.4, 0.75, 0]}>
         <boxGeometry args={[0.04, 1.5, 0.55]} />
-        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+        <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       {/* Shelf dividers (2 dividers = 3 tiers) */}
       <mesh position={[0, 0.50, 0]}>
         <boxGeometry args={[2.75, 0.03, 0.52]} />
-        <meshStandardMaterial color="#6a4226" roughness={0.8} />
+        <Mat color="#6a4226" roughness={0.8} />
       </mesh>
       <mesh position={[0, 1.0, 0]}>
         <boxGeometry args={[2.75, 0.03, 0.52]} />
-        <meshStandardMaterial color="#6a4226" roughness={0.8} />
+        <Mat color="#6a4226" roughness={0.8} />
       </mesh>
       {/* Bottom board */}
       <mesh position={[0, 0.02, 0]}>
         <boxGeometry args={[2.75, 0.03, 0.52]} />
-        <meshStandardMaterial color="#6a4226" roughness={0.8} />
+        <Mat color="#6a4226" roughness={0.8} />
       </mesh>
 
       {/* VHS Boxes — face-out with poster art */}
@@ -230,7 +245,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
             <boxGeometry args={[0.20, 0.30, 0.10]} />
-            <meshStandardMaterial
+            <Mat
               color={new THREE.Color(color).offsetHSL(0, -0.1, -(posterIdx % 3) * 0.1)}
               roughness={0.6}
             />
@@ -241,7 +256,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
       {/* Genre label sign on top of shelf — facing both sides */}
       <mesh position={[0, 1.62, 0]}>
         <boxGeometry args={[1.2, 0.2, 0.04]} />
-        <meshStandardMaterial color="#0a1830" roughness={0.6} />
+        <Mat color="#0a1830" roughness={0.6} />
       </mesh>
       {/* Front label */}
       <Text
@@ -281,21 +296,21 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {/* Endcap shelf body */}
       <mesh position={[0, 0.75, 0]}>
         <boxGeometry args={[1.0, 1.5, 0.4]} />
-        <meshStandardMaterial color={SHELF_COLOR} roughness={0.8} />
+        <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
       {/* Top surface */}
       <mesh position={[0, 1.52, 0]}>
         <boxGeometry args={[1.05, 0.04, 0.45]} />
-        <meshStandardMaterial color="#8a6838" roughness={0.5} metalness={0.05} />
+        <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
       {/* Side panels */}
       <mesh position={[-0.5, 0.75, 0]}>
         <boxGeometry args={[0.03, 1.5, 0.4]} />
-        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+        <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       <mesh position={[0.5, 0.75, 0]}>
         <boxGeometry args={[0.03, 1.5, 0.4]} />
-        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+        <Mat color="#4a2818" roughness={0.8} />
       </mesh>
 
       {/* Face-out VHS boxes — 3 on top shelf, 3 on bottom */}
@@ -303,7 +318,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
         <group key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
           <mesh>
             <boxGeometry args={[0.18, 0.28, 0.10]} />
-            <meshStandardMaterial color={color} roughness={0.6} />
+            <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
           <mesh position={[0, -0.08, -0.051]}>
@@ -316,7 +331,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
         <group key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
           <mesh>
             <boxGeometry args={[0.18, 0.28, 0.10]} />
-            <meshStandardMaterial color={color} roughness={0.6} />
+            <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
           <mesh position={[0, -0.08, -0.051]}>
@@ -329,7 +344,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {/* Label sign */}
       <mesh position={[0, 1.62, 0]}>
         <boxGeometry args={[0.9, 0.16, 0.03]} />
-        <meshStandardMaterial color="#b91c1c" roughness={0.5} />
+        <Mat color="#b91c1c" roughness={0.5} />
       </mesh>
       <Text
         position={[0, 1.62, -0.02]}
@@ -362,26 +377,26 @@ function Counter() {
       {/* Counter body — front panel (now near entrance, left side) */}
       <mesh position={[0, 0.5, -0.55]}>
         <boxGeometry args={[6, 1.0, 0.08]} />
-        <meshStandardMaterial color="#5a3820" roughness={0.8} />
+        <Mat color="#5a3820" roughness={0.8} />
       </mesh>
       {/* Counter body — sides */}
       <mesh position={[-3, 0.5, 0]}>
         <boxGeometry args={[0.08, 1.0, 1.2]} />
-        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+        <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       <mesh position={[3, 0.5, 0]}>
         <boxGeometry args={[0.08, 1.0, 1.2]} />
-        <meshStandardMaterial color="#4a2818" roughness={0.8} />
+        <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       {/* Counter top — polished wood */}
       <mesh position={[0, 1.02, 0]}>
         <boxGeometry args={[6.15, 0.06, 1.3]} />
-        <meshStandardMaterial color="#9a7850" roughness={0.35} metalness={0.08} />
+        <Mat color="#9a7850" roughness={0.35} metalness={0.08} />
       </mesh>
       {/* Counter kick panel */}
       <mesh position={[0, 0.05, -0.55]}>
         <boxGeometry args={[5.9, 0.1, 0.06]} />
-        <meshStandardMaterial color="#3a2010" roughness={0.9} />
+        <Mat color="#3a2010" roughness={0.9} />
       </mesh>
 
       {/* Candy display shelves on front of counter (customer side) */}
@@ -389,7 +404,7 @@ function Counter() {
       {[0.3, 0.6].map((y) => (
         <mesh key={`candy-shelf-${y}`} position={[0, y, -0.58]}>
           <boxGeometry args={[4, 0.03, 0.25]} />
-          <meshStandardMaterial color="#5a3820" roughness={0.7} />
+          <Mat color="#5a3820" roughness={0.7} />
         </mesh>
       ))}
       {/* Candy boxes — rows of colorful packages */}
@@ -420,7 +435,7 @@ function Counter() {
           <group position={[dx, 0.72, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
             <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
               <boxGeometry args={[0.15, 0.18, 0.08]} />
-              <meshStandardMaterial color={["#ef4444","#f59e0b","#3b82f6","#22c55e","#ec4899","#a855f7","#f97316"][i]} roughness={0.5} />
+              <Mat color={["#ef4444","#f59e0b","#3b82f6","#22c55e","#ec4899","#a855f7","#f97316"][i]} roughness={0.5} />
             </mesh>
             {/* Label stripe */}
             <mesh position={[0, 0, -0.041]}>
@@ -432,7 +447,7 @@ function Counter() {
           <group position={[dx, 0.42, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
             <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
               <boxGeometry args={[0.15, 0.15, 0.09]} />
-              <meshStandardMaterial color={["#f97316","#ec4899","#22c55e","#ef4444","#3b82f6","#f59e0b","#a855f7"][i]} roughness={0.5} />
+              <Mat color={["#f97316","#ec4899","#22c55e","#ef4444","#3b82f6","#f59e0b","#a855f7"][i]} roughness={0.5} />
             </mesh>
             {/* Label stripe */}
             <mesh position={[0, 0, -0.046]}>
@@ -451,17 +466,17 @@ function Counter() {
       {/* Register */}
       <mesh position={[-1.5, 1.25, 0]}>
         <boxGeometry args={[0.65, 0.45, 0.5]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+        <Mat color="#2a2a2a" roughness={0.4} />
       </mesh>
       {/* Register screen */}
       <mesh position={[-1.5, 1.38, -0.26]}>
         <boxGeometry args={[0.42, 0.22, 0.01]} />
-        <meshStandardMaterial color="#0a3a0a" emissive="#0a4a0a" emissiveIntensity={0.5} />
+        <Mat color="#0a3a0a" emissive="#0a4a0a" emissiveIntensity={0.5} />
       </mesh>
       {/* Register keypad */}
       <mesh position={[-1.5, 1.06, -0.1]}>
         <boxGeometry args={[0.4, 0.02, 0.3]} />
-        <meshStandardMaterial color="#333" roughness={0.6} />
+        <Mat color="#333" roughness={0.6} />
       </mesh>
 
       {/* "CHECKOUT" sign */}
@@ -482,7 +497,7 @@ function Counter() {
         <group key={`snk${i}`} position={[dx, 1.15, 0.2]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
           <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
             <boxGeometry args={[0.12, 0.18, 0.06]} />
-            <meshStandardMaterial color={["#ef4444", "#3b82f6", "#f59e0b", "#22c55e"][i]} roughness={0.5} />
+            <Mat color={["#ef4444", "#3b82f6", "#f59e0b", "#22c55e"][i]} roughness={0.5} />
           </mesh>
           {/* Front label */}
           <mesh position={[0, -0.02, -0.031]}>
@@ -496,7 +511,7 @@ function Counter() {
       {/* Return bin */}
       <mesh position={[2.3, 1.15, -0.2]}>
         <boxGeometry args={[0.5, 0.25, 0.35]} />
-        <meshStandardMaterial color="#2a2a3a" roughness={0.7} />
+        <Mat color="#2a2a3a" roughness={0.7} />
       </mesh>
       <Text position={[2.3, 1.35, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>
         RETURNS
@@ -507,41 +522,41 @@ function Counter() {
         {/* Monitor body */}
         <mesh>
           <boxGeometry args={[0.4, 0.35, 0.05]} />
-          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+          <Mat color="#2a2a2a" roughness={0.4} />
         </mesh>
         {/* Screen */}
         <mesh position={[0, 0.01, -0.026]}>
           <planeGeometry args={[0.34, 0.26]} />
-          <meshStandardMaterial color="#1a3a6a" emissive="#1a4a8a" emissiveIntensity={0.6} />
+          <Mat color="#1a3a6a" emissive="#1a4a8a" emissiveIntensity={0.6} />
         </mesh>
         {/* Monitor stand */}
         <mesh position={[0, -0.22, 0.02]}>
           <boxGeometry args={[0.08, 0.1, 0.06]} />
-          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+          <Mat color="#2a2a2a" roughness={0.4} />
         </mesh>
         {/* Monitor base */}
         <mesh position={[0, -0.27, 0.02]}>
           <boxGeometry args={[0.18, 0.02, 0.12]} />
-          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+          <Mat color="#2a2a2a" roughness={0.4} />
         </mesh>
       </group>
 
       {/* Barcode scanner */}
       <mesh position={[1.0, 1.1, -0.2]}>
         <boxGeometry args={[0.15, 0.08, 0.2]} />
-        <meshStandardMaterial color="#333333" roughness={0.5} />
+        <Mat color="#333333" roughness={0.5} />
       </mesh>
       {/* Scanner red line */}
       <mesh position={[1.0, 1.145, -0.2]}>
         <boxGeometry args={[0.12, 0.005, 0.02]} />
-        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.8} />
+        <Mat color="#ff0000" emissive="#ff0000" emissiveIntensity={0.8} />
       </mesh>
 
       {/* Stack of VHS cases on counter */}
       {[0, 1, 2, 3].map((i) => (
         <mesh key={`vhs-stack-${i}`} position={[-0.5, 1.15 + i * 0.04, -0.2]} rotation={[0, (i * 0.15), 0]}>
           <boxGeometry args={[0.2, 0.035, 0.12]} />
-          <meshStandardMaterial
+          <Mat
             color={["#1a3a6a", "#6a1a3a", "#3a6a1a", "#5a3a6a"][i]}
             roughness={0.6}
           />
@@ -590,74 +605,74 @@ function VinnyCharacter() {
       {/* Legs — Khaki pants */}
       <mesh position={[-0.09, 0.35, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
         <boxGeometry args={[0.13, 0.7, 0.15]} />
-        <meshStandardMaterial color="#c2a66b" roughness={0.85} />
+        <Mat color="#c2a66b" roughness={0.85} />
       </mesh>
       <mesh position={[0.09, 0.35, 0]}>
         <boxGeometry args={[0.13, 0.7, 0.15]} />
-        <meshStandardMaterial color="#c2a66b" roughness={0.85} />
+        <Mat color="#c2a66b" roughness={0.85} />
       </mesh>
 
       {/* Sneakers — white with blue accent */}
       <mesh position={[-0.09, 0.03, -0.02]}>
         <boxGeometry args={[0.14, 0.08, 0.2]} />
-        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+        <Mat color="#f0f0f0" roughness={0.6} />
       </mesh>
       <mesh position={[-0.09, 0.05, -0.08]}>
         <boxGeometry args={[0.12, 0.04, 0.06]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+        <Mat color="#1a3a6a" roughness={0.6} />
       </mesh>
       <mesh position={[0.09, 0.03, -0.02]}>
         <boxGeometry args={[0.14, 0.08, 0.2]} />
-        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+        <Mat color="#f0f0f0" roughness={0.6} />
       </mesh>
       <mesh position={[0.09, 0.05, -0.08]}>
         <boxGeometry args={[0.12, 0.04, 0.06]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+        <Mat color="#1a3a6a" roughness={0.6} />
       </mesh>
 
       {/* Belt */}
       <mesh position={[0, 0.7, 0]}>
         <boxGeometry args={[0.32, 0.05, 0.18]} />
-        <meshStandardMaterial color="#3a2a1a" roughness={0.7} />
+        <Mat color="#3a2a1a" roughness={0.7} />
       </mesh>
       {/* Belt buckle */}
       <mesh position={[0, 0.7, -0.09]}>
         <boxGeometry args={[0.06, 0.04, 0.01]} />
-        <meshStandardMaterial color="#c0a020" roughness={0.3} metalness={0.5} />
+        <Mat color="#c0a020" roughness={0.3} metalness={0.5} />
       </mesh>
 
       {/* Torso — Blockbuster blue polo */}
       <mesh position={[0, 0.95, 0]}>
         <boxGeometry args={[0.4, 0.55, 0.25]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+        <Mat color="#0a4a8a" roughness={0.7} />
       </mesh>
       {/* Polo collar */}
       <mesh position={[0, 1.2, -0.06]}>
         <boxGeometry args={[0.22, 0.06, 0.16]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+        <Mat color="#0a4a8a" roughness={0.6} />
       </mesh>
       {/* Collar fold left */}
       <mesh position={[-0.06, 1.22, -0.1]} rotation={[0.3, 0, 0.2]}>
         <boxGeometry args={[0.08, 0.05, 0.02]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+        <Mat color="#0a4a8a" roughness={0.6} />
       </mesh>
       {/* Collar fold right */}
       <mesh position={[0.06, 1.22, -0.1]} rotation={[0.3, 0, -0.2]}>
         <boxGeometry args={[0.08, 0.05, 0.02]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+        <Mat color="#0a4a8a" roughness={0.6} />
       </mesh>
       {/* Polo buttons */}
       {[1.05, 1.12].map(y => (
         <mesh key={y} position={[0, y, -0.13]}>
           <sphereGeometry args={[0.012, 8, 8]} />
-          <meshStandardMaterial color="#e8e0d0" roughness={0.4} />
+          <Mat color="#e8e0d0" roughness={0.4} />
         </mesh>
       ))}
 
       {/* Yellow name tag — "VINNY" */}
       <mesh position={[0.14, 1.02, -0.13]}>
         <boxGeometry args={[0.14, 0.07, 0.01]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
       <Text position={[0.14, 1.02, -0.145]} rotation={[0, Math.PI, 0]} fontSize={0.03} color="#1a1a1a" anchorX="center" font={undefined}>
         VINNY
@@ -666,7 +681,7 @@ function VinnyCharacter() {
       {/* MANAGER badge — red rectangle on chest */}
       <mesh position={[-0.1, 1.08, -0.13]}>
         <boxGeometry args={[0.14, 0.055, 0.01]} />
-        <meshStandardMaterial color="#cc2222" emissive="#cc2222" emissiveIntensity={0.15} />
+        <Mat color="#cc2222" emissive="#cc2222" emissiveIntensity={0.15} />
       </mesh>
       <Text position={[-0.1, 1.08, -0.145]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#ffffff" anchorX="center" font={undefined}>
         MANAGER
@@ -675,45 +690,45 @@ function VinnyCharacter() {
       {/* Lanyard — cord around neck */}
       <mesh position={[-0.04, 1.15, -0.08]} rotation={[0, 0, 0.15]}>
         <boxGeometry args={[0.015, 0.25, 0.01]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.5} />
+        <Mat color="#1a3a6a" roughness={0.5} />
       </mesh>
       <mesh position={[0.04, 1.15, -0.08]} rotation={[0, 0, -0.15]}>
         <boxGeometry args={[0.015, 0.25, 0.01]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.5} />
+        <Mat color="#1a3a6a" roughness={0.5} />
       </mesh>
       {/* Lanyard card */}
       <mesh position={[0, 0.98, -0.1]}>
         <boxGeometry args={[0.08, 0.1, 0.01]} />
-        <meshStandardMaterial color="#f5f5f0" roughness={0.4} />
+        <Mat color="#f5f5f0" roughness={0.4} />
       </mesh>
       {/* Card stripe */}
       <mesh position={[0, 1.01, -0.106]}>
         <boxGeometry args={[0.07, 0.015, 0.005]} />
-        <meshStandardMaterial color="#1a3a6a" />
+        <Mat color="#1a3a6a" />
       </mesh>
 
       {/* Left arm (pivots from shoulder) */}
       <group ref={leftArmRef} position={[-0.26, 1.12, 0]}>
         <mesh position={[0, -0.22, 0]}>
           <boxGeometry args={[0.12, 0.45, 0.14]} />
-          <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+          <Mat color="#0a4a8a" roughness={0.7} />
         </mesh>
         {/* Left hand */}
         <mesh position={[0, -0.48, 0]}>
           <sphereGeometry args={[0.06, 8, 8]} />
-          <meshStandardMaterial color="#d4a574" roughness={0.8} />
+          <Mat color="#d4a574" roughness={0.8} />
         </mesh>
       </group>
       {/* Right arm (pivots from shoulder) */}
       <group ref={rightArmRef} position={[0.26, 1.12, 0]}>
         <mesh position={[0, -0.22, 0]}>
           <boxGeometry args={[0.12, 0.45, 0.14]} />
-          <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+          <Mat color="#0a4a8a" roughness={0.7} />
         </mesh>
         {/* Right hand */}
         <mesh position={[0, -0.48, 0]}>
           <sphereGeometry args={[0.06, 8, 8]} />
-          <meshStandardMaterial color="#d4a574" roughness={0.8} />
+          <Mat color="#d4a574" roughness={0.8} />
         </mesh>
       </group>
 
@@ -722,114 +737,114 @@ function VinnyCharacter() {
         {/* Head — slightly bigger */}
         <mesh position={[0, 0, 0]}>
           <sphereGeometry args={[0.23, 16, 16]} />
-          <meshStandardMaterial color="#d4a574" roughness={0.75} />
+          <Mat color="#d4a574" roughness={0.75} />
         </mesh>
         {/* Hair */}
         <mesh position={[0, 0.12, 0.02]}>
           <sphereGeometry args={[0.24, 16, 10]} />
-          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+          <Mat color="#2a1a0a" roughness={0.9} />
         </mesh>
 
         {/* Glasses — wire frames */}
         {/* Left lens ring */}
         <mesh position={[-0.08, 0.02, -0.2]} rotation={[0, 0, 0]}>
           <torusGeometry args={[0.04, 0.006, 8, 16]} />
-          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+          <Mat color="#888888" roughness={0.3} metalness={0.6} />
         </mesh>
         {/* Right lens ring */}
         <mesh position={[0.08, 0.02, -0.2]} rotation={[0, 0, 0]}>
           <torusGeometry args={[0.04, 0.006, 8, 16]} />
-          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+          <Mat color="#888888" roughness={0.3} metalness={0.6} />
         </mesh>
         {/* Bridge between lenses */}
         <mesh position={[0, 0.02, -0.22]}>
           <boxGeometry args={[0.04, 0.006, 0.006]} />
-          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+          <Mat color="#888888" roughness={0.3} metalness={0.6} />
         </mesh>
         {/* Left temple arm */}
         <mesh position={[-0.12, 0.02, -0.14]} rotation={[0, 0.4, 0]}>
           <boxGeometry args={[0.005, 0.005, 0.14]} />
-          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+          <Mat color="#888888" roughness={0.3} metalness={0.6} />
         </mesh>
         {/* Right temple arm */}
         <mesh position={[0.12, 0.02, -0.14]} rotation={[0, -0.4, 0]}>
           <boxGeometry args={[0.005, 0.005, 0.14]} />
-          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+          <Mat color="#888888" roughness={0.3} metalness={0.6} />
         </mesh>
         {/* Lens tint (subtle) */}
         <mesh position={[-0.08, 0.02, -0.2]}>
           <circleGeometry args={[0.038, 16]} />
-          <meshStandardMaterial color="#e8e8ff" transparent opacity={0.15} />
+          <Mat color="#e8e8ff" transparent opacity={0.15} />
         </mesh>
         <mesh position={[0.08, 0.02, -0.2]}>
           <circleGeometry args={[0.038, 16]} />
-          <meshStandardMaterial color="#e8e8ff" transparent opacity={0.15} />
+          <Mat color="#e8e8ff" transparent opacity={0.15} />
         </mesh>
 
         {/* Eyes (behind glasses) */}
         <mesh position={[-0.08, 0.02, -0.19]}>
           <sphereGeometry args={[0.03, 8, 8]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+          <Mat color="#ffffff" roughness={0.3} />
         </mesh>
         <mesh position={[0.08, 0.02, -0.19]}>
           <sphereGeometry args={[0.03, 8, 8]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+          <Mat color="#ffffff" roughness={0.3} />
         </mesh>
         {/* Pupils */}
         <mesh position={[-0.08, 0.02, -0.22]}>
           <sphereGeometry args={[0.015, 8, 8]} />
-          <meshStandardMaterial color="#1a1a1a" />
+          <Mat color="#1a1a1a" />
         </mesh>
         <mesh position={[0.08, 0.02, -0.22]}>
           <sphereGeometry args={[0.015, 8, 8]} />
-          <meshStandardMaterial color="#1a1a1a" />
+          <Mat color="#1a1a1a" />
         </mesh>
 
         {/* Bigger mustache — curved, more prominent */}
         <mesh position={[0, -0.08, -0.2]}>
           <boxGeometry args={[0.18, 0.05, 0.05]} />
-          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+          <Mat color="#2a1a0a" roughness={0.9} />
         </mesh>
         {/* Mustache curl left */}
         <mesh position={[-0.1, -0.09, -0.19]} rotation={[0, 0, -0.3]}>
           <boxGeometry args={[0.04, 0.03, 0.04]} />
-          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+          <Mat color="#2a1a0a" roughness={0.9} />
         </mesh>
         {/* Mustache curl right */}
         <mesh position={[0.1, -0.09, -0.19]} rotation={[0, 0, 0.3]}>
           <boxGeometry args={[0.04, 0.03, 0.04]} />
-          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+          <Mat color="#2a1a0a" roughness={0.9} />
         </mesh>
 
         {/* Wider smile */}
         <mesh position={[0, -0.12, -0.2]}>
           <boxGeometry args={[0.12, 0.025, 0.03]} />
-          <meshStandardMaterial color="#c07060" roughness={0.8} />
+          <Mat color="#c07060" roughness={0.8} />
         </mesh>
         {/* Smile corners (upturned) */}
         <mesh position={[-0.06, -0.115, -0.2]} rotation={[0, 0, -0.3]}>
           <boxGeometry args={[0.03, 0.015, 0.02]} />
-          <meshStandardMaterial color="#c07060" roughness={0.8} />
+          <Mat color="#c07060" roughness={0.8} />
         </mesh>
         <mesh position={[0.06, -0.115, -0.2]} rotation={[0, 0, 0.3]}>
           <boxGeometry args={[0.03, 0.015, 0.02]} />
-          <meshStandardMaterial color="#c07060" roughness={0.8} />
+          <Mat color="#c07060" roughness={0.8} />
         </mesh>
 
         {/* Nose */}
         <mesh position={[0, -0.04, -0.22]}>
           <sphereGeometry args={[0.025, 8, 8]} />
-          <meshStandardMaterial color="#c49a6a" roughness={0.8} />
+          <Mat color="#c49a6a" roughness={0.8} />
         </mesh>
 
         {/* Ears */}
         <mesh position={[-0.22, 0, 0]}>
           <sphereGeometry args={[0.04, 8, 8]} />
-          <meshStandardMaterial color="#d4a574" roughness={0.75} />
+          <Mat color="#d4a574" roughness={0.75} />
         </mesh>
         <mesh position={[0.22, 0, 0]}>
           <sphereGeometry args={[0.04, 8, 8]} />
-          <meshStandardMaterial color="#d4a574" roughness={0.75} />
+          <Mat color="#d4a574" roughness={0.75} />
         </mesh>
       </group>
 
@@ -841,7 +856,7 @@ function VinnyCharacter() {
       {/* Shadow on floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
         <circleGeometry args={[0.3, 16]} />
-        <meshStandardMaterial color="#000000" transparent opacity={0.2} />
+        <Mat color="#000000" transparent opacity={0.2} />
       </mesh>
     </group>
   );
@@ -928,47 +943,47 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
       {/* Legs */}
       <mesh position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <meshStandardMaterial color="#3a3a4a" roughness={0.8} />
+        <Mat color="#3a3a4a" roughness={0.8} />
       </mesh>
       <mesh position={[0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <meshStandardMaterial color="#3a3a4a" roughness={0.8} />
+        <Mat color="#3a3a4a" roughness={0.8} />
       </mesh>
       {/* Body — slightly varied proportions */}
       <mesh position={[0, 0.8, 0]}>
         <boxGeometry args={[0.34, 0.44, 0.22]} />
-        <meshStandardMaterial color={shirtColor} roughness={0.7} />
+        <Mat color={shirtColor} roughness={0.7} />
       </mesh>
       {/* Left arm with VHS tape in hand */}
       <mesh position={[-0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <meshStandardMaterial color={shirtColor} roughness={0.7} />
+        <Mat color={shirtColor} roughness={0.7} />
       </mesh>
       {/* Left hand */}
       <mesh position={[-0.22, 0.58, 0]}>
         <sphereGeometry args={[0.04, 8, 8]} />
-        <meshStandardMaterial color={skinTone} roughness={0.8} />
+        <Mat color={skinTone} roughness={0.8} />
       </mesh>
       {/* VHS tape in left hand */}
       <mesh position={[-0.22, 0.52, -0.02]}>
         <boxGeometry args={[0.1, 0.06, 0.02]} />
-        <meshStandardMaterial color={vhsColor} roughness={0.6} />
+        <Mat color={vhsColor} roughness={0.6} />
       </mesh>
       {/* VHS label stripe */}
       <mesh position={[-0.22, 0.52, -0.035]}>
         <boxGeometry args={[0.08, 0.02, 0.005]} />
-        <meshStandardMaterial color="#f0f0e0" roughness={0.5} />
+        <Mat color="#f0f0e0" roughness={0.5} />
       </mesh>
 
       {/* Right arm */}
       <mesh position={[0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <meshStandardMaterial color={shirtColor} roughness={0.7} />
+        <Mat color={shirtColor} roughness={0.7} />
       </mesh>
       {/* Right hand */}
       <mesh position={[0.22, 0.58, 0]}>
         <sphereGeometry args={[0.04, 8, 8]} />
-        <meshStandardMaterial color={skinTone} roughness={0.8} />
+        <Mat color={skinTone} roughness={0.8} />
       </mesh>
       {/* Shopping bag (some customers) */}
       {hasBag && (
@@ -976,12 +991,12 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
           {/* Bag body */}
           <mesh position={[0, 0, 0]}>
             <boxGeometry args={[0.1, 0.14, 0.06]} />
-            <meshStandardMaterial color="#e8d8b0" roughness={0.8} />
+            <Mat color="#e8d8b0" roughness={0.8} />
           </mesh>
           {/* Bag handle */}
           <mesh position={[0, 0.08, 0]}>
             <torusGeometry args={[0.03, 0.005, 6, 8, Math.PI]} />
-            <meshStandardMaterial color="#c0b090" roughness={0.7} />
+            <Mat color="#c0b090" roughness={0.7} />
           </mesh>
         </group>
       )}
@@ -989,33 +1004,33 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
       {/* Head — slightly taller */}
       <mesh position={[0, 1.2, 0]}>
         <sphereGeometry args={[0.16, 12, 14]} />
-        <meshStandardMaterial color={skinTone} roughness={0.75} />
+        <Mat color={skinTone} roughness={0.75} />
       </mesh>
       {/* Head top (taller shape) */}
       <mesh position={[0, 1.26, 0]}>
         <sphereGeometry args={[0.13, 12, 8]} />
-        <meshStandardMaterial color={skinTone} roughness={0.75} />
+        <Mat color={skinTone} roughness={0.75} />
       </mesh>
       {/* Hair */}
       <mesh position={[0, 1.34, 0.01]}>
         <sphereGeometry args={[0.15, 12, 8]} />
-        <meshStandardMaterial color={hairColor} roughness={0.9} />
+        <Mat color={hairColor} roughness={0.9} />
       </mesh>
 
       {/* Simple face — two dot eyes */}
       <mesh position={[-0.05, 1.22, -0.14]}>
         <sphereGeometry args={[0.018, 8, 8]} />
-        <meshStandardMaterial color="#1a1a1a" />
+        <Mat color="#1a1a1a" />
       </mesh>
       <mesh position={[0.05, 1.22, -0.14]}>
         <sphereGeometry args={[0.018, 8, 8]} />
-        <meshStandardMaterial color="#1a1a1a" />
+        <Mat color="#1a1a1a" />
       </mesh>
 
       {/* Shadow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
         <circleGeometry args={[0.2, 12]} />
-        <meshStandardMaterial color="#000000" transparent opacity={0.15} />
+        <Mat color="#000000" transparent opacity={0.15} />
       </mesh>
     </group>
   );
@@ -1084,67 +1099,67 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       {/* Legs — Dark jeans */}
       <mesh position={[-0.08, 0.3, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
         <boxGeometry args={[0.12, 0.6, 0.13]} />
-        <meshStandardMaterial color="#1a3050" roughness={0.85} />
+        <Mat color="#1a3050" roughness={0.85} />
       </mesh>
       <mesh position={[0.08, 0.3, 0]}>
         <boxGeometry args={[0.12, 0.6, 0.13]} />
-        <meshStandardMaterial color="#1a3050" roughness={0.85} />
+        <Mat color="#1a3050" roughness={0.85} />
       </mesh>
 
       {/* Sneakers — black with white sole */}
       <mesh position={[-0.08, 0.03, -0.02]}>
         <boxGeometry args={[0.13, 0.07, 0.18]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+        <Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
       <mesh position={[-0.08, 0.01, -0.02]}>
         <boxGeometry args={[0.14, 0.03, 0.19]} />
-        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+        <Mat color="#f0f0f0" roughness={0.6} />
       </mesh>
       <mesh position={[0.08, 0.03, -0.02]}>
         <boxGeometry args={[0.13, 0.07, 0.18]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+        <Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
       <mesh position={[0.08, 0.01, -0.02]}>
         <boxGeometry args={[0.14, 0.03, 0.19]} />
-        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+        <Mat color="#f0f0f0" roughness={0.6} />
       </mesh>
 
       {/* Belt */}
       <mesh position={[0, 0.6, 0]}>
         <boxGeometry args={[0.3, 0.04, 0.16]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+        <Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
 
       {/* Torso — Blockbuster blue polo (same as Vinny) */}
       <mesh position={[0, 0.85, 0]}>
         <boxGeometry args={[0.36, 0.5, 0.22]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+        <Mat color="#0a4a8a" roughness={0.7} />
       </mesh>
       {/* Yellow accent stripe on shirt */}
       <mesh position={[0, 0.75, -0.115]}>
         <boxGeometry args={[0.34, 0.04, 0.01]} />
-        <meshStandardMaterial color="#ffd700" roughness={0.5} />
+        <Mat color="#ffd700" roughness={0.5} />
       </mesh>
       {/* Polo collar */}
       <mesh position={[0, 1.08, -0.05]}>
         <boxGeometry args={[0.2, 0.05, 0.14]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+        <Mat color="#0a4a8a" roughness={0.6} />
       </mesh>
       {/* Collar fold left */}
       <mesh position={[-0.05, 1.1, -0.09]} rotation={[0.3, 0, 0.2]}>
         <boxGeometry args={[0.07, 0.04, 0.02]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+        <Mat color="#0a4a8a" roughness={0.6} />
       </mesh>
       {/* Collar fold right */}
       <mesh position={[0.05, 1.1, -0.09]} rotation={[0.3, 0, -0.2]}>
         <boxGeometry args={[0.07, 0.04, 0.02]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+        <Mat color="#0a4a8a" roughness={0.6} />
       </mesh>
 
       {/* Yellow name tag — "CHARLIE" */}
       <mesh position={[0.12, 0.92, -0.12]}>
         <boxGeometry args={[0.14, 0.06, 0.01]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
       <Text position={[0.12, 0.92, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#1a1a1a" anchorX="center" font={undefined}>
         CHARLIE
@@ -1153,7 +1168,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       {/* STAFF badge — Blockbuster yellow on chest */}
       <mesh position={[-0.09, 0.97, -0.12]}>
         <boxGeometry args={[0.12, 0.05, 0.01]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} />
       </mesh>
       <Text position={[-0.09, 0.97, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.022} color="#ffffff" anchorX="center" font={undefined}>
         STAFF
@@ -1162,22 +1177,22 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       {/* Left arm */}
       <mesh position={[-0.24, 0.82, 0]}>
         <boxGeometry args={[0.11, 0.4, 0.12]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+        <Mat color="#0a4a8a" roughness={0.7} />
       </mesh>
       {/* Left hand */}
       <mesh position={[-0.24, 0.58, 0]}>
         <sphereGeometry args={[0.05, 8, 8]} />
-        <meshStandardMaterial color="#e8c4a0" roughness={0.8} />
+        <Mat color="#e8c4a0" roughness={0.8} />
       </mesh>
       {/* Right arm */}
       <mesh position={[0.24, 0.82, 0]}>
         <boxGeometry args={[0.11, 0.4, 0.12]} />
-        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+        <Mat color="#0a4a8a" roughness={0.7} />
       </mesh>
       {/* Right hand */}
       <mesh position={[0.24, 0.58, 0]}>
         <sphereGeometry args={[0.05, 8, 8]} />
-        <meshStandardMaterial color="#e8c4a0" roughness={0.8} />
+        <Mat color="#e8c4a0" roughness={0.8} />
       </mesh>
 
       {/* Head group */}
@@ -1185,115 +1200,115 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
         {/* Head — slightly smaller than Vinny */}
         <mesh position={[0, 0, 0]}>
           <sphereGeometry args={[0.2, 16, 16]} />
-          <meshStandardMaterial color="#e8c4a0" roughness={0.75} />
+          <Mat color="#e8c4a0" roughness={0.75} />
         </mesh>
 
         {/* Baseball cap — brim + crown */}
         {/* Cap crown */}
         <mesh position={[0, 0.12, 0]} rotation={[0, 0, 0.08]}>
           <sphereGeometry args={[0.21, 16, 10]} />
-          <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+          <Mat color="#1a3a6a" roughness={0.6} />
         </mesh>
         {/* Cap brim — slightly tilted */}
         <mesh position={[0, 0.06, -0.18]} rotation={[0.15, 0, 0.06]}>
           <boxGeometry args={[0.22, 0.02, 0.12]} />
-          <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+          <Mat color="#1a3a6a" roughness={0.6} />
         </mesh>
 
         {/* Yellow accent on cap front */}
         <mesh position={[0, 0.08, -0.2]} rotation={[0.15, 0, 0]}>
           <boxGeometry args={[0.12, 0.04, 0.01]} />
-          <meshStandardMaterial color="#ffd700" roughness={0.5} />
+          <Mat color="#ffd700" roughness={0.5} />
         </mesh>
 
         {/* Blonde/light brown hair peeking out from cap sides */}
         <mesh position={[-0.18, -0.02, 0]}>
           <boxGeometry args={[0.06, 0.1, 0.12]} />
-          <meshStandardMaterial color="#c4a45a" roughness={0.9} />
+          <Mat color="#c4a45a" roughness={0.9} />
         </mesh>
         <mesh position={[0.18, -0.02, 0]}>
           <boxGeometry args={[0.06, 0.1, 0.12]} />
-          <meshStandardMaterial color="#c4a45a" roughness={0.9} />
+          <Mat color="#c4a45a" roughness={0.9} />
         </mesh>
         {/* Hair at back of cap */}
         <mesh position={[0, -0.02, 0.12]}>
           <boxGeometry args={[0.2, 0.1, 0.06]} />
-          <meshStandardMaterial color="#c4a45a" roughness={0.9} />
+          <Mat color="#c4a45a" roughness={0.9} />
         </mesh>
 
         {/* Eyes */}
         <mesh position={[-0.07, -0.02, -0.17]}>
           <sphereGeometry args={[0.025, 8, 8]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+          <Mat color="#ffffff" roughness={0.3} />
         </mesh>
         <mesh position={[0.07, -0.02, -0.17]}>
           <sphereGeometry args={[0.025, 8, 8]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+          <Mat color="#ffffff" roughness={0.3} />
         </mesh>
         {/* Pupils */}
         <mesh position={[-0.07, -0.02, -0.195]}>
           <sphereGeometry args={[0.013, 8, 8]} />
-          <meshStandardMaterial color="#1a1a1a" />
+          <Mat color="#1a1a1a" />
         </mesh>
         <mesh position={[0.07, -0.02, -0.195]}>
           <sphereGeometry args={[0.013, 8, 8]} />
-          <meshStandardMaterial color="#1a1a1a" />
+          <Mat color="#1a1a1a" />
         </mesh>
 
         {/* No mustache — just a smile */}
         <mesh position={[0, -0.1, -0.18]}>
           <boxGeometry args={[0.1, 0.02, 0.02]} />
-          <meshStandardMaterial color="#c07060" roughness={0.8} />
+          <Mat color="#c07060" roughness={0.8} />
         </mesh>
         {/* Smile corners */}
         <mesh position={[-0.05, -0.095, -0.18]} rotation={[0, 0, -0.3]}>
           <boxGeometry args={[0.025, 0.012, 0.015]} />
-          <meshStandardMaterial color="#c07060" roughness={0.8} />
+          <Mat color="#c07060" roughness={0.8} />
         </mesh>
         <mesh position={[0.05, -0.095, -0.18]} rotation={[0, 0, 0.3]}>
           <boxGeometry args={[0.025, 0.012, 0.015]} />
-          <meshStandardMaterial color="#c07060" roughness={0.8} />
+          <Mat color="#c07060" roughness={0.8} />
         </mesh>
 
         {/* Nose */}
         <mesh position={[0, -0.05, -0.19]}>
           <sphereGeometry args={[0.02, 8, 8]} />
-          <meshStandardMaterial color="#d4a574" roughness={0.8} />
+          <Mat color="#d4a574" roughness={0.8} />
         </mesh>
 
         {/* Ears */}
         <mesh position={[-0.19, 0, 0]}>
           <sphereGeometry args={[0.035, 8, 8]} />
-          <meshStandardMaterial color="#e8c4a0" roughness={0.75} />
+          <Mat color="#e8c4a0" roughness={0.75} />
         </mesh>
         <mesh position={[0.19, 0, 0]}>
           <sphereGeometry args={[0.035, 8, 8]} />
-          <meshStandardMaterial color="#e8c4a0" roughness={0.75} />
+          <Mat color="#e8c4a0" roughness={0.75} />
         </mesh>
 
         {/* Headphones around neck */}
         {/* Left earpiece */}
         <mesh position={[-0.16, -0.18, -0.02]}>
           <cylinderGeometry args={[0.04, 0.04, 0.025, 12]} />
-          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+          <Mat color="#2a2a2a" roughness={0.4} />
         </mesh>
         <mesh position={[-0.16, -0.18, -0.02]}>
           <cylinderGeometry args={[0.03, 0.03, 0.03, 12]} />
-          <meshStandardMaterial color="#444444" roughness={0.3} />
+          <Mat color="#444444" roughness={0.3} />
         </mesh>
         {/* Right earpiece */}
         <mesh position={[0.16, -0.18, -0.02]}>
           <cylinderGeometry args={[0.04, 0.04, 0.025, 12]} />
-          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+          <Mat color="#2a2a2a" roughness={0.4} />
         </mesh>
         <mesh position={[0.16, -0.18, -0.02]}>
           <cylinderGeometry args={[0.03, 0.03, 0.03, 12]} />
-          <meshStandardMaterial color="#444444" roughness={0.3} />
+          <Mat color="#444444" roughness={0.3} />
         </mesh>
         {/* Headband connecting earpieces (arches over head/behind neck) */}
         <mesh position={[0, -0.12, 0.08]} rotation={[0.3, 0, 0]}>
           <torusGeometry args={[0.16, 0.012, 8, 16, Math.PI]} />
-          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+          <Mat color="#2a2a2a" roughness={0.4} />
         </mesh>
       </group>
 
@@ -1308,7 +1323,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       {/* Shadow on floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
         <circleGeometry args={[0.25, 16]} />
-        <meshStandardMaterial color="#000000" transparent opacity={0.18} />
+        <Mat color="#000000" transparent opacity={0.18} />
       </mesh>
     </group>
   );
@@ -1340,25 +1355,25 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
       {/* Shelf unit — centered, not full wall */}
       <mesh position={[0, 1.0, 0]}>
         <boxGeometry args={[8, 2.0, 0.3]} />
-        <meshStandardMaterial color={SHELF_COLOR} roughness={0.8} />
+        <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
       {/* Top */}
       <mesh position={[0, 2.02, 0]}>
         <boxGeometry args={[8.2, 0.05, 0.35]} />
-        <meshStandardMaterial color="#8a6838" roughness={0.5} metalness={0.05} />
+        <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
       {/* Shelf dividers */}
       {[1.5, 1.0, 0.5, 0.02].map((y, i) => (
-        <mesh key={i} position={[0, y, 0]}><boxGeometry args={[7.8, 0.03, 0.28]} /><meshStandardMaterial color="#6a4226" roughness={0.8} /></mesh>
+        <mesh key={i} position={[0, y, 0]}><boxGeometry args={[7.8, 0.03, 0.28]} /><Mat color="#6a4226" roughness={0.8} /></mesh>
       ))}
       {/* Side panels */}
-      <mesh position={[-4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><meshStandardMaterial color="#4a2818" roughness={0.8} /></mesh>
-      <mesh position={[4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><meshStandardMaterial color="#4a2818" roughness={0.8} /></mesh>
+      <mesh position={[-4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><Mat color="#4a2818" roughness={0.8} /></mesh>
+      <mesh position={[4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><Mat color="#4a2818" roughness={0.8} /></mesh>
 
       {/* BIG "NEW RELEASES" illuminated sign above */}
       <mesh position={[0, 2.6, 0.05]}>
         <boxGeometry args={[6, 0.5, 0.06]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.5} />
+        <Mat color="#1a3a6a" roughness={0.5} />
       </mesh>
       <Text position={[0, 2.6, 0.09]} fontSize={0.22} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
         ★ NEW RELEASES ★
@@ -1388,7 +1403,7 @@ function NeonSign({ isMobile }: { isMobile?: boolean }) {
       {/* Sign backing */}
       <mesh position={[0, 0, -0.02]}>
         <boxGeometry args={[6, 0.4, 0.04]} />
-        <meshStandardMaterial color="#0a1830" roughness={0.5} />
+        <Mat color="#0a1830" roughness={0.5} />
       </mesh>
       {/* Text facing into room (+z toward player) */}
       <Text
@@ -1424,17 +1439,17 @@ function TVScreen({ isMobile }: { isMobile?: boolean }) {
       {/* CRT TV body — chunky retro shape */}
       <mesh userData={{ interactType: "tv", label: "Friday Night Pick" }}>
         <boxGeometry args={[1.2, 0.9, 0.4]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.5} />
+        <Mat color="#2a2a2a" roughness={0.5} />
       </mesh>
       {/* Rounded bezel */}
       <mesh position={[0, 0, 0.18]}>
         <boxGeometry args={[1.1, 0.8, 0.05]} />
-        <meshStandardMaterial color="#1a1a1a" roughness={0.4} />
+        <Mat color="#1a1a1a" roughness={0.4} />
       </mesh>
       {/* Screen — animated */}
       <mesh position={[0, 0, 0.21]}>
         <planeGeometry args={[0.95, 0.65]} />
-        <meshStandardMaterial ref={matRef} color="#000000" emissive="#1a4a6a" emissiveIntensity={0.8} side={THREE.DoubleSide} />
+        <Mat ref={matRef} color="#000000" emissive="#1a4a6a" emissiveIntensity={0.8} side={THREE.DoubleSide} />
       </mesh>
       {/* VHS tracking lines — thin horizontal stripes */}
       {[-0.2, -0.05, 0.15].map((dy, i) => (
@@ -1448,12 +1463,12 @@ function TVScreen({ isMobile }: { isMobile?: boolean }) {
       {/* TV stand bracket */}
       <mesh position={[0, -0.55, -0.05]}>
         <boxGeometry args={[0.15, 0.2, 0.08]} />
-        <meshStandardMaterial color="#333" roughness={0.5} metalness={0.3} />
+        <Mat color="#333" roughness={0.5} metalness={0.3} />
       </mesh>
       {/* Wall mount plate */}
       <mesh position={[0, 0, -0.21]}>
         <boxGeometry args={[0.3, 0.3, 0.02]} />
-        <meshStandardMaterial color="#444" roughness={0.5} metalness={0.4} />
+        <Mat color="#444" roughness={0.5} metalness={0.4} />
       </mesh>
     </group>
   );
@@ -1466,17 +1481,17 @@ function GumballMachine() {
       {/* Base pedestal */}
       <mesh position={[0, 0.4, 0]}>
         <cylinderGeometry args={[0.12, 0.15, 0.8, 12]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.5} metalness={0.2} />
+        <Mat color="#cc2222" roughness={0.5} metalness={0.2} />
       </mesh>
       {/* Base plate */}
       <mesh position={[0, 0.01, 0]}>
         <cylinderGeometry args={[0.18, 0.18, 0.02, 12]} />
-        <meshStandardMaterial color="#222" roughness={0.5} />
+        <Mat color="#222" roughness={0.5} />
       </mesh>
       {/* Globe (glass sphere with gumballs) */}
       <mesh position={[0, 1.0, 0]}>
         <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color="#ff4444" transparent opacity={0.3} roughness={0.05} metalness={0.1} />
+        <Mat color="#ff4444" transparent opacity={0.3} roughness={0.05} metalness={0.1} />
       </mesh>
       {/* Gumballs inside — colored spheres */}
       {[
@@ -1485,23 +1500,23 @@ function GumballMachine() {
       ].map(([x, y, z, c], i) => (
         <mesh key={`gb-${i}`} position={[x as number, y as number, z as number]}>
           <sphereGeometry args={[0.04, 8, 8]} />
-          <meshStandardMaterial color={c as string} roughness={0.3} />
+          <Mat color={c as string} roughness={0.3} />
         </mesh>
       ))}
       {/* Metal cap on top */}
       <mesh position={[0, 1.22, 0]}>
         <cylinderGeometry args={[0.08, 0.2, 0.05, 12]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.5} metalness={0.2} />
+        <Mat color="#cc2222" roughness={0.5} metalness={0.2} />
       </mesh>
       {/* Coin slot */}
       <mesh position={[0, 0.75, -0.13]}>
         <boxGeometry args={[0.06, 0.04, 0.02]} />
-        <meshStandardMaterial color="#888" roughness={0.3} metalness={0.6} />
+        <Mat color="#888" roughness={0.3} metalness={0.6} />
       </mesh>
       {/* Dispensing tray */}
       <mesh position={[0, 0.15, -0.15]}>
         <boxGeometry args={[0.1, 0.04, 0.06]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.5} />
+        <Mat color="#cc2222" roughness={0.5} />
       </mesh>
     </group>
   );
@@ -1514,12 +1529,12 @@ function SecurityDome({ position }: { position: [number, number, number] }) {
       {/* Mounting plate */}
       <mesh position={[0, 0.02, 0]}>
         <cylinderGeometry args={[0.15, 0.15, 0.02, 16]} />
-        <meshStandardMaterial color="#333" roughness={0.5} />
+        <Mat color="#333" roughness={0.5} />
       </mesh>
       {/* Dome — dark reflective */}
       <mesh>
         <sphereGeometry args={[0.15, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#111" roughness={0.05} metalness={0.9} />
+        <Mat color="#111" roughness={0.05} metalness={0.9} />
       </mesh>
     </group>
   );
@@ -1531,7 +1546,7 @@ function ShelfNeonStrip({ position, color, width = 2.6, isMobile }: { position: 
     <group position={position}>
       <mesh>
         <boxGeometry args={[width, 0.02, 0.02]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} />
+        <Mat color={color} emissive={color} emissiveIntensity={0.8} />
       </mesh>
       {!isMobile && <pointLight position={[0, -0.1, 0]} color={color} intensity={0.3} distance={1.5} />}
     </group>
@@ -1593,17 +1608,17 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
       {/* Hanging pole from ceiling */}
       <mesh position={[0, ROOM_H - 0.35, 0]}>
         <boxGeometry args={[0.02, 0.7, 0.02]} />
-        <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.3} />
+        <Mat color="#888888" metalness={0.5} roughness={0.3} />
       </mesh>
       {/* Dark border frame (behind yellow sign) */}
       <mesh position={[0, 2.8, 0]}>
         <boxGeometry args={[2.3, 0.36, 0.02]} />
-        <meshStandardMaterial color="#0a1830" roughness={0.6} />
+        <Mat color="#0a1830" roughness={0.6} />
       </mesh>
       {/* Sign body — Blockbuster yellow (in front of border) */}
       <mesh position={[0, 2.8, 0]}>
         <boxGeometry args={[2.2, 0.3, 0.03]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} />
       </mesh>
       {/* Text — front side (facing +z, toward entrance) */}
       <Text
@@ -1677,7 +1692,7 @@ function WallPoster({ x, y, z, rotY = 0, title }: { x: number; y: number; z: num
       {/* Frame */}
       <mesh>
         <boxGeometry args={[1.0, 1.4, 0.04]} />
-        <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
+        <Mat color="#1a1a1a" roughness={0.5} />
       </mesh>
       {/* Poster art — in front of frame, facing into room */}
       <mesh position={[0, 0, 0.03]}>
@@ -1719,25 +1734,25 @@ function FloorRug() {
       {/* Main entrance rug */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 4]}>
         <planeGeometry args={[3, 2]} />
-        <meshStandardMaterial color="#4a2030" roughness={0.95} />
+        <Mat color="#4a2030" roughness={0.95} />
       </mesh>
       {/* Carpet wear paths — darker strips along main aisles */}
       {/* Center aisle (main walkway) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
         <planeGeometry args={[1.8, ROOM_D - 2]} />
-        <meshStandardMaterial color="#222840" roughness={0.98} />
+        <Mat color="#222840" roughness={0.98} />
       </mesh>
       {/* Cross aisles between shelf rows */}
       {[-1.5, 1.5].map((z) => (
         <mesh key={`cross-${z}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, z]}>
           <planeGeometry args={[ROOM_W - 6, 1.2]} />
-          <meshStandardMaterial color="#242844" roughness={0.98} />
+          <Mat color="#242844" roughness={0.98} />
         </mesh>
       ))}
       {/* Path to counter area */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[4, 0.006, 4]}>
         <planeGeometry args={[3, 3]} />
-        <meshStandardMaterial color="#252848" roughness={0.98} />
+        <Mat color="#252848" roughness={0.98} />
       </mesh>
     </group>
   );
@@ -1747,7 +1762,7 @@ function Baseboard({ pos, rot, width }: { pos: [number, number, number]; rot: [n
   return (
     <mesh position={pos} rotation={rot}>
       <boxGeometry args={[width, 0.15, 0.05]} />
-      <meshStandardMaterial color="#0a1428" roughness={0.8} />
+      <Mat color="#0a1428" roughness={0.8} />
     </mesh>
   );
 }
@@ -1783,28 +1798,28 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
       {/* Shelf unit — back panel */}
       <mesh position={[0, 0.85, -0.06]}>
         <boxGeometry args={[2.5, 1.7, 0.04]} />
-        <meshStandardMaterial color="#3a2010" roughness={0.85} />
+        <Mat color="#3a2010" roughness={0.85} />
       </mesh>
 
       {/* Three shelf boards */}
       {TIER_YS.map((y, i) => (
         <mesh key={`shelf-${i}`} position={[0, y - 0.08, 0]}>
           <boxGeometry args={[2.5, 0.04, 0.25]} />
-          <meshStandardMaterial color="#5a3a1a" roughness={0.7} />
+          <Mat color="#5a3a1a" roughness={0.7} />
         </mesh>
       ))}
 
       {/* Top cap board */}
       <mesh position={[0, 1.72, 0]}>
         <boxGeometry args={[2.5, 0.04, 0.25]} />
-        <meshStandardMaterial color="#5a3a1a" roughness={0.7} />
+        <Mat color="#5a3a1a" roughness={0.7} />
       </mesh>
 
       {/* Side panels */}
       {[-1.25, 1.25].map((x, i) => (
         <mesh key={`side-${i}`} position={[x, 0.85, 0]}>
           <boxGeometry args={[0.04, 1.7, 0.25]} />
-          <meshStandardMaterial color="#4a2a14" roughness={0.8} />
+          <Mat color="#4a2a14" roughness={0.8} />
         </mesh>
       ))}
 
@@ -1812,7 +1827,7 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
       <group position={[0, 1.88, 0]}>
         <mesh>
           <boxGeometry args={[1.6, 0.22, 0.04]} />
-          <meshStandardMaterial color="#1a1a2e" roughness={0.6} />
+          <Mat color="#1a1a2e" roughness={0.6} />
         </mesh>
         <Text
           position={[0, 0, 0.025]}
@@ -1841,7 +1856,7 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
                 {/* Colored pedestal */}
                 <mesh position={[0, 0, 0]}>
                   <boxGeometry args={[0.18, 0.06, 0.18]} />
-                  <meshStandardMaterial
+                  <Mat
                     color={RARITY_COLORS[prop.rarity] || "#888888"}
                     emissive={RARITY_COLORS[prop.rarity] || "#888888"}
                     emissiveIntensity={0.15}
@@ -1877,7 +1892,7 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
                 {/* Locked dark box */}
                 <mesh position={[0, 0.075, 0]}>
                   <boxGeometry args={[0.15, 0.15, 0.15]} />
-                  <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
+                  <Mat color="#1a1a1a" roughness={0.9} />
                 </mesh>
                 {/* Question mark */}
                 <Text
@@ -1904,64 +1919,65 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
 
 export function Store({ isMobile }: { isMobile?: boolean }) {
   return (
+    <MobileCtx.Provider value={!!isMobile}>
     <group>
       {/* Floor — blue commercial carpet like Blockbuster */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[ROOM_W, ROOM_D]} />
-        <meshStandardMaterial color="#1a2248" roughness={0.95} />
+        <Mat color="#1a2248" roughness={0.95} />
       </mesh>
       {/* Entrance tile area — different floor near the door */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, ROOM_D / 2 - 1]}>
         <planeGeometry args={[6, 2]} />
-        <meshStandardMaterial color="#3a3a3a" roughness={0.8} />
+        <Mat color="#3a3a3a" roughness={0.8} />
       </mesh>
       {/* Floor light pools */}
       {[-4, 0, 4].map((x, i) => (
         <mesh key={`fl${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.002, 0]}>
           <circleGeometry args={[3, 24]} />
-          <meshStandardMaterial color="#1e2850" roughness={0.9} transparent opacity={0.3} />
+          <Mat color="#1e2850" roughness={0.9} transparent opacity={0.3} />
         </mesh>
       ))}
 
       {/* Ceiling */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}>
         <planeGeometry args={[ROOM_W, ROOM_D]} />
-        <meshStandardMaterial color={CEILING_COLOR} roughness={0.9} />
+        <Mat color={CEILING_COLOR} roughness={0.9} />
       </mesh>
       {/* Ceiling drop-tile grid */}
       {Array.from({ length: Math.floor(18 / 1.2) + 1 }, (_, i) => -9 + i * 1.2).map(x => (
         <mesh key={`cgx${x}`} position={[x, ROOM_H - 0.01, 0]}>
           <boxGeometry args={[0.02, 0.01, ROOM_D]} />
-          <meshStandardMaterial color="#c0b8a8" />
+          <Mat color="#c0b8a8" />
         </mesh>
       ))}
       {Array.from({ length: Math.floor(12 / 1.2) + 1 }, (_, i) => -6 + i * 1.2).map(z => (
         <mesh key={`cgz${z}`} position={[0, ROOM_H - 0.01, z]}>
           <boxGeometry args={[ROOM_W, 0.01, 0.02]} />
-          <meshStandardMaterial color="#c0b8a8" />
+          <Mat color="#c0b8a8" />
         </mesh>
       ))}
 
       {/* Walls */}
       <mesh position={[0, ROOM_H / 2, -ROOM_D / 2]}>
         <planeGeometry args={[ROOM_W, ROOM_H]} />
-        <meshStandardMaterial color={WALL_COLOR} roughness={0.85} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
       <mesh position={[-6, ROOM_H / 2, ROOM_D / 2]}>
         <planeGeometry args={[8, ROOM_H]} />
-        <meshStandardMaterial color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
+        <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
       <mesh position={[6, ROOM_H / 2, ROOM_D / 2]}>
         <planeGeometry args={[8, ROOM_H]} />
-        <meshStandardMaterial color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
+        <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
       <mesh position={[-ROOM_W / 2, ROOM_H / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[ROOM_D, ROOM_H]} />
-        <meshStandardMaterial color={WALL_COLOR} roughness={0.85} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
       <mesh position={[ROOM_W / 2, ROOM_H / 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[ROOM_D, ROOM_H]} />
-        <meshStandardMaterial color={WALL_COLOR} roughness={0.85} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
 
       {/* Baseboards */}
@@ -1973,27 +1989,27 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Back wall stripe */}
       <mesh position={[0, 2.8, -ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[ROOM_W, 0.06, 0.02]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
       {/* Front wall — left section */}
       <mesh position={[-6, 2.8, ROOM_D / 2 - 0.02]}>
         <boxGeometry args={[8, 0.06, 0.02]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
       {/* Front wall — right section */}
       <mesh position={[6, 2.8, ROOM_D / 2 - 0.02]}>
         <boxGeometry args={[8, 0.06, 0.02]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
       {/* Left wall stripe */}
       <mesh position={[-ROOM_W / 2 + 0.02, 2.8, 0]} rotation={[0, Math.PI / 2, 0]}>
         <boxGeometry args={[ROOM_D, 0.06, 0.02]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
       {/* Right wall stripe */}
       <mesh position={[ROOM_W / 2 - 0.02, 2.8, 0]} rotation={[0, Math.PI / 2, 0]}>
         <boxGeometry args={[ROOM_D, 0.06, 0.02]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
 
       {isMobile ? (
@@ -2012,17 +2028,17 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
                 {/* Fixture housing */}
                 <mesh>
                   <boxGeometry args={[1.8, 0.05, 0.3]} />
-                  <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+                  <Mat color="#d0d0c8" roughness={0.6} />
                 </mesh>
                 {/* Fluorescent tube — emissive */}
                 <mesh position={[0, -0.04, 0]}>
                   <boxGeometry args={[1.6, 0.03, 0.08]} />
-                  <meshStandardMaterial color="#f0f8ff" emissive="#e0e8ff" emissiveIntensity={1.5} />
+                  <Mat color="#f0f8ff" emissive="#e0e8ff" emissiveIntensity={1.5} />
                 </mesh>
                 {/* Reflector panel */}
                 <mesh position={[0, -0.01, 0]}>
                   <boxGeometry args={[1.7, 0.01, 0.25]} />
-                  <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+                  <Mat color="#e8e8e0" metalness={0.3} roughness={0.2} />
                 </mesh>
               </group>
               <pointLight position={[fx, ROOM_H - 0.3, -1.5]} color="#e0e8ff" intensity={6} distance={12} />
@@ -2033,17 +2049,17 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
                 {/* Fixture housing */}
                 <mesh>
                   <boxGeometry args={[1.8, 0.05, 0.3]} />
-                  <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+                  <Mat color="#d0d0c8" roughness={0.6} />
                 </mesh>
                 {/* Fluorescent tube — warmer */}
                 <mesh position={[0, -0.04, 0]}>
                   <boxGeometry args={[1.6, 0.03, 0.08]} />
-                  <meshStandardMaterial color="#fff8e0" emissive="#fff4d0" emissiveIntensity={1.5} />
+                  <Mat color="#fff8e0" emissive="#fff4d0" emissiveIntensity={1.5} />
                 </mesh>
                 {/* Reflector panel */}
                 <mesh position={[0, -0.01, 0]}>
                   <boxGeometry args={[1.7, 0.01, 0.25]} />
-                  <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+                  <Mat color="#e8e8e0" metalness={0.3} roughness={0.2} />
                 </mesh>
               </group>
               <pointLight position={[fx, ROOM_H - 0.3, 2]} color="#fff4d0" intensity={6} distance={12} />
@@ -2056,15 +2072,15 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
               <group position={[fx, ROOM_H - 0.04, 0]}>
                 <mesh>
                   <boxGeometry args={[1.8, 0.05, 0.3]} />
-                  <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+                  <Mat color="#d0d0c8" roughness={0.6} />
                 </mesh>
                 <mesh position={[0, -0.04, 0]}>
                   <boxGeometry args={[1.6, 0.03, 0.08]} />
-                  <meshStandardMaterial color="#f0f4e8" emissive="#f0f0e0" emissiveIntensity={1.3} />
+                  <Mat color="#f0f4e8" emissive="#f0f0e0" emissiveIntensity={1.3} />
                 </mesh>
                 <mesh position={[0, -0.01, 0]}>
                   <boxGeometry args={[1.7, 0.01, 0.25]} />
-                  <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+                  <Mat color="#e8e8e0" metalness={0.3} roughness={0.2} />
                 </mesh>
               </group>
               <pointLight position={[fx, ROOM_H - 0.3, 0]} color="#f0eee0" intensity={5} distance={10} />
@@ -2098,16 +2114,12 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <Counter />
       <VinnyCharacter />
 
-      {/* NPCs + Charlie — skip on mobile (too many meshes crash WebGL) */}
-      {!isMobile && (
-        <>
-          <NPCCustomer startPos={[-4, 0, -5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
-          <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
-          <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />
-          <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />
-          <CharlieCharacter isMobile={false} />
-        </>
-      )}
+      {/* NPCs + Charlie */}
+      <NPCCustomer startPos={[-4, 0, -5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
+      <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
+      {!isMobile && <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
+      {!isMobile && <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
+      <CharlieCharacter isMobile={isMobile} />
 
       {/* New Releases wall display */}
       <NewReleasesWall isMobile={isMobile} />
@@ -2135,7 +2147,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[-ROOM_W / 2 + 0.12, 2.0, 2]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.5, 0.35, 0.03]} />
-          <meshStandardMaterial color="#0a1a3a" roughness={0.6} />
+          <Mat color="#0a1a3a" roughness={0.6} />
         </mesh>
         <Text position={[0, 0, 0.02]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>
           BE KIND, REWIND
@@ -2158,7 +2170,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[4, 2.0, ROOM_D / 2 - 0.1]} rotation={[0, Math.PI, 0]}>
         <mesh>
           <boxGeometry args={[1.2, 0.8, 0.03]} />
-          <meshStandardMaterial color="#0a1a3a" roughness={0.6} />
+          <Mat color="#0a1a3a" roughness={0.6} />
         </mesh>
         <Text position={[0, 0.2, 0.02]} fontSize={0.06} color="#ffffff" anchorX="center" font={undefined}>
           STORE HOURS
@@ -2227,8 +2239,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </group>
       ))}
 
-      {/* ── EXTERIOR (desktop only — too many meshes for mobile) ──── */}
-      {!isMobile && <>
+      {/* ── EXTERIOR ──────────────────────────────────────────── */}
       {/* ── Store front signage — "FRIDAY NIGHT VIDEO" ──────── */}
       <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
         {/* Sign backing */}
@@ -2387,13 +2398,12 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <meshBasicMaterial color="#555533" />
         </mesh>
       ))}
-      </>}
-      {/* End of desktop-only exterior */}
+      {/* ── End exterior ──── */}
 
       {/* Left storefront window (x = -5, between wall edge and door gap) */}
       <mesh position={[-5, ROOM_H / 2, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, ROOM_H - 0.5]} />
-        <meshStandardMaterial
+        <Mat
           color="#8ab8dd"
           transparent
           opacity={0.12}
@@ -2405,25 +2415,25 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Left window frame strips */}
       <mesh position={[-2.2, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
       <mesh position={[-7.8, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
       <mesh position={[-5, ROOM_H - 0.2, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
       <mesh position={[-5, 0.3, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
 
       {/* Right storefront window (x = 5, between door gap and wall edge) */}
       <mesh position={[5, ROOM_H / 2, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, ROOM_H - 0.5]} />
-        <meshStandardMaterial
+        <Mat
           color="#8ab8dd"
           transparent
           opacity={0.12}
@@ -2435,30 +2445,30 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Right window frame strips */}
       <mesh position={[2.2, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
       <mesh position={[7.8, ROOM_H / 2, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[0.06, ROOM_H - 0.4, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
       <mesh position={[5, ROOM_H - 0.2, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
       <mesh position={[5, 0.3, ROOM_D / 2 + 0.02]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
-        <meshStandardMaterial color="#1a1a2a" roughness={0.5} metalness={0.4} />
+        <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
 
       {/* Awning above entrance — blue/yellow canopy */}
       <mesh position={[0, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}>
         <boxGeometry args={[5, 0.06, 1.2]} />
-        <meshStandardMaterial color="#1a3a8a" roughness={0.7} />
+        <Mat color="#1a3a8a" roughness={0.7} />
       </mesh>
       {/* Yellow accent stripe on awning */}
       <mesh position={[0, ROOM_H + 0.02, ROOM_D / 2 + 0.7]} rotation={[0.25, 0, 0]}>
         <boxGeometry args={[5, 0.03, 0.25]} />
-        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.6} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.6} />
       </mesh>
       {/* Awning underside light */}
       {!isMobile && <pointLight position={[0, ROOM_H - 0.1, ROOM_D / 2 + 0.4]} color="#ffd080" intensity={1.5} distance={4} />}
@@ -2469,7 +2479,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Welcome mat — raised above floor to prevent z-fighting */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, ROOM_D / 2 - 0.5]}>
         <planeGeometry args={[2, 1]} />
-        <meshStandardMaterial color="#4a2020" roughness={0.95} />
+        <Mat color="#4a2020" roughness={0.95} />
       </mesh>
 
       {/* ── Double entrance doors ────────────────────────────── */}
@@ -2477,32 +2487,32 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[-0.55, 0, ROOM_D / 2 - 0.05]}>
         <mesh position={[0, 1.4, 0]}>
           <planeGeometry args={[1.0, 2.8]} />
-          <meshStandardMaterial color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} />
+          <Mat color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} />
         </mesh>
         {/* Frame */}
-        <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
+        <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
+        <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
+        <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         {/* Push bar */}
-        <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><meshStandardMaterial color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
         <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </group>
       {/* Right door */}
       <group position={[0.55, 0, ROOM_D / 2 - 0.05]}>
         <mesh position={[0, 1.4, 0]}>
           <planeGeometry args={[1.0, 2.8]} />
-          <meshStandardMaterial color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} />
+          <Mat color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} />
         </mesh>
-        <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><meshStandardMaterial color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
+        <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
+        <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
+        <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
         <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </group>
       {/* Center divider between doors */}
       <mesh position={[0, 1.4, ROOM_D / 2 - 0.05]}>
         <boxGeometry args={[0.06, 2.84, 0.04]} />
-        <meshStandardMaterial color="#3a3a3a" roughness={0.4} metalness={0.6} />
+        <Mat color="#3a3a3a" roughness={0.4} metalness={0.6} />
       </mesh>
 
       {/* ── Return window (outside, right of entrance) ──────── */}
@@ -2510,22 +2520,22 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {/* Return counter structure */}
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[1.5, 1.0, 0.6]} />
-          <meshStandardMaterial color="#1a3a6a" roughness={0.7} />
+          <Mat color="#1a3a6a" roughness={0.7} />
         </mesh>
         {/* Counter top */}
         <mesh position={[0, 1.02, 0]}>
           <boxGeometry args={[1.6, 0.04, 0.65]} />
-          <meshStandardMaterial color="#2a4a7a" roughness={0.5} />
+          <Mat color="#2a4a7a" roughness={0.5} />
         </mesh>
         {/* Return slot opening */}
         <mesh position={[0, 0.7, -0.28]}>
           <boxGeometry args={[0.8, 0.15, 0.08]} />
-          <meshStandardMaterial color="#0a0a1a" roughness={0.9} />
+          <Mat color="#0a0a1a" roughness={0.9} />
         </mesh>
         {/* "VIDEO RETURN" sign */}
         <mesh position={[0, 1.4, -0.1]}>
           <boxGeometry args={[1.2, 0.3, 0.03]} />
-          <meshStandardMaterial color="#ffd700" roughness={0.5} />
+          <Mat color="#ffd700" roughness={0.5} />
         </mesh>
         <Text position={[0, 1.4, -0.13]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
           VIDEO RETURN
@@ -2534,7 +2544,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {[-0.15, 0, 0.15].map((dx, i) => (
           <mesh key={`ret-tape-${i}`} position={[dx, 0.78, -0.2]} rotation={[0.1, 0.1 * i, 0]}>
             <boxGeometry args={[0.18, 0.04, 0.10]} />
-            <meshStandardMaterial color={["#1a3a6a", "#6a1a3a", "#3a6a1a"][i]} roughness={0.6} />
+            <Mat color={["#1a3a6a", "#6a1a3a", "#3a6a1a"][i]} roughness={0.6} />
           </mesh>
         ))}
       </group>
@@ -2542,7 +2552,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Candy/snack rack near counter */}
       <mesh position={[-5, 0.7, 5]}>
         <boxGeometry args={[0.8, 1.4, 0.4]} />
-        <meshStandardMaterial color="#3a3a3a" roughness={0.7} />
+        <Mat color="#3a3a3a" roughness={0.7} />
       </mesh>
       {/* Colorful candy boxes on rack */}
       {[[-0.2, 0.3], [0, 0.3], [0.2, 0.3], [-0.15, 0.1], [0.1, 0.1]].map(([dx, dy], i) => {
@@ -2558,7 +2568,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <group key={`candy${i}`} position={[-5 + dx, 0.7 + dy, 4.78]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
           <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
             <boxGeometry args={[0.12, 0.15, 0.02]} />
-            <meshStandardMaterial color={["#ef4444","#3b82f6","#f59e0b","#22c55e","#a855f7"][i]} roughness={0.5} />
+            <Mat color={["#ef4444","#3b82f6","#f59e0b","#22c55e","#a855f7"][i]} roughness={0.5} />
           </mesh>
         </group>
         );
@@ -2567,31 +2577,31 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Security pillars at entrance */}
       <mesh position={[-1.2, 0.75, ROOM_D / 2 - 0.5]}>
         <boxGeometry args={[0.15, 1.5, 0.08]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.6} />
+        <Mat color="#e8e8e0" roughness={0.6} />
       </mesh>
       <mesh position={[1.2, 0.75, ROOM_D / 2 - 0.5]}>
         <boxGeometry args={[0.15, 1.5, 0.08]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.6} />
+        <Mat color="#e8e8e0" roughness={0.6} />
       </mesh>
       {/* Red LED indicators on top */}
       <mesh position={[-1.2, 1.55, ROOM_D / 2 - 0.5]}>
         <sphereGeometry args={[0.02, 8, 8]} />
-        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
+        <Mat color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
       </mesh>
       <mesh position={[1.2, 1.55, ROOM_D / 2 - 0.5]}>
         <sphereGeometry args={[0.02, 8, 8]} />
-        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
+        <Mat color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
       </mesh>
 
       {/* Wall clock near counter */}
       <group position={[ROOM_W / 2 - 0.1, 2.8, 4]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh>
           <circleGeometry args={[0.25, 24]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.4} />
+          <Mat color="#ffffff" roughness={0.4} />
         </mesh>
         <mesh position={[0, 0, -0.03]}>
           <cylinderGeometry args={[0.27, 0.27, 0.04, 24]} />
-          <meshStandardMaterial color="#333" roughness={0.5} />
+          <Mat color="#333" roughness={0.5} />
         </mesh>
         {/* Hour hand */}
         <mesh position={[0, 0.06, 0.01]} rotation={[0, 0, -0.5]}>
@@ -2609,12 +2619,12 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[3, 0.9, ROOM_D / 2 - 2]}>
         <mesh>
           <boxGeometry args={[0.6, 1.8, 0.03]} />
-          <meshStandardMaterial color="#c0a080" roughness={0.8} />
+          <Mat color="#c0a080" roughness={0.8} />
         </mesh>
         {/* Standee support triangle behind */}
         <mesh position={[0, -0.5, 0.15]} rotation={[0.3, 0, 0]}>
           <boxGeometry args={[0.3, 0.8, 0.02]} />
-          <meshStandardMaterial color="#a08060" roughness={0.8} />
+          <Mat color="#a08060" roughness={0.8} />
         </mesh>
         <Text position={[0, 0.5, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#1a1a1a" anchorX="center" font={undefined}>
           COMING SOON
@@ -2630,13 +2640,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[-ROOM_W / 2 + 0.08, 1.6, 4]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.2, 0.8, 0.05]} />
-          <meshStandardMaterial color="#7a5a30" roughness={0.85} />
+          <Mat color="#7a5a30" roughness={0.85} />
         </mesh>
         {/* Sticky notes */}
         {[[-0.3, 0.15, "#ffd700"], [0.1, 0.2, "#ef4444"], [-0.15, -0.1, "#22c55e"], [0.25, -0.05, "#3b82f6"]].map(([dx, dy, c], i) => (
           <mesh key={`note${i}`} position={[dx as number, dy as number, -0.03]} rotation={[0, 0, (i - 1.5) * 0.1]}>
             <planeGeometry args={[0.2, 0.2]} />
-            <meshStandardMaterial color={c as string} roughness={0.7} />
+            <Mat color={c as string} roughness={0.7} />
           </mesh>
         ))}
       </group>
@@ -2648,17 +2658,17 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {/* Board backing */}
         <mesh userData={{ interactType: "challenge", label: "Challenge Board" }}>
           <boxGeometry args={[1.4, 1.0, 0.04]} />
-          <meshStandardMaterial color="#0a0a1a" roughness={0.5} />
+          <Mat color="#0a0a1a" roughness={0.5} />
         </mesh>
         {/* Neon border glow */}
         <mesh position={[0, 0, 0.01]}>
           <boxGeometry args={[1.5, 1.1, 0.01]} />
-          <meshStandardMaterial color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.3} roughness={0.5} />
+          <Mat color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.3} roughness={0.5} />
         </mesh>
         {/* Inner border */}
         <mesh position={[0, 0, 0.02]}>
           <boxGeometry args={[1.35, 0.95, 0.01]} />
-          <meshStandardMaterial color="#0a0a1a" roughness={0.5} />
+          <Mat color="#0a0a1a" roughness={0.5} />
         </mesh>
         {/* Title */}
         <Text position={[0, 0.25, 0.03]} fontSize={0.1} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
@@ -2681,8 +2691,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* ── TROPHY SHELF ────────────────────────────────────── */}
       <TrophyShelf isMobile={isMobile} />
 
-      {/* ── ATMOSPHERE & DETAIL (desktop only) ─────────────── */}
-      {!isMobile && <>
+      {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
 
       {/* Security dome mirrors in ceiling corners */}
       <SecurityDome position={[-ROOM_W / 2 + 0.5, ROOM_H - 0.05, -ROOM_D / 2 + 0.5]} />
@@ -2698,30 +2707,30 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {/* Door */}
         <mesh position={[0, 1.15, 0]}>
           <boxGeometry args={[0.9, 2.3, 0.04]} />
-          <meshStandardMaterial color="#4a3020" roughness={0.8} />
+          <Mat color="#4a3020" roughness={0.8} />
         </mesh>
         {/* Door frame */}
         <mesh position={[-0.48, 1.15, 0]}>
           <boxGeometry args={[0.04, 2.4, 0.06]} />
-          <meshStandardMaterial color="#3a2010" roughness={0.7} />
+          <Mat color="#3a2010" roughness={0.7} />
         </mesh>
         <mesh position={[0.48, 1.15, 0]}>
           <boxGeometry args={[0.04, 2.4, 0.06]} />
-          <meshStandardMaterial color="#3a2010" roughness={0.7} />
+          <Mat color="#3a2010" roughness={0.7} />
         </mesh>
         <mesh position={[0, 2.37, 0]}>
           <boxGeometry args={[1.0, 0.04, 0.06]} />
-          <meshStandardMaterial color="#3a2010" roughness={0.7} />
+          <Mat color="#3a2010" roughness={0.7} />
         </mesh>
         {/* Door handle */}
         <mesh position={[0.32, 1.0, 0.03]}>
           <sphereGeometry args={[0.04, 8, 8]} />
-          <meshStandardMaterial color="#b8960a" roughness={0.3} metalness={0.6} />
+          <Mat color="#b8960a" roughness={0.3} metalness={0.6} />
         </mesh>
         {/* Sign */}
         <mesh position={[0, 1.7, 0.03]}>
           <boxGeometry args={[0.5, 0.15, 0.01]} />
-          <meshStandardMaterial color="#cc2222" roughness={0.5} />
+          <Mat color="#cc2222" roughness={0.5} />
         </mesh>
         <Text position={[0, 1.7, 0.04]} fontSize={0.05} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
           EMPLOYEES ONLY
@@ -2732,7 +2741,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[-ROOM_W / 2 + 0.1, 1.5, 5]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.0, 0.6, 0.02]} />
-          <meshStandardMaterial color="#0a1a3a" roughness={0.6} />
+          <Mat color="#0a1a3a" roughness={0.6} />
         </mesh>
         <Text position={[0, 0.15, 0.015]} fontSize={0.08} color="#ef4444" anchorX="center" font={undefined}>
           LATE FEES
@@ -2754,7 +2763,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <group key={`rental-${i}`} position={sign.pos}>
           <mesh>
             <boxGeometry args={[0.6, 0.15, 0.01]} />
-            <meshStandardMaterial color={sign.bg} roughness={0.5} />
+            <Mat color={sign.bg} roughness={0.5} />
           </mesh>
           <Text position={[0, 0, 0.01]} fontSize={0.06} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
             {sign.label}
@@ -2767,17 +2776,17 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {/* Rewinder body */}
         <mesh>
           <boxGeometry args={[0.25, 0.08, 0.18]} />
-          <meshStandardMaterial color="#1a1a2a" roughness={0.5} />
+          <Mat color="#1a1a2a" roughness={0.5} />
         </mesh>
         {/* VHS slot */}
         <mesh position={[0, 0.04, -0.04]}>
           <boxGeometry args={[0.2, 0.01, 0.12]} />
-          <meshStandardMaterial color="#0a0a1a" roughness={0.4} />
+          <Mat color="#0a0a1a" roughness={0.4} />
         </mesh>
         {/* Power LED */}
         <mesh position={[0.08, 0.045, -0.09]}>
           <sphereGeometry args={[0.008, 6, 6]} />
-          <meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={2} />
+          <Mat color="#00ff00" emissive="#00ff00" emissiveIntensity={2} />
         </mesh>
         {/* "REWIND" label */}
         <Text position={[-0.02, 0.045, -0.091]} fontSize={0.015} color="#888" anchorX="center" font={undefined}>
@@ -2790,13 +2799,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {/* Wire rack */}
         <mesh position={[0, 0.6, 0]}>
           <boxGeometry args={[0.5, 1.2, 0.15]} />
-          <meshStandardMaterial color="#555555" roughness={0.5} metalness={0.4} wireframe />
+          <Mat color="#555555" roughness={0.5} metalness={0.4} wireframe />
         </mesh>
         {/* Magazines/guides — colorful thin boxes */}
         {[0.9, 0.7, 0.5, 0.3].map((y, i) => (
           <mesh key={`mag-${i}`} position={[0, y, -0.05]} rotation={[0.15, 0, 0]}>
             <boxGeometry args={[0.35, 0.25, 0.01]} />
-            <meshStandardMaterial color={["#ef4444", "#3b82f6", "#ffd700", "#22c55e"][i]} roughness={0.5} />
+            <Mat color={["#ef4444", "#3b82f6", "#ffd700", "#22c55e"][i]} roughness={0.5} />
           </mesh>
         ))}
         {/* "FREE GUIDES" sign */}
@@ -2810,7 +2819,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[-7, 2.8, 5]} rotation={[0, Math.PI, 0]}>
         <mesh>
           <boxGeometry args={[2.5, 0.4, 0.03]} />
-          <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} />
+          <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} />
         </mesh>
         <Text position={[0, 0, 0.02]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
           REWARDS MEMBER? ASK!
@@ -2822,25 +2831,25 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {/* Pot */}
         <mesh position={[0, 0.2, 0]}>
           <cylinderGeometry args={[0.15, 0.12, 0.4, 8]} />
-          <meshStandardMaterial color="#6a3a1a" roughness={0.8} />
+          <Mat color="#6a3a1a" roughness={0.8} />
         </mesh>
         {/* Soil */}
         <mesh position={[0, 0.41, 0]}>
           <cylinderGeometry args={[0.14, 0.14, 0.02, 8]} />
-          <meshStandardMaterial color="#3a2a1a" roughness={0.9} />
+          <Mat color="#3a2a1a" roughness={0.9} />
         </mesh>
         {/* Plant — simple sphere cluster */}
         <mesh position={[0, 0.7, 0]}>
           <sphereGeometry args={[0.2, 8, 8]} />
-          <meshStandardMaterial color="#1a5a1a" roughness={0.8} />
+          <Mat color="#1a5a1a" roughness={0.8} />
         </mesh>
         <mesh position={[0.1, 0.85, 0.05]}>
           <sphereGeometry args={[0.15, 8, 8]} />
-          <meshStandardMaterial color="#1a6a1a" roughness={0.8} />
+          <Mat color="#1a6a1a" roughness={0.8} />
         </mesh>
         <mesh position={[-0.08, 0.8, -0.05]}>
           <sphereGeometry args={[0.12, 8, 8]} />
-          <meshStandardMaterial color="#2a5a2a" roughness={0.8} />
+          <Mat color="#2a5a2a" roughness={0.8} />
         </mesh>
       </group>
 
@@ -2848,18 +2857,16 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <group position={[-1.5, 0, ROOM_D / 2 - 1]}>
         <mesh position={[0, 0.3, 0]}>
           <cylinderGeometry args={[0.15, 0.13, 0.6, 8]} />
-          <meshStandardMaterial color="#333333" roughness={0.7} />
+          <Mat color="#333333" roughness={0.7} />
         </mesh>
         {/* Rim */}
         <mesh position={[0, 0.61, 0]}>
           <cylinderGeometry args={[0.16, 0.16, 0.02, 8]} />
-          <meshStandardMaterial color="#444444" roughness={0.5} metalness={0.2} />
+          <Mat color="#444444" roughness={0.5} metalness={0.2} />
         </mesh>
       </group>
 
-      </>}
-      {/* End of desktop-only atmosphere */}
-
     </group>
+    </MobileCtx.Provider>
   );
 }
