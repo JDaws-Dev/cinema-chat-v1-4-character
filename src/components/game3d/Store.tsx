@@ -558,110 +558,283 @@ function Counter() {
 
 function VinnyCharacter() {
   const ref = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
+    const t = state.clock.elapsedTime;
     if (ref.current) {
-      ref.current.position.y = Math.sin(state.clock.elapsedTime * 0.8) * 0.015;
+      ref.current.position.y = Math.sin(t * 0.8) * 0.015;
       // Slight lean side to side
-      ref.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.4) * 0.02;
+      ref.current.rotation.z = Math.sin(t * 0.4) * 0.02;
+    }
+    // Arm gesturing — occasional wave/gesture
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.x = Math.sin(t * 0.6) * 0.15;
+      leftArmRef.current.rotation.z = Math.sin(t * 0.3) * 0.05;
+    }
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.x = Math.sin(t * 0.5 + 1.5) * 0.2;
+      rightArmRef.current.rotation.z = Math.sin(t * 0.35 + 1.0) * 0.06;
+    }
+    // Head looking around the store
+    if (headRef.current) {
+      headRef.current.rotation.y = Math.sin(t * 0.25) * 0.15;
+      headRef.current.rotation.x = Math.sin(t * 0.18) * 0.04;
     }
   });
 
   return (
     <group ref={ref} position={[-7, 0, 6.5]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
-      {/* Legs */}
-      <mesh position={[-0.08, 0.35, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
-        <boxGeometry args={[0.12, 0.7, 0.14]} />
-        <meshStandardMaterial color="#2a2a3a" roughness={0.8} />
+      {/* Legs — Khaki pants */}
+      <mesh position={[-0.09, 0.35, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
+        <boxGeometry args={[0.13, 0.7, 0.15]} />
+        <meshStandardMaterial color="#c2a66b" roughness={0.85} />
       </mesh>
-      <mesh position={[0.08, 0.35, 0]}>
-        <boxGeometry args={[0.12, 0.7, 0.14]} />
-        <meshStandardMaterial color="#2a2a3a" roughness={0.8} />
+      <mesh position={[0.09, 0.35, 0]}>
+        <boxGeometry args={[0.13, 0.7, 0.15]} />
+        <meshStandardMaterial color="#c2a66b" roughness={0.85} />
       </mesh>
 
-      {/* Torso / Vest */}
+      {/* Sneakers — white with blue accent */}
+      <mesh position={[-0.09, 0.03, -0.02]}>
+        <boxGeometry args={[0.14, 0.08, 0.2]} />
+        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+      </mesh>
+      <mesh position={[-0.09, 0.05, -0.08]}>
+        <boxGeometry args={[0.12, 0.04, 0.06]} />
+        <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+      </mesh>
+      <mesh position={[0.09, 0.03, -0.02]}>
+        <boxGeometry args={[0.14, 0.08, 0.2]} />
+        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+      </mesh>
+      <mesh position={[0.09, 0.05, -0.08]}>
+        <boxGeometry args={[0.12, 0.04, 0.06]} />
+        <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+      </mesh>
+
+      {/* Belt */}
+      <mesh position={[0, 0.7, 0]}>
+        <boxGeometry args={[0.32, 0.05, 0.18]} />
+        <meshStandardMaterial color="#3a2a1a" roughness={0.7} />
+      </mesh>
+      {/* Belt buckle */}
+      <mesh position={[0, 0.7, -0.09]}>
+        <boxGeometry args={[0.06, 0.04, 0.01]} />
+        <meshStandardMaterial color="#c0a020" roughness={0.3} metalness={0.5} />
+      </mesh>
+
+      {/* Torso — Blockbuster blue polo */}
       <mesh position={[0, 0.95, 0]}>
         <boxGeometry args={[0.4, 0.55, 0.25]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.7} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
       </mesh>
-      {/* Vest buttons */}
-      {[0.85, 0.95, 1.05].map(y => (
+      {/* Polo collar */}
+      <mesh position={[0, 1.2, -0.06]}>
+        <boxGeometry args={[0.22, 0.06, 0.16]} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+      </mesh>
+      {/* Collar fold left */}
+      <mesh position={[-0.06, 1.22, -0.1]} rotation={[0.3, 0, 0.2]}>
+        <boxGeometry args={[0.08, 0.05, 0.02]} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+      </mesh>
+      {/* Collar fold right */}
+      <mesh position={[0.06, 1.22, -0.1]} rotation={[0.3, 0, -0.2]}>
+        <boxGeometry args={[0.08, 0.05, 0.02]} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
+      </mesh>
+      {/* Polo buttons */}
+      {[1.05, 1.12].map(y => (
         <mesh key={y} position={[0, y, -0.13]}>
-          <sphereGeometry args={[0.02, 8, 8]} />
-          <meshStandardMaterial color="#ffd700" roughness={0.4} metalness={0.3} />
+          <sphereGeometry args={[0.012, 8, 8]} />
+          <meshStandardMaterial color="#e8e0d0" roughness={0.4} />
         </mesh>
       ))}
-      {/* Shirt collar */}
-      <mesh position={[0, 1.2, -0.05]}>
-        <boxGeometry args={[0.2, 0.08, 0.18]} />
-        <meshStandardMaterial color="#e8e8e8" roughness={0.6} />
-      </mesh>
-      {/* Name tag */}
-      <mesh position={[0.14, 1.0, -0.13]}>
-        <boxGeometry args={[0.12, 0.06, 0.01]} />
+
+      {/* Yellow name tag — "VINNY" */}
+      <mesh position={[0.14, 1.02, -0.13]}>
+        <boxGeometry args={[0.14, 0.07, 0.01]} />
         <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
+      <Text position={[0.14, 1.02, -0.145]} rotation={[0, Math.PI, 0]} fontSize={0.03} color="#1a1a1a" anchorX="center" font={undefined}>
+        VINNY
+      </Text>
 
-      {/* Arms */}
-      <mesh position={[-0.26, 0.9, 0]}>
-        <boxGeometry args={[0.12, 0.45, 0.14]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.7} />
+      {/* MANAGER badge — red rectangle on chest */}
+      <mesh position={[-0.1, 1.08, -0.13]}>
+        <boxGeometry args={[0.14, 0.055, 0.01]} />
+        <meshStandardMaterial color="#cc2222" emissive="#cc2222" emissiveIntensity={0.15} />
       </mesh>
-      <mesh position={[0.26, 0.9, 0]}>
-        <boxGeometry args={[0.12, 0.45, 0.14]} />
-        <meshStandardMaterial color="#1a3a6a" roughness={0.7} />
+      <Text position={[-0.1, 1.08, -0.145]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#ffffff" anchorX="center" font={undefined}>
+        MANAGER
+      </Text>
+
+      {/* Lanyard — cord around neck */}
+      <mesh position={[-0.04, 1.15, -0.08]} rotation={[0, 0, 0.15]}>
+        <boxGeometry args={[0.015, 0.25, 0.01]} />
+        <meshStandardMaterial color="#1a3a6a" roughness={0.5} />
       </mesh>
-      {/* Hands */}
-      <mesh position={[-0.26, 0.65, 0]}>
-        <sphereGeometry args={[0.06, 8, 8]} />
-        <meshStandardMaterial color="#d4a574" roughness={0.8} />
+      <mesh position={[0.04, 1.15, -0.08]} rotation={[0, 0, -0.15]}>
+        <boxGeometry args={[0.015, 0.25, 0.01]} />
+        <meshStandardMaterial color="#1a3a6a" roughness={0.5} />
       </mesh>
-      <mesh position={[0.26, 0.65, 0]}>
-        <sphereGeometry args={[0.06, 8, 8]} />
-        <meshStandardMaterial color="#d4a574" roughness={0.8} />
+      {/* Lanyard card */}
+      <mesh position={[0, 0.98, -0.1]}>
+        <boxGeometry args={[0.08, 0.1, 0.01]} />
+        <meshStandardMaterial color="#f5f5f0" roughness={0.4} />
+      </mesh>
+      {/* Card stripe */}
+      <mesh position={[0, 1.01, -0.106]}>
+        <boxGeometry args={[0.07, 0.015, 0.005]} />
+        <meshStandardMaterial color="#1a3a6a" />
       </mesh>
 
-      {/* Head */}
-      <mesh position={[0, 1.42, 0]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color="#d4a574" roughness={0.75} />
-      </mesh>
-      {/* Hair */}
-      <mesh position={[0, 1.55, 0.02]}>
-        <sphereGeometry args={[0.21, 16, 10]} />
-        <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
-      </mesh>
-      {/* Eyes */}
-      <mesh position={[-0.07, 1.44, -0.17]}>
-        <sphereGeometry args={[0.03, 8, 8]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.3} />
-      </mesh>
-      <mesh position={[0.07, 1.44, -0.17]}>
-        <sphereGeometry args={[0.03, 8, 8]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.3} />
-      </mesh>
-      {/* Pupils */}
-      <mesh position={[-0.07, 1.44, -0.2]}>
-        <sphereGeometry args={[0.015, 8, 8]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
-      <mesh position={[0.07, 1.44, -0.2]}>
-        <sphereGeometry args={[0.015, 8, 8]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
-      {/* Mustache */}
-      <mesh position={[0, 1.36, -0.18]}>
-        <boxGeometry args={[0.14, 0.04, 0.04]} />
-        <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
-      </mesh>
-      {/* Mouth */}
-      <mesh position={[0, 1.32, -0.17]}>
-        <boxGeometry args={[0.08, 0.02, 0.03]} />
-        <meshStandardMaterial color="#a07050" roughness={0.8} />
-      </mesh>
+      {/* Left arm (pivots from shoulder) */}
+      <group ref={leftArmRef} position={[-0.26, 1.12, 0]}>
+        <mesh position={[0, -0.22, 0]}>
+          <boxGeometry args={[0.12, 0.45, 0.14]} />
+          <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+        </mesh>
+        {/* Left hand */}
+        <mesh position={[0, -0.48, 0]}>
+          <sphereGeometry args={[0.06, 8, 8]} />
+          <meshStandardMaterial color="#d4a574" roughness={0.8} />
+        </mesh>
+      </group>
+      {/* Right arm (pivots from shoulder) */}
+      <group ref={rightArmRef} position={[0.26, 1.12, 0]}>
+        <mesh position={[0, -0.22, 0]}>
+          <boxGeometry args={[0.12, 0.45, 0.14]} />
+          <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+        </mesh>
+        {/* Right hand */}
+        <mesh position={[0, -0.48, 0]}>
+          <sphereGeometry args={[0.06, 8, 8]} />
+          <meshStandardMaterial color="#d4a574" roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* Head group (turns left/right) */}
+      <group ref={headRef} position={[0, 1.45, 0]}>
+        {/* Head — slightly bigger */}
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[0.23, 16, 16]} />
+          <meshStandardMaterial color="#d4a574" roughness={0.75} />
+        </mesh>
+        {/* Hair */}
+        <mesh position={[0, 0.12, 0.02]}>
+          <sphereGeometry args={[0.24, 16, 10]} />
+          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+        </mesh>
+
+        {/* Glasses — wire frames */}
+        {/* Left lens ring */}
+        <mesh position={[-0.08, 0.02, -0.2]} rotation={[0, 0, 0]}>
+          <torusGeometry args={[0.04, 0.006, 8, 16]} />
+          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+        </mesh>
+        {/* Right lens ring */}
+        <mesh position={[0.08, 0.02, -0.2]} rotation={[0, 0, 0]}>
+          <torusGeometry args={[0.04, 0.006, 8, 16]} />
+          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+        </mesh>
+        {/* Bridge between lenses */}
+        <mesh position={[0, 0.02, -0.22]}>
+          <boxGeometry args={[0.04, 0.006, 0.006]} />
+          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+        </mesh>
+        {/* Left temple arm */}
+        <mesh position={[-0.12, 0.02, -0.14]} rotation={[0, 0.4, 0]}>
+          <boxGeometry args={[0.005, 0.005, 0.14]} />
+          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+        </mesh>
+        {/* Right temple arm */}
+        <mesh position={[0.12, 0.02, -0.14]} rotation={[0, -0.4, 0]}>
+          <boxGeometry args={[0.005, 0.005, 0.14]} />
+          <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.6} />
+        </mesh>
+        {/* Lens tint (subtle) */}
+        <mesh position={[-0.08, 0.02, -0.2]}>
+          <circleGeometry args={[0.038, 16]} />
+          <meshStandardMaterial color="#e8e8ff" transparent opacity={0.15} />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.2]}>
+          <circleGeometry args={[0.038, 16]} />
+          <meshStandardMaterial color="#e8e8ff" transparent opacity={0.15} />
+        </mesh>
+
+        {/* Eyes (behind glasses) */}
+        <mesh position={[-0.08, 0.02, -0.19]}>
+          <sphereGeometry args={[0.03, 8, 8]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.19]}>
+          <sphereGeometry args={[0.03, 8, 8]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+        </mesh>
+        {/* Pupils */}
+        <mesh position={[-0.08, 0.02, -0.22]}>
+          <sphereGeometry args={[0.015, 8, 8]} />
+          <meshStandardMaterial color="#1a1a1a" />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.22]}>
+          <sphereGeometry args={[0.015, 8, 8]} />
+          <meshStandardMaterial color="#1a1a1a" />
+        </mesh>
+
+        {/* Bigger mustache — curved, more prominent */}
+        <mesh position={[0, -0.08, -0.2]}>
+          <boxGeometry args={[0.18, 0.05, 0.05]} />
+          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+        </mesh>
+        {/* Mustache curl left */}
+        <mesh position={[-0.1, -0.09, -0.19]} rotation={[0, 0, -0.3]}>
+          <boxGeometry args={[0.04, 0.03, 0.04]} />
+          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+        </mesh>
+        {/* Mustache curl right */}
+        <mesh position={[0.1, -0.09, -0.19]} rotation={[0, 0, 0.3]}>
+          <boxGeometry args={[0.04, 0.03, 0.04]} />
+          <meshStandardMaterial color="#2a1a0a" roughness={0.9} />
+        </mesh>
+
+        {/* Wider smile */}
+        <mesh position={[0, -0.12, -0.2]}>
+          <boxGeometry args={[0.12, 0.025, 0.03]} />
+          <meshStandardMaterial color="#c07060" roughness={0.8} />
+        </mesh>
+        {/* Smile corners (upturned) */}
+        <mesh position={[-0.06, -0.115, -0.2]} rotation={[0, 0, -0.3]}>
+          <boxGeometry args={[0.03, 0.015, 0.02]} />
+          <meshStandardMaterial color="#c07060" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.06, -0.115, -0.2]} rotation={[0, 0, 0.3]}>
+          <boxGeometry args={[0.03, 0.015, 0.02]} />
+          <meshStandardMaterial color="#c07060" roughness={0.8} />
+        </mesh>
+
+        {/* Nose */}
+        <mesh position={[0, -0.04, -0.22]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshStandardMaterial color="#c49a6a" roughness={0.8} />
+        </mesh>
+
+        {/* Ears */}
+        <mesh position={[-0.22, 0, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <meshStandardMaterial color="#d4a574" roughness={0.75} />
+        </mesh>
+        <mesh position={[0.22, 0, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <meshStandardMaterial color="#d4a574" roughness={0.75} />
+        </mesh>
+      </group>
 
       {/* Floating name */}
-      <Text position={[0, 1.85, 0]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
+      <Text position={[0, 1.95, 0]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
         VINNY
       </Text>
 
@@ -744,41 +917,101 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
     }
   });
 
+  const vhsColor = useMemo(() => {
+    const colors = ["#2a2a8a", "#8a2a2a", "#2a6a2a", "#6a2a6a", "#1a5a5a", "#8a6a1a"];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }, []);
+  const hasBag = useMemo(() => Math.random() > 0.5, []);
+
   return (
     <group ref={ref} position={startPos}>
       {/* Legs */}
       <mesh position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <meshStandardMaterial color="#2a2a3a" roughness={0.8} />
+        <meshStandardMaterial color="#3a3a4a" roughness={0.8} />
       </mesh>
       <mesh position={[0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <meshStandardMaterial color="#2a2a3a" roughness={0.8} />
+        <meshStandardMaterial color="#3a3a4a" roughness={0.8} />
       </mesh>
-      {/* Body */}
+      {/* Body — slightly varied proportions */}
       <mesh position={[0, 0.8, 0]}>
-        <boxGeometry args={[0.32, 0.42, 0.2]} />
+        <boxGeometry args={[0.34, 0.44, 0.22]} />
         <meshStandardMaterial color={shirtColor} roughness={0.7} />
       </mesh>
-      {/* Arms */}
+      {/* Left arm with VHS tape in hand */}
       <mesh position={[-0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
         <meshStandardMaterial color={shirtColor} roughness={0.7} />
       </mesh>
+      {/* Left hand */}
+      <mesh position={[-0.22, 0.58, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <meshStandardMaterial color={skinTone} roughness={0.8} />
+      </mesh>
+      {/* VHS tape in left hand */}
+      <mesh position={[-0.22, 0.52, -0.02]}>
+        <boxGeometry args={[0.1, 0.06, 0.02]} />
+        <meshStandardMaterial color={vhsColor} roughness={0.6} />
+      </mesh>
+      {/* VHS label stripe */}
+      <mesh position={[-0.22, 0.52, -0.035]}>
+        <boxGeometry args={[0.08, 0.02, 0.005]} />
+        <meshStandardMaterial color="#f0f0e0" roughness={0.5} />
+      </mesh>
+
+      {/* Right arm */}
       <mesh position={[0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
         <meshStandardMaterial color={shirtColor} roughness={0.7} />
       </mesh>
-      {/* Head */}
+      {/* Right hand */}
+      <mesh position={[0.22, 0.58, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <meshStandardMaterial color={skinTone} roughness={0.8} />
+      </mesh>
+      {/* Shopping bag (some customers) */}
+      {hasBag && (
+        <group position={[0.22, 0.42, 0]}>
+          {/* Bag body */}
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[0.1, 0.14, 0.06]} />
+            <meshStandardMaterial color="#e8d8b0" roughness={0.8} />
+          </mesh>
+          {/* Bag handle */}
+          <mesh position={[0, 0.08, 0]}>
+            <torusGeometry args={[0.03, 0.005, 6, 8, Math.PI]} />
+            <meshStandardMaterial color="#c0b090" roughness={0.7} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Head — slightly taller */}
       <mesh position={[0, 1.2, 0]}>
-        <sphereGeometry args={[0.16, 12, 12]} />
+        <sphereGeometry args={[0.16, 12, 14]} />
+        <meshStandardMaterial color={skinTone} roughness={0.75} />
+      </mesh>
+      {/* Head top (taller shape) */}
+      <mesh position={[0, 1.26, 0]}>
+        <sphereGeometry args={[0.13, 12, 8]} />
         <meshStandardMaterial color={skinTone} roughness={0.75} />
       </mesh>
       {/* Hair */}
-      <mesh position={[0, 1.32, 0.01]}>
-        <sphereGeometry args={[0.17, 12, 8]} />
+      <mesh position={[0, 1.34, 0.01]}>
+        <sphereGeometry args={[0.15, 12, 8]} />
         <meshStandardMaterial color={hairColor} roughness={0.9} />
       </mesh>
+
+      {/* Simple face — two dot eyes */}
+      <mesh position={[-0.05, 1.22, -0.14]}>
+        <sphereGeometry args={[0.018, 8, 8]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      <mesh position={[0.05, 1.22, -0.14]}>
+        <sphereGeometry args={[0.018, 8, 8]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+
       {/* Shadow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
         <circleGeometry args={[0.2, 12]} />
@@ -1647,10 +1880,15 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <meshBasicMaterial color="#050a18" />
       </mesh>
       {/* Faint starfield dots on the sky plane */}
-      {[[-3.5, 2.8], [-6.2, 2.1], [5.1, 2.9], [7.4, 1.8], [-1.5, 3.0], [2.8, 2.3], [-7, 3.1], [8.2, 2.6]].map(([sx, sy], i) => (
+      {[
+        [-3.5, 2.8], [-6.2, 2.1], [5.1, 2.9], [7.4, 1.8], [-1.5, 3.0], [2.8, 2.3], [-7, 3.1], [8.2, 2.6],
+        [-9.0, 3.2], [-8.3, 2.4], [-4.8, 3.3], [-2.2, 2.5], [-0.3, 3.4], [0.9, 2.7], [1.6, 3.1], [3.5, 3.3],
+        [4.2, 2.0], [6.5, 3.4], [8.8, 3.0], [9.2, 2.2], [-5.5, 3.0], [-1.0, 2.1], [7.0, 2.5], [2.0, 3.4],
+        [-8.8, 1.9], [-3.0, 3.2], [5.8, 3.1], [9.5, 1.7],
+      ].map(([sx, sy], i) => (
         <mesh key={`star${i}`} position={[sx, sy, ROOM_D / 2 + 0.14]}>
-          <circleGeometry args={[0.03, 6]} />
-          <meshBasicMaterial color="#ffffff" />
+          <circleGeometry args={[i % 3 === 0 ? 0.04 : 0.025, 6]} />
+          <meshBasicMaterial color={i % 5 === 0 ? "#aabbff" : "#ffffff"} />
         </mesh>
       ))}
       {/* Moon glow */}
@@ -1689,6 +1927,165 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
             <meshBasicMaterial color="#555" />
           </mesh>
         </group>
+      ))}
+
+      {/* ── Store front signage — "FRIDAY NIGHT VIDEO" ──────── */}
+      <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
+        {/* Sign backing */}
+        <mesh>
+          <boxGeometry args={[8, 1.2, 0.2]} />
+          <meshBasicMaterial color="#0a0a2a" />
+        </mesh>
+        {/* Sign border trim */}
+        <mesh position={[0, 0, 0.11]}>
+          <boxGeometry args={[8.2, 1.3, 0.02]} />
+          <meshBasicMaterial color="#ffd700" />
+        </mesh>
+        <Text
+          position={[0, 0.05, 0.12]}
+          fontSize={0.55}
+          color="#ffd700"
+          anchorX="center"
+          anchorY="middle"
+          font="/fonts/PressStart2P-Regular.ttf"
+        >
+          FRIDAY NIGHT VIDEO
+          <meshBasicMaterial color="#ffd700" toneMapped={false} />
+        </Text>
+      </group>
+
+      {/* ── Strip mall walls extending left and right ──────── */}
+      {/* Left neighbor wall */}
+      <mesh position={[-ROOM_W / 2 - 3, ROOM_H / 2, ROOM_D / 2]}>
+        <boxGeometry args={[6, ROOM_H, 0.3]} />
+        <meshBasicMaterial color="#2a2a30" />
+      </mesh>
+      {/* Left neighbor door */}
+      <mesh position={[-ROOM_W / 2 - 2.5, 1.1, ROOM_D / 2 + 0.16]}>
+        <planeGeometry args={[1.0, 2.2]} />
+        <meshBasicMaterial color="#111115" />
+      </mesh>
+      {/* Left neighbor sign — PIZZA PALACE */}
+      <group position={[-ROOM_W / 2 - 3, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}>
+        <mesh>
+          <boxGeometry args={[3, 0.5, 0.05]} />
+          <meshBasicMaterial color="#1a1a20" />
+        </mesh>
+        <Text
+          position={[0, 0, 0.03]}
+          fontSize={0.22}
+          color="#cc3333"
+          anchorX="center"
+          anchorY="middle"
+        >
+          PIZZA PALACE
+          <meshBasicMaterial color="#cc3333" toneMapped={false} />
+        </Text>
+      </group>
+      {/* Left neighbor awning */}
+      <mesh position={[-ROOM_W / 2 - 3, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}>
+        <boxGeometry args={[5.5, 0.05, 0.8]} />
+        <meshBasicMaterial color="#661111" />
+      </mesh>
+
+      {/* Right neighbor wall */}
+      <mesh position={[ROOM_W / 2 + 3, ROOM_H / 2, ROOM_D / 2]}>
+        <boxGeometry args={[6, ROOM_H, 0.3]} />
+        <meshBasicMaterial color="#2a2a30" />
+      </mesh>
+      {/* Right neighbor door */}
+      <mesh position={[ROOM_W / 2 + 3.5, 1.1, ROOM_D / 2 + 0.16]}>
+        <planeGeometry args={[1.0, 2.2]} />
+        <meshBasicMaterial color="#111115" />
+      </mesh>
+      {/* Right neighbor sign — LAUNDROMAT */}
+      <group position={[ROOM_W / 2 + 3, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}>
+        <mesh>
+          <boxGeometry args={[3, 0.5, 0.05]} />
+          <meshBasicMaterial color="#1a1a20" />
+        </mesh>
+        <Text
+          position={[0, 0, 0.03]}
+          fontSize={0.22}
+          color="#5599cc"
+          anchorX="center"
+          anchorY="middle"
+        >
+          LAUNDROMAT
+          <meshBasicMaterial color="#5599cc" toneMapped={false} />
+        </Text>
+      </group>
+      {/* Right neighbor awning */}
+      <mesh position={[ROOM_W / 2 + 3, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}>
+        <boxGeometry args={[5.5, 0.05, 0.8]} />
+        <meshBasicMaterial color="#113355" />
+      </mesh>
+
+      {/* ── Curb between sidewalk and parking lot ──────── */}
+      <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}>
+        <boxGeometry args={[ROOM_W + 4, 0.1, 0.15]} />
+        <meshBasicMaterial color="#555555" />
+      </mesh>
+
+      {/* ── Parked car — 90s sedan ──────── */}
+      <group position={[5, 0, ROOM_D / 2 + 5]}>
+        {/* Body */}
+        <mesh position={[0, 0.5, 0]}>
+          <boxGeometry args={[2.0, 0.8, 1.0]} />
+          <meshBasicMaterial color="#1a2233" />
+        </mesh>
+        {/* Cabin / windows */}
+        <mesh position={[0.1, 1.1, 0]}>
+          <boxGeometry args={[1.2, 0.5, 0.9]} />
+          <meshBasicMaterial color="#1a2a44" />
+        </mesh>
+        {/* Wheels */}
+        {[[-0.7, 0.15, 0.5], [-0.7, 0.15, -0.5], [0.7, 0.15, 0.5], [0.7, 0.15, -0.5]].map(([wx, wy, wz], i) => (
+          <mesh key={`wheel-${i}`} position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.15, 0.15, 0.08, 8]} />
+            <meshBasicMaterial color="#111111" />
+          </mesh>
+        ))}
+        {/* Headlights */}
+        <mesh position={[-1.01, 0.55, 0.3]}>
+          <boxGeometry args={[0.02, 0.12, 0.15]} />
+          <meshBasicMaterial color="#ffeeaa" toneMapped={false} />
+        </mesh>
+        <mesh position={[-1.01, 0.55, -0.3]}>
+          <boxGeometry args={[0.02, 0.12, 0.15]} />
+          <meshBasicMaterial color="#ffeeaa" toneMapped={false} />
+        </mesh>
+        {/* Taillights */}
+        <mesh position={[1.01, 0.55, 0.3]}>
+          <boxGeometry args={[0.02, 0.1, 0.12]} />
+          <meshBasicMaterial color="#cc2222" />
+        </mesh>
+        <mesh position={[1.01, 0.55, -0.3]}>
+          <boxGeometry args={[0.02, 0.1, 0.12]} />
+          <meshBasicMaterial color="#cc2222" />
+        </mesh>
+        {/* Bumpers */}
+        <mesh position={[-1.02, 0.3, 0]}>
+          <boxGeometry args={[0.04, 0.12, 0.9]} />
+          <meshBasicMaterial color="#333333" />
+        </mesh>
+        <mesh position={[1.02, 0.3, 0]}>
+          <boxGeometry args={[0.04, 0.12, 0.9]} />
+          <meshBasicMaterial color="#333333" />
+        </mesh>
+      </group>
+
+      {/* ── Street / road beyond parking lot ──────── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, ROOM_D / 2 + 13]}>
+        <planeGeometry args={[ROOM_W + 20, 6]} />
+        <meshBasicMaterial color="#111116" />
+      </mesh>
+      {/* Road center line */}
+      {[-8, -4, 0, 4, 8].map((dx, i) => (
+        <mesh key={`roadline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[dx, -0.055, ROOM_D / 2 + 13]}>
+          <planeGeometry args={[1.5, 0.08]} />
+          <meshBasicMaterial color="#555533" />
+        </mesh>
       ))}
 
       {/* Left storefront window (x = -5, between wall edge and door gap) */}
