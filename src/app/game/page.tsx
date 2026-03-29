@@ -1131,39 +1131,25 @@ export default function GamePage() {
           </div>
         </div>
       )}
-      {/* RPG-style NPC Dialogue */}
+      {/* RPG-style NPC Dialogue — classic bottom text box */}
       {overlay === "rpg_dialogue" && rpgNode && (
         <div className="g3-rpg-overlay">
-          <div className="g3-rpg-scene">
-            {/* Conversation history */}
-            <div className="g3-rpg-history">
-              {rpgHistory.map((line, i) => (
-                <div key={i} className={`g3-rpg-line ${i === rpgHistory.length - 1 ? "g3-rpg-line-current" : "g3-rpg-line-past"}`}>
-                  <div className="g3-rpg-portrait">{line.portrait || "?"}</div>
-                  <div className="g3-rpg-bubble">
-                    <span className="g3-rpg-speaker">{line.speaker}</span>
-                    <p className="g3-rpg-text">{line.text}</p>
-                  </div>
-                </div>
-              ))}
+          <div className="g3-rpg-box" key={rpgNode.text}>
+            {/* Name plate */}
+            <div className="g3-rpg-nameplate">
+              <span className="g3-rpg-portrait">{rpgNode.portrait || rpgDialogue?.portrait || "?"}</span>
+              <span className="g3-rpg-name">{rpgNode.speaker}</span>
             </div>
-
-            {/* Player response options */}
+            {/* Dialogue text */}
+            <p className="g3-rpg-text">{rpgNode.text}</p>
+            {/* Response choices */}
             <div className="g3-rpg-responses">
               {rpgNode.responses ? (
                 rpgNode.responses.map((resp, i) => (
                   <button
                     key={i}
                     className="g3-rpg-choice"
-                    onClick={() => {
-                      // Add player response and NPC reply to history
-                      setRpgHistory(prev => [
-                        ...prev,
-                        { speaker: "You", text: resp.text },
-                        { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
-                      ]);
-                      setRpgNode(resp.next);
-                    }}
+                    onClick={() => setRpgNode(resp.next)}
                   >
                     <span className="g3-rpg-choice-num">{i + 1}</span>
                     <span className="g3-rpg-choice-text">{resp.text}</span>
@@ -1171,12 +1157,12 @@ export default function GamePage() {
                 ))
               ) : (
                 <button className="g3-rpg-choice g3-rpg-choice-end" onClick={closeOverlay}>
-                  <span className="g3-rpg-choice-text">[ End conversation ]</span>
+                  <span className="g3-rpg-choice-num">Q</span>
+                  <span className="g3-rpg-choice-text">End conversation</span>
                 </button>
               )}
             </div>
           </div>
-          <button className="g3-rpg-leave" onClick={closeOverlay}>Walk away</button>
         </div>
       )}
     </div>

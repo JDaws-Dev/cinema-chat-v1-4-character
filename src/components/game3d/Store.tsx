@@ -1446,20 +1446,14 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
 function NeonSign() {
   return (
     <group position={[0, 3.1, -ROOM_D / 2 + 0.15]}>
-      {/* Sign backing — dark board */}
-      <mesh position={[0, 0, -0.02]}>
-        <boxGeometry args={[6.2, 0.5, 0.04]} />
+      {/* Simple dark backing with gold text — clean, no haze */}
+      <mesh position={[0, 0, -0.01]}>
+        <boxGeometry args={[5.8, 0.4, 0.03]} />
         <Mat color="#0a0a18" roughness={0.5} />
       </mesh>
-      {/* Gold border frame */}
-      <mesh position={[0, 0, -0.01]}>
-        <boxGeometry args={[6.4, 0.6, 0.02]} />
-        <Mat color="#8a6a10" roughness={0.4} metalness={0.3} />
-      </mesh>
-      {/* Neon text — emissive gold glow */}
       <Text
         position={[0, 0, 0.02]}
-        fontSize={0.22}
+        fontSize={0.2}
         color="#ffd700"
         anchorX="center"
         font={undefined}
@@ -1467,11 +1461,6 @@ function NeonSign() {
         FRIDAY NIGHT VIDEO
         <meshBasicMaterial color="#ffd700" toneMapped={false} />
       </Text>
-      {/* Neon tube glow bar behind text */}
-      <mesh position={[0, 0, 0.005]}>
-        <boxGeometry args={[5.5, 0.28, 0.01]} />
-        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.5} transparent opacity={0.3} />
-      </mesh>
     </group>
   );
 }
@@ -3389,7 +3378,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* ─── SPECIALS chalkboard on right wall near entrance ─── */}
-      <group position={[9.85, 1.8, 4.5]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[9.85, 1.8, 3]} rotation={[0, -Math.PI / 2, 0]}>
         {/* Green chalkboard */}
         <mesh>
           <boxGeometry args={[1.4, 1.0, 0.04]} />
