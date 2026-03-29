@@ -65,8 +65,9 @@ export default function GamePage() {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [hintText, setHintText] = useState<string | null>(null);
 
-  // VHS pickup inventory
-  const [heldMovie, setHeldMovie] = useState<{ id: number; title: string; posterUrl: string } | null>(null);
+  // VHS pickup inventory (multiple films)
+  type HeldMovie = { id: number; title: string; posterUrl: string };
+  const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const [pickupFlash, setPickupFlash] = useState(false);
 
@@ -85,7 +86,11 @@ export default function GamePage() {
       // Pick up VHS tape — don't exit pointer lock, stay in game
       try {
         const movie = JSON.parse(data);
-        setHeldMovie({ id: movie.id, title: movie.title, posterUrl: movie.posterUrl });
+        // Don't add duplicates
+        setHeldMovies(prev => {
+          if (prev.some(m => m.id === movie.id)) return prev;
+          return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl }];
+        });
         setPickupFlash(true);
         setTimeout(() => setPickupFlash(false), 600);
       } catch { /* ignore parse errors */ }
@@ -96,9 +101,9 @@ export default function GamePage() {
     document.exitPointerLock();
 
     if (type === "vinny") {
-      // If holding a movie, go to checkout flow
-      if (heldMovie) {
-        setFilmId(heldMovie.id);
+      // If holding movies, show the first one's detail (checkout)
+      if (heldMovies.length > 0) {
+        setFilmId(heldMovies[0].id);
         setOverlay("film_detail");
         return;
       }
@@ -121,7 +126,7 @@ export default function GamePage() {
     } else if (type === "tv") {
       startPuzzle();
     }
-  }, [overlay, heldMovie]);
+  }, [overlay, heldMovies]);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
   const startPuzzle = useCallback(async () => {
@@ -292,18 +297,23 @@ export default function GamePage() {
       {/* Pickup flash effect */}
       {pickupFlash && <div className="g3-pickup-flash" />}
 
-      {/* Held movie inventory HUD */}
-      {heldMovie && !hasOverlay && (
+      {/* Held movies inventory HUD */}
+      {heldMovies.length > 0 && !hasOverlay && (
         <div className="g3-inventory">
-          <div className="g3-inventory-label">RENTING</div>
-          <div className="g3-inventory-card">
-            {heldMovie.posterUrl && (
-              <img src={heldMovie.posterUrl} alt={heldMovie.title} className="g3-inventory-poster" />
-            )}
-            <div className="g3-inventory-title">{heldMovie.title}</div>
+          <div className="g3-inventory-label">RENTING ({heldMovies.length})</div>
+          <div className="g3-inventory-stack">
+            {heldMovies.map((movie) => (
+              <div key={movie.id} className="g3-inventory-card">
+                {movie.posterUrl && (
+                  <img src={movie.posterUrl} alt={movie.title} className="g3-inventory-poster" />
+                )}
+                <div className="g3-inventory-title">{movie.title}</div>
+                <button className="g3-inventory-remove" onClick={() => setHeldMovies(prev => prev.filter(m => m.id !== movie.id))}>✕</button>
+              </div>
+            ))}
           </div>
           <div className="g3-inventory-hint">Take to Vinny to check out</div>
-          <button className="g3-inventory-drop" onClick={() => setHeldMovie(null)}>DROP</button>
+          <button className="g3-inventory-drop" onClick={() => setHeldMovies([])}>DROP ALL</button>
         </div>
       )}
 
@@ -313,8 +323,8 @@ export default function GamePage() {
       {/* HUD */}
       <div className="g3-hud">
         <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
-        {!hasOverlay && !heldMovie && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
-        {!hasOverlay && heldMovie && <span className="g3-hud-hint">Take your movie to Vinny at the counter!</span>}
+        {!hasOverlay && heldMovies.length === 0 && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
+        {!hasOverlay && heldMovies.length > 0 && <span className="g3-hud-hint">Take your {heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny at the counter!</span>}
         {hasOverlay && <span className="g3-hud-hint">Press Q or click ✕ to close</span>}
         <button className="g3-screenshot-btn" onClick={() => {
           const canvas = document.querySelector('canvas');
