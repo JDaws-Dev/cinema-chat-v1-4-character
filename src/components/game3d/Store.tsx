@@ -23,6 +23,7 @@ function Mat(props: Record<string, unknown>) {
 
 // ── Poster texture cache + throttled loader ─────────────────
 const posterTextureCache = new Map<string, THREE.Texture>();
+const pendingCallbacks = new Map<string, { onTexture: (t: THREE.Texture) => void; onFail?: () => void }[]>();
 const pendingLoads: (() => void)[] = [];
 let activeLoads = 0;
 const MAX_CONCURRENT_LOADS = 6; // limit concurrent image fetches to avoid ERR_INSUFFICIENT_RESOURCES
@@ -35,20 +36,33 @@ function processQueue() {
   }
 }
 
-function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Texture) => void) {
+function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Texture) => void, onFail?: () => void) {
   const cached = posterTextureCache.get(url);
   if (cached) {
     onTexture(cached);
     return;
   }
-  // If already queued for this URL, skip
-  if (posterTextureCache.has(url + "__pending")) return;
-  posterTextureCache.set(url + "__pending", null as unknown as THREE.Texture);
+  // If already queued for this URL, register callbacks but don't re-queue
+  const pendingKey = url + "__pending";
+  if (posterTextureCache.has(pendingKey)) {
+    // Store additional callbacks for when the pending load completes
+    const existing = pendingCallbacks.get(url);
+    if (existing) {
+      existing.push({ onTexture, onFail });
+    }
+    return;
+  }
+  posterTextureCache.set(pendingKey, null as unknown as THREE.Texture);
+  const callbacks: { onTexture: (t: THREE.Texture) => void; onFail?: () => void }[] = [{ onTexture, onFail }];
+  pendingCallbacks.set(url, callbacks);
 
-  const doFetch = () => {
+  const attemptFetch = (retry: boolean) => {
     const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
     fetch(proxyUrl)
-      .then(r => r.blob())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      })
       .then(blob => {
         const objectUrl = URL.createObjectURL(blob);
         const img = new window.Image();
@@ -57,17 +71,43 @@ function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Texture) => 
           t.colorSpace = THREE.SRGBColorSpace;
           t.needsUpdate = true;
           posterTextureCache.set(url, t);
-          posterTextureCache.delete(url + "__pending");
-          onTexture(t);
+          posterTextureCache.delete(pendingKey);
+          const cbs = pendingCallbacks.get(url) || callbacks;
+          pendingCallbacks.delete(url);
+          cbs.forEach(cb => cb.onTexture(t));
           URL.revokeObjectURL(objectUrl);
           activeLoads--;
           processQueue();
         };
-        img.onerror = () => { activeLoads--; posterTextureCache.delete(url + "__pending"); processQueue(); };
+        img.onerror = () => {
+          if (retry) {
+            setTimeout(() => attemptFetch(false), 2000);
+          } else {
+            activeLoads--;
+            posterTextureCache.delete(pendingKey);
+            const cbs = pendingCallbacks.get(url) || callbacks;
+            pendingCallbacks.delete(url);
+            cbs.forEach(cb => cb.onFail?.());
+            processQueue();
+          }
+        };
         img.src = objectUrl;
       })
-      .catch(() => { activeLoads--; posterTextureCache.delete(url + "__pending"); processQueue(); });
+      .catch(() => {
+        if (retry) {
+          setTimeout(() => attemptFetch(false), 2000);
+        } else {
+          activeLoads--;
+          posterTextureCache.delete(pendingKey);
+          const cbs = pendingCallbacks.get(url) || callbacks;
+          pendingCallbacks.delete(url);
+          cbs.forEach(cb => cb.onFail?.());
+          processQueue();
+        }
+      });
   };
+
+  const doFetch = () => attemptFetch(true);
 
   pendingLoads.push(doFetch);
   processQueue();
@@ -152,21 +192,42 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
   return posters;
 }
 
-function PosterBox({ url, position, rotation = 0, movieTitle, movieId }: { url: string; position: [number, number, number]; rotation?: number; movieTitle?: string; movieId?: number }) {
+function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColor }: { url: string; position: [number, number, number]; rotation?: number; movieTitle?: string; movieId?: number; genreColor?: string }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    loadedRef.current = false;
     // Use smallest TMDB sizes — VHS boxes are tiny in 3D, no need for high-res
     const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
     const imgUrl = isMob ? url.replace("/w342/", "/w92/") : url.replace("/w342/", "/w154/");
+
+    // 5-second fallback: show genre color if texture hasn't loaded
+    const fallbackColor = genreColor || "#5a5a7a";
+    const fallbackTimer = setTimeout(() => {
+      if (!loadedRef.current && matRef.current) {
+        matRef.current.color.set(fallbackColor);
+        matRef.current.needsUpdate = true;
+      }
+    }, 5000);
+
     getOrCreatePosterTexture(imgUrl, (t) => {
+      loadedRef.current = true;
       if (matRef.current) {
         matRef.current.map = t;
         matRef.current.color.set("#ffffff");
         matRef.current.needsUpdate = true;
       }
+    }, () => {
+      // onFail — immediately show genre fallback color
+      if (!loadedRef.current && matRef.current) {
+        matRef.current.color.set(fallbackColor);
+        matRef.current.needsUpdate = true;
+      }
     });
-  }, [url]);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [url, genreColor]);
 
   const vhsData = movieTitle && movieId ? JSON.stringify({ id: movieId, title: movieTitle, posterUrl: url }) : undefined;
 
@@ -282,7 +343,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
         const poster = posters[posterIdx];
         const flipRot = pos.side === "back" ? Math.PI : 0;
         return poster ? (
-          <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} />
+          <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={color} />
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
             <boxGeometry args={[0.20, 0.30, 0.10]} />
@@ -1084,6 +1145,122 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   );
 }
 
+function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
+  startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const speed = 0.6; // slightly slower than adults
+  const startIdx = useMemo(() => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < NPC_WAYPOINTS.length; i++) {
+      const dx = NPC_WAYPOINTS[i][0] - startPos[0];
+      const dz = NPC_WAYPOINTS[i][1] - startPos[2];
+      const d = dx * dx + dz * dz;
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    return best;
+  }, [startPos]);
+  const waypointIdx = useRef(startIdx);
+  const direction = useRef(useMemo(() => (Math.random() > 0.5 ? 1 : -1), []));
+  const waitTimer = useRef(0);
+  const waitDuration = useRef(0);
+
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    const dt = Math.min(delta, 0.1);
+    const t = state.clock.elapsedTime;
+
+    if (waitTimer.current > 0) {
+      waitTimer.current -= dt;
+      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
+      return;
+    }
+
+    const target = NPC_WAYPOINTS[waypointIdx.current];
+    const dx = target[0] - ref.current.position.x;
+    const dz = target[1] - ref.current.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 0.3) {
+      waitTimer.current = 0.5 + Math.random() * 0.5;
+      waitDuration.current = waitTimer.current;
+      waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
+    } else {
+      const nx = dx / dist;
+      const nz = dz / dist;
+      ref.current.position.x += nx * speed * dt;
+      ref.current.position.z += nz * speed * dt;
+      ref.current.position.y = Math.abs(Math.sin(t * 2.5)) * 0.025;
+      // Face direction of movement (model faces -z, so add PI)
+      ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+    }
+  });
+
+  return (
+    <group ref={ref} position={startPos} scale={0.65}>
+      {/* Legs — shorter kid proportions */}
+      <mesh position={[-0.06, 0.3, 0]}>
+        <boxGeometry args={[0.1, 0.6, 0.12]} />
+        <Mat color="#4a6fa5" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.06, 0.3, 0]}>
+        <boxGeometry args={[0.1, 0.6, 0.12]} />
+        <Mat color="#4a6fa5" roughness={0.8} />
+      </mesh>
+      {/* Body */}
+      <mesh position={[0, 0.8, 0]}>
+        <boxGeometry args={[0.34, 0.44, 0.22]} />
+        <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      {/* Left arm */}
+      <mesh position={[-0.22, 0.78, 0]}>
+        <boxGeometry args={[0.1, 0.35, 0.1]} />
+        <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      {/* Left hand */}
+      <mesh position={[-0.22, 0.58, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <Mat color={skinTone} roughness={0.8} />
+      </mesh>
+      {/* Right arm */}
+      <mesh position={[0.22, 0.78, 0]}>
+        <boxGeometry args={[0.1, 0.35, 0.1]} />
+        <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      {/* Right hand */}
+      <mesh position={[0.22, 0.58, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <Mat color={skinTone} roughness={0.8} />
+      </mesh>
+      {/* Head — rounder kid proportions */}
+      <mesh position={[0, 1.18, 0]}>
+        <sphereGeometry args={[0.17, 12, 14]} />
+        <Mat color={skinTone} roughness={0.75} />
+      </mesh>
+      {/* Hair */}
+      <mesh position={[0, 1.28, 0.01]}>
+        <sphereGeometry args={[0.16, 12, 8]} />
+        <Mat color={hairColor} roughness={0.9} />
+      </mesh>
+      {/* Eyes — slightly bigger for kid look */}
+      <mesh position={[-0.055, 1.2, -0.15]}>
+        <sphereGeometry args={[0.022, 8, 8]} />
+        <Mat color="#1a1a1a" />
+      </mesh>
+      <mesh position={[0.055, 1.2, -0.15]}>
+        <sphereGeometry args={[0.022, 8, 8]} />
+        <Mat color="#1a1a1a" />
+      </mesh>
+      {/* Shadow */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+        <circleGeometry args={[0.2, 12]} />
+        <Mat color="#000000" transparent opacity={0.15} />
+      </mesh>
+    </group>
+  );
+}
+
 function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
@@ -1666,8 +1843,14 @@ function AisleFloorMarkings() {
 }
 
 // ── Staff Picks wall shelf (right wall) ──
+const STAFF_PICK_MOVIES = [
+  { url: "https://image.tmdb.org/t/p/w342/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg", title: "Pulp Fiction", id: 680 },
+  { url: "https://image.tmdb.org/t/p/w342/rSPw7tgCH9c6NqICZef4kZjFOQ5.jpg", title: "The Godfather", id: 238 },
+  { url: "https://image.tmdb.org/t/p/w342/gpMR1hnEo0JLEW0oGOAkxRYrf7R.jpg", title: "The Princess Bride", id: 2493 },
+  { url: "https://image.tmdb.org/t/p/w342/3E52VpEVKhklKLLjqOGKpjEJBnM.jpg", title: "Ghostbusters", id: 620 },
+];
+
 function StaffPicksShelf() {
-  const vhsColors = ["#dc2626", "#2563eb", "#059669", "#d97706"];
   return (
     <group position={[ROOM_W / 2 - 0.2, 1.2, -1]} rotation={[0, -Math.PI / 2, 0]}>
       {/* Shelf board */}
@@ -1695,21 +1878,17 @@ function StaffPicksShelf() {
       >
         STAFF PICKS
       </Text>
-      {/* VHS tapes on the shelf */}
-      {vhsColors.map((color, i) => {
-        const xOff = -0.36 + i * 0.24;
+      {/* Movie poster boxes on the shelf */}
+      {STAFF_PICK_MOVIES.map((m, i) => {
+        const dx = -0.36 + i * 0.24;
         return (
-          <group key={`staff-vhs-${i}`} position={[xOff, 0.17, 0]}>
-            <mesh>
-              <boxGeometry args={[0.16, 0.26, 0.10]} />
-              <Mat color={color} roughness={0.6} />
-            </mesh>
-            {/* Label stripe */}
-            <mesh position={[0, 0, 0.052]}>
-              <planeGeometry args={[0.12, 0.08]} />
-              <meshBasicMaterial color="#ffffff" transparent opacity={0.7} />
-            </mesh>
-          </group>
+          <PosterBox
+            key={`staff-pick-${m.id}`}
+            url={m.url}
+            position={[dx, 1.25, 0.05]}
+            movieTitle={m.title}
+            movieId={m.id}
+          />
         );
       })}
     </group>
@@ -2110,6 +2289,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
       {!isMobile && <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
       {!isMobile && <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
+      <KidCustomer startPos={[0, 0, 1.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
       <CharlieCharacter isMobile={isMobile} />
 
       {/* New Releases wall display */}

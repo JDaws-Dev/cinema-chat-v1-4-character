@@ -111,8 +111,16 @@ const CUSTOMER_LINES = [
   "The guy at the counter recommended this one. He hasn't steered me wrong yet.",
   "Ooh they have a new releases wall! Let's see what's hot this week.",
   "Last time we rented three movies and only watched one. Classic Friday night.",
+  // Kid lines (indices 20-25, files: kid_0.mp3 through kid_5.mp3)
+  "Mom, can we get THIS one? Pleeeeease?",
+  "I want the one with the dinosaurs!",
+  "Can I get candy too? They have Sour Patch Kids!",
+  "This store is so cool. I wanna work here when I grow up.",
+  "I already watched that one like a hundred times.",
+  "Is this one scary? I dont wanna have nightmares again.",
 ];
-const CUSTOMER_NAMES = ["Roger", "Jessica", "Liam", "Mom", "Laura", "George", "Kid", "Chris", "Sarah", "Roger", "Jessica", "Lily", "Brian", "Laura", "George", "Liam", "Jessica", "Bella", "Sarah", "Brian"];
+const CUSTOMER_NAMES = ["Roger", "Jessica", "Liam", "Mom", "Laura", "George", "Kid", "Chris", "Sarah", "Roger", "Jessica", "Lily", "Brian", "Laura", "George", "Liam", "Jessica", "Bella", "Sarah", "Brian", "Kid", "Kid", "Kid", "Kid", "Kid", "Kid"];
+const KID_CLIP_START = 20; // indices 20+ use kid_N.mp3 files
 let customerInterval: ReturnType<typeof setInterval> | null = null;
 let customerPlaying = false;
 
@@ -129,7 +137,8 @@ async function playRandomCustomerClip() {
   try {
     const ctx = getAudioContext();
     if (ctx.state === "suspended") await ctx.resume();
-    const res = await fetch(`/sounds/customer_${idx}.mp3`);
+    const clipFile = idx >= KID_CLIP_START ? `kid_${idx - KID_CLIP_START}` : `customer_${idx}`;
+    const res = await fetch(`/sounds/${clipFile}.mp3`);
     if (!res.ok) { customerPlaying = false; return; }
     const ab = await res.arrayBuffer();
     const buffer = await ctx.decodeAudioData(ab);
