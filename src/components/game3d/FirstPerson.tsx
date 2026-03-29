@@ -7,7 +7,7 @@ import { mobileInput } from "./MobileControls";
 
 const SPEED = 3.5;
 const MOUSE_SENS = 0.002;
-const ROOM_BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -6.5, maxZ: 6.5 };
+const ROOM_BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -6.5, maxZ: 14 }; // extended +z for outside area
 const PLAYER_RADIUS = 0.4;
 
 // Collision boxes: { x, z, halfW, halfD } — rectangular obstacles
@@ -26,14 +26,12 @@ const COLLIDERS = [
   { x: -5.5, z: 3, hw: 1.6, hd: 0.5 },
   { x: -2,   z: 3, hw: 1.6, hd: 0.5 },
   { x: 1.5,  z: 3, hw: 1.6, hd: 0.5 },
-  // Counter (right side near door)
-  { x: 7.5, z: 5, hw: 3.2, hd: 0.8 },
+  // Counter (left side near entrance)
+  { x: -7, z: 5, hw: 0.8, hd: 3.2 },
   // New Releases back wall shelf
   { x: 0, z: -6.8, hw: 9.5, hd: 0.4 },
-  // Returns drop box
-  { x: -3, z: 6, hw: 0.7, hd: 0.5 },
-  // Candy rack
-  { x: 6, z: 5, hw: 0.6, hd: 0.4 },
+  // Candy rack (near counter)
+  { x: -5, z: 5, hw: 0.6, hd: 0.4 },
 ];
 
 function collidesWithAny(px: number, pz: number): boolean {
@@ -68,8 +66,8 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   useEffect(() => {
     // Only set spawn position on first mount, not re-mounts
     if (!initialized.current) {
-      camera.position.set(0, 1.6, 5);
-      euler.current.set(0, 0, 0);
+      camera.position.set(0, 1.6, 12); // Start outside the store
+      euler.current.set(0, Math.PI, 0); // Face toward the store entrance (-z)
       camera.quaternion.setFromEuler(euler.current);
       initialized.current = true;
     }
