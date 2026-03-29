@@ -389,8 +389,8 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
 
 function Counter() {
   return (
-    <group position={[-7, 0, 5]} rotation={[0, Math.PI / 2, 0]}>
-      {/* Counter body — front panel (now near entrance, left side) */}
+    <group position={[-6, 0, 5.5]} rotation={[0, 0, 0]}>
+      {/* Counter — near entrance left side, facing right (+x) */}
       <mesh position={[0, 0.5, -0.55]}>
         <boxGeometry args={[6, 1.0, 0.08]} />
         <Mat color="#5a3820" roughness={0.8} />
@@ -617,7 +617,7 @@ function VinnyCharacter() {
   });
 
   return (
-    <group ref={ref} position={[-7, 0, 6.5]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
+    <group ref={ref} position={[-6, 0, 6.2]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
       {/* Legs — Khaki pants */}
       <mesh position={[-0.09, 0.35, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
         <boxGeometry args={[0.13, 0.7, 0.15]} />
@@ -1785,7 +1785,7 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
   const TIER_YS = [0.3, 0.8, 1.3];
 
   return (
-    <group position={[ROOM_W / 2 - 0.3, 0, -1.5]} rotation={[0, -Math.PI / 2, 0]} userData={{ interactType: "trophy", label: "View Collection" }}>
+    <group position={[ROOM_W / 2 - 0.3, 0, -4]} rotation={[0, -Math.PI / 2, 0]} userData={{ interactType: "trophy", label: "View Collection" }}>
       {/* Shelf unit — back panel */}
       <mesh position={[0, 0.85, -0.06]}>
         <boxGeometry args={[2.5, 1.7, 0.04]} />
@@ -2541,7 +2541,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* Candy/snack rack near counter */}
-      <mesh position={[-5, 0.7, 5]}>
+      <mesh position={[-4, 0.7, 5]}>
         <boxGeometry args={[0.8, 1.4, 0.4]} />
         <Mat color="#3a3a3a" roughness={0.7} />
       </mesh>
@@ -2556,7 +2556,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         ];
         const snack = rackSnacks[i];
         return (
-        <group key={`candy${i}`} position={[-5 + dx, 0.7 + dy, 4.78]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
+        <group key={`candy${i}`} position={[-4 + dx, 0.7 + dy, 4.78]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
           <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
             <boxGeometry args={[0.12, 0.15, 0.02]} />
             <Mat color={["#ef4444","#3b82f6","#f59e0b","#22c55e","#a855f7"][i]} roughness={0.5} />
@@ -2643,7 +2643,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* ── MOVIE NIGHT CHALLENGE BOARD ─────────────────────── */}
-      <group position={[ROOM_W / 2 - 0.1, 1.5, 0]} rotation={[0, -Math.PI / 2, 0]}
+      <group position={[ROOM_W / 2 - 0.1, 1.5, 2]} rotation={[0, -Math.PI / 2, 0]}
         userData={{ interactType: "challenge", label: "Challenge Board" }}
       >
         {/* Board backing */}
@@ -2807,7 +2807,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
 
       {/* "REWARDS MEMBER?" sign above counter */}
-      <group position={[-7, 2.8, 5]} rotation={[0, Math.PI, 0]}>
+      <group position={[-6, 2.8, 5.5]} rotation={[0, Math.PI, 0]}>
         <mesh>
           <boxGeometry args={[2.5, 0.4, 0.03]} />
           <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} />

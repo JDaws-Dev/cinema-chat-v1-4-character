@@ -30,11 +30,11 @@ const elements = [
   { x: -2, z: 3, w: 2.8, d: 0.55, label: "ANIMATED", color: "#06b6d4" },
   { x: 1.5, z: 3, w: 2.8, d: 0.55, label: "DOCS", color: "#65a30d" },
 
-  // Counter (left side near entrance, rotated 90°)
-  { x: -7, z: 5, w: 1.2, d: 6, label: "COUNTER", color: "#9a7850" },
+  // Counter (left side near entrance)
+  { x: -6, z: 5.5, w: 6, d: 1.2, label: "COUNTER", color: "#9a7850" },
 
   // Vinny
-  { x: -7, z: 6.5, w: 0.4, d: 0.25, label: "VINNY", color: "#ffd700" },
+  { x: -6, z: 6.2, w: 0.4, d: 0.25, label: "VINNY", color: "#ffd700" },
 
   // New Releases (back wall)
   { x: 0, z: -6.85, w: 8, d: 0.3, label: "NEW RELEASES", color: "#ec4899" },
@@ -65,17 +65,17 @@ const elements = [
   // Return window (outside)
   { x: 3, z: 7.1, w: 1.5, d: 0.6, label: "VIDEO RETURN", color: "#2a4a7a" },
 
-  // Challenge board (right wall)
-  { x: 9.7, z: -1.5, w: 0.04, d: 1.4, label: "CHALLENGE", color: "#ff3e7a" },
+  // Challenge board (right wall, mid-store)
+  { x: 9.7, z: 2, w: 0.04, d: 1.4, label: "CHALLENGE", color: "#ff3e7a" },
 
-  // Trophy shelf (right wall)
-  { x: 9.7, z: -1.5, w: 0.04, d: 2.5, label: "TROPHIES", color: "#ffd700" },
+  // Trophy shelf (right wall, back of store)
+  { x: 9.7, z: -4, w: 0.04, d: 2.5, label: "TROPHIES", color: "#ffd700" },
 
   // Employees only door (left wall)
   { x: -9.94, z: -4, w: 0.04, d: 0.9, label: "EMPLOYEES", color: "#4a3020" },
 
   // Candy rack
-  { x: -5, z: 5, w: 0.8, d: 0.4, label: "CANDY", color: "#ef4444" },
+  { x: -4, z: 5, w: 0.8, d: 0.4, label: "CANDY", color: "#ef4444" },
 
   // Standee
   { x: 3, z: 5, w: 0.6, d: 0.03, label: "STANDEE", color: "#c0a080" },
@@ -93,7 +93,7 @@ const elements = [
   { x: 0, z: -6.85, w: 6, d: 0.04, label: "FNV SIGN", color: "#ffd700", y: 3.3 },
 
   // Spawn point
-  { x: 0, z: 5, w: 0.3, d: 0.3, label: "SPAWN ★", color: "#00ff00" },
+  { x: 0, z: 4, w: 0.3, d: 0.3, label: "SPAWN ★", color: "#00ff00" },
 
   // NPC positions
   { x: -4, z: -5, w: 0.3, d: 0.3, label: "NPC1", color: "#3498db" },

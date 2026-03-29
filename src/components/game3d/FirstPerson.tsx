@@ -27,7 +27,7 @@ const COLLIDERS = [
   { x: -2,   z: 3, hw: 1.6, hd: 0.5 },
   { x: 1.5,  z: 3, hw: 1.6, hd: 0.5 },
   // Counter (left side near entrance)
-  { x: -7, z: 5, hw: 0.8, hd: 3.2 },
+  { x: -6, z: 5.5, hw: 3.2, hd: 0.8 },
   // New Releases back wall shelf
   { x: 0, z: -6.8, hw: 9.5, hd: 0.4 },
   // Candy rack (near counter)
@@ -66,7 +66,7 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   useEffect(() => {
     // Set spawn position only on very first mount
     if (!initialized.current) {
-      camera.position.set(0, 1.6, 5);
+      camera.position.set(0, 1.6, 4); // Center aisle, facing into store
       euler.current.set(0, 0, 0);
       camera.quaternion.setFromEuler(euler.current);
       initialized.current = true;
