@@ -64,10 +64,10 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   }, [gl, disabled]);
 
   useEffect(() => {
-    // Only set spawn position on first mount, not re-mounts
+    // Set spawn position only on very first mount
     if (!initialized.current) {
-      camera.position.set(0, 1.6, 5); // Start inside near entrance
-      euler.current.set(0, 0, 0); // Face -z (into the store)
+      camera.position.set(0, 1.6, 5);
+      euler.current.set(0, 0, 0);
       camera.quaternion.setFromEuler(euler.current);
       initialized.current = true;
     }
