@@ -607,6 +607,7 @@ export default function GamePage() {
           </div>
           <h1 className="g3-splash-title">FRIDAY NIGHT<br/>VIDEO</h1>
           <p className="g3-splash-tagline">Your neighborhood video store</p>
+          <p className="g3-splash-tagline" style={{ fontSize: "0.8em", opacity: 0.7, marginTop: 8 }}>Browse the shelves. Pick a movie. Chat with Vinny.<br/>It&apos;s Friday night, 1997.</p>
           <button className="g3-splash-btn" onClick={() => {
             setStarted(true); setLoading(true);
             // Request fullscreen on mobile only to hide Safari chrome
