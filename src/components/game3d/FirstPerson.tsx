@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { mobileInput } from "./MobileControls";
+import { setPlayerPosition } from "@/lib/audio";
 
 const SPEED = 3.5;
 const MOUSE_SENS = 0.002;
@@ -177,6 +178,9 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     // Crouch mechanic: hold Shift or C to lower camera
     const crouchTarget = keys.current.has("shift") ? 0.8 : 1.6;
     camera.position.y += (crouchTarget - camera.position.y) * 0.15;
+
+    // Update spatial audio listener to match player position
+    setPlayerPosition(camera.position.x, camera.position.z);
   });
 
   return null;

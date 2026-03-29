@@ -5,6 +5,7 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import { Text, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
+import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
 
 // Mobile context — meshBasicMaterial on mobile, meshStandardMaterial on desktop
 const MobileCtx = createContext(false);
@@ -262,26 +263,29 @@ const SHELF_COLOR = "#5a3820";
 
 // ── Shelf layout ─────────────────────────────────────────
 const SHELF_ROWS = [
-  // Row 1 — back of store (z = -4, pushed back 1 unit for entrance breathing room)
-  { x: -5, z: -4, genre: "HORROR", color: "#dc2626" },
-  { x: -1.7, z: -4, genre: "SCI-FI", color: "#3b82f6" },
-  { x: 1.7, z: -4, genre: "COMEDY", color: "#f97316" },
-  { x: 5, z: -4, genre: "DRAMA", color: "#6366f1" },
+  // Row 1 — back of store (z = -4). Front faces entrance (+z), back faces back wall (-z)
+  { x: -5, z: -4, genre: "HORROR", color: "#dc2626", backGenre: "CULT", backColor: "#991b1b" },
+  { x: -1.7, z: -4, genre: "SCI-FI", color: "#3b82f6", backGenre: "FOREIGN", backColor: "#6366f1" },
+  { x: 1.7, z: -4, genre: "COMEDY", color: "#f97316", backGenre: "INDIE", backColor: "#a855f7" },
+  { x: 5, z: -4, genre: "DRAMA", color: "#6366f1", backGenre: "CLASSICS", backColor: "#ca8a04" },
   // Row 2 — middle (z = -1)
-  { x: -5, z: -1, genre: "ACTION", color: "#ef4444" },
-  { x: -1.7, z: -1, genre: "CLASSICS", color: "#ca8a04" },
-  { x: 1.7, z: -1, genre: "FAMILY", color: "#22c55e" },
-  { x: 5, z: -1, genre: "ROMANCE", color: "#f43f5e" },
-  // Row 3 — mid-front (z = 2, gives ~3 units to entrance area)
-  { x: -5, z: 2, genre: "THRILLER", color: "#7c3aed" },
-  { x: -1.7, z: 2, genre: "ANIMATED", color: "#06b6d4" },
-  { x: 1.7, z: 2, genre: "DOCS", color: "#65a30d" },
-  { x: 5, z: 2, genre: "WESTERN", color: "#92400e" },
+  { x: -5, z: -1, genre: "ACTION", color: "#ef4444", backGenre: "THRILLER", backColor: "#7c3aed" },
+  { x: -1.7, z: -1, genre: "FAMILY", color: "#22c55e", backGenre: "ANIMATED", backColor: "#06b6d4" },
+  { x: 1.7, z: -1, genre: "ROMANCE", color: "#f43f5e", backGenre: "COMEDY", backColor: "#f97316" },
+  { x: 5, z: -1, genre: "WESTERN", color: "#92400e", backGenre: "DOCS", backColor: "#65a30d" },
+  // Row 3 — mid-front (z = 2)
+  { x: -5, z: 2, genre: "SCI-FI", color: "#3b82f6", backGenre: "ACTION", backColor: "#ef4444" },
+  { x: -1.7, z: 2, genre: "DRAMA", color: "#6366f1", backGenre: "HORROR", backColor: "#dc2626" },
+  { x: 1.7, z: 2, genre: "FAMILY", color: "#22c55e", backGenre: "WESTERN", backColor: "#92400e" },
+  { x: 5, z: 2, genre: "ANIMATED", color: "#06b6d4", backGenre: "ROMANCE", backColor: "#f43f5e" },
 ];
 
-function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; genre: string; color: string; isMobile?: boolean }) {
-  const posters = usePosterUrls(genre, 15); // 15 unique posters per genre, repeat across shelf
+function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; isMobile?: boolean }) {
+  const frontPosters = usePosterUrls(genre, 15);
+  const backPosters = usePosterUrls(backGenre || genre, 15);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
+  const backGenreKey = (backGenre || genre).toLowerCase().replace(/[- ]/g, "");
+  const bColor = backColor || color;
 
   // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
@@ -337,18 +341,21 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
         <Mat color="#6a4226" roughness={0.8} />
       </mesh>
 
-      {/* VHS Boxes — face-out with poster art */}
+      {/* VHS Boxes — front side uses genre posters, back side uses backGenre posters */}
       {positions.map((pos) => {
-        const posterIdx = pos.idx % Math.max(posters.length, 1);
-        const poster = posters[posterIdx];
-        const flipRot = pos.side === "back" ? Math.PI : 0;
+        const isBack = pos.side === "back";
+        const sidePosters = isBack ? backPosters : frontPosters;
+        const sideColor = isBack ? bColor : color;
+        const posterIdx = pos.idx % Math.max(sidePosters.length, 1);
+        const poster = sidePosters[posterIdx];
+        const flipRot = isBack ? Math.PI : 0;
         return poster ? (
-          <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={color} />
+          <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
             <boxGeometry args={[0.20, 0.30, 0.10]} />
             <Mat
-              color={new THREE.Color(color).offsetHSL(0, -0.1, -(posterIdx % 3) * 0.1)}
+              color={new THREE.Color(sideColor).offsetHSL(0, -0.1, -(posterIdx % 3) * 0.1)}
               roughness={0.6}
             />
           </mesh>
@@ -372,16 +379,16 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
       >
         {genre}
       </Text>
-      {/* Back label */}
+      {/* Back label — different genre */}
       <Text
         position={[0, 1.62, 0.025]}
         fontSize={0.1}
-        color={color}
+        color={bColor}
         anchorX="center"
         anchorY="middle"
         font={undefined}
       >
-        {genre}
+        {backGenre || genre}
       </Text>
     </group>
   );
@@ -985,8 +992,9 @@ const NPC_WAYPOINTS: [number, number][] = [
   [3.35, 3.5],  // right front
 ];
 
-function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
-  startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
+function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle = "flattop" }: {
+  id: string; startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
+  hairStyle?: "flattop" | "long" | "cap" | "ponytail";
 }) {
   const ref = useRef<THREE.Group>(null);
   const speed = 0.8; // units per second
@@ -1061,7 +1069,15 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
       // Face direction of movement (model faces -z, so add PI)
       ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
     }
+
+    // Update spatial audio position for this NPC
+    registerNPCPosition(id, ref.current.position.x, ref.current.position.z);
   });
+
+  // Unregister spatial audio on unmount
+  useEffect(() => {
+    return () => { unregisterNPCPosition(id); };
+  }, [id]);
 
   const vhsColor = useMemo(() => {
     const colors = ["#2a2a8a", "#8a2a2a", "#2a6a2a", "#6a2a6a", "#1a5a5a", "#8a6a1a"];
@@ -1084,6 +1100,20 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
       <mesh position={[0, 0.8, 0]}>
         <boxGeometry args={[0.34, 0.44, 0.22]} />
         <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      {/* Collar — two angled flaps at neck */}
+      <mesh position={[-0.05, 1.01, -0.08]} rotation={[0.3, 0, 0.2]}>
+        <boxGeometry args={[0.07, 0.04, 0.02]} />
+        <Mat color={shirtColor} roughness={0.6} />
+      </mesh>
+      <mesh position={[0.05, 1.01, -0.08]} rotation={[0.3, 0, -0.2]}>
+        <boxGeometry args={[0.07, 0.04, 0.02]} />
+        <Mat color={shirtColor} roughness={0.6} />
+      </mesh>
+      {/* Belt line */}
+      <mesh position={[0, 0.58, 0]}>
+        <boxGeometry args={[0.35, 0.03, 0.23]} />
+        <Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
       {/* Left arm with VHS tape in hand */}
       <mesh position={[-0.22, 0.78, 0]}>
@@ -1142,9 +1172,72 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         <sphereGeometry args={[0.13, 12, 8]} />
         <Mat color={skinTone} roughness={0.75} />
       </mesh>
-      {/* Hair */}
-      <mesh position={[0, 1.34, 0.01]}>
-        <sphereGeometry args={[0.15, 12, 8]} />
+      {/* Chin / jaw — slightly wider below head */}
+      <mesh position={[0, 1.1, -0.02]}>
+        <boxGeometry args={[0.2, 0.06, 0.14]} />
+        <Mat color={skinTone} roughness={0.75} />
+      </mesh>
+
+      {/* Hair — style-dependent */}
+      {hairStyle === "flattop" && (
+        <mesh position={[0, 1.36, 0]}>
+          <boxGeometry args={[0.26, 0.06, 0.22]} />
+          <Mat color={hairColor} roughness={0.9} />
+        </mesh>
+      )}
+      {hairStyle === "long" && (
+        <group>
+          <mesh position={[0, 1.36, 0.02]}>
+            <boxGeometry args={[0.3, 0.14, 0.26]} />
+            <Mat color={hairColor} roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 1.2, 0.12]}>
+            <boxGeometry args={[0.24, 0.2, 0.06]} />
+            <Mat color={hairColor} roughness={0.9} />
+          </mesh>
+        </group>
+      )}
+      {hairStyle === "cap" && (
+        <group>
+          <mesh position={[0, 1.35, 0]}>
+            <sphereGeometry args={[0.18, 12, 8]} />
+            <Mat color="#2a5a2a" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 1.32, -0.16]} rotation={[0.1, 0, 0]}>
+            <boxGeometry args={[0.22, 0.02, 0.12]} />
+            <Mat color="#2a5a2a" roughness={0.6} />
+          </mesh>
+        </group>
+      )}
+      {hairStyle === "ponytail" && (
+        <group>
+          <mesh position={[0, 1.34, 0.01]}>
+            <sphereGeometry args={[0.15, 12, 8]} />
+            <Mat color={hairColor} roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 1.24, 0.18]}>
+            <sphereGeometry args={[0.06, 8, 8]} />
+            <Mat color={hairColor} roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 1.28, 0.14]}>
+            <boxGeometry args={[0.04, 0.04, 0.08]} />
+            <Mat color={hairColor} roughness={0.9} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Nose — small box protruding from face */}
+      <mesh position={[0, 1.18, -0.16]}>
+        <boxGeometry args={[0.03, 0.04, 0.03]} />
+        <Mat color={skinTone} roughness={0.8} />
+      </mesh>
+      {/* Eyebrows — thin boxes above eyes */}
+      <mesh position={[-0.05, 1.26, -0.14]}>
+        <boxGeometry args={[0.05, 0.012, 0.02]} />
+        <Mat color={hairColor} roughness={0.9} />
+      </mesh>
+      <mesh position={[0.05, 1.26, -0.14]}>
+        <boxGeometry args={[0.05, 0.012, 0.02]} />
         <Mat color={hairColor} roughness={0.9} />
       </mesh>
 
@@ -1248,10 +1341,46 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         <boxGeometry args={[0.1, 0.6, 0.12]} />
         <Mat color="#4a6fa5" roughness={0.8} />
       </mesh>
+      {/* Sneakers — colorful kid shoes */}
+      <mesh position={[-0.06, 0.03, -0.02]}>
+        <boxGeometry args={[0.12, 0.07, 0.16]} />
+        <Mat color="#e74c3c" roughness={0.7} />
+      </mesh>
+      <mesh position={[-0.06, 0.01, -0.02]}>
+        <boxGeometry args={[0.13, 0.03, 0.17]} />
+        <Mat color="#f0f0f0" roughness={0.6} />
+      </mesh>
+      <mesh position={[0.06, 0.03, -0.02]}>
+        <boxGeometry args={[0.12, 0.07, 0.16]} />
+        <Mat color="#e74c3c" roughness={0.7} />
+      </mesh>
+      <mesh position={[0.06, 0.01, -0.02]}>
+        <boxGeometry args={[0.13, 0.03, 0.17]} />
+        <Mat color="#f0f0f0" roughness={0.6} />
+      </mesh>
       {/* Body */}
       <mesh position={[0, 0.8, 0]}>
         <boxGeometry args={[0.34, 0.44, 0.22]} />
         <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      {/* Backpack on back */}
+      <mesh position={[0, 0.82, 0.14]}>
+        <boxGeometry args={[0.22, 0.28, 0.1]} />
+        <Mat color="#e67e22" roughness={0.8} />
+      </mesh>
+      {/* Backpack flap */}
+      <mesh position={[0, 0.94, 0.14]}>
+        <boxGeometry args={[0.2, 0.06, 0.11]} />
+        <Mat color="#d35400" roughness={0.8} />
+      </mesh>
+      {/* Backpack straps (visible from front) */}
+      <mesh position={[-0.08, 0.88, -0.1]}>
+        <boxGeometry args={[0.03, 0.2, 0.02]} />
+        <Mat color="#d35400" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.08, 0.88, -0.1]}>
+        <boxGeometry args={[0.03, 0.2, 0.02]} />
+        <Mat color="#d35400" roughness={0.8} />
       </mesh>
       {/* Left arm */}
       <mesh position={[-0.22, 0.78, 0]}>
@@ -1416,6 +1545,26 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       <mesh position={[0, 0.85, 0]}>
         <boxGeometry args={[0.36, 0.5, 0.22]} />
         <Mat color="#0a4a8a" roughness={0.7} />
+      </mesh>
+      {/* Blue vest over shirt — front panel */}
+      <mesh position={[0, 0.85, -0.115]}>
+        <boxGeometry args={[0.34, 0.46, 0.02]} />
+        <Mat color="#1a3a6a" roughness={0.65} />
+      </mesh>
+      {/* Vest back panel */}
+      <mesh position={[0, 0.85, 0.115]}>
+        <boxGeometry args={[0.34, 0.46, 0.02]} />
+        <Mat color="#1a3a6a" roughness={0.65} />
+      </mesh>
+      {/* Vest side left */}
+      <mesh position={[-0.175, 0.85, 0]}>
+        <boxGeometry args={[0.02, 0.46, 0.22]} />
+        <Mat color="#1a3a6a" roughness={0.65} />
+      </mesh>
+      {/* Vest side right */}
+      <mesh position={[0.175, 0.85, 0]}>
+        <boxGeometry args={[0.02, 0.46, 0.22]} />
+        <Mat color="#1a3a6a" roughness={0.65} />
       </mesh>
       {/* Yellow accent stripe on shirt */}
       <mesh position={[0, 0.75, -0.115]}>
@@ -2323,7 +2472,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
-        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} isMobile={isMobile} />
+        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} isMobile={isMobile} />
       ))}
 
       {/* Hanging aisle signs */}
@@ -2342,10 +2491,10 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <VinnyCharacter />
 
       {/* NPCs + Charlie */}
-      <NPCCustomer startPos={[-3.35, 0, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
-      <NPCCustomer startPos={[3.35, 0, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
-      {!isMobile && <NPCCustomer startPos={[-3.35, 0, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
-      {!isMobile && <NPCCustomer startPos={[3.35, 0, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
+      <NPCCustomer id="npc-0" startPos={[-3.35, 0, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" hairStyle="flattop" />
+      <NPCCustomer id="npc-1" startPos={[3.35, 0, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" hairStyle="long" />
+      {!isMobile && <NPCCustomer id="npc-2" startPos={[-3.35, 0, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" hairStyle="cap" />}
+      {!isMobile && <NPCCustomer id="npc-3" startPos={[3.35, 0, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" hairStyle="ponytail" />}
       <KidCustomer startPos={[0, 0, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
       <CharlieCharacter isMobile={isMobile} />
 
@@ -2513,20 +2662,47 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[7.9, 1.05, 0.02]} />
           <meshBasicMaterial color="#ffd700" />
         </mesh>
-        {/* VHS tape icon — left of text */}
+        {/* Torn-ticket logo — matches landing page g3-logo style */}
         <group position={[-3.5, 0, 0.13]}>
-          <mesh>
-            <boxGeometry args={[0.5, 0.35, 0.02]} />
+          {/* Left ticket half — gold with torn right edge */}
+          <mesh position={[-0.2, 0, 0]}>
+            <boxGeometry args={[0.38, 0.5, 0.04]} />
             <meshBasicMaterial color="#ffd700" toneMapped={false} />
           </mesh>
-          {/* Tape reels */}
-          <mesh position={[-0.1, 0, 0.01]}>
-            <circleGeometry args={[0.08, 8]} />
-            <meshBasicMaterial color="#0a0a2a" />
+          {/* Right ticket half — dark blue with gold border */}
+          <mesh position={[0.2, 0, 0]}>
+            <boxGeometry args={[0.38, 0.5, 0.04]} />
+            <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
           </mesh>
-          <mesh position={[0.1, 0, 0.01]}>
-            <circleGeometry args={[0.08, 8]} />
-            <meshBasicMaterial color="#0a0a2a" />
+          {/* Gold border on right half */}
+          <mesh position={[0.2, 0, 0.021]}>
+            <boxGeometry args={[0.42, 0.54, 0.005]} />
+            <meshBasicMaterial color="#ffd700" toneMapped={false} />
+          </mesh>
+          <mesh position={[0.2, 0, 0.023]}>
+            <boxGeometry args={[0.38, 0.5, 0.005]} />
+            <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
+          </mesh>
+          {/* Torn/ragged edge — jagged pieces along the center seam */}
+          <mesh position={[0.02, 0.18, 0.01]}>
+            <boxGeometry args={[0.06, 0.06, 0.04]} />
+            <meshBasicMaterial color="#ffd700" toneMapped={false} />
+          </mesh>
+          <mesh position={[-0.03, 0.08, 0.01]}>
+            <boxGeometry args={[0.05, 0.07, 0.04]} />
+            <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
+          </mesh>
+          <mesh position={[0.02, -0.02, 0.01]}>
+            <boxGeometry args={[0.06, 0.05, 0.04]} />
+            <meshBasicMaterial color="#ffd700" toneMapped={false} />
+          </mesh>
+          <mesh position={[-0.02, -0.12, 0.01]}>
+            <boxGeometry args={[0.05, 0.06, 0.04]} />
+            <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
+          </mesh>
+          <mesh position={[0.03, -0.2, 0.01]}>
+            <boxGeometry args={[0.04, 0.05, 0.04]} />
+            <meshBasicMaterial color="#ffd700" toneMapped={false} />
           </mesh>
         </group>
         <Text

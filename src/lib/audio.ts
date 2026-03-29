@@ -6,6 +6,57 @@ let audioUnlocked = false;
 // Subtitle callback — set by the game page to display subtitles
 let subtitleCallback: ((text: string, duration: number) => void) | null = null;
 
+// ── Spatial audio: NPC position registry & player listener ──
+const npcPositions = new Map<string, { x: number; z: number }>();
+
+export function registerNPCPosition(id: string, x: number, z: number) {
+  npcPositions.set(id, { x, z });
+}
+
+export function unregisterNPCPosition(id: string) {
+  npcPositions.delete(id);
+}
+
+export function setPlayerPosition(x: number, z: number) {
+  if (!audioContext) return;
+  const listener = audioContext.listener;
+  if (listener.positionX) {
+    listener.positionX.value = x;
+    listener.positionY.value = 1.6;
+    listener.positionZ.value = z;
+  } else {
+    listener.setPosition(x, 1.6, z);
+  }
+}
+
+/** Pick a random registered NPC position, or fall back to a random spot. */
+function pickRandomNPCPosition(): { x: number; z: number } {
+  const positions = Array.from(npcPositions.values());
+  if (positions.length > 0) {
+    return positions[Math.floor(Math.random() * positions.length)];
+  }
+  // Fallback: random position within the store
+  return { x: (Math.random() - 0.5) * 12, z: (Math.random() - 0.5) * 8 };
+}
+
+/** Create a PannerNode positioned at the given world coordinates. */
+function createSpatialPanner(ctx: AudioContext, pos: { x: number; z: number }): PannerNode {
+  const panner = ctx.createPanner();
+  panner.panningModel = "HRTF";
+  panner.distanceModel = "inverse";
+  panner.refDistance = 2;
+  panner.maxDistance = 15;
+  panner.rolloffFactor = 1;
+  if (panner.positionX) {
+    panner.positionX.value = pos.x;
+    panner.positionY.value = 1.0;
+    panner.positionZ.value = pos.z;
+  } else {
+    panner.setPosition(pos.x, 1.0, pos.z);
+  }
+  return panner;
+}
+
 export function setSubtitleHandler(cb: (text: string, duration: number) => void) {
   subtitleCallback = cb;
 }
@@ -249,8 +300,10 @@ async function playRandomCustomerClip() {
     source.buffer = buffer;
     const gain = ctx.createGain();
     gain.gain.value = 0.3;
+    const panner = createSpatialPanner(ctx, pickRandomNPCPosition());
     source.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(panner);
+    panner.connect(ctx.destination);
     source.onended = () => { customerPlaying = false; };
     source.start(0);
   } catch { customerPlaying = false; }
@@ -264,6 +317,9 @@ async function playRandomConversation() {
   const conv = CONVERSATIONS[Math.floor(Math.random() * CONVERSATIONS.length)];
   const ctx = getAudioContext();
   if (ctx.state === "suspended") await ctx.resume();
+
+  // All lines in a conversation come from the same spatial position
+  const npcPos = pickRandomNPCPosition();
 
   for (let i = 0; i < conv.lines.length; i++) {
     if (muted) { conversationPlaying = false; return; }
@@ -287,8 +343,10 @@ async function playRandomConversation() {
       source.buffer = buffer;
       const gain = ctx.createGain();
       gain.gain.value = 0.3;
+      const panner = createSpatialPanner(ctx, npcPos);
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(panner);
+      panner.connect(ctx.destination);
 
       // Wait for clip to finish, then pause before next line
       await new Promise<void>(resolve => {
