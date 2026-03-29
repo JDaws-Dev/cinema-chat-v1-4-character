@@ -1,6 +1,7 @@
 let audioContext: AudioContext | null = null;
 let isPlaying = false;
 let muted = false;
+let audioUnlocked = false;
 
 // Subtitle callback — set by the game page to display subtitles
 let subtitleCallback: ((text: string, duration: number) => void) | null = null;
@@ -9,7 +10,14 @@ export function setSubtitleHandler(cb: (text: string, duration: number) => void)
   subtitleCallback = cb;
 }
 
-export function setMuted(m: boolean) { muted = m; }
+export function setMuted(m: boolean) {
+  muted = m;
+  if (m) {
+    stopAmbient();
+  } else {
+    startAmbient();
+  }
+}
 export function isMuted(): boolean { return muted; }
 
 function getAudioContext(): AudioContext {
@@ -17,6 +25,66 @@ function getAudioContext(): AudioContext {
     audioContext = new AudioContext();
   }
   return audioContext;
+}
+
+// ── Audio unlock on first user interaction ─────────────
+// Browsers block AudioContext until user gesture. This ensures it gets resumed.
+export function unlockAudio() {
+  if (audioUnlocked) return;
+  const ctx = getAudioContext();
+  if (ctx.state === "suspended") {
+    ctx.resume().then(() => {
+      audioUnlocked = true;
+      if (!muted) startAmbient();
+    });
+  } else {
+    audioUnlocked = true;
+    if (!muted) startAmbient();
+  }
+}
+
+// ── Ambient store audio ─────────────────────────────────
+// Layers: store muzak + fluorescent hum + customer murmur
+let ambientSources: { source: AudioBufferSourceNode; gain: GainNode }[] = [];
+let ambientStarted = false;
+
+const AMBIENT_TRACKS = [
+  { file: "ambient_muzak", volume: 0.12 },
+  { file: "ambient_hum", volume: 0.06 },
+  { file: "ambient_chatter", volume: 0.08 },
+];
+
+async function startAmbient() {
+  if (ambientStarted || muted || !audioUnlocked) return;
+  ambientStarted = true;
+  const ctx = getAudioContext();
+  if (ctx.state === "suspended") await ctx.resume();
+
+  for (const track of AMBIENT_TRACKS) {
+    try {
+      const res = await fetch(`/sounds/${track.file}.mp3`);
+      if (!res.ok) continue;
+      const ab = await res.arrayBuffer();
+      const buffer = await ctx.decodeAudioData(ab);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      const gain = ctx.createGain();
+      gain.gain.value = track.volume;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+      ambientSources.push({ source, gain });
+    } catch { /* missing file is fine — ambient is optional */ }
+  }
+}
+
+function stopAmbient() {
+  for (const { source } of ambientSources) {
+    try { source.stop(); } catch { /* already stopped */ }
+  }
+  ambientSources = [];
+  ambientStarted = false;
 }
 
 // Cached SFX buffers

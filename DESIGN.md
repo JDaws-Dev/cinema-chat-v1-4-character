@@ -4,6 +4,87 @@
 
 ---
 
+## 0. CURRENT 3D STORE STATE (Updated 2026-03-29)
+
+### Architecture
+- **React Three Fiber** with first-person controls (WASD + mouse look)
+- Main file: `src/components/game3d/Store.tsx` (~2900 lines)
+- Controls: `src/components/game3d/FirstPerson.tsx` (collision boxes, spawn point)
+- Interaction: `src/components/game3d/Interaction.tsx` (raycaster + userData system)
+- Debug: `src/app/debug/page.tsx` (top-down + side elevation views at /debug)
+
+### Room Dimensions
+- Width (X): 20 units (-10 to +10), Depth (Z): 14 units (-7 to +7), Height (Y): 3.5 units
+- Front wall (entrance): z = +7, Back wall: z = -7
+- Left wall: x = -10, Right wall: x = +10
+
+### Current Layout (Top-Down)
+```
+                    BACK WALL (z = -7)
+  +──────────────────────────────────────────+
+  |  ALIEN  JAWS  [NEW RELEASES WALL] BLADE RAIDERS |
+  |               [FNV NEON SIGN]                    |
+  |  EMPLOYEES                           TROPHIES   |
+  |  ONLY DOOR    ROW 1: HORROR SCI-FI COMEDY DRAMA |
+  |               z = -3                             |
+  | TV  SHINING   ROW 2: ACTION CLASSICS FAMILY ROM  |
+  | STAR WARS     z = 0                    BTTF E.T. |
+  |               ROW 3: THRILLER ANIMATED DOCS      |
+  |  BE KIND      z = +3                  CHALLENGE  |
+  |  BULLETIN     CANDY     STANDEE       CLOCK      |
+  |  LATE FEES  COUNTER    MAG RACK       SPECIALS   |
+  |  VINNY      COUNTER                    HOURS     |
+  |             OPEN sign  [DOORS] PILLARS           |
+  +──────────────────────────────────────────+
+                    ENTRANCE (z = +7)
+         PIZZA PALACE | SIDEWALK | LAUNDROMAT
+              [PARKING LOT - CAR - LAMP POSTS]
+                    [ROAD]
+```
+
+### What's Built (Completed)
+- **Interior**: 11 genre shelf units with VHS tapes + real TMDB posters, 3 shelf rows
+- **Counter area**: Register, barcode scanner, monitor, candy shelves, VHS rewinder, membership cards sign
+- **Characters**: Vinny (behind counter), 2-4 NPC customers (patrol routes), Charlie (guide)
+- **Walls**: New Releases back wall, wall posters (Jaws, Alien, Blade Runner, Raiders, Shining, Star Wars, BTTF, E.T.)
+- **Atmosphere**: Fluorescent lighting (warm/cool zones), flickering light, neon signs, ceiling drop-tile grid
+- **Signage**: BE KIND REWIND, LATE FEES, OPEN neon, STORE HOURS, REWARDS MEMBER, aisle signs, genre signs
+- **Details**: Security pillars, security domes, gumball machine, bulletin board, clock, potted plant, trash can, magazine rack, floor rug, welcome mat, standee
+- **Entrance**: Double glass doors with push bars, storefront windows with frames
+- **Exterior**: Parking lot, sidewalk, curb, lamp posts, parked car, road with dashes, night sky with stars/moon, awning
+- **Strip mall**: Pizza Palace (left) and Laundromat (right) storefronts with awnings
+- **Video return**: Exterior return slot with tapes
+- **Game elements**: Trophy shelf, Challenge board, endcap displays
+- **Performance**: Mobile-optimized (MeshBasicMaterial, reduced VHS density, poster texture cache, raycaster throttling)
+- **Debug tool**: /debug page with top-down floor plan + side elevation view
+
+### In Progress (This Session)
+- [ ] Rework counter + video return chute (return feeds behind counter → "Recent Returns" bin)
+- [ ] Enhanced Pizza Palace (neon pizza sign, checkered awning, menu board, warm glow)
+- [ ] Detailed Laundromat exterior
+- [ ] More parking lot detail (minivan, bike rack, handicap sign)
+- [ ] Nostalgia details (specials chalkboard, returned tape stacks, membership forms, coming attractions, lost & found, wall phone)
+- [ ] Better shelf aisle spacing
+
+### TODO (Future Sessions)
+- [ ] GLTF prebake for static store shell (biggest perf win)
+- [ ] InstancedMesh for VHS tape bodies
+- [ ] Zone-based exterior toggle (hide outside when inside)
+- [ ] Blender/AI-generated store model to replace procedural geometry
+- [ ] Arcade cabinet (Prop Hunt game mode)
+- [ ] Door animation + bell sound
+- [ ] NPC browse animations (stop at shelf, head-tilt)
+- [ ] Time-of-day window lighting
+- [ ] Counter bell interaction (Name That Quote)
+- [ ] Gumball machine interaction (spend XP for artifact)
+
+### User's Nostalgia Vision
+> "I love the idea of the pizza parlor -- we'd always get pizza and a movie for Friday night. So much nostalgia. Whatever we can do to play up the nostalgia."
+>
+> "Video return should link to behind the counter and then the worker puts the recent returns on the counter for people to look through before sorted."
+
+---
+
 ## 1. THE STORE AS INTERFACE
 
 ### Core Principle

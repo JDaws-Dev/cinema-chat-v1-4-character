@@ -15,7 +15,7 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp } from "@/lib/game-state";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, VINNY_LINES } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
 import "./game.css";
@@ -186,6 +186,14 @@ export default function GamePage() {
   }, [raceActive]);
 
   useEffect(() => { setStats(loadStats()); }, []);
+
+  // Unlock audio on first user interaction (browser autoplay policy)
+  useEffect(() => {
+    const handler = () => { unlockAudio(); window.removeEventListener("click", handler); window.removeEventListener("keydown", handler); };
+    window.addEventListener("click", handler);
+    window.addEventListener("keydown", handler);
+    return () => { window.removeEventListener("click", handler); window.removeEventListener("keydown", handler); };
+  }, []);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
