@@ -2266,7 +2266,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
       {/* Blockbuster-yellow accent stripes along all interior walls */}
       {/* Back wall stripe */}
-      <mesh position={[0, 2.8, -ROOM_D / 2 + 0.02]}>
+      <mesh position={[0, 2.8, -ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[ROOM_W, 0.06, 0.02]} />
         <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
@@ -3150,19 +3150,19 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         />
       </mesh>
       {/* Left window frame strips */}
-      <mesh position={[-2.2, 1.4, ROOM_D / 2 + 0.02]}>
+      <mesh position={[-2.2, 1.4, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[-7.8, 1.4, ROOM_D / 2 + 0.02]}>
+      <mesh position={[-7.8, 1.4, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[-5, 2.5, ROOM_D / 2 + 0.02]}>
+      <mesh position={[-5, 2.5, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[-5, 0.3, ROOM_D / 2 + 0.02]}>
+      <mesh position={[-5, 0.3, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
@@ -3180,19 +3180,19 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         />
       </mesh>
       {/* Right window frame strips */}
-      <mesh position={[2.2, 1.4, ROOM_D / 2 + 0.02]}>
+      <mesh position={[2.2, 1.4, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[7.8, 1.4, ROOM_D / 2 + 0.02]}>
+      <mesh position={[7.8, 1.4, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[0.06, 2.3, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[5, 2.5, ROOM_D / 2 + 0.02]}>
+      <mesh position={[5, 2.5, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
-      <mesh position={[5, 0.3, ROOM_D / 2 + 0.02]}>
+      <mesh position={[5, 0.3, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
