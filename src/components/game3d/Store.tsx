@@ -262,21 +262,21 @@ const SHELF_COLOR = "#5a3820";
 
 // ── Shelf layout ─────────────────────────────────────────
 const SHELF_ROWS = [
-  // Row 1 — back of store (z = -3)
-  { x: -5, z: -3, genre: "HORROR", color: "#dc2626" },
-  { x: -1.7, z: -3, genre: "SCI-FI", color: "#3b82f6" },
-  { x: 1.7, z: -3, genre: "COMEDY", color: "#f97316" },
-  { x: 5, z: -3, genre: "DRAMA", color: "#6366f1" },
-  // Row 2 — middle (z = 0)
-  { x: -5, z: 0, genre: "ACTION", color: "#ef4444" },
-  { x: -1.7, z: 0, genre: "CLASSICS", color: "#ca8a04" },
-  { x: 1.7, z: 0, genre: "FAMILY", color: "#22c55e" },
-  { x: 5, z: 0, genre: "ROMANCE", color: "#f43f5e" },
-  // Row 3 — near front (z = 3)
-  { x: -5, z: 3, genre: "THRILLER", color: "#7c3aed" },
-  { x: -1.7, z: 3, genre: "ANIMATED", color: "#06b6d4" },
-  { x: 1.7, z: 3, genre: "DOCS", color: "#65a30d" },
-  { x: 5, z: 3, genre: "WESTERN", color: "#92400e" },
+  // Row 1 — back of store (z = -4, pushed back 1 unit for entrance breathing room)
+  { x: -5, z: -4, genre: "HORROR", color: "#dc2626" },
+  { x: -1.7, z: -4, genre: "SCI-FI", color: "#3b82f6" },
+  { x: 1.7, z: -4, genre: "COMEDY", color: "#f97316" },
+  { x: 5, z: -4, genre: "DRAMA", color: "#6366f1" },
+  // Row 2 — middle (z = -1)
+  { x: -5, z: -1, genre: "ACTION", color: "#ef4444" },
+  { x: -1.7, z: -1, genre: "CLASSICS", color: "#ca8a04" },
+  { x: 1.7, z: -1, genre: "FAMILY", color: "#22c55e" },
+  { x: 5, z: -1, genre: "ROMANCE", color: "#f43f5e" },
+  // Row 3 — mid-front (z = 2, gives ~3 units to entrance area)
+  { x: -5, z: 2, genre: "THRILLER", color: "#7c3aed" },
+  { x: -1.7, z: 2, genre: "ANIMATED", color: "#06b6d4" },
+  { x: 1.7, z: 2, genre: "DOCS", color: "#65a30d" },
+  { x: 5, z: 2, genre: "WESTERN", color: "#92400e" },
 ];
 
 function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; genre: string; color: string; isMobile?: boolean }) {
@@ -969,18 +969,20 @@ function VinnyCharacter() {
 // Shelf centers: x = -5, -1.7, 1.7, 5 (each 2.8 wide)
 // Aisle centers between shelves: x = -3.35, 0, 3.35
 // Shelf rows at z = -3, 0, 3 — cross aisles at z = -1.5, 1.5
+// Aisles between shifted shelf rows: z=-4, -1, 2
+// Between row1&2: z=-2.5, between row2&3: z=0.5, past row3: z=3.5
 const NPC_WAYPOINTS: [number, number][] = [
-  [0, -5.5],    // center back (behind shelf row 1)
-  [-3.35, -5],  // left back aisle
-  [-3.35, -1.5],// left aisle between row 1 & 2
-  [0, -1.5],    // center between row 1 & 2
-  [3.35, -1.5], // right aisle between row 1 & 2
-  [3.35, 1.5],  // right aisle between row 2 & 3
-  [0, 1.5],     // center between row 2 & 3
-  [-3.35, 1.5], // left aisle between row 2 & 3
-  [-3.35, 4.5], // left front (past shelves)
-  [0, 4.5],     // center front
-  [3.35, 4.5],  // right front
+  [0, -6],      // center back (behind shelf row 1)
+  [-3.35, -5.5],// left back aisle
+  [-3.35, -2.5],// left aisle between row 1 & 2
+  [0, -2.5],    // center between row 1 & 2
+  [3.35, -2.5], // right aisle between row 1 & 2
+  [3.35, 0.5],  // right aisle between row 2 & 3
+  [0, 0.5],     // center between row 2 & 3
+  [-3.35, 0.5], // left aisle between row 2 & 3
+  [-3.35, 3.5], // left front (past shelves)
+  [0, 3.5],     // center front
+  [3.35, 3.5],  // right front
 ];
 
 function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
@@ -1004,6 +1006,7 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   const direction = useRef(useMemo(() => (Math.random() > 0.5 ? 1 : -1), []));
   const waitTimer = useRef(0);
   const waitDuration = useRef(0);
+  const isBrowsing = useRef(false);
 
   useFrame((state, delta) => {
     if (!ref.current) return;
@@ -1024,9 +1027,28 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
     const dist = Math.sqrt(dx * dx + dz * dz);
 
     if (dist < 0.3) {
-      // Arrived at waypoint — pause briefly, then advance
-      waitTimer.current = 0.5 + Math.random() * 0.5;
-      waitDuration.current = waitTimer.current;
+      // Arrived at waypoint — decide: browse (40%) or short pause (60%)
+      if (Math.random() < 0.4) {
+        // Browse: longer pause, face nearest shelf row
+        isBrowsing.current = true;
+        waitTimer.current = 5 + Math.random() * 5;
+        waitDuration.current = waitTimer.current;
+        const npcZ = ref.current.position.z;
+        const shelfZs = [-3, 0, 3];
+        let nearestZ = shelfZs[0];
+        let nearestDist = Math.abs(npcZ - shelfZs[0]);
+        for (const sz of shelfZs) {
+          const d = Math.abs(npcZ - sz);
+          if (d < nearestDist) { nearestDist = d; nearestZ = sz; }
+        }
+        // Face toward the shelf: if shelf z < npc z, face -z (PI), else face +z (0)
+        ref.current.rotation.y = nearestZ < npcZ ? Math.PI : 0;
+      } else {
+        // Quick pause
+        isBrowsing.current = false;
+        waitTimer.current = 0.5 + Math.random() * 0.5;
+        waitDuration.current = waitTimer.current;
+      }
       waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
     } else {
       // Move toward target
@@ -1048,7 +1070,7 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   const hasBag = useMemo(() => Math.random() > 0.5, []);
 
   return (
-    <group ref={ref} position={startPos}>
+    <group ref={ref} position={startPos} userData={{ interactType: "customer", label: "Talk to Customer" }}>
       {/* Legs */}
       <mesh position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
@@ -1165,6 +1187,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   const direction = useRef(useMemo(() => (Math.random() > 0.5 ? 1 : -1), []));
   const waitTimer = useRef(0);
   const waitDuration = useRef(0);
+  const isBrowsing = useRef(false);
 
   useFrame((state, delta) => {
     if (!ref.current) return;
@@ -1183,8 +1206,25 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
     const dist = Math.sqrt(dx * dx + dz * dz);
 
     if (dist < 0.3) {
-      waitTimer.current = 0.5 + Math.random() * 0.5;
-      waitDuration.current = waitTimer.current;
+      // Browse (40%) or short pause (60%)
+      if (Math.random() < 0.4) {
+        isBrowsing.current = true;
+        waitTimer.current = 5 + Math.random() * 5;
+        waitDuration.current = waitTimer.current;
+        const npcZ = ref.current.position.z;
+        const shelfZs = [-3, 0, 3];
+        let nearestZ = shelfZs[0];
+        let nearestDist = Math.abs(npcZ - shelfZs[0]);
+        for (const sz of shelfZs) {
+          const d = Math.abs(npcZ - sz);
+          if (d < nearestDist) { nearestDist = d; nearestZ = sz; }
+        }
+        ref.current.rotation.y = nearestZ < npcZ ? Math.PI : 0;
+      } else {
+        isBrowsing.current = false;
+        waitTimer.current = 0.5 + Math.random() * 0.5;
+        waitDuration.current = waitTimer.current;
+      }
       waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
     } else {
       const nx = dx / dist;
@@ -1198,7 +1238,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   });
 
   return (
-    <group ref={ref} position={startPos} scale={0.65}>
+    <group ref={ref} position={startPos} scale={0.65} userData={{ interactType: "customer", label: "Talk to Kid" }}>
       {/* Legs — shorter kid proportions */}
       <mesh position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
@@ -1280,6 +1320,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
   const waypointIdx = useRef(startIdx);
   const direction = useRef(1);
   const waitTimer = useRef(0);
+  const isBrowsing = useRef(false);
 
   useFrame((state, delta) => {
     if (!ref.current) return;
@@ -1303,7 +1344,23 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
     const dist = Math.sqrt(dx * dx + dz * dz);
 
     if (dist < 0.3) {
-      waitTimer.current = 1.0 + Math.random() * 1.5; // Staff lingers longer than customers
+      // Browse (40%) or staff linger (60%)
+      if (Math.random() < 0.4) {
+        isBrowsing.current = true;
+        waitTimer.current = 5 + Math.random() * 5;
+        const npcZ = ref.current.position.z;
+        const shelfZs = [-3, 0, 3];
+        let nearestZ = shelfZs[0];
+        let nearestDist = Math.abs(npcZ - shelfZs[0]);
+        for (const sz of shelfZs) {
+          const d = Math.abs(npcZ - sz);
+          if (d < nearestDist) { nearestDist = d; nearestZ = sz; }
+        }
+        ref.current.rotation.y = nearestZ < npcZ ? Math.PI : 0;
+      } else {
+        isBrowsing.current = false;
+        waitTimer.current = 1.0 + Math.random() * 1.5; // Staff lingers longer than customers
+      }
       waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
     } else {
       const nx = dx / dist;
@@ -1767,9 +1824,9 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
 
 // ── Aisle sign config per shelf row ──────────────────────
 const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
-  { z: -3, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 DRAMA", colors: ["#dc2626", "#3b82f6", "#f97316", "#6366f1"] },
-  { z: 0, label: "ACTION \u2022 CLASSICS \u2022 FAMILY \u2022 ROMANCE", colors: ["#ef4444", "#ca8a04", "#22c55e", "#f43f5e"] },
-  { z: 3, label: "THRILLER \u2022 ANIMATED \u2022 DOCS \u2022 WESTERN", colors: ["#7c3aed", "#06b6d4", "#65a30d", "#92400e"] },
+  { z: -4, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 DRAMA", colors: ["#dc2626", "#3b82f6", "#f97316", "#6366f1"] },
+  { z: -1, label: "ACTION \u2022 CLASSICS \u2022 FAMILY \u2022 ROMANCE", colors: ["#ef4444", "#ca8a04", "#22c55e", "#f43f5e"] },
+  { z: 2, label: "THRILLER \u2022 ANIMATED \u2022 DOCS \u2022 WESTERN", colors: ["#7c3aed", "#06b6d4", "#65a30d", "#92400e"] },
 ];
 
 function AisleSign({ z, label, colors }: { z: number; label: string; colors: string[] }) {
@@ -1828,7 +1885,7 @@ function AisleFloorMarkings() {
 
   return (
     <>
-      {[-1.5, 1.5].map((z) => (
+      {[-2.5, 0.5].map((z) => (
         <group key={`floor-line-${z}`} position={[0, 0.005, z]}>
           {Array.from({ length: dashCount }).map((_, i) => (
             <mesh key={i} position={[startX + i * (dashWidth + gap) + dashWidth / 2, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -2285,11 +2342,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <VinnyCharacter />
 
       {/* NPCs + Charlie */}
-      <NPCCustomer startPos={[-4, 0, -5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
-      <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
-      {!isMobile && <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
-      {!isMobile && <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
-      <KidCustomer startPos={[0, 0, 1.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
+      <NPCCustomer startPos={[-3.35, 0, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
+      <NPCCustomer startPos={[3.35, 0, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
+      {!isMobile && <NPCCustomer startPos={[-3.35, 0, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
+      {!isMobile && <NPCCustomer startPos={[3.35, 0, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
+      <KidCustomer startPos={[0, 0, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
       <CharlieCharacter isMobile={isMobile} />
 
       {/* New Releases wall display */}

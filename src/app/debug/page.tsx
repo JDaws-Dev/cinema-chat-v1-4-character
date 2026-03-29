@@ -17,19 +17,19 @@ const elements = [
   // Walls
   { x: 0, z: 0, w: ROOM_W, d: ROOM_D, label: "STORE", color: "#1a3468", type: "room" },
 
-  // Shelf rows (updated positions: -5, -1.7, 1.7, 5)
-  { x: -5, z: -3, w: 2.8, d: 0.55, label: "HORROR", color: "#dc2626" },
-  { x: -1.7, z: -3, w: 2.8, d: 0.55, label: "SCI-FI", color: "#3b82f6" },
-  { x: 1.7, z: -3, w: 2.8, d: 0.55, label: "COMEDY", color: "#f97316" },
-  { x: 5, z: -3, w: 2.8, d: 0.55, label: "DRAMA", color: "#6366f1" },
-  { x: -5, z: 0, w: 2.8, d: 0.55, label: "ACTION", color: "#ef4444" },
-  { x: -1.7, z: 0, w: 2.8, d: 0.55, label: "CLASSICS", color: "#ca8a04" },
-  { x: 1.7, z: 0, w: 2.8, d: 0.55, label: "FAMILY", color: "#22c55e" },
-  { x: 5, z: 0, w: 2.8, d: 0.55, label: "ROMANCE", color: "#f43f5e" },
-  { x: -5, z: 3, w: 2.8, d: 0.55, label: "THRILLER", color: "#7c3aed" },
-  { x: -1.7, z: 3, w: 2.8, d: 0.55, label: "ANIMATED", color: "#06b6d4" },
-  { x: 1.7, z: 3, w: 2.8, d: 0.55, label: "DOCS", color: "#65a30d" },
-  { x: 5, z: 3, w: 2.8, d: 0.55, label: "WESTERN", color: "#92400e" },
+  // Shelf rows (pushed back 1 unit for entrance breathing room)
+  { x: -5, z: -4, w: 2.8, d: 0.55, label: "HORROR", color: "#dc2626" },
+  { x: -1.7, z: -4, w: 2.8, d: 0.55, label: "SCI-FI", color: "#3b82f6" },
+  { x: 1.7, z: -4, w: 2.8, d: 0.55, label: "COMEDY", color: "#f97316" },
+  { x: 5, z: -4, w: 2.8, d: 0.55, label: "DRAMA", color: "#6366f1" },
+  { x: -5, z: -1, w: 2.8, d: 0.55, label: "ACTION", color: "#ef4444" },
+  { x: -1.7, z: -1, w: 2.8, d: 0.55, label: "CLASSICS", color: "#ca8a04" },
+  { x: 1.7, z: -1, w: 2.8, d: 0.55, label: "FAMILY", color: "#22c55e" },
+  { x: 5, z: -1, w: 2.8, d: 0.55, label: "ROMANCE", color: "#f43f5e" },
+  { x: -5, z: 2, w: 2.8, d: 0.55, label: "THRILLER", color: "#7c3aed" },
+  { x: -1.7, z: 2, w: 2.8, d: 0.55, label: "ANIMATED", color: "#06b6d4" },
+  { x: 1.7, z: 2, w: 2.8, d: 0.55, label: "DOCS", color: "#65a30d" },
+  { x: 5, z: 2, w: 2.8, d: 0.55, label: "WESTERN", color: "#92400e" },
 
   // Counter (left side near entrance)
   { x: -6, z: 5.5, w: 6, d: 1.2, label: "COUNTER", color: "#9a7850" },

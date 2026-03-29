@@ -307,6 +307,78 @@ const CUSTOMER_DIALOGUES: DialogueTree[] = [
       ],
     },
   },
+  {
+    id: "customer_horror_buff",
+    npc: "Customer",
+    portrait: "?",
+    opener: {
+      speaker: "Customer",
+      portrait: "?",
+      text: "Oh man, have you seen the new Wes Craven? This section is my happy place.",
+      responses: [
+        {
+          text: "What would you recommend?",
+          next: { speaker: "Customer", portrait: "?", text: "You HAVE to try Scream. It changed the game." },
+        },
+        {
+          text: "Im more of a comedy person.",
+          next: { speaker: "Customer", portrait: "?", text: "Comedy? In the horror aisle? Bold. Try Shaun of the Dead." },
+        },
+        {
+          text: "Just browsing.",
+          next: { speaker: "Customer", portrait: "?", text: "Same here. Could be here all night." },
+        },
+      ],
+    },
+  },
+  {
+    id: "customer_overwhelmed_mom",
+    npc: "Customer",
+    portrait: "?",
+    opener: {
+      speaker: "Customer",
+      portrait: "?",
+      text: "I need something the WHOLE family can watch. Any ideas?",
+      responses: [
+        {
+          text: "Try the Family section.",
+          next: { speaker: "Customer", portrait: "?", text: "Thats what I keep telling my kids but they want action movies!" },
+        },
+        {
+          text: "Homeward Bound is great.",
+          next: { speaker: "Customer", portrait: "?", text: "Oh that one makes me cry every time. Perfect." },
+        },
+        {
+          text: "How about a classic?",
+          next: { speaker: "Customer", portrait: "?", text: "Good idea. Maybe Wizard of Oz. Nobody argues with Oz." },
+        },
+      ],
+    },
+  },
+  {
+    id: "customer_indecisive_couple",
+    npc: "Customer",
+    portrait: "?",
+    opener: {
+      speaker: "Customer",
+      portrait: "?",
+      text: "My partner and I can NEVER agree on a movie. What do you pick on date night?",
+      responses: [
+        {
+          text: "Something funny.",
+          next: { speaker: "Customer", portrait: "?", text: "Smart. Laughing together is always a win." },
+        },
+        {
+          text: "Let them choose.",
+          next: { speaker: "Customer", portrait: "?", text: "Ha! Then Id be watching romantic dramas every Friday." },
+        },
+        {
+          text: "Flip a coin.",
+          next: { speaker: "Customer", portrait: "?", text: "Honestly? Thats not the worst idea Ive heard tonight." },
+        },
+      ],
+    },
+  },
 ];
 
 // ── PUBLIC API ──────────────────────────────────────────────

@@ -47,6 +47,8 @@ export function unlockAudio() {
 // Layers: store muzak + fluorescent hum + customer murmur
 let ambientSources: { source: AudioBufferSourceNode; gain: GainNode }[] = [];
 let ambientStarted = false;
+let chatterTimeout: ReturnType<typeof setTimeout> | null = null;
+let customerInterval: ReturnType<typeof setInterval> | null = null;
 
 const AMBIENT_TRACKS = [
   { file: "ambient_muzak", volume: 0.12 },
@@ -86,10 +88,110 @@ function stopAmbient() {
   ambientSources = [];
   ambientStarted = false;
   if (customerInterval) { clearInterval(customerInterval); customerInterval = null; }
+  if (chatterTimeout) { clearTimeout(chatterTimeout); chatterTimeout = null; }
 }
 
 // ── Customer conversation audio ─────────────────────────
-// Randomly plays customer chatter clips at intervals for atmosphere
+// Single-line clips (one-liners) + multi-line conversations for atmosphere
+
+interface ConversationLine { speaker: string; file: string; }
+interface Conversation { lines: ConversationLine[]; texts: string[]; }
+
+// ── Multi-line conversations ────────────────────────────
+const CONVERSATIONS: Conversation[] = [
+  // Conv 0 — Couple arguing about genre
+  {
+    lines: [
+      { speaker: "Jessica", file: "conv_0_0" },
+      { speaker: "Liam",    file: "conv_0_1" },
+      { speaker: "Jessica", file: "conv_0_2" },
+      { speaker: "Liam",    file: "conv_0_3" },
+    ],
+    texts: [
+      "You ALWAYS pick action movies. Every single Friday.",
+      "Because your rom-coms put me to sleep! Literally.",
+      "Fine. Comedy. We can BOTH agree on comedy, right?",
+      "Deal. But I'm picking the snacks.",
+    ],
+  },
+  // Conv 1 — Kid begging parent
+  {
+    lines: [
+      { speaker: "Kid",   file: "conv_1_0" },
+      { speaker: "Bella", file: "conv_1_1" },
+      { speaker: "Kid",   file: "conv_1_2" },
+      { speaker: "Bella", file: "conv_1_3" },
+    ],
+    texts: [
+      "Mom! Mom! Can we get this one? It's got robots AND dinosaurs!",
+      "Honey, that's rated R. You know the rules.",
+      "But Tyler at school said he watched it and he's fine!",
+      "Tyler at school is not my kid. Pick something else.",
+    ],
+  },
+  // Conv 2 — Family can't decide
+  {
+    lines: [
+      { speaker: "Roger", file: "conv_2_0" },
+      { speaker: "Kid",   file: "conv_2_1" },
+      { speaker: "Bella", file: "conv_2_2" },
+      { speaker: "Roger", file: "conv_2_3" },
+      { speaker: "Bella", file: "conv_2_4" },
+    ],
+    texts: [
+      "Alright gang, we need to pick ONE movie. Not three.",
+      "I want the one with the dog!",
+      "Can we please watch something that doesn't have explosions for once?",
+      "What's wrong with explosions?",
+      "Just... pick the dog movie. Everybody wins.",
+    ],
+  },
+  // Conv 3 — Two friends debating
+  {
+    lines: [
+      { speaker: "Liam",   file: "conv_3_0" },
+      { speaker: "George", file: "conv_3_1" },
+      { speaker: "Liam",   file: "conv_3_2" },
+      { speaker: "George", file: "conv_3_3" },
+    ],
+    texts: [
+      "Dude, Terminator 2 is the greatest sequel ever made.",
+      "I respect that, but Godfather Part Two exists.",
+      "Okay but does the Godfather have a liquid metal robot?",
+      "...I'll give you that one.",
+    ],
+  },
+  // Conv 4 — Nostalgic couple
+  {
+    lines: [
+      { speaker: "Roger", file: "conv_4_0" },
+      { speaker: "Laura", file: "conv_4_1" },
+      { speaker: "Roger", file: "conv_4_2" },
+    ],
+    texts: [
+      "Hey, remember our first date? We rented Ghostbusters and burned the popcorn.",
+      "We set off the smoke alarm and your roommate called the fire department.",
+      "Best night of my life though.",
+    ],
+  },
+  // Conv 5 — Customer and friend
+  {
+    lines: [
+      { speaker: "Laura",   file: "conv_5_0" },
+      { speaker: "Jessica", file: "conv_5_1" },
+      { speaker: "Laura",   file: "conv_5_2" },
+      { speaker: "Jessica", file: "conv_5_3" },
+    ],
+    texts: [
+      "I heard this one is supposed to be really scary.",
+      "Good scary or like, stupid scary?",
+      "Like, don't-watch-it-alone scary.",
+      "Perfect. Grab two copies, one for me and one for my nightmares.",
+    ],
+  },
+];
+
+// ── One-liner clips (existing single-line customer/kid clips) ──
 const CUSTOMER_LINES = [
   "Have you seen Die Hard? It's not just a Christmas movie, it's THE Christmas movie.",
   "No way, the sequel is ALWAYS worse. Name one sequel that's better.",
@@ -121,14 +223,15 @@ const CUSTOMER_LINES = [
 ];
 const CUSTOMER_NAMES = ["Roger", "Jessica", "Liam", "Mom", "Laura", "George", "Kid", "Chris", "Sarah", "Roger", "Jessica", "Lily", "Brian", "Laura", "George", "Liam", "Jessica", "Bella", "Sarah", "Brian", "Kid", "Kid", "Kid", "Kid", "Kid", "Kid"];
 const KID_CLIP_START = 20; // indices 20+ use kid_N.mp3 files
-let customerInterval: ReturnType<typeof setInterval> | null = null;
-let customerPlaying = false;
 
+let customerPlaying = false;
+let conversationPlaying = false;
+
+// ── Play a single one-liner clip ────────────────────────
 async function playRandomCustomerClip() {
-  if (muted || customerPlaying || !audioUnlocked) return;
+  if (muted || customerPlaying || conversationPlaying || !audioUnlocked) return;
   customerPlaying = true;
   const idx = Math.floor(Math.random() * CUSTOMER_LINES.length);
-  // Show subtitle
   const line = CUSTOMER_LINES[idx];
   const name = CUSTOMER_NAMES[idx];
   const wordCount = line.split(/\s+/).length;
@@ -153,14 +256,97 @@ async function playRandomCustomerClip() {
   } catch { customerPlaying = false; }
 }
 
+// ── Play a multi-line conversation sequentially ─────────
+async function playRandomConversation() {
+  if (muted || customerPlaying || conversationPlaying || !audioUnlocked) return;
+  conversationPlaying = true;
+
+  const conv = CONVERSATIONS[Math.floor(Math.random() * CONVERSATIONS.length)];
+  const ctx = getAudioContext();
+  if (ctx.state === "suspended") await ctx.resume();
+
+  for (let i = 0; i < conv.lines.length; i++) {
+    if (muted) { conversationPlaying = false; return; }
+
+    const { speaker, file } = conv.lines[i];
+    const text = conv.texts[i];
+    const wordCount = text.split(/\s+/).length;
+    const subtitleDuration = Math.max(2500, wordCount * 350);
+    subtitleCallback?.(`${speaker}: "${text}"`, subtitleDuration);
+
+    try {
+      const res = await fetch(`/sounds/${file}.mp3`);
+      if (!res.ok) {
+        // If clip missing, just wait the subtitle duration then continue
+        await new Promise(r => setTimeout(r, subtitleDuration));
+        continue;
+      }
+      const ab = await res.arrayBuffer();
+      const buffer = await ctx.decodeAudioData(ab);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.3;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+
+      // Wait for clip to finish, then pause before next line
+      await new Promise<void>(resolve => {
+        source.onended = () => resolve();
+        source.start(0);
+      });
+
+      // 1.5s pause between lines (except after last line)
+      if (i < conv.lines.length - 1) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    } catch {
+      await new Promise(r => setTimeout(r, subtitleDuration));
+    }
+  }
+
+  conversationPlaying = false;
+}
+
+// ── Schedule next chatter event ─────────────────────────
+function scheduleNextChatter() {
+  if (muted || !audioUnlocked) return;
+  // 20-40 seconds between any audio event
+  const delay = 20000 + Math.random() * 20000;
+  chatterTimeout = setTimeout(() => {
+    if (muted || !audioUnlocked) return;
+    // 50% conversation, 50% one-liner
+    if (Math.random() < 0.5) {
+      playRandomConversation().finally(scheduleNextChatter);
+    } else {
+      playRandomCustomerClip();
+      // One-liners are short — wait for them to finish then schedule next
+      const waitForFinish = () => {
+        if (customerPlaying) {
+          setTimeout(waitForFinish, 500);
+        } else {
+          scheduleNextChatter();
+        }
+      };
+      setTimeout(waitForFinish, 500);
+    }
+  }, delay);
+}
+
 export function startCustomerChatter() {
-  if (customerInterval) return;
-  // Play first clip after 5-10s, then every 15-30s
+  if (chatterTimeout || customerInterval) return;
+  // Play first clip after 5-10s
   setTimeout(() => {
     playRandomCustomerClip();
-    customerInterval = setInterval(() => {
-      playRandomCustomerClip();
-    }, 15000 + Math.random() * 15000); // 15-30s between clips
+    // After first clip finishes, start the alternating schedule
+    const waitForFirst = () => {
+      if (customerPlaying) {
+        setTimeout(waitForFirst, 500);
+      } else {
+        scheduleNextChatter();
+      }
+    };
+    setTimeout(waitForFirst, 500);
   }, 5000 + Math.random() * 5000);
 }
 
