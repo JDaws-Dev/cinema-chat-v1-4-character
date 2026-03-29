@@ -3114,14 +3114,14 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <boxGeometry args={[4, 0.7, 0.15]} />
         <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
-      {/* Solid wall above windows — from y=2.5 to ceiling */}
+      {/* Solid wall above windows — darker to create visible window boundary */}
       <mesh position={[-5, ROOM_H - 0.4, ROOM_D / 2]}>
         <boxGeometry args={[5.6, 1.0, 0.15]} />
-        <Mat color={WALL_COLOR} roughness={0.85} />
+        <Mat color="#0e1a38" roughness={0.85} />
       </mesh>
       <mesh position={[5, ROOM_H - 0.4, ROOM_D / 2]}>
         <boxGeometry args={[5.6, 1.0, 0.15]} />
-        <Mat color={WALL_COLOR} roughness={0.85} />
+        <Mat color="#0e1a38" roughness={0.85} />
       </mesh>
       {/* Header panels above storefront windows — accent trim */}
       <mesh position={[-5, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}>
@@ -3141,9 +3141,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <mesh position={[-5, 1.4, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, 2.2]} />
         <Mat
-          color="#8ab8dd"
+          color="#6aa8cc"
           transparent
-          opacity={0.12}
+          opacity={0.18}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
@@ -3171,9 +3171,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <mesh position={[5, 1.4, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, 2.2]} />
         <Mat
-          color="#8ab8dd"
+          color="#6aa8cc"
           transparent
-          opacity={0.12}
+          opacity={0.18}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
