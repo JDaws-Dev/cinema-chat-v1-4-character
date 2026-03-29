@@ -892,39 +892,6 @@ function SecurityDome({ position }: { position: [number, number, number] }) {
   );
 }
 
-// Slow-spinning ceiling fan
-function CeilingFan({ position }: { position: [number, number, number] }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.y = state.clock.elapsedTime * 0.3;
-    }
-  });
-  return (
-    <group position={position}>
-      {/* Motor housing */}
-      <mesh position={[0, -0.08, 0]}>
-        <cylinderGeometry args={[0.08, 0.1, 0.12, 12]} />
-        <meshStandardMaterial color="#b8960a" roughness={0.4} metalness={0.4} />
-      </mesh>
-      {/* Mounting rod */}
-      <mesh position={[0, 0.02, 0]}>
-        <cylinderGeometry args={[0.02, 0.02, 0.15, 6]} />
-        <meshStandardMaterial color="#888" roughness={0.4} metalness={0.5} />
-      </mesh>
-      {/* Blades — 4 paddles */}
-      <group ref={ref} position={[0, -0.12, 0]}>
-        {[0, Math.PI / 2, Math.PI, Math.PI * 1.5].map((angle, i) => (
-          <mesh key={`blade-${i}`} position={[Math.cos(angle) * 0.4, 0, Math.sin(angle) * 0.4]} rotation={[0, -angle, 0.05]}>
-            <boxGeometry args={[0.6, 0.01, 0.12]} />
-            <meshStandardMaterial color="#5a3820" roughness={0.7} />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
-}
-
 // Neon accent strip for shelves
 function ShelfNeonStrip({ position, color, width = 2.6 }: { position: [number, number, number]; color: string; width?: number }) {
   return (
@@ -1873,9 +1840,6 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <meshStandardMaterial color="#444444" roughness={0.5} metalness={0.2} />
         </mesh>
       </group>
-
-      {/* Ceiling fan — slow rotating */}
-      <CeilingFan position={[0, ROOM_H - 0.1, 0]} />
 
     </group>
   );
