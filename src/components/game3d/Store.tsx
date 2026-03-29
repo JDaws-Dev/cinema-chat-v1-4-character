@@ -59,19 +59,15 @@ function PosterBox({ url, position, rotation = 0 }: { url: string; position: [nu
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
 
   useEffect(() => {
-    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
-    console.log("[PosterBox] Loading:", proxyUrl);
-    fetch(proxyUrl)
-      .then(r => {
-        console.log("[PosterBox] Fetch status:", r.status, r.headers.get("content-type"));
-        return r.blob();
-      })
+    // Use smaller images on mobile
+    const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
+    const imgUrl = isMob ? url.replace("/w342/", "/w185/") : url;
+    fetch(`/api/image-proxy?url=${encodeURIComponent(imgUrl)}`)
+      .then(r => r.blob())
       .then(blob => {
-        console.log("[PosterBox] Blob size:", blob.size, blob.type);
         const objectUrl = URL.createObjectURL(blob);
         const img = new window.Image();
         img.onload = () => {
-          console.log("[PosterBox] Image loaded:", img.width, "x", img.height, "matRef:", !!matRef.current);
           if (matRef.current) {
             const t = new THREE.Texture(img);
             t.colorSpace = THREE.SRGBColorSpace;
@@ -79,14 +75,12 @@ function PosterBox({ url, position, rotation = 0 }: { url: string; position: [nu
             matRef.current.map = t;
             matRef.current.color.set("#ffffff");
             matRef.current.needsUpdate = true;
-            console.log("[PosterBox] Texture applied!");
           }
           URL.revokeObjectURL(objectUrl);
         };
-        img.onerror = (e) => console.error("[PosterBox] Image error:", e);
         img.src = objectUrl;
       })
-      .catch(e => console.error("[PosterBox] Fetch error:", e));
+      .catch(() => {});
   }, [url]);
 
   return (
@@ -195,7 +189,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
         const posterIdx = pos.idx % Math.max(posters.length, 1);
         const poster = posters[posterIdx];
         const flipRot = pos.side === "back" ? Math.PI : 0;
-        return (!isMobile && poster) ? (
+        return poster ? (
           <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} />
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
