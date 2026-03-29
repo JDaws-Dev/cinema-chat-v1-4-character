@@ -14,6 +14,7 @@ import {
 import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
+import { SecurityCameras } from "@/components/game3d/SecurityCameras";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp } from "@/lib/game-state";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
@@ -607,7 +608,7 @@ export default function GamePage() {
           </div>
           <h1 className="g3-splash-title">FRIDAY NIGHT<br/>VIDEO</h1>
           <p className="g3-splash-tagline">Your neighborhood video store</p>
-          <p className="g3-splash-tagline" style={{ fontSize: "0.8em", opacity: 0.7, marginTop: 8 }}>Browse the shelves. Pick a movie. Chat with Vinny.<br/>It&apos;s Friday night, 1997.</p>
+          <p className="g3-splash-tagline" style={{ fontSize: "0.8em", opacity: 0.7, marginTop: 8 }}>Browse the shelves. Pick a movie. Chat with Vinny.<br/>It&apos;s Friday night, 1992.</p>
           <button className="g3-splash-btn" onClick={() => {
             setStarted(true); setLoading(true);
             // Request fullscreen on mobile only to hide Safari chrome
@@ -641,6 +642,7 @@ export default function GamePage() {
           <Store isMobile={isMobile} />
           <FirstPersonControls disabled={hasOverlay} />
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
+          <SecurityCameras />
         </Suspense>
       </Canvas>
 
