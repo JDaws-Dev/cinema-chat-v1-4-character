@@ -234,15 +234,14 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
   );
 }
 
-const ENDCAP_CONFIGS: { z: number; label: string; vhsColors: string[] }[] = [
-  { z: -3, label: "STAFF PICKS", vhsColors: ["#dc2626", "#3b82f6", "#f59e0b"] },
-  { z: 0, label: "JUST ADDED", vhsColors: ["#7c3aed", "#22c55e", "#ec4899"] },
-  { z: 3, label: "STAFF PICKS", vhsColors: ["#06b6d4", "#ef4444", "#ca8a04"] },
+const ENDCAP_CONFIGS: { x: number; z: number; rotY: number; label: string; vhsColors: string[] }[] = [
+  { x: -7.5, z: -1.5, rotY: 0, label: "STAFF PICKS", vhsColors: ["#dc2626", "#3b82f6", "#f59e0b"] },
+  { x: 7.5, z: 1.5, rotY: Math.PI, label: "JUST ADDED", vhsColors: ["#7c3aed", "#22c55e", "#ec4899"] },
 ];
 
-function EndcapDisplay({ z, label, vhsColors }: { z: number; label: string; vhsColors: string[] }) {
+function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number; rotY: number; label: string; vhsColors: string[] }) {
   return (
-    <group position={[7, 0, z]} rotation={[0, Math.PI / 2, 0]}>
+    <group position={[x, 0, z]} rotation={[0, rotY, 0]}>
       {/* Endcap shelf body */}
       <mesh position={[0, 0.75, 0]}>
         <boxGeometry args={[1.0, 1.5, 0.4]} />
@@ -615,9 +614,9 @@ function NewReleasesWall() {
   // Same PosterBox format as the racks — small VHS boxes in a grid
   const positions = useMemo(() => {
     const result: { x: number; y: number; idx: number }[] = [];
-    const cols = 40;
+    const cols = 30;
     const rows = 4;
-    const spacing = 0.22;
+    const spacing = 0.24;
     const startX = -(cols - 1) * spacing * 0.5;
     let idx = 0;
     for (let row = 0; row < rows; row++) {
@@ -630,23 +629,36 @@ function NewReleasesWall() {
 
   return (
     <group position={[0, 0, -ROOM_D / 2 + 0.15]}>
-      {/* Shelf unit — full back wall */}
+      {/* Shelf unit — centered, not full wall */}
       <mesh position={[0, 1.0, 0]}>
-        <boxGeometry args={[ROOM_W - 2, 2.0, 0.3]} />
+        <boxGeometry args={[8, 2.0, 0.3]} />
         <meshStandardMaterial color={SHELF_COLOR} roughness={0.8} />
       </mesh>
       {/* Top */}
       <mesh position={[0, 2.02, 0]}>
-        <boxGeometry args={[ROOM_W - 1.8, 0.05, 0.35]} />
+        <boxGeometry args={[8.2, 0.05, 0.35]} />
         <meshStandardMaterial color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
-      {/* Shelf dividers — 4 rows need 3 dividers + bottom */}
+      {/* Shelf dividers */}
       {[1.5, 1.0, 0.5, 0.02].map((y, i) => (
-        <mesh key={i} position={[0, y, 0]}><boxGeometry args={[ROOM_W - 2.2, 0.03, 0.28]} /><meshStandardMaterial color="#6a4226" roughness={0.8} /></mesh>
+        <mesh key={i} position={[0, y, 0]}><boxGeometry args={[7.8, 0.03, 0.28]} /><meshStandardMaterial color="#6a4226" roughness={0.8} /></mesh>
       ))}
       {/* Side panels */}
-      <mesh position={[-(ROOM_W / 2 - 1), 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><meshStandardMaterial color="#4a2818" roughness={0.8} /></mesh>
-      <mesh position={[(ROOM_W / 2 - 1), 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><meshStandardMaterial color="#4a2818" roughness={0.8} /></mesh>
+      <mesh position={[-4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><meshStandardMaterial color="#4a2818" roughness={0.8} /></mesh>
+      <mesh position={[4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><meshStandardMaterial color="#4a2818" roughness={0.8} /></mesh>
+
+      {/* BIG "NEW RELEASES" illuminated sign above */}
+      <mesh position={[0, 2.6, 0.05]}>
+        <boxGeometry args={[6, 0.5, 0.06]} />
+        <meshStandardMaterial color="#1a3a6a" roughness={0.5} />
+      </mesh>
+      <Text position={[0, 2.6, 0.09]} fontSize={0.22} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+        ★ NEW RELEASES ★
+      </Text>
+      <Text position={[0, 2.6, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.22} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+        ★ NEW RELEASES ★
+      </Text>
+      <pointLight position={[0, 2.6, 0.3]} color="#ffd700" intensity={2} distance={4} />
 
       {/* VHS boxes — 10 copies of each movie grouped together */}
       {positions.map((pos) => {
@@ -657,17 +669,7 @@ function NewReleasesWall() {
         );
       })}
 
-      {/* "NEW RELEASES" sign on top */}
-      <mesh position={[0, 1.65, 0]}>
-        <boxGeometry args={[2.5, 0.2, 0.04]} />
-        <meshStandardMaterial color="#b91c1c" roughness={0.5} />
-      </mesh>
-      <Text position={[0, 1.65, 0.025]} fontSize={0.08} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
-        ★ NEW RELEASES ★
-      </Text>
-      <Text position={[0, 1.65, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
-        ★ NEW RELEASES ★
-      </Text>
+      {/* Old small sign removed — big illuminated sign is above */}
     </group>
   );
 }
@@ -1041,7 +1043,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
       {/* Endcap displays at end of each shelf row */}
       {ENDCAP_CONFIGS.map((cfg, i) => (
-        <EndcapDisplay key={`endcap-${i}`} z={cfg.z} label={cfg.label} vhsColors={cfg.vhsColors} />
+        <EndcapDisplay key={`endcap-${i}`} x={cfg.x} z={cfg.z} rotY={cfg.rotY} label={cfg.label} vhsColors={cfg.vhsColors} />
       ))}
 
       {/* Counter + Vinny */}
@@ -1064,10 +1066,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <TV />
 
       {/* Wall posters — back wall */}
-      <WallPoster x={-8} y={2.2} z={-ROOM_D / 2 + 0.05} color="#b91c1c" title="JAWS" />
-      <WallPoster x={-6} y={2.2} z={-ROOM_D / 2 + 0.05} color="#1d4ed8" title="ALIEN" />
-      <WallPoster x={7} y={2.2} z={-ROOM_D / 2 + 0.05} color="#7c3aed" title="BLADE RUNNER" />
-      <WallPoster x={9} y={2.2} z={-ROOM_D / 2 + 0.05} color="#059669" title="RAIDERS" />
+      {/* Back wall posters — flanking the new releases rack */}
+      <WallPoster x={-7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#b91c1c" title="JAWS" />
+      <WallPoster x={-9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#1d4ed8" title="ALIEN" />
+      <WallPoster x={7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#7c3aed" title="BLADE RUNNER" />
+      <WallPoster x={9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#059669" title="RAIDERS" />
 
       {/* Wall posters — side walls */}
       <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={-3} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
