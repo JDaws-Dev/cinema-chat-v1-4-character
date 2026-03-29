@@ -50,28 +50,34 @@ function collidesWithAny(px: number, pz: number): boolean {
   return false;
 }
 
-export function FirstPersonControls() {
+export function FirstPersonControls({ disabled = false }: { disabled?: boolean }) {
   const { camera, gl } = useThree();
   const keys = useRef(new Set<string>());
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const locked = useRef(false);
+  const initialized = useRef(false);
 
   // Pointer lock
   const requestLock = useCallback(() => {
+    if (disabled) return;
     gl.domElement.requestPointerLock();
-  }, [gl]);
+  }, [gl, disabled]);
 
   useEffect(() => {
-    camera.position.set(0, 1.6, 5);
-    euler.current.set(0, 0, 0); // Y=0 faces -z (into the store)
-    camera.quaternion.setFromEuler(euler.current);
+    // Only set spawn position on first mount, not re-mounts
+    if (!initialized.current) {
+      camera.position.set(0, 1.6, 5);
+      euler.current.set(0, 0, 0);
+      camera.quaternion.setFromEuler(euler.current);
+      initialized.current = true;
+    }
 
     const onLockChange = () => {
       locked.current = document.pointerLockElement === gl.domElement;
     };
 
     const onMouseMove = (e: MouseEvent) => {
-      if (!locked.current) return;
+      if (!locked.current || disabled) return;
       euler.current.y -= e.movementX * MOUSE_SENS;
       euler.current.x -= e.movementY * MOUSE_SENS;
       euler.current.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, euler.current.x));
@@ -79,13 +85,14 @@ export function FirstPersonControls() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (disabled) return;
       if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
       keys.current.add(e.key.toLowerCase());
     };
     const onKeyUp = (e: KeyboardEvent) => { keys.current.delete(e.key.toLowerCase()); };
 
     const onClick = () => {
-      if (!locked.current) requestLock();
+      if (!locked.current && !disabled) requestLock();
     };
 
     document.addEventListener("pointerlockchange", onLockChange);
@@ -101,9 +108,16 @@ export function FirstPersonControls() {
       document.removeEventListener("keyup", onKeyUp);
       gl.domElement.removeEventListener("click", onClick);
     };
-  }, [camera, gl, requestLock]);
+  }, [camera, gl, requestLock, disabled]);
+
+  // Clear movement keys when disabled (prevents stuck movement)
+  useEffect(() => {
+    if (disabled) keys.current.clear();
+  }, [disabled]);
 
   useFrame((_, delta) => {
+    if (disabled) return;
+
     // Apply mobile camera look deltas
     if (mobileInput.lookDeltaX !== 0 || mobileInput.lookDeltaY !== 0) {
       const TOUCH_SENS = 0.003;

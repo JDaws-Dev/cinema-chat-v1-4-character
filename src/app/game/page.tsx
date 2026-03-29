@@ -71,13 +71,17 @@ export default function GamePage() {
   // VHS pickup inventory (multiple films)
   type HeldMovie = { id: number; title: string; posterUrl: string };
   const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
+  // Snack inventory (separate from movies)
+  type HeldSnack = { name: string; emoji: string };
+  const [heldSnacks, setHeldSnacks] = useState<HeldSnack[]>([]);
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const [pickupFlash, setPickupFlash] = useState(false);
   const [pickupTitle, setPickupTitle] = useState<string | null>(null);
 
   // Movie Night Challenge state
   type ChallengeMovie = { title: string; genre: string };
-  const [challenge, setChallenge] = useState<{ movies: ChallengeMovie[]; startTime: number; hintsUsed: Set<number> } | null>(null);
+  type ChallengeType = "movie_night" | "speed_run";
+  const [challenge, setChallenge] = useState<{ movies: ChallengeMovie[]; startTime: number; hintsUsed: Set<number>; type: ChallengeType; timeLimit?: number } | null>(null);
   const [challengeComplete, setChallengeComplete] = useState<number | null>(null); // elapsed seconds
   const [challengeTimer, setChallengeTimer] = useState(0);
   const [propsCount, setPropsCount] = useState({ unlocked: 0, total: 15 });
@@ -86,10 +90,19 @@ export default function GamePage() {
   // Load props count on mount
   useEffect(() => { setPropsCount(getPropsCount()); }, []);
 
-  // Update challenge timer every second
+  // Update challenge timer every second + check speed run timeout
   useEffect(() => {
     if (!challenge) { setChallengeTimer(0); return; }
-    const iv = setInterval(() => setChallengeTimer(Math.round((Date.now() - challenge.startTime) / 1000)), 1000);
+    const iv = setInterval(() => {
+      const elapsed = Math.round((Date.now() - challenge.startTime) / 1000);
+      setChallengeTimer(elapsed);
+      // Speed run timeout
+      if (challenge.timeLimit && elapsed >= challenge.timeLimit) {
+        setChallenge(null);
+        setHeldMovies([]);
+        setChallengeComplete(-1); // -1 signals timeout/failure
+      }
+    }, 1000);
     return () => clearInterval(iv);
   }, [challenge]);
 
@@ -108,9 +121,9 @@ export default function GamePage() {
       // Pick up candy/snack item — don't exit pointer lock, stay in game
       try {
         const snack = JSON.parse(data);
-        setHeldMovies(prev => {
-          if (prev.some(m => m.title === `${snack.emoji} ${snack.name}`)) return prev;
-          return [...prev, { id: Date.now(), title: `${snack.emoji} ${snack.name}`, posterUrl: "" }];
+        setHeldSnacks(prev => {
+          if (prev.some(s => s.name === snack.name)) return prev;
+          return [...prev, { name: snack.name, emoji: snack.emoji }];
         });
         setPickupFlash(true);
         setPickupTitle(`${snack.emoji} ${snack.name}`);
@@ -152,7 +165,8 @@ export default function GamePage() {
           setChallenge(null);
           setHeldMovies([]);
           // Record completion and check for prop unlocks
-          recordChallengeCompletion("movie_night", elapsed);
+          const cType = challenge.type || "movie_night";
+          recordChallengeCompletion(cType, elapsed);
           const state = loadGameState();
           const count = state.challengeCompletions["movie_night"] || 0;
           // Check which props should be unlocked based on completion count
@@ -206,8 +220,8 @@ export default function GamePage() {
     }
   }, [overlay, heldMovies, challenge]);
 
-  // ── Start a Movie Night Challenge ─────────────────────
-  const startChallenge = useCallback(() => {
+  // ── Start a challenge (movie_night or speed_run) ──────
+  const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
     if (challenge) return;
     const shelfMovies = getShelfMovies();
     if (shelfMovies.length < 3) return;
@@ -230,7 +244,14 @@ export default function GamePage() {
     }
     if (picks.length < 3) return;
     setHeldMovies([]);
-    setChallenge({ movies: picks, startTime: Date.now(), hintsUsed: new Set() });
+    setHeldSnacks([]);
+    setChallenge({
+      movies: picks,
+      startTime: Date.now(),
+      hintsUsed: new Set(),
+      type: challengeType,
+      timeLimit: challengeType === "speed_run" ? 60 : undefined,
+    });
     setOverlay("none");
   }, [challenge]);
 
@@ -388,7 +409,7 @@ export default function GamePage() {
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 20, 45]} />
           <Store isMobile={isMobile} />
-          {!hasOverlay && <FirstPersonControls />}
+          <FirstPersonControls disabled={hasOverlay} />
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
         </Suspense>
       </Canvas>
@@ -447,8 +468,8 @@ export default function GamePage() {
               </div>
             );
           })}
-          <div className="g3-challenge-timer">
-            {challengeTimer}s
+          <div className="g3-challenge-timer" style={challenge.timeLimit && challengeTimer > (challenge.timeLimit - 15) ? { color: "#ef4444" } : undefined}>
+            {challenge.timeLimit ? `${Math.max(0, challenge.timeLimit - challengeTimer)}s left` : `${challengeTimer}s`}
           </div>
         </div>
       )}
@@ -457,11 +478,11 @@ export default function GamePage() {
       {challengeComplete !== null && (
         <div className="g3-challenge-complete" onClick={() => setChallengeComplete(null)}>
           <div className="g3-challenge-complete-card">
-            <div className="g3-challenge-complete-icon">🎬</div>
-            <div className="g3-challenge-complete-title">MOVIE NIGHT READY!</div>
-            <div className="g3-challenge-complete-time">Found all movies in {challengeComplete}s</div>
+            <div className="g3-challenge-complete-icon">{challengeComplete === -1 ? "⏰" : "🎬"}</div>
+            <div className="g3-challenge-complete-title">{challengeComplete === -1 ? "TIME'S UP!" : "MOVIE NIGHT READY!"}</div>
+            <div className="g3-challenge-complete-time">{challengeComplete === -1 ? "Better luck next time!" : `Found all movies in ${challengeComplete}s`}</div>
             <button className="g3-splash-btn" onClick={() => setChallengeComplete(null)} style={{ marginTop: 12, padding: "12px 24px", fontSize: "0.9rem" }}>
-              NICE!
+              {challengeComplete === -1 ? "TRY AGAIN" : "NICE!"}
             </button>
           </div>
         </div>
@@ -481,7 +502,7 @@ export default function GamePage() {
             </div>
             <div className="g3-overlay-body g3-challenge-select">
               {/* Movie Night — always unlocked */}
-              <button className="g3-challenge-option" onClick={() => { startChallenge(); }}>
+              <button className="g3-challenge-option" onClick={() => { startChallenge("movie_night"); }}>
                 <div className="g3-challenge-option-name">Movie Night</div>
                 <div className="g3-challenge-option-desc">Find 3 movies from the shelves</div>
                 <div className="g3-challenge-option-stats">Completed {movieNightCount} time{movieNightCount !== 1 ? "s" : ""}</div>
@@ -490,7 +511,7 @@ export default function GamePage() {
               {/* Speed Run — unlocks after 3 Movie Night completions */}
               <button
                 className={`g3-challenge-option ${!speedRunUnlocked ? "g3-challenge-option-locked" : ""}`}
-                onClick={() => { if (speedRunUnlocked) startChallenge(); }}
+                onClick={() => { if (speedRunUnlocked) startChallenge("speed_run"); }}
                 disabled={!speedRunUnlocked}
               >
                 <div className="g3-challenge-option-name">Speed Run</div>
@@ -528,7 +549,7 @@ export default function GamePage() {
       {/* Held movies inventory HUD */}
       {heldMovies.length > 0 && !hasOverlay && (
         <div className="g3-inventory">
-          <div className="g3-inventory-label">RENTING ({heldMovies.length})</div>
+          <div className="g3-inventory-label">MOVIES ({heldMovies.length})</div>
           <div className="g3-inventory-stack">
             {heldMovies.map((movie) => (
               <div key={movie.id} className="g3-inventory-card">
@@ -542,6 +563,23 @@ export default function GamePage() {
           </div>
           <div className="g3-inventory-hint">Take to Vinny to check out</div>
           <button className="g3-inventory-drop" onClick={() => setHeldMovies([])}>DROP ALL</button>
+        </div>
+      )}
+
+      {/* Held snacks inventory HUD */}
+      {heldSnacks.length > 0 && !hasOverlay && (
+        <div className="g3-inventory" style={{ bottom: heldMovies.length > 0 ? 180 : 20 }}>
+          <div className="g3-inventory-label">SNACKS ({heldSnacks.length})</div>
+          <div className="g3-inventory-stack">
+            {heldSnacks.map((snack) => (
+              <div key={snack.name} className="g3-inventory-card" style={{ background: "rgba(10, 24, 14, 0.9)", borderColor: "rgba(34, 197, 94, 0.4)" }}>
+                <div style={{ fontSize: "1.5rem", textAlign: "center", padding: "8px 0" }}>{snack.emoji}</div>
+                <div className="g3-inventory-title">{snack.name}</div>
+                <button className="g3-inventory-remove" onClick={() => setHeldSnacks(prev => prev.filter(s => s.name !== snack.name))}>✕</button>
+              </div>
+            ))}
+          </div>
+          <button className="g3-inventory-drop" onClick={() => setHeldSnacks([])}>DROP ALL</button>
         </div>
       )}
 

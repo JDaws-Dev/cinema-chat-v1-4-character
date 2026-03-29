@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { mobileInput } from "./MobileControls";
@@ -78,12 +78,13 @@ export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
     }
   }, [camera, scene, onInteract]);
 
-  // Attach click to document (fires when pointer is locked)
-  useThree(({ gl }) => {
+  // Attach click to canvas element (fires when pointer is locked)
+  const { gl } = useThree();
+  useEffect(() => {
     const el = gl.domElement;
     el.addEventListener("click", handleClick);
     return () => el.removeEventListener("click", handleClick);
-  });
+  }, [gl, handleClick]);
 
   return (
     <>
