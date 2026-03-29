@@ -348,25 +348,56 @@
   top: 0;
   left: 0;
   right: 0;
-  padding: 12px 20px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 16px;
   z-index: 10;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(6, 8, 16, 0.5), transparent);
+  background: linear-gradient(180deg, rgba(6, 8, 16, 0.7) 0%, transparent 100%);
 }
 
 .g3-hud-title {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: rgba(212, 168, 83, 0.6);
   letter-spacing: 0.15em;
+  flex-shrink: 0;
 }
 
 .g3-hud-hint {
   font-size: 0.65rem;
   color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  flex: 1;
+}
+
+.g3-hud-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.g3-props-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #ffd700;
+  background: rgba(6, 8, 16, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+  pointer-events: auto;
+}
+
+.g3-props-badge:hover {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: rgba(255, 215, 0, 0.6);
 }
 
 .g3-screenshot-btn {
@@ -378,6 +409,7 @@
   cursor: pointer;
   transition: all 0.2s;
   line-height: 1;
+  pointer-events: auto;
 }
 
 .g3-screenshot-btn:hover {

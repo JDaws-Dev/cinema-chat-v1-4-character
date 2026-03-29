@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { DialogueBox } from "@/components/game3d/DialogueOverlay";
 import { ShelfBrowser } from "@/components/game/ShelfBrowser";
 import { FilmDetailModal } from "@/components/FilmDetailModal";
+import { RewardOverlay } from "@/components/game/RewardOverlay";
 import {
   SCENARIOS, QUOTES, SYNOPSES,
   getSeen, markSeen, addCorrectAnswer, addWrongAnswer,
@@ -13,6 +14,7 @@ import {
 import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
+import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, type MovieProp } from "@/lib/game-state";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -78,6 +80,11 @@ export default function GamePage() {
   const [challenge, setChallenge] = useState<{ movies: ChallengeMovie[]; startTime: number; hintsUsed: Set<number> } | null>(null);
   const [challengeComplete, setChallengeComplete] = useState<number | null>(null); // elapsed seconds
   const [challengeTimer, setChallengeTimer] = useState(0);
+  const [propsCount, setPropsCount] = useState({ unlocked: 0, total: 15 });
+  const [rewardProp, setRewardProp] = useState<MovieProp | null>(null);
+
+  // Load props count on mount
+  useEffect(() => { setPropsCount(getPropsCount()); }, []);
 
   // Update challenge timer every second
   useEffect(() => {
@@ -128,6 +135,25 @@ export default function GamePage() {
           setChallengeComplete(elapsed);
           setChallenge(null);
           setHeldMovies([]);
+          // Record completion and check for prop unlocks
+          recordChallengeCompletion("movie_night", elapsed);
+          const state = loadGameState();
+          const count = state.challengeCompletions["movie_night"] || 0;
+          // Check which props should be unlocked based on completion count
+          const milestones: Record<number, string> = { 1: "nike_mags", 2: "gizmo", 3: "golden_ticket", 4: "neuralyzer", 5: "proton_pack", 7: "amber_cane", 8: "briefcase", 10: "hoverboard", 15: "one_ring", 20: "wilson" };
+          const propId = milestones[count];
+          if (propId && !state.unlockedProps.includes(propId)) {
+            unlockProp(propId);
+            const prop = PROPS.find(p => p.id === propId);
+            if (prop) setRewardProp(prop);
+          }
+          // Check speed run props
+          if (elapsed <= 60 && !state.unlockedProps.includes("red_pill")) {
+            unlockProp("red_pill");
+            const prop = PROPS.find(p => p.id === "red_pill");
+            if (prop) setRewardProp(prop);
+          }
+          setPropsCount(getPropsCount());
           document.exitPointerLock();
           return;
         }
@@ -409,6 +435,11 @@ export default function GamePage() {
         </div>
       )}
 
+      {/* Reward prop unlock overlay */}
+      {rewardProp && (
+        <RewardOverlay prop={rewardProp} onDismiss={() => setRewardProp(null)} />
+      )}
+
       {/* Held movies inventory HUD */}
       {heldMovies.length > 0 && !hasOverlay && (
         <div className="g3-inventory">
@@ -435,22 +466,28 @@ export default function GamePage() {
       {/* HUD */}
       <div className="g3-hud">
         <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
-        {!hasOverlay && heldMovies.length === 0 && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
-        {!hasOverlay && heldMovies.length > 0 && <span className="g3-hud-hint">Take your {heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny at the counter!</span>}
-        {hasOverlay && <span className="g3-hud-hint">Press Q or click ✕ to close</span>}
-        <button className="g3-screenshot-btn" onClick={() => {
-          const canvas = document.querySelector('canvas');
-          if (!canvas) return;
-          canvas.toBlob((blob) => {
-            if (!blob) return;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `fnv-screenshot-${Date.now()}.png`;
-            a.click();
-            URL.revokeObjectURL(url);
-          });
-        }}>📷</button>
+        <span className="g3-hud-hint">
+          {hasOverlay ? "Press Q or click ✕ to close" :
+           heldMovies.length > 0 ? `Take your ${heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny!` :
+           challenge ? "" :
+           "WASD move · Click to interact"}
+        </span>
+        <div className="g3-hud-right">
+          <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
+          <button className="g3-screenshot-btn" onClick={() => {
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return;
+            canvas.toBlob((blob) => {
+              if (!blob) return;
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `fnv-screenshot-${Date.now()}.png`;
+              a.click();
+              URL.revokeObjectURL(url);
+            });
+          }}>📷</button>
+        </div>
       </div>
 
       {/* ── OVERLAYS ────────────────────────────────────────── */}
