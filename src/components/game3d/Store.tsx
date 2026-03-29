@@ -263,27 +263,19 @@ function EndcapDisplay({ z, label, vhsColors }: { z: number; label: string; vhsC
         <meshStandardMaterial color="#4a2818" roughness={0.8} />
       </mesh>
 
-      {/* Face-out VHS boxes — 3 boxes displayed on front */}
+      {/* Face-out VHS boxes — 3 on top shelf, 3 on bottom */}
       {vhsColors.map((color, i) => (
-        <group key={`endcap-vhs-${i}`}>
-          {/* VHS case */}
-          <mesh position={[-0.28 + i * 0.28, 1.1, -0.22]}>
-            <boxGeometry args={[0.2, 0.3, 0.04]} />
-            <meshStandardMaterial color={color} roughness={0.6} />
-          </mesh>
-          {/* VHS label strip */}
-          <mesh position={[-0.28 + i * 0.28, 1.0, -0.245]}>
-            <boxGeometry args={[0.16, 0.06, 0.005]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.5} />
-          </mesh>
-        </group>
+        <mesh key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
+          <boxGeometry args={[0.18, 0.28, 0.10]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
       ))}
-
-      {/* Bottom row VHS box */}
-      <mesh position={[0, 0.55, -0.22]}>
-        <boxGeometry args={[0.2, 0.3, 0.04]} />
-        <meshStandardMaterial color="#4a3a6a" roughness={0.6} />
-      </mesh>
+      {vhsColors.map((color, i) => (
+        <mesh key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
+          <boxGeometry args={[0.18, 0.28, 0.10]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+      ))}
 
       {/* Label sign */}
       <mesh position={[0, 1.62, 0]}>
@@ -705,11 +697,13 @@ function TV() {
         <boxGeometry args={[1.2, 0.9, 0.3]} />
         <meshStandardMaterial color="#2a2a2a" roughness={0.5} />
       </mesh>
-      {/* Screen */}
-      <mesh position={[0, 0, -0.16]}>
+      {/* Screen — facing into the store */}
+      <mesh position={[0, 0, 0.16]}>
         <planeGeometry args={[1.0, 0.7]} />
-        <meshStandardMaterial color="#0a2a4a" emissive="#0a2a4a" emissiveIntensity={0.5} />
+        <meshStandardMaterial color="#1a3a5a" emissive="#1a4a6a" emissiveIntensity={0.8} side={THREE.DoubleSide} />
       </mesh>
+      {/* Screen glow */}
+      <pointLight position={[0, 0, 0.3]} color="#4a8aff" intensity={1} distance={3} />
     </group>
   );
 }
@@ -772,17 +766,22 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
         <boxGeometry args={[0.02, 0.7, 0.02]} />
         <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.3} />
       </mesh>
-      {/* Sign body */}
+      {/* Sign body — Blockbuster yellow */}
       <mesh position={[0, 2.8, 0]}>
-        <boxGeometry args={[2.0, 0.3, 0.03]} />
+        <boxGeometry args={[2.2, 0.3, 0.03]} />
+        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} />
+      </mesh>
+      {/* Dark border */}
+      <mesh position={[0, 2.8, 0.001]}>
+        <boxGeometry args={[2.25, 0.35, 0.025]} />
         <meshStandardMaterial color="#0a1830" roughness={0.6} />
       </mesh>
-      {/* Text — front side */}
+      {/* Text — front side — dark on yellow */}
       <Text
         position={[0, 2.8, -0.02]}
         rotation={[0, Math.PI, 0]}
         fontSize={0.08}
-        color={textColor}
+        color="#0a1830"
         anchorX="center"
         anchorY="middle"
         font={undefined}
@@ -793,7 +792,7 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
       <Text
         position={[0, 2.8, 0.02]}
         fontSize={0.08}
-        color={textColor}
+        color="#0a1830"
         anchorX="center"
         anchorY="middle"
         font={undefined}
@@ -851,10 +850,14 @@ function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number;
         <boxGeometry args={[1.0, 1.4, 0.04]} />
         <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
       </mesh>
-      {/* Poster art — facing into the room */}
-      <mesh position={[0, 0, -0.025]}>
+      {/* Poster art — on both faces */}
+      <mesh position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[0.9, 1.3]} />
         <meshBasicMaterial ref={matRef} color={color} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh position={[0, 0, 0.025]}>
+        <planeGeometry args={[0.9, 1.3]} />
+        <meshBasicMaterial color={color} side={THREE.DoubleSide} />
       </mesh>
       {/* Title on front */}
       <Text position={[0, -0.8, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
@@ -1264,6 +1267,25 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <meshStandardMaterial color={["#ef4444","#3b82f6","#f59e0b","#22c55e","#a855f7"][i]} roughness={0.5} />
         </mesh>
       ))}
+
+      {/* Security pillars at entrance */}
+      <mesh position={[-1.2, 0.75, ROOM_D / 2 - 0.5]}>
+        <boxGeometry args={[0.15, 1.5, 0.08]} />
+        <meshStandardMaterial color="#e8e8e0" roughness={0.6} />
+      </mesh>
+      <mesh position={[1.2, 0.75, ROOM_D / 2 - 0.5]}>
+        <boxGeometry args={[0.15, 1.5, 0.08]} />
+        <meshStandardMaterial color="#e8e8e0" roughness={0.6} />
+      </mesh>
+      {/* Red LED indicators on top */}
+      <mesh position={[-1.2, 1.55, ROOM_D / 2 - 0.5]}>
+        <sphereGeometry args={[0.02, 8, 8]} />
+        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
+      </mesh>
+      <mesh position={[1.2, 1.55, ROOM_D / 2 - 0.5]}>
+        <sphereGeometry args={[0.02, 8, 8]} />
+        <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
+      </mesh>
 
       {/* Drop box near entrance */}
       <mesh position={[-3, 0.5, ROOM_D / 2 - 1]}>
