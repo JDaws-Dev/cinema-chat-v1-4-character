@@ -67,7 +67,7 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     // Only set spawn position on first mount, not re-mounts
     if (!initialized.current) {
       camera.position.set(0, 1.6, 12); // Start outside the store
-      euler.current.set(0, Math.PI, 0); // Face toward the store entrance (-z)
+      euler.current.set(0, 0, 0); // Face -z (toward the store entrance)
       camera.quaternion.setFromEuler(euler.current);
       initialized.current = true;
     }
