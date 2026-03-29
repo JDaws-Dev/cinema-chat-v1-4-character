@@ -66,9 +66,10 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   useEffect(() => {
     // Set spawn position only on very first mount
     if (!initialized.current) {
-      camera.position.set(0, 1.6, 10); // Outside on sidewalk, facing store entrance
-      euler.current.set(0, Math.PI, 0); // Face toward store (-z direction)
-      camera.quaternion.setFromEuler(euler.current);
+      camera.position.set(0, 1.6, 10); // Outside on sidewalk
+      camera.lookAt(0, 1.6, 0); // Face toward store entrance
+      camera.getWorldDirection(new THREE.Vector3()); // force update
+      euler.current.setFromQuaternion(camera.quaternion); // sync euler to camera
       initialized.current = true;
     }
 

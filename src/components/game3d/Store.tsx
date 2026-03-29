@@ -1445,7 +1445,7 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
 
 function NeonSign() {
   return (
-    <group position={[0, 3.3, -ROOM_D / 2 + 0.15]}>
+    <group position={[0, 3.1, -ROOM_D / 2 + 0.15]}>
       {/* Sign backing — dark board */}
       <mesh position={[0, 0, -0.02]}>
         <boxGeometry args={[6.2, 0.5, 0.04]} />
@@ -1766,10 +1766,7 @@ function WallPoster({ x, y, z, rotY = 0, title }: { x: number; y: number; z: num
         <planeGeometry args={[0.9, 1.3]} />
         <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
-      {/* Title below poster — room side only (no back label to avoid overlap) */}
-      <Text position={[0, -0.8, 0.03]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
-        {title}
-      </Text>
+      {/* Title removed — poster art speaks for itself */}
     </group>
   );
 }
@@ -1798,36 +1795,20 @@ function FlickeringLight({ position }: { position: [number, number, number] }) {
 function FloorRug() {
   return (
     <group>
-      {/* Main entrance rug — branded with gold border */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.009, 4]}>
+      {/* Main entrance rug — branded with gold border, between row 3 and entrance */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.009, 5.2]}>
         <planeGeometry args={[3.4, 2.4]} />
         <Mat color="#ffd700" roughness={0.95} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 4]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 5.2]}>
         <planeGeometry args={[3, 2]} />
         <Mat color="#0a1830" roughness={0.95} />
       </mesh>
       {/* Store name on rug */}
-      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 4]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
         FRIDAY NIGHT VIDEO
       </Text>
-      {/* Carpet wear paths — darker strips along main aisles */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
-        <planeGeometry args={[1.8, ROOM_D - 2]} />
-        <Mat color="#222840" roughness={0.98} />
-      </mesh>
-      {/* Cross aisles between shelf rows */}
-      {[-1.5, 1.5].map((z) => (
-        <mesh key={`cross-${z}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, z]}>
-          <planeGeometry args={[ROOM_W - 6, 1.2]} />
-          <Mat color="#242844" roughness={0.98} />
-        </mesh>
-      ))}
-      {/* Path to counter area */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-4, 0.006, 4]}>
-        <planeGeometry args={[3, 3]} />
-        <Mat color="#252848" roughness={0.98} />
-      </mesh>
+      {/* Carpet wear removed */}
     </group>
   );
 }
@@ -2160,9 +2141,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
       {/* Wall posters — side walls */}
       <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={-3} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
-      <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={1} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={0} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={4} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
+      <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={2} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
+      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={1} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
+      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={5.5} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
 
       {/* "BE KIND REWIND" sign on left wall — clear of Star Wars poster at z=1 */}
       <group position={[-ROOM_W / 2 + 0.12, 2.0, 3.5]} rotation={[0, Math.PI / 2, 0]}>
@@ -2223,28 +2204,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* ── Storefront windows + night sky exterior ──────── */}
-      {/* Night sky plane behind the front wall (visible through windows) */}
-      <mesh position={[0, ROOM_H / 2, ROOM_D / 2 + 0.15]}>
-        <planeGeometry args={[ROOM_W, ROOM_H]} />
-        <meshBasicMaterial color="#050a18" />
-      </mesh>
-      {/* Faint starfield dots on the sky plane */}
-      {[
-        [-3.5, 2.8], [-6.2, 2.1], [5.1, 2.9], [7.4, 1.8], [-1.5, 3.0], [2.8, 2.3], [-7, 3.1], [8.2, 2.6],
-        [-9.0, 3.2], [-8.3, 2.4], [-4.8, 3.3], [-2.2, 2.5], [-0.3, 3.4], [0.9, 2.7], [1.6, 3.1], [3.5, 3.3],
-        [4.2, 2.0], [6.5, 3.4], [8.8, 3.0], [9.2, 2.2], [-5.5, 3.0], [-1.0, 2.1], [7.0, 2.5], [2.0, 3.4],
-        [-8.8, 1.9], [-3.0, 3.2], [5.8, 3.1], [9.5, 1.7],
-      ].map(([sx, sy], i) => (
-        <mesh key={`star${i}`} position={[sx, sy, ROOM_D / 2 + 0.14]}>
-          <circleGeometry args={[i % 3 === 0 ? 0.04 : 0.025, 6]} />
-          <meshBasicMaterial color={i % 5 === 0 ? "#aabbff" : "#ffffff"} />
-        </mesh>
-      ))}
-      {/* Moon glow */}
-      <mesh position={[6, 3.0, ROOM_D / 2 + 0.13]}>
-        <circleGeometry args={[0.25, 16]} />
-        <meshBasicMaterial color="#d4d8f0" />
-      </mesh>
+      {/* Sky/stars/moon removed — sky plane was blocking interior view from outside */}
       {/* Parking lot ground plane — extended for walking approach */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}>
         <planeGeometry args={[ROOM_W + 8, 14]} />
@@ -3141,7 +3101,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Old drop box removed — return window is now outside */}
 
       {/* Bulletin board on left wall */}
-      <group position={[-ROOM_W / 2 + 0.08, 1.6, 5.5]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.08, 1.6, 4.8]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.2, 0.8, 0.05]} />
           <Mat color="#7a5a30" roughness={0.85} />
