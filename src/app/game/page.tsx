@@ -17,6 +17,7 @@ import { getShelfMovies } from "@/components/game3d/Store";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp } from "@/lib/game-state";
 import { playRandomLine, playSFX, setSubtitleHandler, setMuted, isMuted } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
+import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -99,7 +100,12 @@ export default function GamePage() {
   const [subtitle, setSubtitle] = useState<string | null>(null);
   const subtitleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Load props count on mount + wire subtitle handler
+  // NPC conversation state
+  const [npcLine, setNpcLine] = useState<string | null>(null);
+  const npcConvoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const npcConvoPlaying = useRef(false);
+
+  // Load props count on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
     setPropsCount(getPropsCount());
     setSubtitleHandler((text, duration) => {
@@ -107,6 +113,34 @@ export default function GamePage() {
       if (subtitleTimer.current) clearTimeout(subtitleTimer.current);
       subtitleTimer.current = setTimeout(() => setSubtitle(null), duration);
     });
+
+    // Periodically trigger NPC conversations (every 30-60s)
+    const scheduleConvo = () => {
+      const delay = 30000 + Math.random() * 30000; // 30-60s
+      npcConvoTimer.current = setTimeout(() => {
+        if (npcConvoPlaying.current) { scheduleConvo(); return; }
+        npcConvoPlaying.current = true;
+        const convo = getRandomConversation();
+        // Play each line sequentially
+        convo.lines.forEach((line, i) => {
+          setTimeout(() => {
+            setNpcLine(`${line.speaker}: "${line.text}"`);
+          }, line.delay);
+        });
+        // Clear after last line + 3s
+        const lastLine = convo.lines[convo.lines.length - 1];
+        const totalDuration = lastLine.delay + 3000;
+        setTimeout(() => {
+          setNpcLine(null);
+          npcConvoPlaying.current = false;
+        }, totalDuration);
+        scheduleConvo();
+      }, delay);
+    };
+    // First conversation after 15s
+    npcConvoTimer.current = setTimeout(() => { scheduleConvo(); }, 15000);
+
+    return () => { if (npcConvoTimer.current) clearTimeout(npcConvoTimer.current); };
   }, []);
 
   // Update challenge timer every second + check speed run timeout
@@ -507,9 +541,14 @@ export default function GamePage() {
         <div className="g3-hover-label">{hoverLabel}</div>
       )}
 
-      {/* Subtitle display */}
+      {/* Subtitle display — Vinny's voice lines */}
       {subtitle && (
         <div className="g3-subtitle">{subtitle}</div>
+      )}
+
+      {/* NPC conversation chatter — overheard nearby */}
+      {npcLine && !hasOverlay && !subtitle && (
+        <div className="g3-npc-chatter">{npcLine}</div>
       )}
 
       {/* Pickup flash + title toast */}

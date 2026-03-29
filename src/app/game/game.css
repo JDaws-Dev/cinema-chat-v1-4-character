@@ -164,6 +164,25 @@
   100% { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+/* ── NPC conversation chatter ─────────────────────────────── */
+.g3-npc-chatter {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: rgba(232, 226, 214, 0.75);
+  background: rgba(6, 8, 16, 0.75);
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 12;
+  pointer-events: none;
+  max-width: 80%;
+  text-align: center;
+  animation: subtitle-in 0.3s ease-out;
+}
+
 /* ── Hover label (near crosshair) ─────────────────────────── */
 .g3-hover-label {
   position: fixed;
