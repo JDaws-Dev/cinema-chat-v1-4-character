@@ -18,7 +18,7 @@ function Mat(props: Record<string, unknown>) {
     const color = (emissive && (emissiveIntensity as number) > 0.5) ? emissive : rest.color;
     return <meshBasicMaterial {...rest} color={color as string} />;
   }
-  return <Mat {...(props as Record<string, unknown>)} />;
+  return <meshStandardMaterial {...(props as Record<string, unknown>)} />;
 }
 
 // ── Poster texture loader ────────────────────────────────
