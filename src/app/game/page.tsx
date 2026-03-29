@@ -204,7 +204,7 @@ export default function GamePage() {
       {/* 3D Canvas */}
       <Canvas
         shadows={false}
-        gl={{ antialias: true, failIfMajorPerformanceCaveat: false }}
+        gl={{ antialias: true, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: true }}
         camera={{ fov: 70, near: 0.1, far: 50 }}
         dpr={isMobile ? [1, 1.5] : [1, 2]}
         performance={{ min: 0.5 }}
@@ -242,6 +242,19 @@ export default function GamePage() {
         <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
         {!hasOverlay && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
         {hasOverlay && <span className="g3-hud-hint">Press Q or click ✕ to close</span>}
+        <button className="g3-screenshot-btn" onClick={() => {
+          const canvas = document.querySelector('canvas');
+          if (!canvas) return;
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `fnv-screenshot-${Date.now()}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+          });
+        }}>📷</button>
       </div>
 
       {/* ── OVERLAYS ────────────────────────────────────────── */}
