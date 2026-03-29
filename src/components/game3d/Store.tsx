@@ -346,6 +346,34 @@ function Counter() {
         <meshStandardMaterial color="#3a2010" roughness={0.9} />
       </mesh>
 
+      {/* Candy display shelves on front of counter (customer side) */}
+      {/* Shelf brackets */}
+      {[0.3, 0.6].map((y) => (
+        <mesh key={`candy-shelf-${y}`} position={[0, y, -0.58]}>
+          <boxGeometry args={[4, 0.03, 0.25]} />
+          <meshStandardMaterial color="#5a3820" roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Candy boxes — rows of colorful packages */}
+      {[-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5].map((dx, i) => (
+        <group key={`candy-row-${i}`}>
+          {/* Top shelf candy */}
+          <mesh position={[dx, 0.72, -0.58]}>
+            <boxGeometry args={[0.18, 0.2, 0.12]} />
+            <meshStandardMaterial color={["#ef4444","#f59e0b","#3b82f6","#22c55e","#ec4899","#a855f7","#f97316"][i]} roughness={0.5} />
+          </mesh>
+          {/* Bottom shelf candy */}
+          <mesh position={[dx, 0.42, -0.58]}>
+            <boxGeometry args={[0.2, 0.18, 0.14]} />
+            <meshStandardMaterial color={["#f97316","#ec4899","#22c55e","#ef4444","#3b82f6","#f59e0b","#a855f7"][i]} roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+      {/* "CANDY & SNACKS" label */}
+      <Text position={[0, 0.88, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+        CANDY & SNACKS
+      </Text>
+
       {/* Register */}
       <mesh position={[-1.5, 1.25, 0]}>
         <boxGeometry args={[0.65, 0.45, 0.5]} />
