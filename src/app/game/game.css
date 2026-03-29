@@ -1236,201 +1236,149 @@
   line-height: 1.6;
 }
 
-/* ── RPG Dialogue Overlay ──────────────────────────────────── */
+/* ── RPG Dialogue — classic bottom text box ────────────────── */
 .g3-rpg-overlay {
   position: fixed;
   inset: 0;
   z-index: 30;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 20px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0.9) 100%);
-  animation: g3-rpg-fadein 0.3s ease-out;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 24px 24px;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+  pointer-events: none;
 }
 
-@keyframes g3-rpg-fadein {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.g3-rpg-scene {
-  max-width: 700px;
+.g3-rpg-box {
+  pointer-events: auto;
+  max-width: 720px;
   width: 100%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  background: rgba(4, 8, 20, 0.96);
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  border-radius: 4px;
+  padding: 0;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 215, 0, 0.1);
+  animation: g3-rpg-pop 0.2s ease-out;
 }
 
-.g3-rpg-history {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 215, 0, 0.3) transparent;
-}
-
-.g3-rpg-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  transition: opacity 0.3s;
-}
-
-.g3-rpg-line-past {
-  opacity: 0.45;
-}
-
-.g3-rpg-line-current {
-  opacity: 1;
-  animation: g3-rpg-slidein 0.3s ease-out;
-}
-
-@keyframes g3-rpg-slidein {
-  from { transform: translateY(10px); opacity: 0; }
+@keyframes g3-rpg-pop {
+  from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* Name plate — sits on top-left of the box */
+.g3-rpg-nameplate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 215, 0, 0.15);
+  border-bottom: 2px solid rgba(255, 215, 0, 0.5);
+  border-right: 2px solid rgba(255, 215, 0, 0.5);
+  border-radius: 4px 0 8px 0;
+  padding: 6px 16px 6px 10px;
+}
+
 .g3-rpg-portrait {
-  width: 38px;
-  height: 38px;
-  border-radius: 6px;
-  background: rgba(15, 25, 50, 0.95);
-  border: 2px solid rgba(255, 215, 0, 0.5);
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: #ffd700;
-  flex-shrink: 0;
 }
 
-.g3-rpg-bubble {
-  background: rgba(10, 18, 40, 0.95);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 8px;
-  padding: 10px 14px;
-  flex: 1;
-  min-width: 0;
-}
-
-.g3-rpg-speaker {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 700;
+.g3-rpg-name {
+  font-size: 0.8rem;
+  font-weight: 800;
   color: #ffd700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 3px;
+  letter-spacing: 0.1em;
 }
 
+/* The dialogue text */
 .g3-rpg-text {
   margin: 0;
-  font-size: 0.85rem;
-  line-height: 1.5;
+  padding: 16px 20px;
+  font-size: 0.95rem;
+  line-height: 1.6;
   color: #e8e2d6;
+  min-height: 60px;
 }
 
-/* Response choices */
+/* Response choices — bottom section */
 .g3-rpg-responses {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 8px;
+  gap: 2px;
   border-top: 1px solid rgba(255, 215, 0, 0.15);
 }
 
 .g3-rpg-choice {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: rgba(15, 25, 50, 0.9);
-  border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: 6px;
-  padding: 10px 14px;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.06);
+  padding: 10px 20px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.1s;
   text-align: left;
   font-family: inherit;
-  color: #e8e2d6;
+  color: rgba(232, 226, 214, 0.7);
+}
+
+.g3-rpg-choice:last-child {
+  border-bottom: none;
 }
 
 .g3-rpg-choice:hover {
-  background: rgba(25, 40, 70, 0.95);
-  border-color: rgba(255, 215, 0, 0.5);
-  transform: translateX(4px);
+  background: rgba(255, 215, 0, 0.08);
+  color: #ffd700;
 }
 
-.g3-rpg-choice:active {
-  transform: translateX(2px);
+.g3-rpg-choice:hover .g3-rpg-choice-num {
+  background: rgba(255, 215, 0, 0.3);
+  border-color: rgba(255, 215, 0, 0.7);
 }
 
 .g3-rpg-choice-num {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: rgba(255, 215, 0, 0.15);
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  font-size: 0.7rem;
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  font-size: 0.65rem;
   font-weight: 800;
   color: #ffd700;
   flex-shrink: 0;
+  transition: all 0.1s;
 }
 
 .g3-rpg-choice-text {
-  font-size: 0.8rem;
-  line-height: 1.4;
+  font-size: 0.85rem;
+  line-height: 1.3;
 }
 
 .g3-rpg-choice-end {
-  justify-content: center;
-  opacity: 0.7;
-  border-style: dashed;
+  opacity: 0.5;
 }
-
 .g3-rpg-choice-end:hover {
   opacity: 1;
 }
 
-.g3-rpg-leave {
-  display: block;
-  margin: 12px auto 0;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.7rem;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 4px 12px;
-  letter-spacing: 0.05em;
-}
-
-.g3-rpg-leave:hover {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Mobile RPG adjustments */
+/* Mobile */
 @media (max-width: 768px) {
-  .g3-rpg-overlay {
-    padding: 12px;
-  }
-  .g3-rpg-history {
-    max-height: 200px;
-  }
-  .g3-rpg-text {
-    font-size: 0.8rem;
-  }
-  .g3-rpg-choice {
-    padding: 8px 12px;
-  }
-  .g3-rpg-choice-text {
-    font-size: 0.75rem;
-  }
+  .g3-rpg-overlay { padding: 0 12px 12px; }
+  .g3-rpg-text { font-size: 0.85rem; padding: 12px 16px; }
+  .g3-rpg-choice { padding: 8px 16px; }
+  .g3-rpg-choice-text { font-size: 0.8rem; }
 }

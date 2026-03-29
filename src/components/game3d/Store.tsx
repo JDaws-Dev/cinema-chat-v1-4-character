@@ -2131,8 +2131,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Wall posters — side walls */}
       <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={-3} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
       <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={2} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={1} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={5.5} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
+      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={0} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
+      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={5} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
 
       {/* "BE KIND REWIND" sign on left wall — clear of Star Wars poster at z=1 */}
       <group position={[-ROOM_W / 2 + 0.12, 2.0, 3.5]} rotation={[0, Math.PI / 2, 0]}>
@@ -3122,7 +3122,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </mesh>
 
       {/* Wall clock near counter */}
-      <group position={[ROOM_W / 2 - 0.1, 2.8, 4]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[ROOM_W / 2 - 0.1, 2.8, 6.2]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh>
           <circleGeometry args={[0.25, 24]} />
           <Mat color="#ffffff" roughness={0.4} />
@@ -3163,7 +3163,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* ── MOVIE NIGHT CHALLENGE BOARD ─────────────────────── */}
-      <group position={[ROOM_W / 2 - 0.1, 1.5, 2]} rotation={[0, -Math.PI / 2, 0]}
+      <group position={[ROOM_W / 2 - 0.1, 1.5, 1.5]} rotation={[0, -Math.PI / 2, 0]}
         userData={{ interactType: "challenge", label: "Challenge Board" }}
       >
         {/* Board backing */}
