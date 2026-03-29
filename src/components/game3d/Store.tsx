@@ -2030,7 +2030,7 @@ function FloorRug() {
         <Mat color="#0a1830" roughness={0.95} />
       </mesh>
       {/* Store name on rug */}
-      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+      <Text rotation={[-Math.PI / 2, Math.PI, 0]} position={[0, 0.011, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
         FRIDAY NIGHT VIDEO
       </Text>
       {/* Carpet wear removed */}
@@ -3141,9 +3141,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <mesh position={[-5, 1.4, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, 2.2]} />
         <Mat
-          color="#6aa8cc"
+          color="#aaccdd"
           transparent
-          opacity={0.18}
+          opacity={0.08}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
@@ -3171,9 +3171,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <mesh position={[5, 1.4, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, 2.2]} />
         <Mat
-          color="#6aa8cc"
+          color="#aaccdd"
           transparent
-          opacity={0.18}
+          opacity={0.08}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
