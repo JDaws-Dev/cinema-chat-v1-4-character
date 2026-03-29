@@ -1253,7 +1253,7 @@ function TrophyShelf() {
   const TIER_YS = [0.3, 0.8, 1.3];
 
   return (
-    <group position={[9, 0, -ROOM_D / 2 + 0.1]} userData={{ interactType: "trophy", label: "View Collection" }}>
+    <group position={[ROOM_W / 2 - 0.3, 0, -1.5]} rotation={[0, -Math.PI / 2, 0]} userData={{ interactType: "trophy", label: "View Collection" }}>
       {/* Shelf unit — back panel */}
       <mesh position={[0, 0.85, -0.06]}>
         <boxGeometry args={[2.5, 1.7, 0.04]} />
@@ -1961,8 +1961,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <ShelfNeonStrip key={`neon-${i}`} position={[s.x, 1.50, s.z]} color={s.color} />
       ))}
 
-      {/* "EMPLOYEES ONLY" door on back wall */}
-      <group position={[-9, 0, -ROOM_D / 2 + 0.06]}>
+      {/* "EMPLOYEES ONLY" door on left wall */}
+      <group position={[-ROOM_W / 2 + 0.06, 0, -4]} rotation={[0, Math.PI / 2, 0]}>
         {/* Door */}
         <mesh position={[0, 1.15, 0]}>
           <boxGeometry args={[0.9, 2.3, 0.04]} />

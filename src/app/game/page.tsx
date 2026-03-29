@@ -547,7 +547,11 @@ export default function GamePage() {
           </div>
           <h1 className="g3-splash-title">FRIDAY NIGHT<br/>VIDEO</h1>
           <p className="g3-splash-tagline">Your neighborhood video store</p>
-          <button className="g3-splash-btn" onClick={() => { setStarted(true); setLoading(true); }}>ENTER THE STORE</button>
+          <button className="g3-splash-btn" onClick={() => {
+            setStarted(true); setLoading(true);
+            // Request fullscreen on mobile to hide Safari chrome
+            try { document.documentElement.requestFullscreen?.(); } catch {}
+          }}>ENTER THE STORE</button>
           <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; Click to interact</p>
         </div>
       </div>

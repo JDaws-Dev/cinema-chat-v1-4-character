@@ -14,15 +14,28 @@ const pressStart = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
-  title: "The Last Picture Show \u2014 Talk to Vinny",
+  title: "Friday Night Video",
   description:
-    "A legendary video store clerk who knows exactly what you should watch next. Tell him what you're in the mood for.",
+    "A 3D Blockbuster-style video store experience. Browse shelves, grab movies, complete challenges, and earn movie prop collectibles.",
   openGraph: {
-    title: "The Last Picture Show \u2014 Talk to Vinny",
+    title: "Friday Night Video",
     description:
-      "A legendary video store clerk who knows exactly what you should watch next.",
+      "A 3D Blockbuster-style video store experience.",
     type: "website",
   },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "mobile-web-app-capable": "yes",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover" as const,
 };
 
 export default function RootLayout({
