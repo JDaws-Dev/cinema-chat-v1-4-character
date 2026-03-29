@@ -1,5 +1,16 @@
 let audioContext: AudioContext | null = null;
 let isPlaying = false;
+let muted = false;
+
+// Subtitle callback — set by the game page to display subtitles
+let subtitleCallback: ((text: string, duration: number) => void) | null = null;
+
+export function setSubtitleHandler(cb: (text: string, duration: number) => void) {
+  subtitleCallback = cb;
+}
+
+export function setMuted(m: boolean) { muted = m; }
+export function isMuted(): boolean { return muted; }
 
 function getAudioContext(): AudioContext {
   if (!audioContext) {
@@ -8,8 +19,39 @@ function getAudioContext(): AudioContext {
   return audioContext;
 }
 
+// Cached SFX buffers
+const sfxCache: Map<string, AudioBuffer> = new Map();
+
+export async function playSFX(name: string): Promise<void> {
+  if (muted) return;
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") await ctx.resume();
+
+    let buffer = sfxCache.get(name);
+    if (!buffer) {
+      const res = await fetch(`/sounds/${name}.mp3`);
+      if (!res.ok) return;
+      const ab = await res.arrayBuffer();
+      buffer = await ctx.decodeAudioData(ab);
+      sfxCache.set(name, buffer);
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+  } catch { /* silent */ }
+}
+
 export async function playVinnyLine(text: string): Promise<void> {
   if (isPlaying) return;
+
+  // Always show subtitle, even when muted
+  const wordCount = text.split(/\s+/).length;
+  const duration = Math.max(2000, wordCount * 400); // ~400ms per word
+  subtitleCallback?.(`Vinny: "${text}"`, duration);
+
+  if (muted) return;
 
   try {
     isPlaying = true;
@@ -26,6 +68,7 @@ export async function playVinnyLine(text: string): Promise<void> {
     );
 
     if (!response.ok) {
+      isPlaying = false;
       return;
     }
 

@@ -15,7 +15,7 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp } from "@/lib/game-state";
-import { playRandomLine } from "@/lib/audio";
+import { playRandomLine, playSFX, setSubtitleHandler, setMuted, isMuted } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import "./game.css";
 
@@ -94,8 +94,20 @@ export default function GamePage() {
   const [mysteryHintsUsed, setMysteryHintsUsed] = useState(0);
   const [mysteryWrongMsg, setMysteryWrongMsg] = useState<string | null>(null);
 
-  // Load props count on mount
-  useEffect(() => { setPropsCount(getPropsCount()); }, []);
+  // Audio state
+  const [audioMuted, setAudioMuted] = useState(false);
+  const [subtitle, setSubtitle] = useState<string | null>(null);
+  const subtitleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Load props count on mount + wire subtitle handler
+  useEffect(() => {
+    setPropsCount(getPropsCount());
+    setSubtitleHandler((text, duration) => {
+      setSubtitle(text);
+      if (subtitleTimer.current) clearTimeout(subtitleTimer.current);
+      subtitleTimer.current = setTimeout(() => setSubtitle(null), duration);
+    });
+  }, []);
 
   // Update challenge timer every second + check speed run timeout
   useEffect(() => {
@@ -108,6 +120,7 @@ export default function GamePage() {
         setChallenge(null);
         setHeldMovies([]);
         setChallengeComplete(-1); // -1 signals timeout/failure
+        playSFX("challenge_fail");
         playRandomLine("challenge_fail");
       }
     }, 1000);
@@ -154,6 +167,7 @@ export default function GamePage() {
         setPickupTitle(movie.title);
         setTimeout(() => setPickupFlash(false), 800);
         setTimeout(() => setPickupTitle(null), 1500);
+        playSFX("vhs_pickup");
         // Vinny quip on pickup (30% chance to avoid spam)
         if (Math.random() < 0.3) playRandomLine("pickup");
       } catch { /* ignore parse errors */ }
@@ -219,6 +233,7 @@ export default function GamePage() {
             if (prop) setRewardProp(prop);
           }
           setPropsCount(getPropsCount());
+          playSFX("challenge_complete");
           playRandomLine("challenge_complete");
           document.exitPointerLock();
           return;
@@ -285,6 +300,7 @@ export default function GamePage() {
     if (picks.length < 3) return;
     setHeldMovies([]);
     setHeldSnacks([]);
+    playSFX("challenge_start");
     playRandomLine("challenge_start");
     setChallenge({
       movies: picks,
@@ -491,6 +507,11 @@ export default function GamePage() {
         <div className="g3-hover-label">{hoverLabel}</div>
       )}
 
+      {/* Subtitle display */}
+      {subtitle && (
+        <div className="g3-subtitle">{subtitle}</div>
+      )}
+
       {/* Pickup flash + title toast */}
       {pickupFlash && <div className="g3-pickup-flash" />}
       {pickupTitle && (
@@ -554,9 +575,9 @@ export default function GamePage() {
       {challengeComplete !== null && (
         <div className="g3-challenge-complete" onClick={() => setChallengeComplete(null)}>
           <div className="g3-challenge-complete-card">
-            <div className="g3-challenge-complete-icon">{challengeComplete === -1 ? "⏰" : "🎬"}</div>
-            <div className="g3-challenge-complete-title">{challengeComplete === -1 ? "TIME'S UP!" : "MOVIE NIGHT READY!"}</div>
-            <div className="g3-challenge-complete-time">{challengeComplete === -1 ? "Better luck next time!" : `Found all movies in ${challengeComplete}s`}</div>
+            <div className="g3-challenge-complete-icon">{challengeComplete === -1 ? "⏰" : challengeComplete === 0 ? "🔍" : "🎬"}</div>
+            <div className="g3-challenge-complete-title">{challengeComplete === -1 ? "TIME'S UP!" : challengeComplete === 0 ? "MYSTERY SOLVED!" : "MOVIE NIGHT READY!"}</div>
+            <div className="g3-challenge-complete-time">{challengeComplete === -1 ? "Better luck next time!" : challengeComplete === 0 ? "Vinny's impressed — you nailed it!" : `Found all movies in ${challengeComplete}s`}</div>
             <button className="g3-splash-btn" onClick={() => setChallengeComplete(null)} style={{ marginTop: 12, padding: "12px 24px", fontSize: "0.9rem" }}>
               {challengeComplete === -1 ? "TRY AGAIN" : "NICE!"}
             </button>
@@ -599,15 +620,16 @@ export default function GamePage() {
                 )}
               </button>
 
-              {/* Vinny's Pick — unlocks after 5 Movie Night completions */}
+              {/* Vinny's Mystery — unlocks after 5 Movie Night completions */}
               <button
-                className="g3-challenge-option g3-challenge-option-locked"
-                disabled
+                className={`g3-challenge-option ${!vinnyPickUnlocked ? "g3-challenge-option-locked" : ""}`}
+                onClick={() => { if (vinnyPickUnlocked) startMystery(); }}
+                disabled={!vinnyPickUnlocked}
               >
-                <div className="g3-challenge-option-name">Vinny&apos;s Pick</div>
-                <div className="g3-challenge-option-desc">Vinny describes a movie — find it!</div>
+                <div className="g3-challenge-option-name">Vinny&apos;s Mystery</div>
+                <div className="g3-challenge-option-desc">Vinny gives you a cryptic clue — find the movie on the shelves!</div>
                 {vinnyPickUnlocked ? (
-                  <div className="g3-challenge-option-lock">Coming soon</div>
+                  <div className="g3-challenge-option-stats">Completed {gs.challengeCompletions["vinnys_mystery"] || 0} time{(gs.challengeCompletions["vinnys_mystery"] || 0) !== 1 ? "s" : ""}</div>
                 ) : (
                   <div className="g3-challenge-option-lock">Complete 5 Movie Nights to unlock</div>
                 )}
@@ -696,6 +718,7 @@ export default function GamePage() {
         </span>
         <div className="g3-hud-right">
           <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
+          <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); return next; }); }}>{audioMuted ? "🔇" : "🔊"}</button>
           <button className="g3-screenshot-btn" onClick={takeScreenshot}>📷</button>
         </div>
       </div>

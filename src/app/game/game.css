@@ -139,6 +139,31 @@
   pointer-events: none;
 }
 
+/* ── Subtitle display ────────────────────────────────────── */
+.g3-subtitle {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.85rem;
+  color: #ffd700;
+  background: rgba(6, 8, 16, 0.85);
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  z-index: 13;
+  pointer-events: none;
+  max-width: 80%;
+  text-align: center;
+  font-style: italic;
+  animation: subtitle-in 0.3s ease-out;
+}
+
+@keyframes subtitle-in {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 /* ── Hover label (near crosshair) ─────────────────────────── */
 .g3-hover-label {
   position: fixed;
@@ -744,6 +769,16 @@
 
 .g3-challenge-hint-btn:hover {
   background: rgba(255, 62, 122, 0.4);
+}
+
+.g3-mystery-clue {
+  font-size: 0.8rem;
+  color: rgba(232, 226, 214, 0.85);
+  line-height: 1.5;
+  font-style: italic;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 6px;
 }
 
 .g3-challenge-timer {
