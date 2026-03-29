@@ -1021,6 +1021,288 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   );
 }
 
+function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
+  const ref = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const speed = 0.8;
+  const startPos: [number, number, number] = [-2, 0, 1.5];
+  const startIdx = useMemo(() => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < NPC_WAYPOINTS.length; i++) {
+      const dx = NPC_WAYPOINTS[i][0] - startPos[0];
+      const dz = NPC_WAYPOINTS[i][1] - startPos[2];
+      const d = dx * dx + dz * dz;
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    return best;
+  }, []);
+  const waypointIdx = useRef(startIdx);
+  const direction = useRef(1);
+  const waitTimer = useRef(0);
+
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    const dt = Math.min(delta, 0.1);
+    const t = state.clock.elapsedTime;
+
+    // Idle bob
+    if (waitTimer.current > 0) {
+      waitTimer.current -= dt;
+      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
+      // Head look around while idle
+      if (headRef.current) {
+        headRef.current.rotation.y = Math.sin(t * 0.3) * 0.2;
+      }
+      return;
+    }
+
+    const target = NPC_WAYPOINTS[waypointIdx.current];
+    const dx = target[0] - ref.current.position.x;
+    const dz = target[1] - ref.current.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 0.3) {
+      waitTimer.current = 1.0 + Math.random() * 1.5; // Staff lingers longer than customers
+      waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
+    } else {
+      const nx = dx / dist;
+      const nz = dz / dist;
+      ref.current.position.x += nx * speed * dt;
+      ref.current.position.z += nz * speed * dt;
+      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
+      ref.current.rotation.y = Math.atan2(nx, nz);
+    }
+
+    if (headRef.current) {
+      headRef.current.rotation.y = Math.sin(t * 0.25) * 0.1;
+    }
+  });
+
+  return (
+    <group ref={ref} position={startPos} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
+      {/* Legs — Dark jeans */}
+      <mesh position={[-0.08, 0.3, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
+        <boxGeometry args={[0.12, 0.6, 0.13]} />
+        <meshStandardMaterial color="#1a3050" roughness={0.85} />
+      </mesh>
+      <mesh position={[0.08, 0.3, 0]}>
+        <boxGeometry args={[0.12, 0.6, 0.13]} />
+        <meshStandardMaterial color="#1a3050" roughness={0.85} />
+      </mesh>
+
+      {/* Sneakers — black with white sole */}
+      <mesh position={[-0.08, 0.03, -0.02]}>
+        <boxGeometry args={[0.13, 0.07, 0.18]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      <mesh position={[-0.08, 0.01, -0.02]}>
+        <boxGeometry args={[0.14, 0.03, 0.19]} />
+        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+      </mesh>
+      <mesh position={[0.08, 0.03, -0.02]}>
+        <boxGeometry args={[0.13, 0.07, 0.18]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      <mesh position={[0.08, 0.01, -0.02]}>
+        <boxGeometry args={[0.14, 0.03, 0.19]} />
+        <meshStandardMaterial color="#f0f0f0" roughness={0.6} />
+      </mesh>
+
+      {/* Belt */}
+      <mesh position={[0, 0.6, 0]}>
+        <boxGeometry args={[0.3, 0.04, 0.16]} />
+        <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
+      </mesh>
+
+      {/* Torso — Red polo shirt */}
+      <mesh position={[0, 0.85, 0]}>
+        <boxGeometry args={[0.36, 0.5, 0.22]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.7} />
+      </mesh>
+      {/* Polo collar */}
+      <mesh position={[0, 1.08, -0.05]}>
+        <boxGeometry args={[0.2, 0.05, 0.14]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.6} />
+      </mesh>
+      {/* Collar fold left */}
+      <mesh position={[-0.05, 1.1, -0.09]} rotation={[0.3, 0, 0.2]}>
+        <boxGeometry args={[0.07, 0.04, 0.02]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.6} />
+      </mesh>
+      {/* Collar fold right */}
+      <mesh position={[0.05, 1.1, -0.09]} rotation={[0.3, 0, -0.2]}>
+        <boxGeometry args={[0.07, 0.04, 0.02]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.6} />
+      </mesh>
+
+      {/* Yellow name tag — "CHARLIE" */}
+      <mesh position={[0.12, 0.92, -0.12]}>
+        <boxGeometry args={[0.14, 0.06, 0.01]} />
+        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+      </mesh>
+      <Text position={[0.12, 0.92, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#1a1a1a" anchorX="center" font={undefined}>
+        CHARLIE
+      </Text>
+
+      {/* STAFF badge — green rectangle on chest */}
+      <mesh position={[-0.09, 0.97, -0.12]}>
+        <boxGeometry args={[0.12, 0.05, 0.01]} />
+        <meshStandardMaterial color="#1a6a2a" emissive="#1a6a2a" emissiveIntensity={0.15} />
+      </mesh>
+      <Text position={[-0.09, 0.97, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.022} color="#ffffff" anchorX="center" font={undefined}>
+        STAFF
+      </Text>
+
+      {/* Left arm */}
+      <mesh position={[-0.24, 0.82, 0]}>
+        <boxGeometry args={[0.11, 0.4, 0.12]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.7} />
+      </mesh>
+      {/* Left hand */}
+      <mesh position={[-0.24, 0.58, 0]}>
+        <sphereGeometry args={[0.05, 8, 8]} />
+        <meshStandardMaterial color="#e8c4a0" roughness={0.8} />
+      </mesh>
+      {/* Right arm */}
+      <mesh position={[0.24, 0.82, 0]}>
+        <boxGeometry args={[0.11, 0.4, 0.12]} />
+        <meshStandardMaterial color="#cc2222" roughness={0.7} />
+      </mesh>
+      {/* Right hand */}
+      <mesh position={[0.24, 0.58, 0]}>
+        <sphereGeometry args={[0.05, 8, 8]} />
+        <meshStandardMaterial color="#e8c4a0" roughness={0.8} />
+      </mesh>
+
+      {/* Head group */}
+      <group ref={headRef} position={[0, 1.3, 0]}>
+        {/* Head — slightly smaller than Vinny */}
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshStandardMaterial color="#e8c4a0" roughness={0.75} />
+        </mesh>
+
+        {/* Baseball cap — brim + crown */}
+        {/* Cap crown */}
+        <mesh position={[0, 0.12, 0]} rotation={[0, 0, 0.08]}>
+          <sphereGeometry args={[0.21, 16, 10]} />
+          <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+        </mesh>
+        {/* Cap brim — slightly tilted */}
+        <mesh position={[0, 0.06, -0.18]} rotation={[0.15, 0, 0.06]}>
+          <boxGeometry args={[0.22, 0.02, 0.12]} />
+          <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+        </mesh>
+
+        {/* Blonde/light brown hair peeking out from cap sides */}
+        <mesh position={[-0.18, -0.02, 0]}>
+          <boxGeometry args={[0.06, 0.1, 0.12]} />
+          <meshStandardMaterial color="#c4a45a" roughness={0.9} />
+        </mesh>
+        <mesh position={[0.18, -0.02, 0]}>
+          <boxGeometry args={[0.06, 0.1, 0.12]} />
+          <meshStandardMaterial color="#c4a45a" roughness={0.9} />
+        </mesh>
+        {/* Hair at back of cap */}
+        <mesh position={[0, -0.02, 0.12]}>
+          <boxGeometry args={[0.2, 0.1, 0.06]} />
+          <meshStandardMaterial color="#c4a45a" roughness={0.9} />
+        </mesh>
+
+        {/* Eyes */}
+        <mesh position={[-0.07, -0.02, -0.17]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+        </mesh>
+        <mesh position={[0.07, -0.02, -0.17]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.3} />
+        </mesh>
+        {/* Pupils */}
+        <mesh position={[-0.07, -0.02, -0.195]}>
+          <sphereGeometry args={[0.013, 8, 8]} />
+          <meshStandardMaterial color="#1a1a1a" />
+        </mesh>
+        <mesh position={[0.07, -0.02, -0.195]}>
+          <sphereGeometry args={[0.013, 8, 8]} />
+          <meshStandardMaterial color="#1a1a1a" />
+        </mesh>
+
+        {/* No mustache — just a smile */}
+        <mesh position={[0, -0.1, -0.18]}>
+          <boxGeometry args={[0.1, 0.02, 0.02]} />
+          <meshStandardMaterial color="#c07060" roughness={0.8} />
+        </mesh>
+        {/* Smile corners */}
+        <mesh position={[-0.05, -0.095, -0.18]} rotation={[0, 0, -0.3]}>
+          <boxGeometry args={[0.025, 0.012, 0.015]} />
+          <meshStandardMaterial color="#c07060" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.05, -0.095, -0.18]} rotation={[0, 0, 0.3]}>
+          <boxGeometry args={[0.025, 0.012, 0.015]} />
+          <meshStandardMaterial color="#c07060" roughness={0.8} />
+        </mesh>
+
+        {/* Nose */}
+        <mesh position={[0, -0.05, -0.19]}>
+          <sphereGeometry args={[0.02, 8, 8]} />
+          <meshStandardMaterial color="#d4a574" roughness={0.8} />
+        </mesh>
+
+        {/* Ears */}
+        <mesh position={[-0.19, 0, 0]}>
+          <sphereGeometry args={[0.035, 8, 8]} />
+          <meshStandardMaterial color="#e8c4a0" roughness={0.75} />
+        </mesh>
+        <mesh position={[0.19, 0, 0]}>
+          <sphereGeometry args={[0.035, 8, 8]} />
+          <meshStandardMaterial color="#e8c4a0" roughness={0.75} />
+        </mesh>
+
+        {/* Headphones around neck */}
+        {/* Left earpiece */}
+        <mesh position={[-0.16, -0.18, -0.02]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.025, 12]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+        </mesh>
+        <mesh position={[-0.16, -0.18, -0.02]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.03, 12]} />
+          <meshStandardMaterial color="#444444" roughness={0.3} />
+        </mesh>
+        {/* Right earpiece */}
+        <mesh position={[0.16, -0.18, -0.02]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.025, 12]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+        </mesh>
+        <mesh position={[0.16, -0.18, -0.02]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.03, 12]} />
+          <meshStandardMaterial color="#444444" roughness={0.3} />
+        </mesh>
+        {/* Headband connecting earpieces (arches over head/behind neck) */}
+        <mesh position={[0, -0.12, 0.08]} rotation={[0.3, 0, 0]}>
+          <torusGeometry args={[0.16, 0.012, 8, 16, Math.PI]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={0.4} />
+        </mesh>
+      </group>
+
+      {/* Floating name */}
+      <Text position={[0, 1.75, 0]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>
+        CHARLIE
+      </Text>
+
+      {/* Point light for visibility (desktop only) */}
+      {!isMobile && <pointLight position={[0, 1.5, -0.3]} color="#ffeecc" intensity={0.5} distance={3} />}
+
+      {/* Shadow on floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
+        <circleGeometry args={[0.25, 16]} />
+        <meshStandardMaterial color="#000000" transparent opacity={0.18} />
+      </mesh>
+    </group>
+  );
+}
+
 function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
   const posters = usePosterUrls("NEW", 20);
   // Only trending — these are actual new releases
@@ -1810,6 +2092,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
       {!isMobile && <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
       {!isMobile && <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
+
+      {/* Charlie — staff NPC who roams aisles and gives hints */}
+      <CharlieCharacter isMobile={isMobile} />
 
       {/* New Releases wall display */}
       <NewReleasesWall isMobile={isMobile} />

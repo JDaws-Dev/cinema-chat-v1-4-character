@@ -43,13 +43,13 @@ export async function playSFX(name: string): Promise<void> {
   } catch { /* silent */ }
 }
 
-export async function playVinnyLine(text: string): Promise<void> {
+export async function playVinnyLine(text: string, speaker = "Vinny"): Promise<void> {
   if (isPlaying) return;
 
   // Always show subtitle, even when muted
   const wordCount = text.split(/\s+/).length;
   const duration = Math.max(2000, wordCount * 400); // ~400ms per word
-  subtitleCallback?.(`Vinny: "${text}"`, duration);
+  subtitleCallback?.(`${speaker}: "${text}"`, duration);
 
   if (muted) return;
 
@@ -116,6 +116,14 @@ export const VINNY_LINES = {
     "Good eye!",
     "Nice find!",
     "That's a great one!",
+  ],
+  charlie_tips: [
+    "Have you checked out the new releases? Some real gems this week.",
+    "If you like horror, the back row has some hidden classics.",
+    "Pro tip: the comedy section is always worth a browse on a Friday night.",
+    "Looking for something? I know where everything is in this store.",
+    "The classics section is underrated. Trust me on that.",
+    "Need a recommendation? You can't go wrong with anything on the top shelf.",
   ],
 } as const;
 

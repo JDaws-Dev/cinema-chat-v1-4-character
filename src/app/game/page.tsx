@@ -15,7 +15,7 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp } from "@/lib/game-state";
-import { playRandomLine, playSFX, setSubtitleHandler, setMuted, isMuted } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, VINNY_LINES } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
 import "./game.css";
@@ -248,6 +248,35 @@ export default function GamePage() {
         }
       } catch { /* ignore parse errors */ }
       return;
+    }
+
+    if (type === "charlie") {
+      // Charlie gives hints and movie tips — doesn't open overlays, just speaks
+      if (challenge) {
+        const unfound = challenge.movies.filter(cm =>
+          !heldMovies.some(m => m.title.toLowerCase() === cm.title.toLowerCase())
+        );
+        if (unfound.length > 0) {
+          const movie = unfound[0];
+          playVinnyLine(`Try the ${movie.genre} section for ${movie.title}.`, "Charlie");
+        } else {
+          playVinnyLine("Looks like you found them all! Go see Vinny.", "Charlie");
+        }
+      } else if (mysteryClue) {
+        // Give progressive hints for mystery challenge
+        if (mysteryHintsUsed < mysteryClue.hints.length) {
+          playVinnyLine(mysteryClue.hints[mysteryHintsUsed], "Charlie");
+          setMysteryHintsUsed(h => h + 1);
+        } else {
+          playVinnyLine("I've told you everything I know about that one!", "Charlie");
+        }
+      } else {
+        // Random movie recommendation
+        const lines = VINNY_LINES.charlie_tips;
+        const line = lines[Math.floor(Math.random() * lines.length)];
+        playVinnyLine(line, "Charlie");
+      }
+      return; // Don't exit pointer lock — stay in game
     }
 
     // Exit pointer lock when opening overlay
