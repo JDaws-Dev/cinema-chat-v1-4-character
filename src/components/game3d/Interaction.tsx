@@ -16,32 +16,40 @@ export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
   const raycaster = useRef(new THREE.Raycaster());
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
   const prevLabel = useRef<string | null>(null);
+  const frameCount = useRef(0);
+  const RAYCAST_INTERVAL = 6; // raycast every 6th frame (~10Hz at 60fps)
 
   useFrame(() => {
-    raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
-    const intersects = raycaster.current.intersectObjects(scene.children, true);
+    frameCount.current++;
 
-    let found = false;
-    for (const hit of intersects) {
-      if (hit.distance > 4) continue; // only interact with nearby objects
-      const obj = hit.object;
-      const name = obj.userData?.interactType || findParentData(obj);
-      if (name) {
-        setHoverLabel(obj.userData?.label || findParentLabel(obj) || name);
-        found = true;
-        break;
+    // Throttle hover raycast on mobile (~10Hz instead of every frame)
+    const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
+    if (!isMob || frameCount.current % RAYCAST_INTERVAL === 0) {
+      raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
+      const intersects = raycaster.current.intersectObjects(scene.children, true);
+
+      let found = false;
+      for (const hit of intersects) {
+        if (hit.distance > 4) continue; // only interact with nearby objects
+        const obj = hit.object;
+        const name = obj.userData?.interactType || findParentData(obj);
+        if (name) {
+          setHoverLabel(obj.userData?.label || findParentLabel(obj) || name);
+          found = true;
+          break;
+        }
+      }
+      if (!found) setHoverLabel(null);
+
+      // Notify parent of hover changes
+      const currentLabel = found ? hoverLabel : null;
+      if (currentLabel !== prevLabel.current) {
+        prevLabel.current = currentLabel;
+        onHover?.(currentLabel);
       }
     }
-    if (!found) setHoverLabel(null);
 
-    // Notify parent of hover changes
-    const currentLabel = found ? hoverLabel : null;
-    if (currentLabel !== prevLabel.current) {
-      prevLabel.current = currentLabel;
-      onHover?.(currentLabel);
-    }
-
-    // Check mobile interact button
+    // Check mobile interact button — every frame so taps are never missed
     if (mobileInput.interact) {
       mobileInput.interact = false;
       raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);

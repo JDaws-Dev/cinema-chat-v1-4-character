@@ -595,9 +595,9 @@ export default function GamePage() {
       {/* 3D Canvas */}
       <Canvas
         shadows={false}
-        gl={{ antialias: true, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: true }}
+        gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: false }}
         camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.6, 5] }}
-        dpr={isMobile ? [1, 1.5] : [1, 2]}
+        dpr={isMobile ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
         style={{ background: "#0a0e18" }}
         onCreated={({ gl }) => { gl.setClearColor("#0a0e18"); setTimeout(() => setLoading(false), 500); }}

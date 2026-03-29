@@ -21,6 +21,34 @@ function Mat(props: Record<string, unknown>) {
   return <meshStandardMaterial {...(props as Record<string, unknown>)} />;
 }
 
+// ── Poster texture cache ─────────────────────────────────
+const posterTextureCache = new Map<string, THREE.Texture>();
+
+function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Texture) => void) {
+  const cached = posterTextureCache.get(url);
+  if (cached) {
+    onTexture(cached);
+    return;
+  }
+  const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  fetch(proxyUrl)
+    .then(r => r.blob())
+    .then(blob => {
+      const objectUrl = URL.createObjectURL(blob);
+      const img = new window.Image();
+      img.onload = () => {
+        const t = new THREE.Texture(img);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.needsUpdate = true;
+        posterTextureCache.set(url, t);
+        onTexture(t);
+        URL.revokeObjectURL(objectUrl);
+      };
+      img.src = objectUrl;
+    })
+    .catch(() => {});
+}
+
 // ── Poster texture loader ────────────────────────────────
 const GENRE_TMDB_IDS: Record<string, string> = {
   HORROR: "27", "SCI-FI": "878", COMEDY: "35", DRAMA: "18",
@@ -107,25 +135,13 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId }: { url: 
     // Use smaller images on mobile
     const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
     const imgUrl = isMob ? url.replace("/w342/", "/w185/") : url;
-    fetch(`/api/image-proxy?url=${encodeURIComponent(imgUrl)}`)
-      .then(r => r.blob())
-      .then(blob => {
-        const objectUrl = URL.createObjectURL(blob);
-        const img = new window.Image();
-        img.onload = () => {
-          if (matRef.current) {
-            const t = new THREE.Texture(img);
-            t.colorSpace = THREE.SRGBColorSpace;
-            t.needsUpdate = true;
-            matRef.current.map = t;
-            matRef.current.color.set("#ffffff");
-            matRef.current.needsUpdate = true;
-          }
-          URL.revokeObjectURL(objectUrl);
-        };
-        img.src = objectUrl;
-      })
-      .catch(() => {});
+    getOrCreatePosterTexture(imgUrl, (t) => {
+      if (matRef.current) {
+        matRef.current.map = t;
+        matRef.current.color.set("#ffffff");
+        matRef.current.needsUpdate = true;
+      }
+    });
   }, [url]);
 
   const vhsData = movieTitle && movieId ? JSON.stringify({ id: movieId, title: movieTitle, posterUrl: url }) : undefined;
@@ -184,7 +200,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
   // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = 10; // same on mobile and desktop
+    const count = isMobile ? 6 : 10;
     const spacing = 0.24;
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
@@ -1337,8 +1353,8 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
   // Same PosterBox format as the racks — small VHS boxes in a grid
   const positions = useMemo(() => {
     const result: { x: number; y: number; idx: number }[] = [];
-    const cols = 30;
-    const rows = 4;
+    const cols = isMobile ? 15 : 30;
+    const rows = isMobile ? 3 : 4;
     const spacing = 0.24;
     const startX = -(cols - 1) * spacing * 0.5;
     let idx = 0;
@@ -1348,7 +1364,7 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
       }
     }
     return result;
-  }, []);
+  }, [isMobile]);
 
   return (
     <group position={[0, 0, -ROOM_D / 2 + 0.15]}>
@@ -1558,25 +1574,13 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
 
   useEffect(() => {
     if (!url) return;
-    fetch(`/api/image-proxy?url=${encodeURIComponent(url)}`)
-      .then(r => r.blob())
-      .then(blob => {
-        const objectUrl = URL.createObjectURL(blob);
-        const img = new window.Image();
-        img.onload = () => {
-          if (matRef.current) {
-            const t = new THREE.Texture(img);
-            t.colorSpace = THREE.SRGBColorSpace;
-            t.needsUpdate = true;
-            matRef.current.map = t;
-            matRef.current.color.set("#ffffff");
-            matRef.current.needsUpdate = true;
-          }
-          URL.revokeObjectURL(objectUrl);
-        };
-        img.src = objectUrl;
-      })
-      .catch(() => {});
+    getOrCreatePosterTexture(url, (t) => {
+      if (matRef.current) {
+        matRef.current.map = t;
+        matRef.current.color.set("#ffffff");
+        matRef.current.needsUpdate = true;
+      }
+    });
   }, [url]);
 
   return (
@@ -1665,26 +1669,13 @@ function WallPoster({ x, y, z, rotY = 0, title }: { x: number; y: number; z: num
   useEffect(() => {
     const tmdbUrl = WALL_POSTER_PATHS[title];
     if (!tmdbUrl) return;
-    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(tmdbUrl)}`;
-    fetch(proxyUrl)
-      .then(r => r.blob())
-      .then(blob => {
-        const objectUrl = URL.createObjectURL(blob);
-        const img = new window.Image();
-        img.onload = () => {
-          if (matRef.current) {
-            const t = new THREE.Texture(img);
-            t.colorSpace = THREE.SRGBColorSpace;
-            t.needsUpdate = true;
-            matRef.current.map = t;
-            matRef.current.color.set("#ffffff");
-            matRef.current.needsUpdate = true;
-          }
-          URL.revokeObjectURL(objectUrl);
-        };
-        img.src = objectUrl;
-      })
-      .catch(() => {});
+    getOrCreatePosterTexture(tmdbUrl, (t) => {
+      if (matRef.current) {
+        matRef.current.map = t;
+        matRef.current.color.set("#ffffff");
+        matRef.current.needsUpdate = true;
+      }
+    });
   }, [title]);
 
   return (
