@@ -1557,10 +1557,6 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />
       ))}
 
-      {/* Endcap displays at end of each shelf row */}
-      {ENDCAP_CONFIGS.map((cfg, i) => (
-        <EndcapDisplay key={`endcap-${i}`} x={cfg.x} z={cfg.z} rotY={cfg.rotY} label={cfg.label} vhsColors={cfg.vhsColors} />
-      ))}
 
       {/* Counter + Vinny */}
       <Counter />
@@ -1949,8 +1945,6 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
       {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
 
-      {/* Gumball machine near entrance */}
-      <GumballMachine />
 
       {/* Security dome mirrors in ceiling corners */}
       <SecurityDome position={[-ROOM_W / 2 + 0.5, ROOM_H - 0.05, -ROOM_D / 2 + 0.5]} />
@@ -2073,31 +2067,6 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </Text>
       </group>
 
-      {/* Rope stanchion near counter queue area */}
-      {[4.5, 5.5].map((qx) => (
-        <group key={`stanch-${qx}`} position={[qx, 0, 3.5]}>
-          {/* Post */}
-          <mesh position={[0, 0.45, 0]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.9, 8]} />
-            <meshStandardMaterial color="#b8960a" roughness={0.3} metalness={0.5} />
-          </mesh>
-          {/* Base */}
-          <mesh position={[0, 0.01, 0]}>
-            <cylinderGeometry args={[0.12, 0.12, 0.02, 12]} />
-            <meshStandardMaterial color="#333" roughness={0.5} />
-          </mesh>
-          {/* Top ball */}
-          <mesh position={[0, 0.92, 0]}>
-            <sphereGeometry args={[0.04, 8, 8]} />
-            <meshStandardMaterial color="#b8960a" roughness={0.3} metalness={0.5} />
-          </mesh>
-        </group>
-      ))}
-      {/* Velvet rope between stanchions */}
-      <mesh position={[5, 0.8, 3.5]}>
-        <cylinderGeometry args={[0.015, 0.015, 1.0, 6]} />
-        <meshStandardMaterial color="#8b0000" roughness={0.8} />
-      </mesh>
 
       {/* "REWARDS MEMBER?" sign above counter */}
       <group position={[7.5, 2.8, 5]} rotation={[0, Math.PI, 0]}>
