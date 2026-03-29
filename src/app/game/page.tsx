@@ -15,6 +15,7 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, type MovieProp } from "@/lib/game-state";
+import { playRandomLine } from "@/lib/audio";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -101,6 +102,7 @@ export default function GamePage() {
         setChallenge(null);
         setHeldMovies([]);
         setChallengeComplete(-1); // -1 signals timeout/failure
+        playRandomLine("challenge_fail");
       }
     }, 1000);
     return () => clearInterval(iv);
@@ -146,6 +148,8 @@ export default function GamePage() {
         setPickupTitle(movie.title);
         setTimeout(() => setPickupFlash(false), 800);
         setTimeout(() => setPickupTitle(null), 1500);
+        // Vinny quip on pickup (30% chance to avoid spam)
+        if (Math.random() < 0.3) playRandomLine("pickup");
       } catch { /* ignore parse errors */ }
       return;
     }
@@ -184,17 +188,20 @@ export default function GamePage() {
             if (prop) setRewardProp(prop);
           }
           setPropsCount(getPropsCount());
+          playRandomLine("challenge_complete");
           document.exitPointerLock();
           return;
         }
       }
       // If holding movies (no challenge), show the first one's detail
       if (heldMovies.length > 0) {
+        playRandomLine("checkout");
         setFilmId(heldMovies[0].id);
         setOverlay("film_detail");
         return;
       }
       // Random: chat, quote, or synopsis
+      playRandomLine("greetings");
       const roll = Math.random();
       if (roll < 0.4) {
         setOverlay("dialogue");
@@ -245,6 +252,7 @@ export default function GamePage() {
     if (picks.length < 3) return;
     setHeldMovies([]);
     setHeldSnacks([]);
+    playRandomLine("challenge_start");
     setChallenge({
       movies: picks,
       startTime: Date.now(),
