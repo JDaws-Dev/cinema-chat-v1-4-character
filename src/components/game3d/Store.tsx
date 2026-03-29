@@ -2098,14 +2098,16 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <Counter />
       <VinnyCharacter />
 
-      {/* NPCs — reduce to 2 on mobile for performance */}
-      <NPCCustomer startPos={[-4, 0, -5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
-      <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
-      {!isMobile && <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
-      {!isMobile && <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
-
-      {/* Charlie — staff NPC who roams aisles and gives hints */}
-      <CharlieCharacter isMobile={isMobile} />
+      {/* NPCs + Charlie — skip on mobile (too many meshes crash WebGL) */}
+      {!isMobile && (
+        <>
+          <NPCCustomer startPos={[-4, 0, -5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
+          <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
+          <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />
+          <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />
+          <CharlieCharacter isMobile={false} />
+        </>
+      )}
 
       {/* New Releases wall display */}
       <NewReleasesWall isMobile={isMobile} />
@@ -2225,6 +2227,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </group>
       ))}
 
+      {/* ── EXTERIOR (desktop only — too many meshes for mobile) ──── */}
+      {!isMobile && <>
       {/* ── Store front signage — "FRIDAY NIGHT VIDEO" ──────── */}
       <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
         {/* Sign backing */}
@@ -2383,6 +2387,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <meshBasicMaterial color="#555533" />
         </mesh>
       ))}
+      </>}
+      {/* End of desktop-only exterior */}
 
       {/* Left storefront window (x = -5, between wall edge and door gap) */}
       <mesh position={[-5, ROOM_H / 2, ROOM_D / 2 + 0.01]}>
@@ -2675,8 +2681,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* ── TROPHY SHELF ────────────────────────────────────── */}
       <TrophyShelf isMobile={isMobile} />
 
-      {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
-
+      {/* ── ATMOSPHERE & DETAIL (desktop only) ─────────────── */}
+      {!isMobile && <>
 
       {/* Security dome mirrors in ceiling corners */}
       <SecurityDome position={[-ROOM_W / 2 + 0.5, ROOM_H - 0.05, -ROOM_D / 2 + 0.5]} />
@@ -2850,6 +2856,9 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <meshStandardMaterial color="#444444" roughness={0.5} metalness={0.2} />
         </mesh>
       </group>
+
+      </>}
+      {/* End of desktop-only atmosphere */}
 
     </group>
   );
