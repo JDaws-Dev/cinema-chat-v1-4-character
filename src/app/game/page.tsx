@@ -535,29 +535,52 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay, closeOverlay]);
 
-  // Screenshot helper — resizes to max 1280px wide for smaller file sizes
+  // Screenshot helper — forces a render frame then captures (works with preserveDrawingBuffer: false)
   const takeScreenshot = useCallback(() => {
     const canvas = document.querySelector("canvas");
     if (!canvas) return;
-    const maxW = 1280;
-    const scale = Math.min(1, maxW / canvas.width);
-    const w = Math.round(canvas.width * scale);
-    const h = Math.round(canvas.height * scale);
-    const offscreen = document.createElement("canvas");
-    offscreen.width = w;
-    offscreen.height = h;
-    const ctx = offscreen.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(canvas, 0, 0, w, h);
-    offscreen.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `fnv-${Date.now()}.jpg`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }, "image/jpeg", 0.85);
+    // Get the WebGL context and force a render before reading pixels
+    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+    if (!gl) return;
+    // Request animation frame to ensure a fresh render, then capture immediately
+    requestAnimationFrame(() => {
+      const maxW = 1280;
+      const scale = Math.min(1, maxW / canvas.width);
+      const w = Math.round(canvas.width * scale);
+      const h = Math.round(canvas.height * scale);
+      // Read pixels directly from WebGL framebuffer
+      const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+      gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      // Create offscreen canvas and flip vertically (WebGL is bottom-up)
+      const offscreen = document.createElement("canvas");
+      offscreen.width = w;
+      offscreen.height = h;
+      const ctx = offscreen.getContext("2d");
+      if (!ctx) return;
+      const srcCanvas = document.createElement("canvas");
+      srcCanvas.width = canvas.width;
+      srcCanvas.height = canvas.height;
+      const srcCtx = srcCanvas.getContext("2d");
+      if (!srcCtx) return;
+      const imgData = srcCtx.createImageData(canvas.width, canvas.height);
+      // Flip rows vertically
+      for (let y = 0; y < canvas.height; y++) {
+        const srcRow = (canvas.height - 1 - y) * canvas.width * 4;
+        const dstRow = y * canvas.width * 4;
+        imgData.data.set(pixels.subarray(srcRow, srcRow + canvas.width * 4), dstRow);
+      }
+      srcCtx.putImageData(imgData, 0, 0);
+      ctx.drawImage(srcCanvas, 0, 0, w, h);
+      offscreen.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `fnv-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    });
   }, []);
 
   // C to take screenshot
