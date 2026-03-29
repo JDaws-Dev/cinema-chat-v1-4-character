@@ -2227,11 +2227,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Wall posters — side walls */}
       <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={-3} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
       <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={1} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={-2} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={2} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
+      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={0} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
+      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={4} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
 
-      {/* "BE KIND REWIND" sign on left wall */}
-      <group position={[-ROOM_W / 2 + 0.12, 2.0, 2]} rotation={[0, Math.PI / 2, 0]}>
+      {/* "BE KIND REWIND" sign on left wall — clear of Star Wars poster at z=1 */}
+      <group position={[-ROOM_W / 2 + 0.12, 2.0, 3.5]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.5, 0.35, 0.03]} />
           <Mat color="#0a1a3a" roughness={0.6} />
@@ -3219,7 +3219,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Old drop box removed — return window is now outside */}
 
       {/* Bulletin board on left wall */}
-      <group position={[-ROOM_W / 2 + 0.08, 1.6, 4]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.08, 1.6, 5.5]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.2, 0.8, 0.05]} />
           <Mat color="#7a5a30" roughness={0.85} />
@@ -3339,7 +3339,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* "LATE FEES" warning sign near checkout */}
-      <group position={[-ROOM_W / 2 + 0.1, 1.5, 5]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.1, 1.5, 6.2]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.0, 0.6, 0.02]} />
           <Mat color="#0a1a3a" roughness={0.6} />
@@ -3566,28 +3566,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </Text>
       </group>
 
-      {/* ─── Plastic bag with VHS near counter ─── */}
-      <group position={[-3, 0.3, 5.5]}>
-        {/* Bag body — slightly squished sphere */}
-        <mesh position={[0, 0, 0]} scale={[1, 0.7, 0.8]}>
-          <sphereGeometry args={[0.15, 8, 6]} />
-          <Mat color="#e8e8e8" transparent opacity={0.55} roughness={0.3} />
-        </mesh>
-        {/* VHS tape peeking inside */}
-        <mesh position={[0, 0, 0]} rotation={[0.1, 0.2, 0]}>
-          <boxGeometry args={[0.19, 0.035, 0.11]} />
-          <Mat color="#222" roughness={0.6} />
-        </mesh>
-        {/* Bag handles — two little arcs */}
-        <mesh position={[-0.04, 0.12, 0]}>
-          <torusGeometry args={[0.04, 0.005, 6, 8, Math.PI]} />
-          <Mat color="#e0e0e0" transparent opacity={0.5} roughness={0.3} />
-        </mesh>
-        <mesh position={[0.04, 0.12, 0]}>
-          <torusGeometry args={[0.04, 0.005, 6, 8, Math.PI]} />
-          <Mat color="#e0e0e0" transparent opacity={0.5} roughness={0.3} />
-        </mesh>
-      </group>
+      {/* Plastic bag removed */}
 
       {/* ─── COMING ATTRACTIONS poster display near new releases ─── */}
       <group position={[5, 0, -6.5]}>
@@ -3634,42 +3613,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </Text>
       </group>
 
-      {/* ─── Lost and found box in back corner ─── */}
-      <group position={[-9, 0.2, -6]}>
-        {/* Cardboard box */}
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[0.5, 0.35, 0.35]} />
-          <Mat color="#8B6914" roughness={0.9} />
-        </mesh>
-        {/* Open flaps — two tilted planes */}
-        <mesh position={[-0.12, 0.2, 0]} rotation={[0, 0, -0.5]}>
-          <boxGeometry args={[0.24, 0.005, 0.34]} />
-          <Mat color="#9B7924" roughness={0.9} />
-        </mesh>
-        <mesh position={[0.12, 0.2, 0]} rotation={[0, 0, 0.4]}>
-          <boxGeometry args={[0.24, 0.005, 0.34]} />
-          <Mat color="#9B7924" roughness={0.9} />
-        </mesh>
-        {/* Scarf poking out */}
-        <mesh position={[0.08, 0.22, 0.1]} rotation={[0.3, 0.2, 0.5]}>
-          <boxGeometry args={[0.04, 0.2, 0.06]} />
-          <Mat color="#cc3333" roughness={0.8} />
-        </mesh>
-        {/* Sunglasses frame poking out */}
-        <mesh position={[-0.1, 0.2, -0.05]} rotation={[0.6, 0, 0.1]}>
-          <torusGeometry args={[0.03, 0.005, 6, 12]} />
-          <Mat color="#222" roughness={0.3} metalness={0.4} />
-        </mesh>
-        {/* Toy/keychain */}
-        <mesh position={[0, 0.22, -0.12]}>
-          <sphereGeometry args={[0.025, 6, 6]} />
-          <Mat color="#ff69b4" roughness={0.6} />
-        </mesh>
-        {/* LOST & FOUND label */}
-        <Text position={[0, 0.0, 0.18]} fontSize={0.035} color="#333" anchorX="center" font={undefined}>
-          LOST & FOUND
-        </Text>
-      </group>
+      {/* Lost and found removed */}
 
       {/* Gumball machines removed */}
 
