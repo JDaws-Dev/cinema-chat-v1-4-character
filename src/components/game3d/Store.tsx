@@ -2258,7 +2258,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           color="#ffd700"
           anchorX="center"
           anchorY="middle"
-          font="/fonts/PressStart2P-Regular.ttf"
+          font={undefined}
         >
           FRIDAY NIGHT VIDEO
           <meshBasicMaterial color="#ffd700" toneMapped={false} />
