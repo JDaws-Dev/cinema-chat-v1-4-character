@@ -21,8 +21,19 @@ function Mat(props: Record<string, unknown>) {
   return <meshStandardMaterial {...(props as Record<string, unknown>)} />;
 }
 
-// ── Poster texture cache ─────────────────────────────────
+// ── Poster texture cache + throttled loader ─────────────────
 const posterTextureCache = new Map<string, THREE.Texture>();
+const pendingLoads: (() => void)[] = [];
+let activeLoads = 0;
+const MAX_CONCURRENT_LOADS = 6; // limit concurrent image fetches to avoid ERR_INSUFFICIENT_RESOURCES
+
+function processQueue() {
+  while (activeLoads < MAX_CONCURRENT_LOADS && pendingLoads.length > 0) {
+    const next = pendingLoads.shift()!;
+    activeLoads++;
+    next();
+  }
+}
 
 function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Texture) => void) {
   const cached = posterTextureCache.get(url);
@@ -30,23 +41,36 @@ function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Texture) => 
     onTexture(cached);
     return;
   }
-  const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
-  fetch(proxyUrl)
-    .then(r => r.blob())
-    .then(blob => {
-      const objectUrl = URL.createObjectURL(blob);
-      const img = new window.Image();
-      img.onload = () => {
-        const t = new THREE.Texture(img);
-        t.colorSpace = THREE.SRGBColorSpace;
-        t.needsUpdate = true;
-        posterTextureCache.set(url, t);
-        onTexture(t);
-        URL.revokeObjectURL(objectUrl);
-      };
-      img.src = objectUrl;
-    })
-    .catch(() => {});
+  // If already queued for this URL, skip
+  if (posterTextureCache.has(url + "__pending")) return;
+  posterTextureCache.set(url + "__pending", null as unknown as THREE.Texture);
+
+  const doFetch = () => {
+    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    fetch(proxyUrl)
+      .then(r => r.blob())
+      .then(blob => {
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new window.Image();
+        img.onload = () => {
+          const t = new THREE.Texture(img);
+          t.colorSpace = THREE.SRGBColorSpace;
+          t.needsUpdate = true;
+          posterTextureCache.set(url, t);
+          posterTextureCache.delete(url + "__pending");
+          onTexture(t);
+          URL.revokeObjectURL(objectUrl);
+          activeLoads--;
+          processQueue();
+        };
+        img.onerror = () => { activeLoads--; posterTextureCache.delete(url + "__pending"); processQueue(); };
+        img.src = objectUrl;
+      })
+      .catch(() => { activeLoads--; posterTextureCache.delete(url + "__pending"); processQueue(); });
+  };
+
+  pendingLoads.push(doFetch);
+  processQueue();
 }
 
 // ── Poster texture loader ────────────────────────────────
@@ -132,9 +156,9 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId }: { url: 
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
 
   useEffect(() => {
-    // Use smaller images on mobile
+    // Use smallest TMDB sizes — VHS boxes are tiny in 3D, no need for high-res
     const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
-    const imgUrl = isMob ? url.replace("/w342/", "/w185/") : url;
+    const imgUrl = isMob ? url.replace("/w342/", "/w92/") : url.replace("/w342/", "/w154/");
     getOrCreatePosterTexture(imgUrl, (t) => {
       if (matRef.current) {
         matRef.current.map = t;
@@ -195,13 +219,13 @@ const SHELF_ROWS = [
 ];
 
 function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; genre: string; color: string; isMobile?: boolean }) {
-  const posters = usePosterUrls(genre, 40);
+  const posters = usePosterUrls(genre, 15); // 15 unique posters per genre, repeat across shelf
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
 
   // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = isMobile ? 6 : 10;
+    const count = isMobile ? 5 : 8;
     const spacing = 0.24;
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
@@ -1347,15 +1371,15 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
 }
 
 function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
-  const posters = usePosterUrls("NEW", 20);
+  const posters = usePosterUrls("NEW", 10); // fewer unique posters, repeat across wall
   // Only trending — these are actual new releases
   const allPosters = posters;
 
   // Same PosterBox format as the racks — small VHS boxes in a grid
   const positions = useMemo(() => {
     const result: { x: number; y: number; idx: number }[] = [];
-    const cols = isMobile ? 15 : 30;
-    const rows = isMobile ? 3 : 4;
+    const cols = isMobile ? 10 : 20;
+    const rows = isMobile ? 2 : 3;
     const spacing = 0.24;
     const startX = -(cols - 1) * spacing * 0.5;
     let idx = 0;
