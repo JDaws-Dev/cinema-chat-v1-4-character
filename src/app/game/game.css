@@ -1074,6 +1074,88 @@
   .vf-results .vf-result {
     min-height: 48px;
   }
+
+  /* Move inventory above mobile controls */
+  .g3-inventory {
+    bottom: 160px;
+    right: 10px;
+  }
+
+  .g3-inventory-stack {
+    max-width: 200px;
+  }
+
+  .g3-inventory-card {
+    width: 50px;
+    min-width: 50px;
+  }
+
+  .g3-inventory-poster {
+    height: 65px;
+  }
+
+  /* Compact challenge list */
+  .g3-challenge-list {
+    top: 50px;
+    left: 10px;
+    min-width: 150px;
+    max-width: 200px;
+    padding: 8px 12px;
+    font-size: 0.7rem;
+  }
+
+  /* Tighter HUD on mobile */
+  .g3-hud {
+    height: 38px;
+    padding: 0 10px;
+  }
+
+  .g3-hud-title {
+    font-size: 0.55rem;
+  }
+
+  .g3-hud-hint {
+    display: none;
+  }
+
+  /* Move subtitles above mobile controls */
+  .g3-subtitle,
+  .g3-npc-chatter {
+    bottom: 170px;
+    font-size: 0.75rem;
+    max-width: 85%;
+  }
+
+  /* Trophy grid 2 columns */
+  .g3-trophy-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .g3-trophy-emoji {
+    font-size: 1.4rem;
+  }
+
+  /* Smaller hover label */
+  .g3-hover-label {
+    font-size: 0.65rem;
+    padding: 4px 10px;
+  }
+
+  /* Pickup toast smaller */
+  .g3-pickup-toast {
+    font-size: 0.75rem;
+    padding: 8px 14px;
+  }
+
+  /* Challenge select cards stack vertically */
+  .g3-challenge-select {
+    gap: 8px;
+  }
+
+  .g3-challenge-option {
+    padding: 12px;
+  }
 }
 
 /* ── Mobile Touch Controls ───────────────────────────────── */

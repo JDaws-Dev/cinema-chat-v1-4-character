@@ -95,6 +95,12 @@ export default function GamePage() {
   const [mysteryHintsUsed, setMysteryHintsUsed] = useState(0);
   const [mysteryWrongMsg, setMysteryWrongMsg] = useState<string | null>(null);
 
+  // New Release Race state
+  const [raceActive, setRaceActive] = useState(false);
+  const [raceMovie, setRaceMovie] = useState<string | null>(null);
+  const [raceTimeLeft, setRaceTimeLeft] = useState(0);
+  const [raceResult, setRaceResult] = useState<"won" | "lost" | null>(null);
+
   // Audio state
   const [audioMuted, setAudioMuted] = useState(false);
   const [subtitle, setSubtitle] = useState<string | null>(null);
@@ -161,6 +167,24 @@ export default function GamePage() {
     return () => clearInterval(iv);
   }, [challenge]);
 
+  // New Release Race countdown timer
+  useEffect(() => {
+    if (!raceActive) return;
+    const iv = setInterval(() => {
+      setRaceTimeLeft(prev => {
+        if (prev <= 1) {
+          setRaceActive(false);
+          setRaceResult("lost");
+          playSFX("challenge_fail");
+          playRandomLine("challenge_fail");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [raceActive]);
+
   useEffect(() => { setStats(loadStats()); }, []);
 
   // ── Hover callback from 3D interaction system ─────────
@@ -204,6 +228,24 @@ export default function GamePage() {
         playSFX("vhs_pickup");
         // Vinny quip on pickup (30% chance to avoid spam)
         if (Math.random() < 0.3) playRandomLine("pickup");
+        // Check if this movie wins the race
+        if (raceActive && raceMovie && movie.title.toLowerCase() === raceMovie.toLowerCase()) {
+          const elapsed = 15 - raceTimeLeft;
+          setRaceActive(false);
+          setRaceResult("won");
+          recordChallengeCompletion("race", elapsed);
+          playSFX("challenge_complete");
+          playRandomLine("challenge_complete");
+          // Check for lightsaber prop unlock on first race win
+          const state = loadGameState();
+          const raceCount = state.challengeCompletions["race"] || 0;
+          if (raceCount === 1 && !state.unlockedProps.includes("lightsaber")) {
+            unlockProp("lightsaber");
+            const prop = PROPS.find(p => p.id === "lightsaber");
+            if (prop) setRewardProp(prop);
+          }
+          setPropsCount(getPropsCount());
+        }
       } catch { /* ignore parse errors */ }
       return;
     }
@@ -307,7 +349,7 @@ export default function GamePage() {
     } else if (type === "tv") {
       startPuzzle();
     }
-  }, [overlay, heldMovies, challenge, mysteryClue]);
+  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft]);
 
   // ── Start a challenge (movie_night or speed_run) ──────
   const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
@@ -360,6 +402,20 @@ export default function GamePage() {
     setHeldMovies([]);
     setOverlay("none");
     playRandomLine("challenge_start");
+  }, []);
+
+  // ── Start New Release Race ──────────────────────────────
+  const startRace = useCallback(() => {
+    const shelfMovies = getShelfMovies();
+    if (shelfMovies.length === 0) return;
+    const movie = shelfMovies[Math.floor(Math.random() * shelfMovies.length)];
+    setRaceMovie(movie.title);
+    setRaceActive(true);
+    setRaceTimeLeft(15);
+    setRaceResult(null);
+    setHeldMovies([]);
+    setOverlay("none");
+    playSFX("door_chime");
   }, []);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
@@ -610,6 +666,39 @@ export default function GamePage() {
         </div>
       )}
 
+      {/* New Release Race HUD */}
+      {raceActive && !hasOverlay && (
+        <div className="g3-challenge-list" style={{ borderColor: "rgba(239, 68, 68, 0.5)" }}>
+          <div className="g3-challenge-header" style={{ color: "#ef4444" }}>NEW RELEASE RACE</div>
+          <div className="g3-challenge-item">
+            A customer just returned:
+          </div>
+          <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#ffd700", padding: "4px 0" }}>
+            {raceMovie}
+          </div>
+          <div className="g3-challenge-item">
+            Find it before the other customer!
+          </div>
+          <div className="g3-challenge-timer" style={{ color: raceTimeLeft <= 5 ? "#ef4444" : undefined, fontSize: "1rem", fontWeight: 700 }}>
+            {raceTimeLeft}s
+          </div>
+        </div>
+      )}
+
+      {/* New Release Race result overlay */}
+      {raceResult && (
+        <div className="g3-challenge-complete" onClick={() => setRaceResult(null)}>
+          <div className="g3-challenge-complete-card">
+            <div className="g3-challenge-complete-icon">{raceResult === "won" ? "🏆" : "😤"}</div>
+            <div className="g3-challenge-complete-title">{raceResult === "won" ? "YOU GOT IT!" : "TOO SLOW!"}</div>
+            <div className="g3-challenge-complete-time">{raceResult === "won" ? "Snagged it just in time!" : "The other customer grabbed it first."}</div>
+            <button className="g3-splash-btn" onClick={() => setRaceResult(null)} style={{ marginTop: 12, padding: "12px 24px", fontSize: "0.9rem" }}>
+              {raceResult === "won" ? "NICE!" : "NEXT TIME"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Challenge complete overlay */}
       {challengeComplete !== null && (
         <div className="g3-challenge-complete" onClick={() => setChallengeComplete(null)}>
@@ -673,6 +762,28 @@ export default function GamePage() {
                   <div className="g3-challenge-option-lock">Complete 5 Movie Nights to unlock</div>
                 )}
               </button>
+
+              {/* New Release Race — unlocks after 7 Movie Night completions */}
+              {(() => {
+                const raceUnlocked = movieNightCount >= 7;
+                return (
+                  <button
+                    className={`g3-challenge-option ${!raceUnlocked ? "g3-challenge-option-locked" : ""}`}
+                    onClick={() => { if (raceUnlocked) startRace(); }}
+                    disabled={!raceUnlocked}
+                  >
+                    <div className="g3-challenge-option-name">New Release Race</div>
+                    <div className="g3-challenge-option-desc">
+                      {raceUnlocked ? "A customer just returned a hot tape — grab it before someone else!" : ""}
+                    </div>
+                    {raceUnlocked ? (
+                      <div className="g3-challenge-option-stats">Completed {gs.challengeCompletions["race"] || 0} time{(gs.challengeCompletions["race"] || 0) !== 1 ? "s" : ""}</div>
+                    ) : (
+                      <div className="g3-challenge-option-lock">Complete 7 Movie Nights to unlock</div>
+                    )}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         );
