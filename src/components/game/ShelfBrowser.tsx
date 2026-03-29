@@ -11,7 +11,7 @@ const GENRE_MAP: Record<string, string> = {
   comedy: "35",
   drama: "18",
   action: "28",
-  classics: "36",
+  classics: "classics",
   family: "10751",
   thriller: "53",
   romance: "10749",
@@ -72,6 +72,16 @@ export function ShelfBrowser({ genre, open, onClose, onFilmClick }: ShelfBrowser
               posterUrl: m.posterUrl,
             }))
           );
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else if (genre === "classics") {
+      // Classics: pre-1980 highly rated films
+      fetchSearch({ decade: "1960", ratingMin: 7 })
+        .then((data) => {
+          setFilms(data.results.map((r: SearchResult) => ({
+            id: r.id, title: r.title, year: r.year, posterUrl: r.posterUrl,
+          })));
         })
         .catch(() => {})
         .finally(() => setLoading(false));

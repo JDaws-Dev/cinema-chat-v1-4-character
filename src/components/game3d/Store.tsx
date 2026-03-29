@@ -8,7 +8,7 @@ import * as THREE from "three";
 // ── Poster texture loader ────────────────────────────────
 const GENRE_TMDB_IDS: Record<string, string> = {
   HORROR: "27", "SCI-FI": "878", COMEDY: "35", DRAMA: "18",
-  ACTION: "28", CLASSICS: "36", FAMILY: "10751", NEW: "",
+  ACTION: "28", CLASSICS: "classics", FAMILY: "10751", NEW: "",
   THRILLER: "53", ROMANCE: "10749", ANIMATED: "16", WESTERN: "37",
   FOREIGN: "10752", DOCS: "99", INDIE: "18", CULT: "27",
 };
@@ -35,6 +35,18 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
           return true;
         });
         setPosters(unique.slice(0, count).map((m: Record<string, unknown>) => ({
+          url: (m.posterUrl as string) || "", title: (m.title as string) || "",
+        })).filter((p: PosterData) => p.url));
+      }).catch(() => {});
+    } else if (genreId === "classics") {
+      // Classics: pre-1980 highly-rated films (TCM style)
+      Promise.all([
+        fetch(`/api/search?decade=1960&ratingMin=7&page=1`).then(r => r.json()),
+        fetch(`/api/search?decade=1950&ratingMin=7&page=1`).then(r => r.json()),
+        fetch(`/api/search?decade=1970&ratingMin=7&page=1`).then(r => r.json()),
+      ]).then(([s60, s50, s70]) => {
+        const all = [...(s60.results || []), ...(s50.results || []), ...(s70.results || [])];
+        setPosters(all.slice(0, count).map((m: Record<string, unknown>) => ({
           url: (m.posterUrl as string) || "", title: (m.title as string) || "",
         })).filter((p: PosterData) => p.url));
       }).catch(() => {});
