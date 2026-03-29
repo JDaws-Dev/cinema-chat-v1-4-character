@@ -676,16 +676,20 @@ function NewReleasesWall() {
 
 function NeonSign() {
   return (
-    <group position={[0, 3.0, -ROOM_D / 2 + 0.15]}>
+    <group position={[0, 3.3, -ROOM_D / 2 + 0.15]}>
+      {/* Sign backing */}
+      <mesh position={[0, 0, 0.02]}>
+        <boxGeometry args={[6, 0.4, 0.04]} />
+        <meshStandardMaterial color="#0a1830" roughness={0.5} />
+      </mesh>
       <Text
-        fontSize={0.35}
+        fontSize={0.2}
         color="#ffd700"
         anchorX="center"
         font={undefined}
       >
         FRIDAY NIGHT VIDEO
       </Text>
-      {/* Glow light behind sign */}
       <pointLight position={[0, 0, 0.3]} color="#ffd700" intensity={2} distance={5} />
     </group>
   );
@@ -852,14 +856,10 @@ function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number;
         <boxGeometry args={[1.0, 1.4, 0.04]} />
         <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
       </mesh>
-      {/* Poster art — on both faces */}
-      <mesh position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]}>
+      {/* Poster art — front */}
+      <mesh position={[0, 0, -0.03]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[0.9, 1.3]} />
         <meshBasicMaterial ref={matRef} color={color} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[0, 0, 0.025]}>
-        <planeGeometry args={[0.9, 1.3]} />
-        <meshBasicMaterial color={color} side={THREE.DoubleSide} />
       </mesh>
       {/* Title on front */}
       <Text position={[0, -0.8, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
@@ -1289,6 +1289,47 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <sphereGeometry args={[0.02, 8, 8]} />
         <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
       </mesh>
+
+      {/* Wall clock near counter */}
+      <group position={[ROOM_W / 2 - 0.1, 2.8, 4]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh>
+          <circleGeometry args={[0.25, 24]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.4} />
+        </mesh>
+        <mesh position={[0, 0, -0.03]}>
+          <cylinderGeometry args={[0.27, 0.27, 0.04, 24]} />
+          <meshStandardMaterial color="#333" roughness={0.5} />
+        </mesh>
+        {/* Hour hand */}
+        <mesh position={[0, 0.06, 0.01]} rotation={[0, 0, -0.5]}>
+          <boxGeometry args={[0.02, 0.12, 0.005]} />
+          <meshBasicMaterial color="#111" />
+        </mesh>
+        {/* Minute hand */}
+        <mesh position={[0.04, 0.06, 0.01]} rotation={[0, 0, -1.2]}>
+          <boxGeometry args={[0.015, 0.18, 0.005]} />
+          <meshBasicMaterial color="#111" />
+        </mesh>
+      </group>
+
+      {/* Promotional cardboard standee near entrance */}
+      <group position={[3, 0.9, ROOM_D / 2 - 2]}>
+        <mesh>
+          <boxGeometry args={[0.6, 1.8, 0.03]} />
+          <meshStandardMaterial color="#c0a080" roughness={0.8} />
+        </mesh>
+        {/* Standee support triangle behind */}
+        <mesh position={[0, -0.5, 0.15]} rotation={[0.3, 0, 0]}>
+          <boxGeometry args={[0.3, 0.8, 0.02]} />
+          <meshStandardMaterial color="#a08060" roughness={0.8} />
+        </mesh>
+        <Text position={[0, 0.5, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#1a1a1a" anchorX="center" font={undefined}>
+          COMING SOON
+        </Text>
+        <Text position={[0, 0.2, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#333" anchorX="center" font={undefined}>
+          ASK VINNY
+        </Text>
+      </group>
 
       {/* Drop box near entrance */}
       <mesh position={[-3, 0.5, ROOM_D / 2 - 1]}>

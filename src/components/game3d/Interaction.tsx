@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { mobileInput } from "./MobileControls";
 
 interface InteractionProps {
   onInteract: (type: string, data?: string) => void;
@@ -30,6 +31,23 @@ export function InteractionSystem({ onInteract }: InteractionProps) {
       }
     }
     if (!found) setHoverLabel(null);
+
+    // Check mobile interact button
+    if (mobileInput.interact) {
+      mobileInput.interact = false;
+      raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
+      const hits = raycaster.current.intersectObjects(scene.children, true);
+      for (const hit of hits) {
+        if (hit.distance > 4) continue;
+        const obj = hit.object;
+        const type = obj.userData?.interactType || findParentData(obj);
+        const data = obj.userData?.interactData || findParentInteractData(obj);
+        if (type) {
+          onInteract(type, data);
+          break;
+        }
+      }
+    }
   });
 
   // Only interact when pointer is locked (not the click that locks it)
