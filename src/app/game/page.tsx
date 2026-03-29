@@ -36,7 +36,7 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis";
+type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select";
 
 export default function GamePage() {
   const [started, setStarted] = useState(false);
@@ -178,35 +178,10 @@ export default function GamePage() {
         setOverlay("synopsis");
       }
     } else if (type === "challenge") {
-      // Start Movie Night Challenge from in-store sign
+      // Open challenge selection overlay
       if (challenge) return; // already running
-      // Pick from movies ACTUALLY loaded on the shelves
-      const shelfMovies = getShelfMovies();
-      if (shelfMovies.length < 3) return; // shelves not loaded yet
-      // Shuffle and pick 3, prefer different genres
-      const shuffled = [...shelfMovies].sort(() => Math.random() - 0.5);
-      const seen = new Set<string>();
-      const usedGenres = new Set<string>();
-      const picks: ChallengeMovie[] = [];
-      // First pass: try to get different genres
-      for (const m of shuffled) {
-        if (picks.length >= 3) break;
-        if (seen.has(m.title.toLowerCase()) || usedGenres.has(m.genre)) continue;
-        seen.add(m.title.toLowerCase());
-        usedGenres.add(m.genre);
-        picks.push({ title: m.title, genre: m.genre });
-      }
-      // Second pass: fill remaining if needed
-      for (const m of shuffled) {
-        if (picks.length >= 3) break;
-        if (seen.has(m.title.toLowerCase())) continue;
-        seen.add(m.title.toLowerCase());
-        picks.push({ title: m.title, genre: m.genre });
-      }
-      if (picks.length < 3) return;
-      setHeldMovies([]);
-      setChallenge({ movies: picks, startTime: Date.now(), hintsUsed: new Set() });
-      return; // don't exit pointer lock
+      setOverlay("challenge_select");
+      return;
     } else if (type === "shelf") {
       setShelfGenre(data || "horror");
       setOverlay("shelf");
@@ -214,6 +189,34 @@ export default function GamePage() {
       startPuzzle();
     }
   }, [overlay, heldMovies, challenge]);
+
+  // ── Start a Movie Night Challenge ─────────────────────
+  const startChallenge = useCallback(() => {
+    if (challenge) return;
+    const shelfMovies = getShelfMovies();
+    if (shelfMovies.length < 3) return;
+    const shuffled = [...shelfMovies].sort(() => Math.random() - 0.5);
+    const seen = new Set<string>();
+    const usedGenres = new Set<string>();
+    const picks: ChallengeMovie[] = [];
+    for (const m of shuffled) {
+      if (picks.length >= 3) break;
+      if (seen.has(m.title.toLowerCase()) || usedGenres.has(m.genre)) continue;
+      seen.add(m.title.toLowerCase());
+      usedGenres.add(m.genre);
+      picks.push({ title: m.title, genre: m.genre });
+    }
+    for (const m of shuffled) {
+      if (picks.length >= 3) break;
+      if (seen.has(m.title.toLowerCase())) continue;
+      seen.add(m.title.toLowerCase());
+      picks.push({ title: m.title, genre: m.genre });
+    }
+    if (picks.length < 3) return;
+    setHeldMovies([]);
+    setChallenge({ movies: picks, startTime: Date.now(), hintsUsed: new Set() });
+    setOverlay("none");
+  }, [challenge]);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
   const startPuzzle = useCallback(async () => {
@@ -295,27 +298,40 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay, closeOverlay]);
 
+  // Screenshot helper — resizes to max 1280px wide for smaller file sizes
+  const takeScreenshot = useCallback(() => {
+    const canvas = document.querySelector("canvas");
+    if (!canvas) return;
+    const maxW = 1280;
+    const scale = Math.min(1, maxW / canvas.width);
+    const w = Math.round(canvas.width * scale);
+    const h = Math.round(canvas.height * scale);
+    const offscreen = document.createElement("canvas");
+    offscreen.width = w;
+    offscreen.height = h;
+    const ctx = offscreen.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(canvas, 0, 0, w, h);
+    offscreen.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `fnv-${Date.now()}.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "image/jpeg", 0.85);
+  }, []);
+
   // C to take screenshot
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
-      if (e.key === "c" || e.key === "C") {
-        const canvas = document.querySelector("canvas");
-        if (!canvas) return;
-        canvas.toBlob((blob) => {
-          if (!blob) return;
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `fnv-${Date.now()}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-        });
-      }
+      if (e.key === "c" || e.key === "C") takeScreenshot();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [takeScreenshot]);
 
   // ── Splash ─────────────────────────────────────────────
   if (!started) {
@@ -435,6 +451,59 @@ export default function GamePage() {
         </div>
       )}
 
+      {/* Challenge Selection Overlay */}
+      {overlay === "challenge_select" && (() => {
+        const gs = loadGameState();
+        const movieNightCount = gs.challengeCompletions["movie_night"] || 0;
+        const speedRunUnlocked = movieNightCount >= 3;
+        const vinnyPickUnlocked = movieNightCount >= 5;
+        return (
+          <div className="g3-overlay g3-overlay-center">
+            <div className="g3-overlay-header">
+              <span className="g3-overlay-title">CHOOSE YOUR CHALLENGE</span>
+              <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
+            </div>
+            <div className="g3-overlay-body g3-challenge-select">
+              {/* Movie Night — always unlocked */}
+              <button className="g3-challenge-option" onClick={() => { startChallenge(); }}>
+                <div className="g3-challenge-option-name">Movie Night</div>
+                <div className="g3-challenge-option-desc">Find 3 movies from the shelves</div>
+                <div className="g3-challenge-option-stats">Completed {movieNightCount} time{movieNightCount !== 1 ? "s" : ""}</div>
+              </button>
+
+              {/* Speed Run — unlocks after 3 Movie Night completions */}
+              <button
+                className={`g3-challenge-option ${!speedRunUnlocked ? "g3-challenge-option-locked" : ""}`}
+                onClick={() => { if (speedRunUnlocked) startChallenge(); }}
+                disabled={!speedRunUnlocked}
+              >
+                <div className="g3-challenge-option-name">Speed Run</div>
+                <div className="g3-challenge-option-desc">Find 3 movies in under 60 seconds!</div>
+                {speedRunUnlocked ? (
+                  <div className="g3-challenge-option-stats">Completed {gs.challengeCompletions["speed_run"] || 0} time{(gs.challengeCompletions["speed_run"] || 0) !== 1 ? "s" : ""}</div>
+                ) : (
+                  <div className="g3-challenge-option-lock">Complete 3 Movie Nights to unlock</div>
+                )}
+              </button>
+
+              {/* Vinny's Pick — unlocks after 5 Movie Night completions */}
+              <button
+                className="g3-challenge-option g3-challenge-option-locked"
+                disabled
+              >
+                <div className="g3-challenge-option-name">Vinny&apos;s Pick</div>
+                <div className="g3-challenge-option-desc">Vinny describes a movie — find it!</div>
+                {vinnyPickUnlocked ? (
+                  <div className="g3-challenge-option-lock">Coming soon</div>
+                ) : (
+                  <div className="g3-challenge-option-lock">Complete 5 Movie Nights to unlock</div>
+                )}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Reward prop unlock overlay */}
       {rewardProp && (
         <RewardOverlay prop={rewardProp} onDismiss={() => setRewardProp(null)} />
@@ -474,19 +543,7 @@ export default function GamePage() {
         </span>
         <div className="g3-hud-right">
           <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
-          <button className="g3-screenshot-btn" onClick={() => {
-            const canvas = document.querySelector('canvas');
-            if (!canvas) return;
-            canvas.toBlob((blob) => {
-              if (!blob) return;
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `fnv-screenshot-${Date.now()}.png`;
-              a.click();
-              URL.revokeObjectURL(url);
-            });
-          }}>📷</button>
+          <button className="g3-screenshot-btn" onClick={takeScreenshot}>📷</button>
         </div>
       </div>
 
