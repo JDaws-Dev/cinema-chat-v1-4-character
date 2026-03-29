@@ -115,8 +115,6 @@ export function MobileControls({
     (e: React.TouchEvent) => {
       if (lookTouchId.current !== null) return;
       const touch = e.changedTouches[0];
-      // Only handle look on the right portion of the screen
-      if (touch.clientX <= window.innerWidth * 0.4) return;
       lookTouchId.current = touch.identifier;
       lastLookPos.current = { x: touch.clientX, y: touch.clientY };
     },
@@ -219,6 +217,20 @@ export function MobileControls({
       )}
 
       {/* Interact button — bottom right */}
+      {/* Right side look hint — fades after 3 seconds */}
+      <div style={{
+        position: 'fixed',
+        bottom: 80,
+        right: 32,
+        color: 'rgba(255,255,255,0.15)',
+        fontSize: '0.6rem',
+        pointerEvents: 'none',
+        textAlign: 'center',
+        animation: 'hint-fade 5s ease-out forwards',
+      }}>
+        SWIPE TO LOOK →
+      </div>
+
       <button
         className="mobile-interact-btn"
         onTouchStart={handleInteract}
