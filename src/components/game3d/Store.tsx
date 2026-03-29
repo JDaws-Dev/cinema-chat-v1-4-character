@@ -897,7 +897,7 @@ const WALL_POSTER_PATHS: Record<string, string> = {
   "E.T.": "https://image.tmdb.org/t/p/w342/an0nD6uq6bfxXZM44zGhQJBp1OV.jpg",
 };
 
-function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number; z: number; rotY?: number; color: string; title: string }) {
+function WallPoster({ x, y, z, rotY = 0, title }: { x: number; y: number; z: number; rotY?: number; color?: string; title: string }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
 
   useEffect(() => {
@@ -935,14 +935,10 @@ function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number;
       {/* Poster art — in front of frame, facing into room */}
       <mesh position={[0, 0, 0.03]}>
         <planeGeometry args={[0.9, 1.3]} />
-        <meshBasicMaterial ref={matRef} color={color} side={THREE.DoubleSide} />
+        <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
-      {/* Title below poster — room side */}
+      {/* Title below poster — room side only (no back label to avoid overlap) */}
       <Text position={[0, -0.8, 0.03]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
-        {title}
-      </Text>
-      {/* Title on wall side */}
-      <Text position={[0, -0.8, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
         {title}
       </Text>
     </group>
@@ -1504,12 +1500,12 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <boxGeometry args={[1.0, 1.0, 0.6]} />
         <meshStandardMaterial color="#1a3a6a" roughness={0.7} />
       </mesh>
-      {/* RETURNS label — toward entrance (+z side) */}
-      <Text position={[-3, 1.1, ROOM_D / 2 - 0.68]} fontSize={0.08} color="#ffd700" anchorX="center" font={undefined}>
-        RETURNS
-      </Text>
       {/* RETURNS label — toward store interior (-z side) */}
       <Text position={[-3, 1.1, ROOM_D / 2 - 1.32]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffd700" anchorX="center" font={undefined}>
+        RETURNS
+      </Text>
+      {/* RETURNS label — on top of box */}
+      <Text position={[-3, 1.05, ROOM_D / 2 - 1]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
         RETURNS
       </Text>
 
