@@ -104,7 +104,7 @@ function PosterBox({ url, position, rotation = 0 }: { url: string; position: [nu
       {/* Poster plane — offset clearly in front, flipped to face camera */}
       <mesh position={[0, 0, -0.06]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[0.17, 0.26]} />
-        <meshBasicMaterial ref={matRef} color="#00ff00" side={THREE.DoubleSide} />
+        <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
@@ -276,16 +276,30 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
 
       {/* Face-out VHS boxes — 3 on top shelf, 3 on bottom */}
       {vhsColors.map((color, i) => (
-        <mesh key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
-          <boxGeometry args={[0.18, 0.28, 0.10]} />
-          <meshBasicMaterial color={color} />
-        </mesh>
+        <group key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
+          <mesh>
+            <boxGeometry args={[0.18, 0.28, 0.10]} />
+            <meshStandardMaterial color={color} roughness={0.6} />
+          </mesh>
+          {/* White label strip on face */}
+          <mesh position={[0, -0.08, -0.051]}>
+            <planeGeometry args={[0.14, 0.06]} />
+            <meshBasicMaterial color="#e8e8e0" />
+          </mesh>
+        </group>
       ))}
       {vhsColors.map((color, i) => (
-        <mesh key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
-          <boxGeometry args={[0.18, 0.28, 0.10]} />
-          <meshBasicMaterial color={color} />
-        </mesh>
+        <group key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
+          <mesh>
+            <boxGeometry args={[0.18, 0.28, 0.10]} />
+            <meshStandardMaterial color={color} roughness={0.6} />
+          </mesh>
+          {/* White label strip on face */}
+          <mesh position={[0, -0.08, -0.051]}>
+            <planeGeometry args={[0.14, 0.06]} />
+            <meshBasicMaterial color="#e8e8e0" />
+          </mesh>
+        </group>
       ))}
 
       {/* Label sign */}
@@ -358,15 +372,29 @@ function Counter() {
       {[-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5].map((dx, i) => (
         <group key={`candy-row-${i}`}>
           {/* Top shelf candy */}
-          <mesh position={[dx, 0.72, -0.58]}>
-            <boxGeometry args={[0.18, 0.2, 0.12]} />
-            <meshStandardMaterial color={["#ef4444","#f59e0b","#3b82f6","#22c55e","#ec4899","#a855f7","#f97316"][i]} roughness={0.5} />
-          </mesh>
+          <group position={[dx, 0.72, -0.58]}>
+            <mesh>
+              <boxGeometry args={[0.15, 0.18, 0.08]} />
+              <meshStandardMaterial color={["#ef4444","#f59e0b","#3b82f6","#22c55e","#ec4899","#a855f7","#f97316"][i]} roughness={0.5} />
+            </mesh>
+            {/* Label stripe */}
+            <mesh position={[0, 0, -0.041]}>
+              <planeGeometry args={[0.12, 0.06]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+          </group>
           {/* Bottom shelf candy */}
-          <mesh position={[dx, 0.42, -0.58]}>
-            <boxGeometry args={[0.2, 0.18, 0.14]} />
-            <meshStandardMaterial color={["#f97316","#ec4899","#22c55e","#ef4444","#3b82f6","#f59e0b","#a855f7"][i]} roughness={0.5} />
-          </mesh>
+          <group position={[dx, 0.42, -0.58]}>
+            <mesh>
+              <boxGeometry args={[0.15, 0.15, 0.09]} />
+              <meshStandardMaterial color={["#f97316","#ec4899","#22c55e","#ef4444","#3b82f6","#f59e0b","#a855f7"][i]} roughness={0.5} />
+            </mesh>
+            {/* Label stripe */}
+            <mesh position={[0, 0, -0.046]}>
+              <planeGeometry args={[0.12, 0.05]} />
+              <meshBasicMaterial color="#eeeecc" />
+            </mesh>
+          </group>
         </group>
       ))}
       {/* "CANDY & SNACKS" label */}
@@ -397,10 +425,17 @@ function Counter() {
 
       {/* Snack display on counter */}
       {[1.0, 1.3, 1.6, 1.9].map((dx, i) => (
-        <mesh key={`snk${i}`} position={[dx, 1.15, 0.2]}>
-          <boxGeometry args={[0.15, 0.2, 0.08]} />
-          <meshStandardMaterial color={["#ef4444", "#3b82f6", "#f59e0b", "#22c55e"][i]} roughness={0.5} />
-        </mesh>
+        <group key={`snk${i}`} position={[dx, 1.15, 0.2]}>
+          <mesh>
+            <boxGeometry args={[0.12, 0.18, 0.06]} />
+            <meshStandardMaterial color={["#ef4444", "#3b82f6", "#f59e0b", "#22c55e"][i]} roughness={0.5} />
+          </mesh>
+          {/* Front label */}
+          <mesh position={[0, -0.02, -0.031]}>
+            <planeGeometry args={[0.09, 0.06]} />
+            <meshBasicMaterial color="#ffffff" />
+          </mesh>
+        </group>
       ))}
 
       {/* Return bin */}
@@ -408,7 +443,7 @@ function Counter() {
         <boxGeometry args={[0.5, 0.25, 0.35]} />
         <meshStandardMaterial color="#2a2a3a" roughness={0.7} />
       </mesh>
-      <Text position={[2.3, 1.35, -0.38]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>
+      <Text position={[2.3, 1.35, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>
         RETURNS
       </Text>
 
@@ -458,8 +493,8 @@ function Counter() {
         </mesh>
       ))}
 
-      {/* "MEMBERSHIP CARDS" sign */}
-      <Text position={[2, 1.4, -0.6]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+      {/* "MEMBERSHIP CARDS" sign — face customer side */}
+      <Text position={[2, 1.4, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
         MEMBERSHIP CARDS
       </Text>
     </group>
@@ -718,11 +753,13 @@ function NeonSign() {
   return (
     <group position={[0, 3.3, -ROOM_D / 2 + 0.15]}>
       {/* Sign backing */}
-      <mesh position={[0, 0, 0.02]}>
+      <mesh position={[0, 0, -0.02]}>
         <boxGeometry args={[6, 0.4, 0.04]} />
         <meshStandardMaterial color="#0a1830" roughness={0.5} />
       </mesh>
+      {/* Text facing into room (+z toward player) */}
       <Text
+        position={[0, 0, 0.02]}
         fontSize={0.2}
         color="#ffd700"
         anchorX="center"
@@ -804,7 +841,6 @@ const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
 ];
 
 function AisleSign({ z, label, colors }: { z: number; label: string; colors: string[] }) {
-  const textColor = colors[0];
   return (
     <group position={[0, 0, z]}>
       {/* Hanging pole from ceiling */}
@@ -812,20 +848,19 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
         <boxGeometry args={[0.02, 0.7, 0.02]} />
         <meshStandardMaterial color="#888888" metalness={0.5} roughness={0.3} />
       </mesh>
-      {/* Sign body — Blockbuster yellow */}
+      {/* Dark border frame (behind yellow sign) */}
+      <mesh position={[0, 2.8, 0]}>
+        <boxGeometry args={[2.3, 0.36, 0.02]} />
+        <meshStandardMaterial color="#0a1830" roughness={0.6} />
+      </mesh>
+      {/* Sign body — Blockbuster yellow (in front of border) */}
       <mesh position={[0, 2.8, 0]}>
         <boxGeometry args={[2.2, 0.3, 0.03]} />
         <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} />
       </mesh>
-      {/* Dark border */}
-      <mesh position={[0, 2.8, 0.001]}>
-        <boxGeometry args={[2.25, 0.35, 0.025]} />
-        <meshStandardMaterial color="#0a1830" roughness={0.6} />
-      </mesh>
-      {/* Text — front side — dark on yellow */}
+      {/* Text — front side (facing +z, toward entrance) */}
       <Text
-        position={[0, 2.8, -0.02]}
-        rotation={[0, Math.PI, 0]}
+        position={[0, 2.8, 0.02]}
         fontSize={0.08}
         color="#0a1830"
         anchorX="center"
@@ -834,9 +869,10 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
       >
         {label}
       </Text>
-      {/* Text — back side */}
+      {/* Text — back side (facing -z, toward back wall) */}
       <Text
-        position={[0, 2.8, 0.02]}
+        position={[0, 2.8, -0.02]}
+        rotation={[0, Math.PI, 0]}
         fontSize={0.08}
         color="#0a1830"
         anchorX="center"
@@ -896,17 +932,17 @@ function WallPoster({ x, y, z, rotY = 0, color, title }: { x: number; y: number;
         <boxGeometry args={[1.0, 1.4, 0.04]} />
         <meshStandardMaterial color="#1a1a1a" roughness={0.5} />
       </mesh>
-      {/* Poster art — front */}
-      <mesh position={[0, 0, -0.03]} rotation={[0, Math.PI, 0]}>
+      {/* Poster art — in front of frame, facing into room */}
+      <mesh position={[0, 0, 0.03]}>
         <planeGeometry args={[0.9, 1.3]} />
         <meshBasicMaterial ref={matRef} color={color} side={THREE.DoubleSide} />
       </mesh>
-      {/* Title on front */}
-      <Text position={[0, -0.8, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
+      {/* Title below poster — room side */}
+      <Text position={[0, -0.8, 0.03]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
         {title}
       </Text>
-      {/* Title on back too */}
-      <Text position={[0, -0.8, 0.03]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
+      {/* Title on wall side */}
+      <Text position={[0, -0.8, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffffff" anchorX="center" font={undefined}>
         {title}
       </Text>
     </group>
@@ -936,10 +972,31 @@ function FlickeringLight({ position }: { position: [number, number, number] }) {
 
 function FloorRug() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 4]}>
-      <planeGeometry args={[3, 2]} />
-      <meshStandardMaterial color="#4a2030" roughness={0.95} />
-    </mesh>
+    <group>
+      {/* Main entrance rug */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 4]}>
+        <planeGeometry args={[3, 2]} />
+        <meshStandardMaterial color="#4a2030" roughness={0.95} />
+      </mesh>
+      {/* Carpet wear paths — darker strips along main aisles */}
+      {/* Center aisle (main walkway) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
+        <planeGeometry args={[1.8, ROOM_D - 2]} />
+        <meshStandardMaterial color="#222840" roughness={0.98} />
+      </mesh>
+      {/* Cross aisles between shelf rows */}
+      {[-1.5, 1.5].map((z) => (
+        <mesh key={`cross-${z}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, z]}>
+          <planeGeometry args={[ROOM_W - 6, 1.2]} />
+          <meshStandardMaterial color="#242844" roughness={0.98} />
+        </mesh>
+      ))}
+      {/* Path to counter area */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[4, 0.006, 4]}>
+        <planeGeometry args={[3, 3]} />
+        <meshStandardMaterial color="#252848" roughness={0.98} />
+      </mesh>
+    </group>
   );
 }
 
@@ -1147,13 +1204,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[1.2, 0.8, 0.03]} />
           <meshStandardMaterial color="#0a1a3a" roughness={0.6} />
         </mesh>
-        <Text position={[0, 0.2, 0.02]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffffff" anchorX="center" font={undefined}>
+        <Text position={[0, 0.2, 0.02]} fontSize={0.06} color="#ffffff" anchorX="center" font={undefined}>
           STORE HOURS
         </Text>
-        <Text position={[0, -0.05, 0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
+        <Text position={[0, -0.05, 0.02]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
           MON-SAT 10AM-11PM
         </Text>
-        <Text position={[0, -0.2, 0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
+        <Text position={[0, -0.2, 0.02]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
           SUN 11AM-9PM
         </Text>
       </group>
@@ -1177,16 +1234,35 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <meshBasicMaterial color="#d4d8f0" />
       </mesh>
       <pointLight position={[6, 3.0, ROOM_D / 2 + 0.5]} color="#8090c0" intensity={2} distance={8} />
+      {/* Parking lot ground plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 1]}>
+        <planeGeometry args={[ROOM_W + 4, 3]} />
+        <meshBasicMaterial color="#1a1a20" />
+      </mesh>
+      {/* Parking lot lamp posts */}
+      {[-6, 0, 6].map((lx, i) => (
+        <group key={`lamp-${i}`} position={[lx, 0, ROOM_D / 2 + 2]}>
+          <mesh position={[0, 1.5, 0]}>
+            <cylinderGeometry args={[0.03, 0.04, 3, 8]} />
+            <meshBasicMaterial color="#444" />
+          </mesh>
+          <pointLight position={[0, 3, 0]} color="#ffaa55" intensity={1.5} distance={5} />
+          <mesh position={[0, 3.1, 0]}>
+            <boxGeometry args={[0.3, 0.08, 0.15]} />
+            <meshBasicMaterial color="#555" />
+          </mesh>
+        </group>
+      ))}
 
       {/* Left storefront window (x = -5, between wall edge and door gap) */}
       <mesh position={[-5, ROOM_H / 2, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, ROOM_H - 0.5]} />
         <meshStandardMaterial
-          color="#88bbee"
+          color="#8ab8dd"
           transparent
-          opacity={0.18}
-          roughness={0.05}
-          metalness={0.3}
+          opacity={0.12}
+          roughness={0.02}
+          metalness={0.4}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -1212,11 +1288,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <mesh position={[5, ROOM_H / 2, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, ROOM_H - 0.5]} />
         <meshStandardMaterial
-          color="#88bbee"
+          color="#8ab8dd"
           transparent
-          opacity={0.18}
-          roughness={0.05}
-          metalness={0.3}
+          opacity={0.12}
+          roughness={0.02}
+          metalness={0.4}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -1254,8 +1330,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Floor rug near entrance */}
       <FloorRug />
 
-      {/* Welcome mat */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, ROOM_D / 2 - 0.5]}>
+      {/* Welcome mat — raised above floor to prevent z-fighting */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, ROOM_D / 2 - 0.5]}>
         <planeGeometry args={[2, 1]} />
         <meshStandardMaterial color="#4a2020" roughness={0.95} />
       </mesh>
@@ -1292,8 +1368,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[1.6, 0.06, 0.04]} />
           <meshStandardMaterial color="#888888" roughness={0.3} metalness={0.7} />
         </mesh>
-        {/* "PUSH" text on glass */}
-        <Text position={[0, 1.8, -0.01]} fontSize={0.12} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+        {/* "PUSH" text on glass — facing inside */}
+        <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.12} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
           PUSH
         </Text>
       </group>
@@ -1376,9 +1452,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <boxGeometry args={[1.0, 1.0, 0.6]} />
         <meshStandardMaterial color="#1a3a6a" roughness={0.7} />
       </mesh>
+      {/* RETURNS label — toward entrance (+z side) */}
       <Text position={[-3, 1.1, ROOM_D / 2 - 0.68]} fontSize={0.08} color="#ffd700" anchorX="center" font={undefined}>
         RETURNS
       </Text>
+      {/* RETURNS label — toward store interior (-z side) */}
       <Text position={[-3, 1.1, ROOM_D / 2 - 1.32]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffd700" anchorX="center" font={undefined}>
         RETURNS
       </Text>
