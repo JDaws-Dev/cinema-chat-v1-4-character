@@ -4,14 +4,16 @@
 
 ---
 
-## 0. CURRENT 3D STORE STATE (Updated 2026-03-29)
+## 0. CURRENT 3D STORE STATE (Updated 2026-03-29, end of session)
 
 ### Architecture
 - **React Three Fiber** with first-person controls (WASD + mouse look)
-- Main file: `src/components/game3d/Store.tsx` (~2900 lines)
+- Main file: `src/components/game3d/Store.tsx` (~3400 lines)
 - Controls: `src/components/game3d/FirstPerson.tsx` (collision boxes, spawn point)
 - Interaction: `src/components/game3d/Interaction.tsx` (raycaster + userData system)
+- Security cameras: `src/components/game3d/SecurityCameras.tsx` (10 angles, saves to /tmp/fnv-cams/)
 - Debug: `src/app/debug/page.tsx` (top-down + side elevation views at /debug)
+- Audio: `src/lib/audio.ts` (ambient muzak + hum + 20 ElevenLabs customer conversation clips)
 
 ### Room Dimensions
 - Width (X): 20 units (-10 to +10), Depth (Z): 14 units (-7 to +7), Height (Y): 3.5 units
@@ -21,67 +23,70 @@
 ### Current Layout (Top-Down)
 ```
                     BACK WALL (z = -7)
-  +──────────────────────────────────────────+
-  |  ALIEN  JAWS  [NEW RELEASES WALL] BLADE RAIDERS |
-  |               [FNV NEON SIGN]                    |
-  |  EMPLOYEES                           TROPHIES   |
-  |  ONLY DOOR    ROW 1: HORROR SCI-FI COMEDY DRAMA |
-  |               z = -3                             |
-  | TV  SHINING   ROW 2: ACTION CLASSICS FAMILY ROM  |
-  | STAR WARS     z = 0                    BTTF E.T. |
-  |               ROW 3: THRILLER ANIMATED DOCS      |
-  |  BE KIND      z = +3                  CHALLENGE  |
-  |  BULLETIN     CANDY     STANDEE       CLOCK      |
-  |  LATE FEES  COUNTER    MAG RACK       SPECIALS   |
-  |  VINNY      COUNTER                    HOURS     |
-  |             OPEN sign  [DOORS] PILLARS           |
-  +──────────────────────────────────────────+
-                    ENTRANCE (z = +7)
-         PIZZA PALACE | SIDEWALK | LAUNDROMAT
-              [PARKING LOT - CAR - LAMP POSTS]
+  +──────────────────────────────────────────────+
+  |  ALIEN  JAWS  [NEW RELEASES WALL] BLADE RAIDERS  |
+  |               [FNV NEON SIGN y=3.1]              |
+  |  EMPLOYEES                              TROPHIES |
+  |  ONLY DOOR    ROW 1: HORROR SCI-FI COMEDY DRAMA  |
+  |  (z=-4)       x = -5  -1.7   1.7   5  (z=-3)   |
+  | TV  SHINING   ROW 2: ACTION CLASSICS FAMILY ROM   |
+  |     (z=2)     x = -5  -1.7   1.7   5  (z=0)  BTTF(z=1)|
+  | BE KIND(z=3.5) ROW 3: THRILLER ANIMATED DOCS WESTERN |
+  | BULLETIN(z=4.8) x = -5  -1.7   1.7   5  (z=3)  E.T.(z=5.5)|
+  | LATE FEES(z=6.2) ─── aisle dashes at z=-1.5, 1.5 ─── SPECIALS(z=4.5)|
+  | PHONE(z=6) COUNTER[-6,5.5] [FRIDAY NIGHT VIDEO RUG z=5.2] CLOCK(z=4)|
+  | RETURN     VINNY[-6,6.2] OPEN    [DOORS] PILLARS  HOURS  |
+  | CHUTE                                                     |
+  +──────────────────────────────────────────────+
+              VIDEO RETURN [-8, ext]  ENTRANCE (z = +7)
+     PIZZA PALACE | SIDEWALK | LAUNDROMAT
+          [MINIVAN]  [PARKING LOT]  [SEDAN]
+              [BIKE RACK] [CART RETURN]
                     [ROAD]
 ```
 
-### What's Built (Completed)
-- **Interior**: 11 genre shelf units with VHS tapes + real TMDB posters, 3 shelf rows
-- **Counter area**: Register, barcode scanner, monitor, candy shelves, VHS rewinder, membership cards sign
-- **Characters**: Vinny (behind counter), 2-4 NPC customers (patrol routes), Charlie (guide)
-- **Walls**: New Releases back wall, wall posters (Jaws, Alien, Blade Runner, Raiders, Shining, Star Wars, BTTF, E.T.)
-- **Atmosphere**: Fluorescent lighting (warm/cool zones), flickering light, neon signs, ceiling drop-tile grid
-- **Signage**: BE KIND REWIND, LATE FEES, OPEN neon, STORE HOURS, REWARDS MEMBER, aisle signs, genre signs
-- **Details**: Security pillars, security domes, gumball machine, bulletin board, clock, potted plant, trash can, magazine rack, floor rug, welcome mat, standee
-- **Entrance**: Double glass doors with push bars, storefront windows with frames
-- **Exterior**: Parking lot, sidewalk, curb, lamp posts, parked car, road with dashes, night sky with stars/moon, awning
-- **Strip mall**: Pizza Palace (left) and Laundromat (right) storefronts with awnings
-- **Video return**: Exterior return slot with tapes
-- **Game elements**: Trophy shelf, Challenge board, endcap displays
-- **Performance**: Mobile-optimized (MeshBasicMaterial, reduced VHS density, poster texture cache, raycaster throttling)
-- **Debug tool**: /debug page with top-down floor plan + side elevation view
-
-### In Progress (This Session)
-- [ ] Rework counter + video return chute (return feeds behind counter → "Recent Returns" bin)
-- [ ] Enhanced Pizza Palace (neon pizza sign, checkered awning, menu board, warm glow)
-- [ ] Detailed Laundromat exterior
-- [ ] More parking lot detail (minivan, bike rack, handicap sign)
-- [ ] Nostalgia details (specials chalkboard, returned tape stacks, membership forms, coming attractions, lost & found, wall phone)
-- [ ] Better shelf aisle spacing
+### What's Built (Completed This Session)
+- **12 genre shelves**: HORROR, SCI-FI, COMEDY, DRAMA, ACTION, CLASSICS, FAMILY, ROMANCE, THRILLER, ANIMATED, DOCS, WESTERN
+- **Counter + return chute**: Video return on exterior → chute through wall → bin behind counter → "Recent Returns" display on counter
+- **Exterior**: Pizza Palace (neon pizza slice, checkered awning, menu board, "OPEN LATE"), Laundromat (washing machines, neon "OPEN"), 90s sedan + minivan, bike rack, handicap sign, cart return, storm drain, strip mall roofline
+- **Nostalgia details**: Specials chalkboard, returned VHS stack, membership forms, wall phone
+- **Audio**: Ambient store muzak + fluorescent hum + 20 ElevenLabs customer conversation clips (10 different voices, subtitles)
+- **Performance**: ALL dynamic lights removed (ambient only), poster fetches throttled to 6 concurrent, images w154/w92, reduced VHS/poster counts
+- **Security camera system**: 10 fixed camera angles, renders to PNG, saves to /tmp/fnv-cams/ — Claude can evaluate layout from multiple viewpoints
+- **Screenshot fix**: Works with preserveDrawingBuffer:false via gl.readPixels
+- **Spawn**: Player starts outside on sidewalk facing store entrance
+- **Floor rug**: "FRIDAY NIGHT VIDEO" branded with gold border at z=5.2 (clear of shelves)
+- **Overlap audit**: All 8 wall element overlaps fixed
+- **Landing page**: "Browse the shelves. Pick a movie. Chat with Vinny. It's Friday night, 1997."
 
 ### TODO (Future Sessions)
+- [ ] NPC customer interactions — ability to talk to customers, have conversations, get recommendations
+- [ ] Kid NPC customers (smaller models, kid voice clips)
+- [ ] Voices attached to specific NPC positions (spatial audio)
+- [ ] Staff Picks shelf with actual TMDB movie posters (currently colored boxes)
 - [ ] GLTF prebake for static store shell (biggest perf win)
 - [ ] InstancedMesh for VHS tape bodies
 - [ ] Zone-based exterior toggle (hide outside when inside)
-- [ ] Blender/AI-generated store model to replace procedural geometry
 - [ ] Arcade cabinet (Prop Hunt game mode)
 - [ ] Door animation + bell sound
 - [ ] NPC browse animations (stop at shelf, head-tilt)
-- [ ] Time-of-day window lighting
 - [ ] Counter bell interaction (Name That Quote)
-- [ ] Gumball machine interaction (spend XP for artifact)
+- [ ] More storefront windows / glass transparency from outside
+
+### Security Camera System
+Trigger from Playwright or browser console:
+```js
+window.__securityCams()                    // all 10 cameras
+window.__securityCams(['overhead','entrance'])  // specific cameras
+```
+Cameras: overhead, entrance, back_wall, left_wall, right_wall, counter, ceiling_front, ceiling_back, exterior, side_elev
+Images saved to: `/tmp/fnv-cams/{name}.png`
 
 ### User's Nostalgia Vision
-> "I love the idea of the pizza parlor -- we'd always get pizza and a movie for Friday night. So much nostalgia. Whatever we can do to play up the nostalgia."
->
+> "I love the idea of the pizza parlor — we'd always get pizza and a movie for Friday night. So much nostalgia."
 > "Video return should link to behind the counter and then the worker puts the recent returns on the counter for people to look through before sorted."
+> "I want the customer audio. That's part of the charm, hearing customers talk about movies and have arguments and funny exchanges."
+> "Voices need to be attached to actual customers. And there need to be kid customers."
 
 ---
 
