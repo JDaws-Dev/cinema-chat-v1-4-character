@@ -13,7 +13,7 @@ const GENRE_TMDB_IDS: Record<string, string> = {
   FOREIGN: "10752", DOCS: "99", INDIE: "18", CULT: "27",
 };
 
-interface PosterData { url: string; title: string; }
+interface PosterData { url: string; title: string; id: number; }
 
 function usePosterUrls(genre: string, count: number): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
@@ -35,7 +35,7 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
           return true;
         });
         setPosters(unique.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "",
+          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
         })).filter((p: PosterData) => p.url));
       }).catch(() => {});
     } else if (genreId === "classics") {
@@ -47,7 +47,7 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
       ]).then(([s60, s50, s70]) => {
         const all = [...(s60.results || []), ...(s50.results || []), ...(s70.results || [])];
         setPosters(all.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "",
+          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
         })).filter((p: PosterData) => p.url));
       }).catch(() => {});
     } else {
@@ -58,7 +58,7 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
       ]).then(([p1, p2]) => {
         const all = [...(p1.results || []), ...(p2.results || [])];
         setPosters(all.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "",
+          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
         })).filter((p: PosterData) => p.url));
       }).catch(() => {});
     }
@@ -67,7 +67,7 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
   return posters;
 }
 
-function PosterBox({ url, position, rotation = 0 }: { url: string; position: [number, number, number]; rotation?: number }) {
+function PosterBox({ url, position, rotation = 0, movieTitle, movieId }: { url: string; position: [number, number, number]; rotation?: number; movieTitle?: string; movieId?: number }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
 
   useEffect(() => {
@@ -95,9 +95,15 @@ function PosterBox({ url, position, rotation = 0 }: { url: string; position: [nu
       .catch(() => {});
   }, [url]);
 
+  const vhsData = movieTitle && movieId ? JSON.stringify({ id: movieId, title: movieTitle, posterUrl: url }) : undefined;
+
   return (
-    <group position={position} rotation={[0, rotation, 0]}>
-      <mesh>
+    <group
+      position={position}
+      rotation={[0, rotation, 0]}
+      userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}
+    >
+      <mesh userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}>
         <boxGeometry args={[0.18, 0.28, 0.10]} />
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
@@ -202,7 +208,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
         const poster = posters[posterIdx];
         const flipRot = pos.side === "back" ? Math.PI : 0;
         return poster ? (
-          <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} />
+          <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} />
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
             <boxGeometry args={[0.20, 0.30, 0.10]} />

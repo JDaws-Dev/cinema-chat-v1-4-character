@@ -65,15 +65,43 @@ export default function GamePage() {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [hintText, setHintText] = useState<string | null>(null);
 
+  // VHS pickup inventory
+  const [heldMovie, setHeldMovie] = useState<{ id: number; title: string; posterUrl: string } | null>(null);
+  const [hoverLabel, setHoverLabel] = useState<string | null>(null);
+  const [pickupFlash, setPickupFlash] = useState(false);
+
   useEffect(() => { setStats(loadStats()); }, []);
+
+  // ── Hover callback from 3D interaction system ─────────
+  const handleHover = useCallback((label: string | null) => {
+    setHoverLabel(label);
+  }, []);
 
   // ── Interaction handler from 3D world ──────────────────
   const handleInteract = useCallback((type: string, data?: string) => {
     if (overlay !== "none") return;
+
+    if (type === "vhs" && data) {
+      // Pick up VHS tape — don't exit pointer lock, stay in game
+      try {
+        const movie = JSON.parse(data);
+        setHeldMovie({ id: movie.id, title: movie.title, posterUrl: movie.posterUrl });
+        setPickupFlash(true);
+        setTimeout(() => setPickupFlash(false), 600);
+      } catch { /* ignore parse errors */ }
+      return;
+    }
+
     // Exit pointer lock when opening overlay
     document.exitPointerLock();
 
     if (type === "vinny") {
+      // If holding a movie, go to checkout flow
+      if (heldMovie) {
+        setFilmId(heldMovie.id);
+        setOverlay("film_detail");
+        return;
+      }
       // Random: chat, quote, or synopsis
       const roll = Math.random();
       if (roll < 0.4) {
@@ -93,7 +121,7 @@ export default function GamePage() {
     } else if (type === "tv") {
       startPuzzle();
     }
-  }, [overlay]);
+  }, [overlay, heldMovie]);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
   const startPuzzle = useCallback(async () => {
@@ -237,7 +265,7 @@ export default function GamePage() {
           <fog attach="fog" args={["#0a0e18", 20, 45]} />
           <Store isMobile={isMobile} />
           {!hasOverlay && <FirstPersonControls />}
-          {!hasOverlay && <InteractionSystem onInteract={handleInteract} />}
+          {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
         </Suspense>
       </Canvas>
 
@@ -256,13 +284,37 @@ export default function GamePage() {
       {/* Crosshair */}
       {!hasOverlay && <div className="g3-crosshair" />}
 
+      {/* Hover label near crosshair */}
+      {!hasOverlay && hoverLabel && (
+        <div className="g3-hover-label">{hoverLabel}</div>
+      )}
+
+      {/* Pickup flash effect */}
+      {pickupFlash && <div className="g3-pickup-flash" />}
+
+      {/* Held movie inventory HUD */}
+      {heldMovie && !hasOverlay && (
+        <div className="g3-inventory">
+          <div className="g3-inventory-label">RENTING</div>
+          <div className="g3-inventory-card">
+            {heldMovie.posterUrl && (
+              <img src={heldMovie.posterUrl} alt={heldMovie.title} className="g3-inventory-poster" />
+            )}
+            <div className="g3-inventory-title">{heldMovie.title}</div>
+          </div>
+          <div className="g3-inventory-hint">Take to Vinny to check out</div>
+          <button className="g3-inventory-drop" onClick={() => setHeldMovie(null)}>DROP</button>
+        </div>
+      )}
+
       {/* Mobile touch controls */}
       {!hasOverlay && <MobileControls />}
 
       {/* HUD */}
       <div className="g3-hud">
         <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
-        {!hasOverlay && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
+        {!hasOverlay && !heldMovie && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
+        {!hasOverlay && heldMovie && <span className="g3-hud-hint">Take your movie to Vinny at the counter!</span>}
         {hasOverlay && <span className="g3-hud-hint">Press Q or click ✕ to close</span>}
         <button className="g3-screenshot-btn" onClick={() => {
           const canvas = document.querySelector('canvas');

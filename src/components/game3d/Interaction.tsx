@@ -7,13 +7,15 @@ import { mobileInput } from "./MobileControls";
 
 interface InteractionProps {
   onInteract: (type: string, data?: string) => void;
+  onHover?: (label: string | null) => void;
 }
 
 // Raycaster for detecting what the player is looking at
-export function InteractionSystem({ onInteract }: InteractionProps) {
+export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
   const { camera, scene } = useThree();
   const raycaster = useRef(new THREE.Raycaster());
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
+  const prevLabel = useRef<string | null>(null);
 
   useFrame(() => {
     raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -31,6 +33,13 @@ export function InteractionSystem({ onInteract }: InteractionProps) {
       }
     }
     if (!found) setHoverLabel(null);
+
+    // Notify parent of hover changes
+    const currentLabel = found ? hoverLabel : null;
+    if (currentLabel !== prevLabel.current) {
+      prevLabel.current = currentLabel;
+      onHover?.(currentLabel);
+    }
 
     // Check mobile interact button
     if (mobileInput.interact) {
