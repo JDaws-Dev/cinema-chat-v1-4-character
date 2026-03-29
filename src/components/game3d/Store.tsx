@@ -1115,25 +1115,30 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
         <meshStandardMaterial color="#2a2a2a" roughness={0.7} />
       </mesh>
 
-      {/* Torso — Red polo shirt */}
+      {/* Torso — Blockbuster blue polo (same as Vinny) */}
       <mesh position={[0, 0.85, 0]}>
         <boxGeometry args={[0.36, 0.5, 0.22]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.7} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
+      </mesh>
+      {/* Yellow accent stripe on shirt */}
+      <mesh position={[0, 0.75, -0.115]}>
+        <boxGeometry args={[0.34, 0.04, 0.01]} />
+        <meshStandardMaterial color="#ffd700" roughness={0.5} />
       </mesh>
       {/* Polo collar */}
       <mesh position={[0, 1.08, -0.05]}>
         <boxGeometry args={[0.2, 0.05, 0.14]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.6} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
       </mesh>
       {/* Collar fold left */}
       <mesh position={[-0.05, 1.1, -0.09]} rotation={[0.3, 0, 0.2]}>
         <boxGeometry args={[0.07, 0.04, 0.02]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.6} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
       </mesh>
       {/* Collar fold right */}
       <mesh position={[0.05, 1.1, -0.09]} rotation={[0.3, 0, -0.2]}>
         <boxGeometry args={[0.07, 0.04, 0.02]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.6} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.6} />
       </mesh>
 
       {/* Yellow name tag — "CHARLIE" */}
@@ -1145,10 +1150,10 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
         CHARLIE
       </Text>
 
-      {/* STAFF badge — green rectangle on chest */}
+      {/* STAFF badge — Blockbuster yellow on chest */}
       <mesh position={[-0.09, 0.97, -0.12]}>
         <boxGeometry args={[0.12, 0.05, 0.01]} />
-        <meshStandardMaterial color="#1a6a2a" emissive="#1a6a2a" emissiveIntensity={0.15} />
+        <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} />
       </mesh>
       <Text position={[-0.09, 0.97, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.022} color="#ffffff" anchorX="center" font={undefined}>
         STAFF
@@ -1157,7 +1162,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       {/* Left arm */}
       <mesh position={[-0.24, 0.82, 0]}>
         <boxGeometry args={[0.11, 0.4, 0.12]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.7} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
       </mesh>
       {/* Left hand */}
       <mesh position={[-0.24, 0.58, 0]}>
@@ -1167,7 +1172,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       {/* Right arm */}
       <mesh position={[0.24, 0.82, 0]}>
         <boxGeometry args={[0.11, 0.4, 0.12]} />
-        <meshStandardMaterial color="#cc2222" roughness={0.7} />
+        <meshStandardMaterial color="#0a4a8a" roughness={0.7} />
       </mesh>
       {/* Right hand */}
       <mesh position={[0.24, 0.58, 0]}>
@@ -1193,6 +1198,12 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
         <mesh position={[0, 0.06, -0.18]} rotation={[0.15, 0, 0.06]}>
           <boxGeometry args={[0.22, 0.02, 0.12]} />
           <meshStandardMaterial color="#1a3a6a" roughness={0.6} />
+        </mesh>
+
+        {/* Yellow accent on cap front */}
+        <mesh position={[0, 0.08, -0.2]} rotation={[0.15, 0, 0]}>
+          <boxGeometry args={[0.12, 0.04, 0.01]} />
+          <meshStandardMaterial color="#ffd700" roughness={0.5} />
         </mesh>
 
         {/* Blonde/light brown hair peeking out from cap sides */}
