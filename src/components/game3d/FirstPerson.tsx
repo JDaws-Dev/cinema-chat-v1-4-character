@@ -120,7 +120,7 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
 
     // Apply mobile camera look deltas
     if (mobileInput.lookDeltaX !== 0 || mobileInput.lookDeltaY !== 0) {
-      const TOUCH_SENS = 0.003;
+      const TOUCH_SENS = 0.008;
       euler.current.y -= mobileInput.lookDeltaX * TOUCH_SENS;
       euler.current.x -= mobileInput.lookDeltaY * TOUCH_SENS;
       euler.current.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, euler.current.x));
