@@ -35,11 +35,11 @@ export function unlockAudio() {
   if (ctx.state === "suspended") {
     ctx.resume().then(() => {
       audioUnlocked = true;
-      if (!muted) startAmbient();
+      if (!muted) { startAmbient(); startCustomerChatter(); }
     });
   } else {
     audioUnlocked = true;
-    if (!muted) startAmbient();
+    if (!muted) { startAmbient(); startCustomerChatter(); }
   }
 }
 
@@ -85,6 +85,46 @@ function stopAmbient() {
   }
   ambientSources = [];
   ambientStarted = false;
+  if (customerInterval) { clearInterval(customerInterval); customerInterval = null; }
+}
+
+// ── Customer conversation audio ─────────────────────────
+// Randomly plays customer chatter clips at intervals for atmosphere
+const CUSTOMER_CLIP_COUNT = 20;
+let customerInterval: ReturnType<typeof setInterval> | null = null;
+let customerPlaying = false;
+
+async function playRandomCustomerClip() {
+  if (muted || customerPlaying || !audioUnlocked) return;
+  customerPlaying = true;
+  const idx = Math.floor(Math.random() * CUSTOMER_CLIP_COUNT);
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") await ctx.resume();
+    const res = await fetch(`/sounds/customer_${idx}.mp3`);
+    if (!res.ok) { customerPlaying = false; return; }
+    const ab = await res.arrayBuffer();
+    const buffer = await ctx.decodeAudioData(ab);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.25; // moderate volume — background chatter
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    source.onended = () => { customerPlaying = false; };
+    source.start(0);
+  } catch { customerPlaying = false; }
+}
+
+export function startCustomerChatter() {
+  if (customerInterval) return;
+  // Play first clip after 5-10s, then every 15-30s
+  setTimeout(() => {
+    playRandomCustomerClip();
+    customerInterval = setInterval(() => {
+      playRandomCustomerClip();
+    }, 15000 + Math.random() * 15000); // 15-30s between clips
+  }, 5000 + Math.random() * 5000);
 }
 
 // Cached SFX buffers
