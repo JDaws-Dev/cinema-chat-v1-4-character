@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   title: "Friday Night Video",
   description:
     "A 3D Blockbuster-style video store experience. Browse shelves, grab movies, complete challenges, and earn movie prop collectibles.",
+  manifest: "/manifest.json",
   openGraph: {
     title: "Friday Night Video",
     description:

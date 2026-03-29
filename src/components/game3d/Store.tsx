@@ -169,7 +169,7 @@ function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; gen
   // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = isMobile ? 5 : 10;
+    const count = 10; // same on mobile and desktop
     const spacing = 0.24;
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
@@ -788,7 +788,7 @@ function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   );
 }
 
-function NewReleasesWall() {
+function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
   const posters = usePosterUrls("NEW", 20);
   // Only trending — these are actual new releases
   const allPosters = posters;
@@ -840,7 +840,7 @@ function NewReleasesWall() {
       <Text position={[0, 2.6, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.22} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
         ★ NEW RELEASES ★
       </Text>
-      <pointLight position={[0, 2.6, 0.3]} color="#ffd700" intensity={2} distance={4} />
+      {!isMobile && <pointLight position={[0, 2.6, 0.3]} color="#ffd700" intensity={2} distance={4} />}
 
       {/* VHS boxes — 10 copies of each movie grouped together */}
       {positions.map((pos) => {
@@ -856,7 +856,7 @@ function NewReleasesWall() {
   );
 }
 
-function NeonSign() {
+function NeonSign({ isMobile }: { isMobile?: boolean }) {
   return (
     <group position={[0, 3.3, -ROOM_D / 2 + 0.15]}>
       {/* Sign backing */}
@@ -874,12 +874,12 @@ function NeonSign() {
       >
         FRIDAY NIGHT VIDEO
       </Text>
-      <pointLight position={[0, 0, 0.3]} color="#ffd700" intensity={2} distance={5} />
+      {!isMobile && <pointLight position={[0, 0, 0.3]} color="#ffd700" intensity={2} distance={5} />}
     </group>
   );
 }
 
-function TVScreen() {
+function TVScreen({ isMobile }: { isMobile?: boolean }) {
   const matRef = useRef<THREE.MeshStandardMaterial>(null);
   // Animate screen color to simulate VHS playback flicker
   useFrame((state) => {
@@ -918,7 +918,7 @@ function TVScreen() {
         </mesh>
       ))}
       {/* Screen glow */}
-      <pointLight position={[0, 0, 0.5]} color="#4a8aff" intensity={1.5} distance={4} />
+      {!isMobile && <pointLight position={[0, 0, 0.5]} color="#4a8aff" intensity={1.5} distance={4} />}
       {/* TV stand bracket */}
       <mesh position={[0, -0.55, -0.05]}>
         <boxGeometry args={[0.15, 0.2, 0.08]} />
@@ -1000,14 +1000,14 @@ function SecurityDome({ position }: { position: [number, number, number] }) {
 }
 
 // Neon accent strip for shelves
-function ShelfNeonStrip({ position, color, width = 2.6 }: { position: [number, number, number]; color: string; width?: number }) {
+function ShelfNeonStrip({ position, color, width = 2.6, isMobile }: { position: [number, number, number]; color: string; width?: number; isMobile?: boolean }) {
   return (
     <group position={position}>
       <mesh>
         <boxGeometry args={[width, 0.02, 0.02]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} />
       </mesh>
-      <pointLight position={[0, -0.1, 0]} color={color} intensity={0.3} distance={1.5} />
+      {!isMobile && <pointLight position={[0, -0.1, 0]} color={color} intensity={0.3} distance={1.5} />}
     </group>
   );
 }
@@ -1233,7 +1233,7 @@ const RARITY_COLORS: Record<string, string> = {
   uncommon: "#06b6d4",
 };
 
-function TrophyShelf() {
+function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -1371,7 +1371,7 @@ function TrophyShelf() {
       })}
 
       {/* Subtle shelf light */}
-      <pointLight position={[0, 1.6, 0.3]} color="#ffeedd" intensity={0.5} distance={3} />
+      {!isMobile && <pointLight position={[0, 1.6, 0.3]} color="#ffeedd" intensity={0.5} distance={3} />}
     </group>
   );
 }
@@ -1470,82 +1470,92 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
 
-      {/* Fluorescent ceiling lights — tube fixtures with warm/cool zoning */}
-      {[-6, -2, 2, 6].map((fx) => (
-        <group key={fx}>
-          {/* Back aisle fixtures (z=-1.5) — cool fluorescent */}
-          <group position={[fx, ROOM_H - 0.04, -1.5]}>
-            {/* Fixture housing */}
-            <mesh>
-              <boxGeometry args={[1.8, 0.05, 0.3]} />
-              <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
-            </mesh>
-            {/* Fluorescent tube — emissive */}
-            <mesh position={[0, -0.04, 0]}>
-              <boxGeometry args={[1.6, 0.03, 0.08]} />
-              <meshStandardMaterial color="#f0f8ff" emissive="#e0e8ff" emissiveIntensity={1.5} />
-            </mesh>
-            {/* Reflector panel */}
-            <mesh position={[0, -0.01, 0]}>
-              <boxGeometry args={[1.7, 0.01, 0.25]} />
-              <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
-            </mesh>
-          </group>
-          <pointLight position={[fx, ROOM_H - 0.3, -1.5]} color="#e0e8ff" intensity={6} distance={12} />
-          <spotLight position={[fx, ROOM_H - 0.3, -1.5]} angle={0.6} penumbra={0.5} intensity={2.5} distance={6} color="#e0e8ff" />
+      {isMobile ? (
+        <>
+          {/* Mobile: bright ambient only, no dynamic lights */}
+          <ambientLight intensity={2.5} color="#e8e4d8" />
+          <hemisphereLight args={["#fff4e0", "#3a4060", 1.5]} />
+        </>
+      ) : (
+        <>
+          {/* Fluorescent ceiling lights — tube fixtures with warm/cool zoning */}
+          {[-6, -2, 2, 6].map((fx) => (
+            <group key={fx}>
+              {/* Back aisle fixtures (z=-1.5) — cool fluorescent */}
+              <group position={[fx, ROOM_H - 0.04, -1.5]}>
+                {/* Fixture housing */}
+                <mesh>
+                  <boxGeometry args={[1.8, 0.05, 0.3]} />
+                  <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+                </mesh>
+                {/* Fluorescent tube — emissive */}
+                <mesh position={[0, -0.04, 0]}>
+                  <boxGeometry args={[1.6, 0.03, 0.08]} />
+                  <meshStandardMaterial color="#f0f8ff" emissive="#e0e8ff" emissiveIntensity={1.5} />
+                </mesh>
+                {/* Reflector panel */}
+                <mesh position={[0, -0.01, 0]}>
+                  <boxGeometry args={[1.7, 0.01, 0.25]} />
+                  <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+                </mesh>
+              </group>
+              <pointLight position={[fx, ROOM_H - 0.3, -1.5]} color="#e0e8ff" intensity={6} distance={12} />
+              <spotLight position={[fx, ROOM_H - 0.3, -1.5]} angle={0.6} penumbra={0.5} intensity={2.5} distance={6} color="#e0e8ff" />
 
-          {/* Front aisle fixtures (z=2) — warm fluorescent near entrance/counter */}
-          <group position={[fx, ROOM_H - 0.04, 2]}>
-            {/* Fixture housing */}
-            <mesh>
-              <boxGeometry args={[1.8, 0.05, 0.3]} />
-              <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
-            </mesh>
-            {/* Fluorescent tube — warmer */}
-            <mesh position={[0, -0.04, 0]}>
-              <boxGeometry args={[1.6, 0.03, 0.08]} />
-              <meshStandardMaterial color="#fff8e0" emissive="#fff4d0" emissiveIntensity={1.5} />
-            </mesh>
-            {/* Reflector panel */}
-            <mesh position={[0, -0.01, 0]}>
-              <boxGeometry args={[1.7, 0.01, 0.25]} />
-              <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
-            </mesh>
-          </group>
-          <pointLight position={[fx, ROOM_H - 0.3, 2]} color="#fff4d0" intensity={6} distance={12} />
-          <spotLight position={[fx, ROOM_H - 0.3, 2]} angle={0.6} penumbra={0.5} intensity={2.5} distance={6} color="#fff4d0" />
-        </group>
-      ))}
-      {/* Middle row of fixtures (z=0) — neutral white */}
-      {[-4, 0, 4].map((fx) => (
-        <group key={`mid-${fx}`}>
-          <group position={[fx, ROOM_H - 0.04, 0]}>
-            <mesh>
-              <boxGeometry args={[1.8, 0.05, 0.3]} />
-              <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
-            </mesh>
-            <mesh position={[0, -0.04, 0]}>
-              <boxGeometry args={[1.6, 0.03, 0.08]} />
-              <meshStandardMaterial color="#f0f4e8" emissive="#f0f0e0" emissiveIntensity={1.3} />
-            </mesh>
-            <mesh position={[0, -0.01, 0]}>
-              <boxGeometry args={[1.7, 0.01, 0.25]} />
-              <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
-            </mesh>
-          </group>
-          <pointLight position={[fx, ROOM_H - 0.3, 0]} color="#f0eee0" intensity={5} distance={10} />
-        </group>
-      ))}
-      {/* One flickering fluorescent light in back corner */}
-      <FlickeringLight position={[2, ROOM_H - 0.3, -1.5]} />
+              {/* Front aisle fixtures (z=2) — warm fluorescent near entrance/counter */}
+              <group position={[fx, ROOM_H - 0.04, 2]}>
+                {/* Fixture housing */}
+                <mesh>
+                  <boxGeometry args={[1.8, 0.05, 0.3]} />
+                  <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+                </mesh>
+                {/* Fluorescent tube — warmer */}
+                <mesh position={[0, -0.04, 0]}>
+                  <boxGeometry args={[1.6, 0.03, 0.08]} />
+                  <meshStandardMaterial color="#fff8e0" emissive="#fff4d0" emissiveIntensity={1.5} />
+                </mesh>
+                {/* Reflector panel */}
+                <mesh position={[0, -0.01, 0]}>
+                  <boxGeometry args={[1.7, 0.01, 0.25]} />
+                  <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+                </mesh>
+              </group>
+              <pointLight position={[fx, ROOM_H - 0.3, 2]} color="#fff4d0" intensity={6} distance={12} />
+              <spotLight position={[fx, ROOM_H - 0.3, 2]} angle={0.6} penumbra={0.5} intensity={2.5} distance={6} color="#fff4d0" />
+            </group>
+          ))}
+          {/* Middle row of fixtures (z=0) — neutral white */}
+          {[-4, 0, 4].map((fx) => (
+            <group key={`mid-${fx}`}>
+              <group position={[fx, ROOM_H - 0.04, 0]}>
+                <mesh>
+                  <boxGeometry args={[1.8, 0.05, 0.3]} />
+                  <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+                </mesh>
+                <mesh position={[0, -0.04, 0]}>
+                  <boxGeometry args={[1.6, 0.03, 0.08]} />
+                  <meshStandardMaterial color="#f0f4e8" emissive="#f0f0e0" emissiveIntensity={1.3} />
+                </mesh>
+                <mesh position={[0, -0.01, 0]}>
+                  <boxGeometry args={[1.7, 0.01, 0.25]} />
+                  <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+                </mesh>
+              </group>
+              <pointLight position={[fx, ROOM_H - 0.3, 0]} color="#f0eee0" intensity={5} distance={10} />
+            </group>
+          ))}
+          {/* One flickering fluorescent light in back corner */}
+          <FlickeringLight position={[2, ROOM_H - 0.3, -1.5]} />
 
-      {/* Warm accent light near counter area */}
-      <pointLight position={[7, ROOM_H - 0.5, 5]} color="#ffd080" intensity={3} distance={6} />
+          {/* Warm accent light near counter area */}
+          <pointLight position={[7, ROOM_H - 0.5, 5]} color="#ffd080" intensity={3} distance={6} />
 
-      {/* Ambient fill — bright fluorescent store */}
-      <ambientLight intensity={1.6} color="#e8e4d8" />
-      {/* Hemisphere light — warm ceiling, cool floor bounce */}
-      <hemisphereLight args={["#fff4e0", "#3a4060", 1.0]} />
+          {/* Ambient fill — bright fluorescent store */}
+          <ambientLight intensity={1.6} color="#e8e4d8" />
+          {/* Hemisphere light — warm ceiling, cool floor bounce */}
+          <hemisphereLight args={["#fff4e0", "#3a4060", 1.0]} />
+        </>
+      )}
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
@@ -1569,13 +1579,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {!isMobile && <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
 
       {/* New Releases wall display */}
-      <NewReleasesWall />
+      <NewReleasesWall isMobile={isMobile} />
 
       {/* Neon sign */}
-      <NeonSign />
+      <NeonSign isMobile={isMobile} />
 
       {/* CRT TV with animated screen */}
-      <TVScreen />
+      <TVScreen isMobile={isMobile} />
 
       {/* Wall posters — back wall */}
       {/* Back wall posters — flanking the new releases rack */}
@@ -1602,7 +1612,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>
           BE KIND, REWIND
         </Text>
-        <pointLight position={[0, 0.3, 0.2]} color="#ffd700" intensity={0.5} distance={2} />
+        {!isMobile && <pointLight position={[0, 0.3, 0.2]} color="#ffd700" intensity={0.5} distance={2} />}
       </group>
 
       {/* "OPEN" neon near entrance */}
@@ -1610,7 +1620,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Text fontSize={0.2} color="#ff3e7a" anchorX="center" font={undefined}>
           OPEN
         </Text>
-        <pointLight position={[0, 0, 0.3]} color="#ff3e7a" intensity={1.5} distance={4} />
+        {!isMobile && <pointLight position={[0, 0, 0.3]} color="#ff3e7a" intensity={1.5} distance={4} />}
       </group>
 
       {/* Store hours sign near door */}
@@ -1648,7 +1658,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <circleGeometry args={[0.25, 16]} />
         <meshBasicMaterial color="#d4d8f0" />
       </mesh>
-      <pointLight position={[6, 3.0, ROOM_D / 2 + 0.5]} color="#8090c0" intensity={2} distance={8} />
+      {!isMobile && <pointLight position={[6, 3.0, ROOM_D / 2 + 0.5]} color="#8090c0" intensity={2} distance={8} />}
       {/* Parking lot ground plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 1]}>
         <planeGeometry args={[ROOM_W + 4, 3]} />
@@ -1661,7 +1671,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
             <cylinderGeometry args={[0.03, 0.04, 3, 8]} />
             <meshBasicMaterial color="#444" />
           </mesh>
-          <pointLight position={[0, 3, 0]} color="#ffaa55" intensity={1.5} distance={5} />
+          {!isMobile && <pointLight position={[0, 3, 0]} color="#ffaa55" intensity={1.5} distance={5} />}
           <mesh position={[0, 3.1, 0]}>
             <boxGeometry args={[0.3, 0.08, 0.15]} />
             <meshBasicMaterial color="#555" />
@@ -1740,7 +1750,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.6} />
       </mesh>
       {/* Awning underside light */}
-      <pointLight position={[0, ROOM_H - 0.1, ROOM_D / 2 + 0.4]} color="#ffd080" intensity={1.5} distance={4} />
+      {!isMobile && <pointLight position={[0, ROOM_H - 0.1, ROOM_D / 2 + 0.4]} color="#ffd080" intensity={1.5} distance={4} />}
 
       {/* Floor rug near entrance */}
       <FloorRug />
@@ -1937,11 +1947,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           Click to open
         </Text>
         {/* Glow */}
-        <pointLight position={[0, 0, 0.5]} color="#ff3e7a" intensity={1} distance={3} />
+        {!isMobile && <pointLight position={[0, 0, 0.5]} color="#ff3e7a" intensity={1} distance={3} />}
       </group>
 
       {/* ── TROPHY SHELF ────────────────────────────────────── */}
-      <TrophyShelf />
+      <TrophyShelf isMobile={isMobile} />
 
       {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
 
@@ -1952,7 +1962,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
       {/* Neon accent strips under shelf top surfaces — genre colored glow */}
       {SHELF_ROWS.map((s, i) => (
-        <ShelfNeonStrip key={`neon-${i}`} position={[s.x, 1.50, s.z]} color={s.color} />
+        <ShelfNeonStrip key={`neon-${i}`} position={[s.x, 1.50, s.z]} color={s.color} isMobile={isMobile} />
       ))}
 
       {/* "EMPLOYEES ONLY" door on left wall */}

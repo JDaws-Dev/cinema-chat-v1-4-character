@@ -28,6 +28,10 @@ export function MobileControls({
   const lastLookPos = useRef<{ x: number; y: number } | null>(null);
   const joystickCenter = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Floating joystick state
+  const [joystickVisible, setJoystickVisible] = useState(false);
+  const [joystickOrigin, setJoystickOrigin] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     setIsTouchDevice("ontouchstart" in window);
   }, []);
@@ -51,23 +55,6 @@ export function MobileControls({
   }, [isTouchDevice]);
 
   // ── Joystick handlers ──────────────────────────────────────
-  const handleJoystickStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (joystickTouchId.current !== null) return;
-      const touch = e.changedTouches[0];
-      joystickTouchId.current = touch.identifier;
-
-      const rect = joystickRef.current?.getBoundingClientRect();
-      if (rect) {
-        joystickCenter.current = {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-        };
-      }
-    },
-    []
-  );
-
   const handleJoystickMove = useCallback(
     (e: React.TouchEvent) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
@@ -92,12 +79,6 @@ export function MobileControls({
         const angle = Math.atan2(dy, dx);
         const normDist = clampedDist / maxDist;
 
-        mobileInput.moveX = Math.cos(angle) * normDist;
-        mobileInput.moveZ = -Math.sin(angle) * normDist; // negative because forward is -Z but up-touch is -Y
-
-        // Actually: up on screen = forward = negative dy, and we want forward = positive moveZ
-        // Let's reconsider: dy negative = finger moved up = forward, moveZ should be positive (forward)
-        // moveX: dx positive = finger right = strafe right
         mobileInput.moveX = (Math.cos(angle) * normDist);
         mobileInput.moveZ = -(Math.sin(angle) * normDist); // flip: screen-up (negative dy) => positive moveZ (forward)
 
@@ -122,17 +103,20 @@ export function MobileControls({
           if (knobRef.current) {
             knobRef.current.style.transform = "translate(-50%, -50%)";
           }
+          setJoystickVisible(false);
         }
       }
     },
     []
   );
 
-  // ── Camera look handlers (rest of screen) ──────────────────
+  // ── Camera look handlers (right side of screen) ──────────────────
   const handleLookStart = useCallback(
     (e: React.TouchEvent) => {
       if (lookTouchId.current !== null) return;
       const touch = e.changedTouches[0];
+      // Only handle look on the right portion of the screen
+      if (touch.clientX <= window.innerWidth * 0.4) return;
       lookTouchId.current = touch.identifier;
       lastLookPos.current = { x: touch.clientX, y: touch.clientY };
     },
@@ -166,6 +150,27 @@ export function MobileControls({
     []
   );
 
+  // ── Unified touch handler for the full-screen overlay ──────
+  const handleScreenTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      const touch = e.changedTouches[0];
+      const isLeftHalf = touch.clientX < window.innerWidth / 2;
+
+      if (isLeftHalf && joystickTouchId.current === null) {
+        // Activate floating joystick at touch position
+        joystickTouchId.current = touch.identifier;
+        const origin = { x: touch.clientX, y: touch.clientY };
+        joystickCenter.current = origin;
+        setJoystickOrigin(origin);
+        setJoystickVisible(true);
+      } else {
+        // Treat as camera look
+        handleLookStart(e);
+      }
+    },
+    [handleLookStart]
+  );
+
   // ── Interact button ────────────────────────────────────────
   const handleInteract = useCallback(() => {
     mobileInput.interact = true;
@@ -176,26 +181,42 @@ export function MobileControls({
 
   return (
     <>
-      {/* Camera look area — covers entire screen behind joystick and button */}
+      {/* Full-screen touch area — left half spawns joystick, right half controls camera */}
       <div
         className="mobile-look-area"
-        onTouchStart={handleLookStart}
-        onTouchMove={handleLookMove}
-        onTouchEnd={handleLookEnd}
-        onTouchCancel={handleLookEnd}
+        onTouchStart={handleScreenTouchStart}
+        onTouchMove={(e) => {
+          handleJoystickMove(e);
+          handleLookMove(e);
+        }}
+        onTouchEnd={(e) => {
+          handleJoystickEnd(e);
+          handleLookEnd(e);
+        }}
+        onTouchCancel={(e) => {
+          handleJoystickEnd(e);
+          handleLookEnd(e);
+        }}
       />
 
-      {/* Virtual joystick — bottom left */}
-      <div
-        ref={joystickRef}
-        className="mobile-joystick"
-        onTouchStart={handleJoystickStart}
-        onTouchMove={handleJoystickMove}
-        onTouchEnd={handleJoystickEnd}
-        onTouchCancel={handleJoystickEnd}
-      >
-        <div ref={knobRef} className="mobile-joystick-knob" />
-      </div>
+      {/* Virtual joystick — floating, appears on left-side touch */}
+      {joystickVisible && (
+        <div
+          ref={joystickRef}
+          className="mobile-joystick"
+          style={{
+            position: 'fixed',
+            left: joystickOrigin.x - JOYSTICK_SIZE / 2,
+            top: joystickOrigin.y - JOYSTICK_SIZE / 2,
+            bottom: 'auto',
+          }}
+          onTouchMove={handleJoystickMove}
+          onTouchEnd={handleJoystickEnd}
+          onTouchCancel={handleJoystickEnd}
+        >
+          <div ref={knobRef} className="mobile-joystick-knob" />
+        </div>
+      )}
 
       {/* Interact button — bottom right */}
       <button

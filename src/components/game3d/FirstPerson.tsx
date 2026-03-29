@@ -56,6 +56,8 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const locked = useRef(false);
   const initialized = useRef(false);
+  const lookVelocityX = useRef(0);
+  const lookVelocityY = useRef(0);
 
   // Pointer lock
   const requestLock = useCallback(() => {
@@ -125,6 +127,18 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
       euler.current.x -= mobileInput.lookDeltaY * TOUCH_SENS;
       euler.current.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, euler.current.x));
       camera.quaternion.setFromEuler(euler.current);
+      // Store velocity from current input
+      lookVelocityX.current = mobileInput.lookDeltaX * TOUCH_SENS;
+      lookVelocityY.current = mobileInput.lookDeltaY * TOUCH_SENS;
+    } else if (Math.abs(lookVelocityX.current) > 0.0001 || Math.abs(lookVelocityY.current) > 0.0001) {
+      // Apply decaying inertia when no touch input
+      euler.current.y -= lookVelocityX.current;
+      euler.current.x -= lookVelocityY.current;
+      euler.current.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, euler.current.x));
+      camera.quaternion.setFromEuler(euler.current);
+      // Decay
+      lookVelocityX.current *= 0.9;
+      lookVelocityY.current *= 0.9;
     }
 
     const dir = new THREE.Vector3();
