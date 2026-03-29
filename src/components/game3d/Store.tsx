@@ -1103,30 +1103,82 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
 
-      {/* Fluorescent ceiling lights — warm pools with spotlights */}
-      {[-6, -2, 2, 6].map((x) => (
-        <group key={x}>
-          <mesh position={[x, ROOM_H - 0.04, -1.5]}>
-            <boxGeometry args={[1.8, 0.06, 0.35]} />
-            <meshStandardMaterial color="#f0f0e8" emissive="#fffde8" emissiveIntensity={1.2} />
-          </mesh>
-          <pointLight position={[x, ROOM_H - 0.3, -1.5]} color="#fff4d0" intensity={8} distance={14} />
-          <spotLight position={[x, ROOM_H - 0.3, -1.5]} angle={0.6} penumbra={0.5} intensity={3} distance={6} color="#fff4d0" />
-          <mesh position={[x, ROOM_H - 0.04, 2]}>
-            <boxGeometry args={[1.8, 0.06, 0.35]} />
-            <meshStandardMaterial color="#f0f0e8" emissive="#fffde8" emissiveIntensity={1.2} />
-          </mesh>
-          <pointLight position={[x, ROOM_H - 0.3, 2]} color="#fff4d0" intensity={8} distance={14} />
-          <spotLight position={[x, ROOM_H - 0.3, 2]} angle={0.6} penumbra={0.5} intensity={3} distance={6} color="#fff4d0" />
+      {/* Fluorescent ceiling lights — tube fixtures with warm/cool zoning */}
+      {[-6, -2, 2, 6].map((fx) => (
+        <group key={fx}>
+          {/* Back aisle fixtures (z=-1.5) — cool fluorescent */}
+          <group position={[fx, ROOM_H - 0.04, -1.5]}>
+            {/* Fixture housing */}
+            <mesh>
+              <boxGeometry args={[1.8, 0.05, 0.3]} />
+              <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+            </mesh>
+            {/* Fluorescent tube — emissive */}
+            <mesh position={[0, -0.04, 0]}>
+              <boxGeometry args={[1.6, 0.03, 0.08]} />
+              <meshStandardMaterial color="#f0f8ff" emissive="#e0e8ff" emissiveIntensity={1.5} />
+            </mesh>
+            {/* Reflector panel */}
+            <mesh position={[0, -0.01, 0]}>
+              <boxGeometry args={[1.7, 0.01, 0.25]} />
+              <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+            </mesh>
+          </group>
+          <pointLight position={[fx, ROOM_H - 0.3, -1.5]} color="#e0e8ff" intensity={6} distance={12} />
+          <spotLight position={[fx, ROOM_H - 0.3, -1.5]} angle={0.6} penumbra={0.5} intensity={2.5} distance={6} color="#e0e8ff" />
+
+          {/* Front aisle fixtures (z=2) — warm fluorescent near entrance/counter */}
+          <group position={[fx, ROOM_H - 0.04, 2]}>
+            {/* Fixture housing */}
+            <mesh>
+              <boxGeometry args={[1.8, 0.05, 0.3]} />
+              <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+            </mesh>
+            {/* Fluorescent tube — warmer */}
+            <mesh position={[0, -0.04, 0]}>
+              <boxGeometry args={[1.6, 0.03, 0.08]} />
+              <meshStandardMaterial color="#fff8e0" emissive="#fff4d0" emissiveIntensity={1.5} />
+            </mesh>
+            {/* Reflector panel */}
+            <mesh position={[0, -0.01, 0]}>
+              <boxGeometry args={[1.7, 0.01, 0.25]} />
+              <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+            </mesh>
+          </group>
+          <pointLight position={[fx, ROOM_H - 0.3, 2]} color="#fff4d0" intensity={6} distance={12} />
+          <spotLight position={[fx, ROOM_H - 0.3, 2]} angle={0.6} penumbra={0.5} intensity={2.5} distance={6} color="#fff4d0" />
         </group>
       ))}
-      {/* One flickering fluorescent light */}
+      {/* Middle row of fixtures (z=0) — neutral white */}
+      {[-4, 0, 4].map((fx) => (
+        <group key={`mid-${fx}`}>
+          <group position={[fx, ROOM_H - 0.04, 0]}>
+            <mesh>
+              <boxGeometry args={[1.8, 0.05, 0.3]} />
+              <meshStandardMaterial color="#d0d0c8" roughness={0.6} />
+            </mesh>
+            <mesh position={[0, -0.04, 0]}>
+              <boxGeometry args={[1.6, 0.03, 0.08]} />
+              <meshStandardMaterial color="#f0f4e8" emissive="#f0f0e0" emissiveIntensity={1.3} />
+            </mesh>
+            <mesh position={[0, -0.01, 0]}>
+              <boxGeometry args={[1.7, 0.01, 0.25]} />
+              <meshStandardMaterial color="#e8e8e0" metalness={0.3} roughness={0.2} />
+            </mesh>
+          </group>
+          <pointLight position={[fx, ROOM_H - 0.3, 0]} color="#f0eee0" intensity={5} distance={10} />
+        </group>
+      ))}
+      {/* One flickering fluorescent light in back corner */}
       <FlickeringLight position={[2, ROOM_H - 0.3, -1.5]} />
 
-      {/* Ambient fill — bright like real fluorescent store */}
-      <ambientLight intensity={1.8} color="#e8e0d0" />
-      {/* Hemisphere light — warm from above, cool bounce from floor */}
-      <hemisphereLight args={["#fff4e0", "#3a4060", 1.2]} />
+      {/* Warm accent light near counter area */}
+      <pointLight position={[7, ROOM_H - 0.5, 5]} color="#ffd080" intensity={3} distance={6} />
+
+      {/* Ambient fill — bright fluorescent store */}
+      <ambientLight intensity={1.6} color="#e8e4d8" />
+      {/* Hemisphere light — warm ceiling, cool floor bounce */}
+      <hemisphereLight args={["#fff4e0", "#3a4060", 1.0]} />
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
