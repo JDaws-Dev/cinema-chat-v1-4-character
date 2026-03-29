@@ -1483,17 +1483,25 @@ function NeonSign({ isMobile }: { isMobile?: boolean }) {
 }
 
 function TVScreen({ isMobile }: { isMobile?: boolean }) {
-  const matRef = useRef<THREE.MeshStandardMaterial>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const matRef = useRef<any>(null);
   // Animate screen color to simulate VHS playback flicker
   useFrame((state) => {
-    if (matRef.current) {
-      const t = state.clock.elapsedTime;
+    if (!matRef.current) return;
+    const t = state.clock.elapsedTime;
+    if (matRef.current.emissive) {
+      // Desktop (MeshStandardMaterial)
       const r = 0.1 + Math.sin(t * 0.7) * 0.05;
       const g = 0.2 + Math.sin(t * 1.1 + 1) * 0.08;
       const b = 0.4 + Math.sin(t * 0.5 + 2) * 0.1;
       matRef.current.emissive.setRGB(r, g, b);
-      // Occasional brightness flicker
       matRef.current.emissiveIntensity = 0.8 + Math.sin(t * 8.3) * 0.1 + (Math.sin(t * 37) > 0.95 ? 0.4 : 0);
+    } else if (matRef.current.color) {
+      // Mobile (MeshBasicMaterial) — animate color directly
+      const r = 0.1 + Math.sin(t * 0.7) * 0.08;
+      const g = 0.25 + Math.sin(t * 1.1 + 1) * 0.1;
+      const b = 0.5 + Math.sin(t * 0.5 + 2) * 0.15;
+      matRef.current.color.setRGB(r, g, b);
     }
   });
   return (
