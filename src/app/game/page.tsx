@@ -73,7 +73,8 @@ export default function GamePage() {
   const [pickupTitle, setPickupTitle] = useState<string | null>(null);
 
   // Movie Night Challenge state
-  const [challenge, setChallenge] = useState<{ titles: string[]; startTime: number } | null>(null);
+  type ChallengeMovie = { title: string; genre: string };
+  const [challenge, setChallenge] = useState<{ movies: ChallengeMovie[]; startTime: number; hintsUsed: Set<number> } | null>(null);
   const [challengeComplete, setChallengeComplete] = useState<number | null>(null); // elapsed seconds
   const [challengeTimer, setChallengeTimer] = useState(0);
 
@@ -118,10 +119,10 @@ export default function GamePage() {
     if (type === "vinny") {
       // If in a challenge and have all movies, complete it
       if (challenge && heldMovies.length > 0) {
-        const found = challenge.titles.filter(t =>
-          heldMovies.some(m => m.title.toLowerCase() === t.toLowerCase())
+        const found = challenge.movies.filter(cm =>
+          heldMovies.some(m => m.title.toLowerCase() === cm.title.toLowerCase())
         );
-        if (found.length === challenge.titles.length) {
+        if (found.length === challenge.movies.length) {
           const elapsed = Math.round((Date.now() - challenge.startTime) / 1000);
           setChallengeComplete(elapsed);
           setChallenge(null);
@@ -149,6 +150,32 @@ export default function GamePage() {
         setQuizAnswer(null);
         setOverlay("synopsis");
       }
+    } else if (type === "challenge") {
+      // Start Movie Night Challenge from in-store sign
+      if (challenge) return; // already running
+      // Genre ID → genre name map for hints
+      const genreNames: Record<number, string> = {
+        28: "Action", 12: "Adventure", 16: "Animated", 35: "Comedy", 80: "Crime",
+        99: "Docs", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History",
+        27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance",
+        878: "Sci-Fi", 53: "Thriller", 10752: "War", 37: "Western",
+      };
+      fetch("/api/trending?window=week")
+        .then(r => r.json())
+        .then(data => {
+          const movies = (data.movies || []).filter((m: Record<string, unknown>) => m.title);
+          if (movies.length < 3) return;
+          const shuffled = [...movies].sort(() => Math.random() - 0.5);
+          const picks: ChallengeMovie[] = shuffled.slice(0, 3).map((m: Record<string, unknown>) => {
+            const genreIds = (m.genreIds as number[]) || [];
+            const genre = genreIds.length > 0 ? (genreNames[genreIds[0]] || "New Releases") : "New Releases";
+            return { title: m.title as string, genre };
+          });
+          setHeldMovies([]);
+          setChallenge({ movies: picks, startTime: Date.now(), hintsUsed: new Set() });
+        })
+        .catch(() => {});
+      return; // don't exit pointer lock
     } else if (type === "shelf") {
       setShelfGenre(data || "horror");
       setOverlay("shelf");
@@ -335,11 +362,25 @@ export default function GamePage() {
       {challenge && !hasOverlay && (
         <div className="g3-challenge-list">
           <div className="g3-challenge-header">MOVIE NIGHT LIST</div>
-          {challenge.titles.map((title, i) => {
-            const found = heldMovies.some(m => m.title.toLowerCase() === title.toLowerCase());
+          {challenge.movies.map((cm, i) => {
+            const found = heldMovies.some(m => m.title.toLowerCase() === cm.title.toLowerCase());
+            const hintShown = challenge.hintsUsed.has(i);
             return (
               <div key={i} className={`g3-challenge-item ${found ? "g3-challenge-found" : ""}`}>
-                {found ? "✓" : "○"} {title}
+                <span>{found ? "✓" : "○"} {cm.title}</span>
+                {!found && hintShown && (
+                  <span className="g3-challenge-hint">Look in: {cm.genre}</span>
+                )}
+                {!found && !hintShown && (
+                  <button className="g3-challenge-hint-btn" onClick={() => {
+                    setChallenge(prev => {
+                      if (!prev) return prev;
+                      const hints = new Set(prev.hintsUsed);
+                      hints.add(i);
+                      return { ...prev, hintsUsed: hints };
+                    });
+                  }}>?</button>
+                )}
               </div>
             );
           })}
@@ -392,23 +433,6 @@ export default function GamePage() {
         {!hasOverlay && heldMovies.length === 0 && <span className="g3-hud-hint">Click to look &bull; WASD to move &bull; Click objects to interact</span>}
         {!hasOverlay && heldMovies.length > 0 && <span className="g3-hud-hint">Take your {heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny at the counter!</span>}
         {hasOverlay && <span className="g3-hud-hint">Press Q or click ✕ to close</span>}
-        {!hasOverlay && !challenge && (
-          <button className="g3-challenge-btn" onClick={async () => {
-            try {
-              const res = await fetch("/api/trending?window=week");
-              const data = await res.json();
-              const movies = (data.movies || []).filter((m: Record<string, unknown>) => m.title);
-              if (movies.length < 3) return;
-              // Pick 3 random unique titles
-              const shuffled = [...movies].sort(() => Math.random() - 0.5);
-              const titles = shuffled.slice(0, 3).map((m: Record<string, unknown>) => m.title as string);
-              setHeldMovies([]);
-              setChallenge({ titles, startTime: Date.now() });
-            } catch { /* ignore */ }
-          }}>
-            🎬 MOVIE NIGHT
-          </button>
-        )}
         <button className="g3-screenshot-btn" onClick={() => {
           const canvas = document.querySelector('canvas');
           if (!canvas) return;

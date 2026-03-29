@@ -52,6 +52,7 @@ export interface TrendingMovie {
   posterUrl: string | null;
   overview: string;
   voteAverage: number;
+  genreIds?: number[];
 }
 
 // ── Film Detail Types ──────────────────────────────────────

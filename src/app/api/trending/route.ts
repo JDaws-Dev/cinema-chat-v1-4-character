@@ -16,6 +16,7 @@ export async function GET(req: Request) {
       posterUrl: posterUrl(m.poster_path as string | null),
       overview: (m.overview as string) || "",
       voteAverage: (m.vote_average as number) || 0,
+      genreIds: (m.genre_ids as number[]) || [],
     }));
 
     return Response.json({ movies });

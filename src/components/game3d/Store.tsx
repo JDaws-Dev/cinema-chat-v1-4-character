@@ -1644,6 +1644,43 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         ))}
       </group>
 
+      {/* ── MOVIE NIGHT CHALLENGE BOARD ─────────────────────── */}
+      <group position={[ROOM_W / 2 - 0.1, 1.5, 0]} rotation={[0, -Math.PI / 2, 0]}
+        userData={{ interactType: "challenge", label: "Start Movie Night Challenge!" }}
+      >
+        {/* Board backing */}
+        <mesh userData={{ interactType: "challenge", label: "Start Movie Night Challenge!" }}>
+          <boxGeometry args={[1.4, 1.0, 0.04]} />
+          <meshStandardMaterial color="#0a0a1a" roughness={0.5} />
+        </mesh>
+        {/* Neon border glow */}
+        <mesh position={[0, 0, 0.01]}>
+          <boxGeometry args={[1.5, 1.1, 0.01]} />
+          <meshStandardMaterial color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.3} roughness={0.5} />
+        </mesh>
+        {/* Inner border */}
+        <mesh position={[0, 0, 0.02]}>
+          <boxGeometry args={[1.35, 0.95, 0.01]} />
+          <meshStandardMaterial color="#0a0a1a" roughness={0.5} />
+        </mesh>
+        {/* Title */}
+        <Text position={[0, 0.25, 0.03]} fontSize={0.1} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+          MOVIE NIGHT
+        </Text>
+        <Text position={[0, 0.1, 0.03]} fontSize={0.07} color="#ff3e7a" anchorX="center" anchorY="middle" font={undefined}>
+          CHALLENGE
+        </Text>
+        {/* Description */}
+        <Text position={[0, -0.08, 0.03]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+          Find 3 movies before time runs out!
+        </Text>
+        <Text position={[0, -0.2, 0.03]} fontSize={0.04} color="rgba(255,215,0,0.7)" anchorX="center" anchorY="middle" font={undefined}>
+          Click here to start
+        </Text>
+        {/* Glow */}
+        <pointLight position={[0, 0, 0.5]} color="#ff3e7a" intensity={1} distance={3} />
+      </group>
+
       {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
 
       {/* Gumball machine near entrance */}
