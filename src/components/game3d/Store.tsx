@@ -178,19 +178,20 @@ const SHELF_COLOR = "#5a3820";
 // ── Shelf layout ─────────────────────────────────────────
 const SHELF_ROWS = [
   // Row 1 — back of store (z = -3)
-  { x: -5.5, z: -3, genre: "HORROR", color: "#dc2626" },
-  { x: -2, z: -3, genre: "SCI-FI", color: "#3b82f6" },
-  { x: 1.5, z: -3, genre: "COMEDY", color: "#f97316" },
+  { x: -5, z: -3, genre: "HORROR", color: "#dc2626" },
+  { x: -1.7, z: -3, genre: "SCI-FI", color: "#3b82f6" },
+  { x: 1.7, z: -3, genre: "COMEDY", color: "#f97316" },
   { x: 5, z: -3, genre: "DRAMA", color: "#6366f1" },
   // Row 2 — middle (z = 0)
-  { x: -5.5, z: 0, genre: "ACTION", color: "#ef4444" },
-  { x: -2, z: 0, genre: "CLASSICS", color: "#ca8a04" },
-  { x: 1.5, z: 0, genre: "FAMILY", color: "#22c55e" },
+  { x: -5, z: 0, genre: "ACTION", color: "#ef4444" },
+  { x: -1.7, z: 0, genre: "CLASSICS", color: "#ca8a04" },
+  { x: 1.7, z: 0, genre: "FAMILY", color: "#22c55e" },
   { x: 5, z: 0, genre: "ROMANCE", color: "#f43f5e" },
   // Row 3 — near front (z = 3)
-  { x: -5.5, z: 3, genre: "THRILLER", color: "#7c3aed" },
-  { x: -2, z: 3, genre: "ANIMATED", color: "#06b6d4" },
-  { x: 1.5, z: 3, genre: "DOCS", color: "#65a30d" },
+  { x: -5, z: 3, genre: "THRILLER", color: "#7c3aed" },
+  { x: -1.7, z: 3, genre: "ANIMATED", color: "#06b6d4" },
+  { x: 1.7, z: 3, genre: "DOCS", color: "#65a30d" },
+  { x: 5, z: 3, genre: "WESTERN", color: "#92400e" },
 ];
 
 function ShelfUnit({ x, z, genre, color, isMobile }: { x: number; z: number; genre: string; color: string; isMobile?: boolean }) {
@@ -1414,24 +1415,45 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
 }
 
 function NeonSign({ isMobile }: { isMobile?: boolean }) {
+  const glowRef = useRef<THREE.PointLight>(null);
+  // Subtle neon flicker
+  useFrame((state) => {
+    if (glowRef.current) {
+      const t = state.clock.elapsedTime;
+      glowRef.current.intensity = 2.5 + Math.sin(t * 3.7) * 0.3 + (Math.sin(t * 23) > 0.97 ? -0.8 : 0);
+    }
+  });
   return (
     <group position={[0, 3.3, -ROOM_D / 2 + 0.15]}>
-      {/* Sign backing */}
+      {/* Sign backing — dark board */}
       <mesh position={[0, 0, -0.02]}>
-        <boxGeometry args={[6, 0.4, 0.04]} />
-        <Mat color="#0a1830" roughness={0.5} />
+        <boxGeometry args={[6.2, 0.5, 0.04]} />
+        <Mat color="#0a0a18" roughness={0.5} />
       </mesh>
-      {/* Text facing into room (+z toward player) */}
+      {/* Gold border frame */}
+      <mesh position={[0, 0, -0.01]}>
+        <boxGeometry args={[6.4, 0.6, 0.02]} />
+        <Mat color="#8a6a10" roughness={0.4} metalness={0.3} />
+      </mesh>
+      {/* Neon text — emissive gold glow */}
       <Text
         position={[0, 0, 0.02]}
-        fontSize={0.2}
+        fontSize={0.22}
         color="#ffd700"
         anchorX="center"
         font={undefined}
       >
         FRIDAY NIGHT VIDEO
+        <meshBasicMaterial color="#ffd700" toneMapped={false} />
       </Text>
-      {!isMobile && <pointLight position={[0, 0, 0.3]} color="#ffd700" intensity={2} distance={5} />}
+      {/* Neon tube glow bar behind text */}
+      <mesh position={[0, 0, 0.005]}>
+        <boxGeometry args={[5.5, 0.28, 0.01]} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.5} transparent opacity={0.3} />
+      </mesh>
+      {!isMobile && <pointLight ref={glowRef} position={[0, 0, 0.5]} color="#ffd700" intensity={2.5} distance={6} />}
+      {!isMobile && <pointLight position={[-2, 0, 0.3]} color="#ffaa00" intensity={1} distance={3} />}
+      {!isMobile && <pointLight position={[2, 0, 0.3]} color="#ffaa00" intensity={1} distance={3} />}
     </group>
   );
 }
@@ -1557,7 +1579,7 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
 const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
   { z: -3, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 DRAMA", colors: ["#dc2626", "#3b82f6", "#f97316", "#6366f1"] },
   { z: 0, label: "ACTION \u2022 CLASSICS \u2022 FAMILY \u2022 ROMANCE", colors: ["#ef4444", "#ca8a04", "#22c55e", "#f43f5e"] },
-  { z: 3, label: "THRILLER \u2022 ANIMATED \u2022 DOCS", colors: ["#7c3aed", "#06b6d4", "#65a30d"] },
+  { z: 3, label: "THRILLER \u2022 ANIMATED \u2022 DOCS \u2022 WESTERN", colors: ["#7c3aed", "#06b6d4", "#65a30d", "#92400e"] },
 ];
 
 function AisleSign({ z, label, colors }: { z: number; label: string; colors: string[] }) {
@@ -1601,6 +1623,82 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
       >
         {label}
       </Text>
+    </group>
+  );
+}
+
+// ── Aisle floor markings (dashed yellow lines between shelf rows) ──
+function AisleFloorMarkings() {
+  const dashCount = 14;
+  const dashWidth = 0.5;
+  const dashDepth = 0.06;
+  const gap = 0.3;
+  const totalWidth = dashCount * (dashWidth + gap) - gap;
+  const startX = -totalWidth / 2;
+
+  return (
+    <>
+      {[-1.5, 1.5].map((z) => (
+        <group key={`floor-line-${z}`} position={[0, 0.005, z]}>
+          {Array.from({ length: dashCount }).map((_, i) => (
+            <mesh key={i} position={[startX + i * (dashWidth + gap) + dashWidth / 2, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[dashWidth, dashDepth]} />
+              <meshBasicMaterial color="#ffd700" transparent opacity={0.6} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </>
+  );
+}
+
+// ── Staff Picks wall shelf (right wall) ──
+function StaffPicksShelf() {
+  const vhsColors = ["#dc2626", "#2563eb", "#059669", "#d97706"];
+  return (
+    <group position={[ROOM_W / 2 - 0.2, 1.2, -1]} rotation={[0, -Math.PI / 2, 0]}>
+      {/* Shelf board */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[1.2, 0.04, 0.22]} />
+        <Mat color="#5a3a1a" roughness={0.7} />
+      </mesh>
+      {/* Back panel mounted to wall */}
+      <mesh position={[0, 0.25, -0.1]}>
+        <boxGeometry args={[1.3, 0.55, 0.03]} />
+        <Mat color="#3a2010" roughness={0.85} />
+      </mesh>
+      {/* "STAFF PICKS" sign */}
+      <mesh position={[0, 0.48, -0.08]}>
+        <boxGeometry args={[0.9, 0.16, 0.02]} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} />
+      </mesh>
+      <Text
+        position={[0, 0.48, -0.065]}
+        fontSize={0.07}
+        color="#0a1830"
+        anchorX="center"
+        anchorY="middle"
+        font={undefined}
+      >
+        STAFF PICKS
+      </Text>
+      {/* VHS tapes on the shelf */}
+      {vhsColors.map((color, i) => {
+        const xOff = -0.36 + i * 0.24;
+        return (
+          <group key={`staff-vhs-${i}`} position={[xOff, 0.17, 0]}>
+            <mesh>
+              <boxGeometry args={[0.16, 0.26, 0.10]} />
+              <Mat color={color} roughness={0.6} />
+            </mesh>
+            {/* Label stripe */}
+            <mesh position={[0, 0, 0.052]}>
+              <planeGeometry args={[0.12, 0.08]} />
+              <meshBasicMaterial color="#ffffff" transparent opacity={0.7} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -1676,13 +1774,20 @@ function FlickeringLight({ position }: { position: [number, number, number] }) {
 function FloorRug() {
   return (
     <group>
-      {/* Main entrance rug */}
+      {/* Main entrance rug — branded with gold border */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.009, 4]}>
+        <planeGeometry args={[3.4, 2.4]} />
+        <Mat color="#ffd700" roughness={0.95} />
+      </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 4]}>
         <planeGeometry args={[3, 2]} />
-        <Mat color="#4a2030" roughness={0.95} />
+        <Mat color="#0a1830" roughness={0.95} />
       </mesh>
+      {/* Store name on rug */}
+      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 4]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+        FRIDAY NIGHT VIDEO
+      </Text>
       {/* Carpet wear paths — darker strips along main aisles */}
-      {/* Center aisle (main walkway) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
         <planeGeometry args={[1.8, ROOM_D - 2]} />
         <Mat color="#222840" roughness={0.98} />
@@ -1695,7 +1800,7 @@ function FloorRug() {
         </mesh>
       ))}
       {/* Path to counter area */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[4, 0.006, 4]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-4, 0.006, 4]}>
         <planeGeometry args={[3, 3]} />
         <Mat color="#252848" roughness={0.98} />
       </mesh>
@@ -2054,6 +2159,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />
       ))}
 
+      {/* Aisle floor markings — dashed yellow lines between shelf rows */}
+      <AisleFloorMarkings />
+
+      {/* Staff Picks wall shelf — right wall */}
+      <StaffPicksShelf />
 
       {/* Counter + Vinny */}
       <Counter />
@@ -2192,13 +2302,37 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[8, 1.2, 0.2]} />
           <meshBasicMaterial color="#0a0a2a" />
         </mesh>
-        {/* Sign border trim */}
+        {/* Sign border trim — double border */}
         <mesh position={[0, 0, 0.11]}>
-          <boxGeometry args={[8.2, 1.3, 0.02]} />
+          <boxGeometry args={[8.3, 1.35, 0.02]} />
           <meshBasicMaterial color="#ffd700" />
         </mesh>
+        <mesh position={[0, 0, 0.115]}>
+          <boxGeometry args={[8.1, 1.15, 0.02]} />
+          <meshBasicMaterial color="#0a0a2a" />
+        </mesh>
+        <mesh position={[0, 0, 0.12]}>
+          <boxGeometry args={[7.9, 1.05, 0.02]} />
+          <meshBasicMaterial color="#ffd700" />
+        </mesh>
+        {/* VHS tape icon — left of text */}
+        <group position={[-3.5, 0, 0.13]}>
+          <mesh>
+            <boxGeometry args={[0.5, 0.35, 0.02]} />
+            <meshBasicMaterial color="#ffd700" toneMapped={false} />
+          </mesh>
+          {/* Tape reels */}
+          <mesh position={[-0.1, 0, 0.01]}>
+            <circleGeometry args={[0.08, 8]} />
+            <meshBasicMaterial color="#0a0a2a" />
+          </mesh>
+          <mesh position={[0.1, 0, 0.01]}>
+            <circleGeometry args={[0.08, 8]} />
+            <meshBasicMaterial color="#0a0a2a" />
+          </mesh>
+        </group>
         <Text
-          position={[0, 0.05, 0.12]}
+          position={[0, 0.05, 0.14]}
           fontSize={0.55}
           color="#ffd700"
           anchorX="center"
@@ -2208,6 +2342,21 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           FRIDAY NIGHT VIDEO
           <meshBasicMaterial color="#ffd700" toneMapped={false} />
         </Text>
+        {/* Tagline below main text */}
+        <Text
+          position={[0, -0.3, 0.14]}
+          fontSize={0.12}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+        >
+          YOUR NEIGHBORHOOD VIDEO STORE
+          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+        </Text>
+        {/* Sign illumination — gooseneck lights */}
+        {!isMobile && <pointLight position={[-2, 1, 0.5]} color="#ffd700" intensity={2} distance={4} />}
+        {!isMobile && <pointLight position={[2, 1, 0.5]} color="#ffd700" intensity={2} distance={4} />}
       </group>
 
       {/* ── Strip mall walls extending left and right ──────── */}
@@ -2884,8 +3033,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Mat color="#3a3a3a" roughness={0.4} metalness={0.6} />
       </mesh>
 
-      {/* ── Return window (outside, right of entrance) ──────── */}
-      <group position={[3, 0, ROOM_D / 2 + 0.1]}>
+      {/* ── Return window (outside, left of entrance — behind counter) ──────── */}
+      <group position={[-8, 0, ROOM_D / 2 + 0.1]}>
         {/* Return counter structure */}
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[1.5, 1.0, 0.6]} />
@@ -2918,30 +3067,59 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         ))}
       </group>
 
-      {/* Candy/snack rack near counter */}
-      <mesh position={[-4, 0.7, 5]}>
-        <boxGeometry args={[0.8, 1.4, 0.4]} />
-        <Mat color="#3a3a3a" roughness={0.7} />
-      </mesh>
-      {/* Colorful candy boxes on rack */}
-      {[[-0.2, 0.3], [0, 0.3], [0.2, 0.3], [-0.15, 0.1], [0.1, 0.1]].map(([dx, dy], i) => {
-        const rackSnacks = [
-          { name: "Twix", emoji: "\ud83c\udf6b" },
-          { name: "Snickers", emoji: "\ud83e\udd5c" },
-          { name: "Kit Kat", emoji: "\ud83c\udf6b" },
-          { name: "Starburst", emoji: "\u2b50" },
-          { name: "Jolly Ranchers", emoji: "\ud83c\udf6c" },
-        ];
-        const snack = rackSnacks[i];
-        return (
-        <group key={`candy${i}`} position={[-4 + dx, 0.7 + dy, 4.78]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
-          <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
-            <boxGeometry args={[0.12, 0.15, 0.02]} />
-            <Mat color={["#ef4444","#3b82f6","#f59e0b","#22c55e","#a855f7"][i]} roughness={0.5} />
+      {/* ── Return chute (interior, behind counter — wall-mounted) ──────── */}
+      <group position={[-8, 0, 6.5]}>
+        {/* Chute trough — angled ramp from wall slot down to bin */}
+        <mesh position={[0, 0.7, 0]} rotation={[0.35, 0, 0]}>
+          <boxGeometry args={[0.9, 0.04, 0.6]} />
+          <Mat color="#2a2a2a" roughness={0.8} />
+        </mesh>
+        {/* Chute side rails */}
+        <mesh position={[-0.45, 0.7, 0]} rotation={[0.35, 0, 0]}>
+          <boxGeometry args={[0.04, 0.12, 0.6]} />
+          <Mat color="#1a1a1a" roughness={0.9} />
+        </mesh>
+        <mesh position={[0.45, 0.7, 0]} rotation={[0.35, 0, 0]}>
+          <boxGeometry args={[0.04, 0.12, 0.6]} />
+          <Mat color="#1a1a1a" roughness={0.9} />
+        </mesh>
+        {/* Catch bin below chute */}
+        <mesh position={[0, 0.25, 0.2]}>
+          <boxGeometry args={[1.0, 0.5, 0.5]} />
+          <Mat color="#1a1a2a" roughness={0.9} />
+        </mesh>
+        {/* Tape in the bin */}
+        <mesh position={[0.1, 0.45, 0.2]} rotation={[0.05, 0.2, 0]}>
+          <boxGeometry args={[0.18, 0.04, 0.10]} />
+          <Mat color="#4a1a3a" roughness={0.6} />
+        </mesh>
+      </group>
+
+      {/* ── Recent Returns display on counter top ──────── */}
+      <group position={[-4, 1.08, 5.2]}>
+        {/* Small sign */}
+        <mesh position={[0, 0.2, 0]}>
+          <boxGeometry args={[1.6, 0.25, 0.03]} />
+          <meshBasicMaterial color="#ffd700" />
+        </mesh>
+        <Text position={[0, 0.2, 0.02]} fontSize={0.055} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          RECENT RETURNS — Browse before we shelve!
+        </Text>
+        {/* Returned tapes laid flat on counter */}
+        {[
+          { dx: -0.5, dz: 0.08, rot: 0.05, color: "#6a1a3a" },
+          { dx: -0.15, dz: 0.06, rot: -0.08, color: "#1a3a6a" },
+          { dx: 0.2, dz: 0.1, rot: 0.12, color: "#3a6a1a" },
+          { dx: 0.5, dz: 0.04, rot: -0.03, color: "#5a3a1a" },
+        ].map((t, i) => (
+          <mesh key={`recent-${i}`} position={[t.dx, 0.02, t.dz]} rotation={[0, t.rot, 0]}>
+            <boxGeometry args={[0.19, 0.03, 0.12]} />
+            <Mat color={t.color} roughness={0.6} />
           </mesh>
-        </group>
-        );
-      })}
+        ))}
+      </group>
+
+      {/* Candy rack removed — counter already has built-in candy shelves */}
 
       {/* Security pillars at entrance */}
       <mesh position={[-1.2, 0.75, ROOM_D / 2 - 0.5]}>
@@ -3048,6 +3226,25 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Security dome mirrors in ceiling corners */}
       <SecurityDome position={[-ROOM_W / 2 + 0.5, ROOM_H - 0.05, -ROOM_D / 2 + 0.5]} />
       <SecurityDome position={[ROOM_W / 2 - 0.5, ROOM_H - 0.05, ROOM_D / 2 - 0.5]} />
+
+      {/* AC vent on ceiling */}
+      <mesh position={[3, ROOM_H - 0.02, -2]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.8, 0.8]} />
+        <Mat color="#c8c0b0" roughness={0.6} />
+      </mesh>
+      {/* Vent slats */}
+      {[-0.25, -0.1, 0.05, 0.2].map((dy, i) => (
+        <mesh key={`vent-${i}`} position={[3, ROOM_H - 0.018, -2 + dy]}>
+          <boxGeometry args={[0.7, 0.004, 0.02]} />
+          <Mat color="#aaa89a" roughness={0.5} />
+        </mesh>
+      ))}
+
+      {/* Water stain on ceiling tile — adds character */}
+      <mesh position={[-6, ROOM_H - 0.015, 2]} rotation={[Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.4, 12]} />
+        <Mat color="#c0b090" roughness={0.95} transparent opacity={0.4} />
+      </mesh>
 
       {/* Neon accent strips under shelf top surfaces — genre colored glow */}
       {SHELF_ROWS.map((s, i) => (

@@ -62,8 +62,12 @@ const elements = [
   { x: -1.2, z: 6.5, w: 0.15, d: 0.08, label: "PILLAR", color: "#e8e8e0" },
   { x: 1.2, z: 6.5, w: 0.15, d: 0.08, label: "PILLAR", color: "#e8e8e0" },
 
-  // Return window (outside)
-  { x: 3, z: 7.1, w: 1.5, d: 0.6, label: "VIDEO RETURN", color: "#2a4a7a" },
+  // Return window (outside, left — behind counter)
+  { x: -8, z: 7.1, w: 1.5, d: 0.6, label: "VIDEO RETURN", color: "#2a4a7a" },
+  // Return chute (interior, behind counter)
+  { x: -8, z: 6.5, w: 1.0, d: 0.5, label: "RETURN CHUTE", color: "#2a2a2a" },
+  // Recent returns on counter
+  { x: -4, z: 5.2, w: 1.6, d: 0.3, label: "RECENT RETURNS", color: "#ffd700" },
 
   // Challenge board (right wall, mid-store)
   { x: 9.7, z: 2, w: 0.04, d: 1.4, label: "CHALLENGE", color: "#ff3e7a" },
