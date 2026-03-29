@@ -2213,28 +2213,48 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         {!isMobile && <pointLight position={[0, 0.3, 0.2]} color="#ffd700" intensity={0.5} distance={2} />}
       </group>
 
-      {/* "OPEN" neon near entrance */}
+      {/* "OPEN" neon sign near entrance — classic hanging sign */}
       <group position={[-4, 2.5, ROOM_D / 2 - 0.1]} rotation={[0, Math.PI, 0]}>
-        <Text fontSize={0.2} color="#ff3e7a" anchorX="center" font={undefined}>
+        {/* Sign backing — dark */}
+        <mesh>
+          <boxGeometry args={[1.0, 0.45, 0.03]} />
+          <Mat color="#0a0a18" roughness={0.5} />
+        </mesh>
+        {/* Neon border */}
+        <mesh position={[0, 0, 0.01]}>
+          <boxGeometry args={[1.1, 0.55, 0.01]} />
+          <Mat color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.2} transparent opacity={0.5} />
+        </mesh>
+        <Text position={[0, 0, 0.02]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>
           OPEN
+          <meshBasicMaterial color="#ff3e7a" toneMapped={false} />
         </Text>
         {!isMobile && <pointLight position={[0, 0, 0.3]} color="#ff3e7a" intensity={1.5} distance={4} />}
       </group>
 
-      {/* Store hours sign near door */}
+      {/* Store hours sign near door — white with blue border */}
       <group position={[4, 2.0, ROOM_D / 2 - 0.1]} rotation={[0, Math.PI, 0]}>
+        {/* Blue border */}
+        <mesh position={[0, 0, -0.005]}>
+          <boxGeometry args={[1.3, 0.9, 0.03]} />
+          <Mat color="#1a3a6a" roughness={0.5} />
+        </mesh>
+        {/* White background */}
         <mesh>
           <boxGeometry args={[1.2, 0.8, 0.03]} />
-          <Mat color="#0a1a3a" roughness={0.6} />
+          <Mat color="#f0f0e8" roughness={0.7} />
         </mesh>
-        <Text position={[0, 0.2, 0.02]} fontSize={0.06} color="#ffffff" anchorX="center" font={undefined}>
+        <Text position={[0, 0.25, 0.02]} fontSize={0.08} color="#1a3a6a" anchorX="center" font={undefined}>
           STORE HOURS
         </Text>
-        <Text position={[0, -0.05, 0.02]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
-          MON-SAT 10AM-11PM
+        <Text position={[0, 0.05, 0.02]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>
+          MON-SAT 10AM - 11PM
         </Text>
-        <Text position={[0, -0.2, 0.02]} fontSize={0.05} color="#aaaaaa" anchorX="center" font={undefined}>
-          SUN 11AM-9PM
+        <Text position={[0, -0.1, 0.02]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>
+          SUN 11AM - 9PM
+        </Text>
+        <Text position={[0, -0.28, 0.02]} fontSize={0.035} color="#cc3333" anchorX="center" font={undefined}>
+          OPEN LATE FRIDAYS!
         </Text>
       </group>
 
@@ -3321,7 +3341,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       ))}
 
       {/* VHS rewinder on counter */}
-      <group position={[8.5, 1.08, 5.2]}>
+      <group position={[-8, 1.08, 5.5]}>
         {/* Rewinder body */}
         <mesh>
           <boxGeometry args={[0.25, 0.08, 0.18]} />
