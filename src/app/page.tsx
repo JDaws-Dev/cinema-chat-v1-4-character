@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
 const SAMPLE_QUOTES = [
@@ -29,6 +30,7 @@ const SAMPLE_QUOTES = [
 ];
 
 export default function LandingPage() {
+  redirect("/game");
   const quote = SAMPLE_QUOTES[Math.floor(Math.random() * SAMPLE_QUOTES.length)];
 
   return (
