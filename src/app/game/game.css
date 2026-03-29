@@ -793,6 +793,86 @@
   margin-top: 8px;
 }
 
+/* ── Challenge Selection Overlay ─────────────────────────── */
+.g3-challenge-select {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.g3-challenge-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 215, 0, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+}
+
+.g3-challenge-option:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.1);
+}
+
+.g3-challenge-option:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.g3-challenge-option-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.g3-challenge-option-locked:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: none;
+  box-shadow: none;
+}
+
+.g3-challenge-option-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffd700;
+  letter-spacing: 0.03em;
+}
+
+.g3-challenge-option-desc {
+  font-size: 0.8rem;
+  color: rgba(232, 226, 214, 0.6);
+  line-height: 1.4;
+}
+
+.g3-challenge-option-stats {
+  font-size: 0.7rem;
+  color: rgba(212, 168, 83, 0.6);
+  margin-top: 2px;
+}
+
+.g3-challenge-option-lock {
+  font-size: 0.7rem;
+  color: rgba(255, 62, 122, 0.7);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.g3-challenge-option-lock::before {
+  content: "\1F512";
+  font-size: 0.65rem;
+}
+
 /* ── Mobile responsive ───────────────────────────────────── */
 @media (max-width: 768px) {
   /* Bottom slide-up panels: full screen on mobile */

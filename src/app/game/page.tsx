@@ -104,6 +104,22 @@ export default function GamePage() {
   const handleInteract = useCallback((type: string, data?: string) => {
     if (overlay !== "none") return;
 
+    if (type === "snack" && data) {
+      // Pick up candy/snack item — don't exit pointer lock, stay in game
+      try {
+        const snack = JSON.parse(data);
+        setHeldMovies(prev => {
+          if (prev.some(m => m.title === `${snack.emoji} ${snack.name}`)) return prev;
+          return [...prev, { id: Date.now(), title: `${snack.emoji} ${snack.name}`, posterUrl: "" }];
+        });
+        setPickupFlash(true);
+        setPickupTitle(`${snack.emoji} ${snack.name}`);
+        setTimeout(() => setPickupFlash(false), 800);
+        setTimeout(() => setPickupTitle(null), 1500);
+      } catch { /* ignore parse errors */ }
+      return;
+    }
+
     if (type === "vhs" && data) {
       // Pick up VHS tape — don't exit pointer lock, stay in game
       try {

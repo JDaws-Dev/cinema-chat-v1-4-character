@@ -4,6 +4,7 @@ import { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
 import { Text, useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import { hasProp, PROPS } from "@/lib/game-state";
 
 // ── Poster texture loader ────────────────────────────────
 const GENRE_TMDB_IDS: Record<string, string> = {
@@ -392,11 +393,32 @@ function Counter() {
         </mesh>
       ))}
       {/* Candy boxes — rows of colorful packages */}
-      {[-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5].map((dx, i) => (
+      {[-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5].map((dx, i) => {
+        const topSnacks = [
+          { name: "Red Vines", emoji: "\ud83c\udf6c" },
+          { name: "Butterfinger", emoji: "\ud83c\udf6b" },
+          { name: "Skittles", emoji: "\ud83c\udf08" },
+          { name: "Junior Mints", emoji: "\ud83c\udf43" },
+          { name: "Twizzlers", emoji: "\ud83e\udee2" },
+          { name: "Sour Patch Kids", emoji: "\ud83d\ude1d" },
+          { name: "M&Ms", emoji: "\ud83d\udfe4" },
+        ];
+        const bottomSnacks = [
+          { name: "Milk Duds", emoji: "\ud83d\udfe1" },
+          { name: "Nerds", emoji: "\ud83e\udd13" },
+          { name: "Gummy Bears", emoji: "\ud83d\udc3b" },
+          { name: "Hot Tamales", emoji: "\ud83c\udf36\ufe0f" },
+          { name: "Swedish Fish", emoji: "\ud83d\udc1f" },
+          { name: "Reese's Pieces", emoji: "\ud83e\udd5c" },
+          { name: "Raisinets", emoji: "\ud83c\udf47" },
+        ];
+        const topSnack = topSnacks[i];
+        const bottomSnack = bottomSnacks[i];
+        return (
         <group key={`candy-row-${i}`}>
           {/* Top shelf candy */}
-          <group position={[dx, 0.72, -0.58]}>
-            <mesh>
+          <group position={[dx, 0.72, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
+            <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
               <boxGeometry args={[0.15, 0.18, 0.08]} />
               <meshStandardMaterial color={["#ef4444","#f59e0b","#3b82f6","#22c55e","#ec4899","#a855f7","#f97316"][i]} roughness={0.5} />
             </mesh>
@@ -407,8 +429,8 @@ function Counter() {
             </mesh>
           </group>
           {/* Bottom shelf candy */}
-          <group position={[dx, 0.42, -0.58]}>
-            <mesh>
+          <group position={[dx, 0.42, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
+            <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
               <boxGeometry args={[0.15, 0.15, 0.09]} />
               <meshStandardMaterial color={["#f97316","#ec4899","#22c55e","#ef4444","#3b82f6","#f59e0b","#a855f7"][i]} roughness={0.5} />
             </mesh>
@@ -419,7 +441,8 @@ function Counter() {
             </mesh>
           </group>
         </group>
-      ))}
+        );
+      })}
       {/* "CANDY & SNACKS" label */}
       <Text position={[0, 0.88, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
         CANDY & SNACKS
@@ -447,9 +470,17 @@ function Counter() {
       </Text>
 
       {/* Snack display on counter */}
-      {[1.0, 1.3, 1.6, 1.9].map((dx, i) => (
-        <group key={`snk${i}`} position={[dx, 1.15, 0.2]}>
-          <mesh>
+      {[1.0, 1.3, 1.6, 1.9].map((dx, i) => {
+        const counterSnacks = [
+          { name: "Popcorn", emoji: "\ud83c\udf7f" },
+          { name: "Soda", emoji: "\ud83e\udd64" },
+          { name: "Nachos", emoji: "\ud83e\uddc0" },
+          { name: "Cookie", emoji: "\ud83c\udf6a" },
+        ];
+        const snack = counterSnacks[i];
+        return (
+        <group key={`snk${i}`} position={[dx, 1.15, 0.2]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
+          <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
             <boxGeometry args={[0.12, 0.18, 0.06]} />
             <meshStandardMaterial color={["#ef4444", "#3b82f6", "#f59e0b", "#22c55e"][i]} roughness={0.5} />
           </mesh>
@@ -459,7 +490,8 @@ function Counter() {
             <meshBasicMaterial color="#ffffff" />
           </mesh>
         </group>
-      ))}
+        );
+      })}
 
       {/* Return bin */}
       <mesh position={[2.3, 1.15, -0.2]}>
@@ -1142,6 +1174,156 @@ function Baseboard({ pos, rot, width }: { pos: [number, number, number]; rot: [n
   );
 }
 
+// ── Trophy Shelf ─────────────────────────────────────────
+const RARITY_COLORS: Record<string, string> = {
+  legendary: "#ffd700",
+  rare: "#a855f7",
+  uncommon: "#06b6d4",
+};
+
+function TrophyShelf() {
+  const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const checkProps = () => {
+      const newSet = new Set<string>();
+      for (const p of PROPS) {
+        if (hasProp(p.id)) newSet.add(p.id);
+      }
+      setUnlocked(newSet);
+    };
+    checkProps();
+    const iv = setInterval(checkProps, 5000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const COL_SPACING = 0.4;
+  const TIER_YS = [0.3, 0.8, 1.3];
+
+  return (
+    <group position={[9, 0, -ROOM_D / 2 + 0.1]} userData={{ interactType: "trophy", label: "View Collection" }}>
+      {/* Shelf unit — back panel */}
+      <mesh position={[0, 0.85, -0.06]}>
+        <boxGeometry args={[2.5, 1.7, 0.04]} />
+        <meshStandardMaterial color="#3a2010" roughness={0.85} />
+      </mesh>
+
+      {/* Three shelf boards */}
+      {TIER_YS.map((y, i) => (
+        <mesh key={`shelf-${i}`} position={[0, y - 0.08, 0]}>
+          <boxGeometry args={[2.5, 0.04, 0.25]} />
+          <meshStandardMaterial color="#5a3a1a" roughness={0.7} />
+        </mesh>
+      ))}
+
+      {/* Top cap board */}
+      <mesh position={[0, 1.72, 0]}>
+        <boxGeometry args={[2.5, 0.04, 0.25]} />
+        <meshStandardMaterial color="#5a3a1a" roughness={0.7} />
+      </mesh>
+
+      {/* Side panels */}
+      {[-1.25, 1.25].map((x, i) => (
+        <mesh key={`side-${i}`} position={[x, 0.85, 0]}>
+          <boxGeometry args={[0.04, 1.7, 0.25]} />
+          <meshStandardMaterial color="#4a2a14" roughness={0.8} />
+        </mesh>
+      ))}
+
+      {/* "COLLECTION" sign on top */}
+      <group position={[0, 1.88, 0]}>
+        <mesh>
+          <boxGeometry args={[1.6, 0.22, 0.04]} />
+          <meshStandardMaterial color="#1a1a2e" roughness={0.6} />
+        </mesh>
+        <Text
+          position={[0, 0, 0.025]}
+          fontSize={0.1}
+          color="#ffd700"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+        >
+          COLLECTION
+        </Text>
+      </group>
+
+      {/* Prop slots — 5 columns x 3 rows */}
+      {PROPS.map((prop, idx) => {
+        const col = idx % 5;
+        const row = Math.floor(idx / 5);
+        const x = (col - 2) * COL_SPACING;
+        const y = TIER_YS[row];
+        const isUnlocked = unlocked.has(prop.id);
+
+        return (
+          <group key={prop.id} position={[x, y, 0]}>
+            {isUnlocked ? (
+              <>
+                {/* Colored pedestal */}
+                <mesh position={[0, 0, 0]}>
+                  <boxGeometry args={[0.18, 0.06, 0.18]} />
+                  <meshStandardMaterial
+                    color={RARITY_COLORS[prop.rarity] || "#888888"}
+                    emissive={RARITY_COLORS[prop.rarity] || "#888888"}
+                    emissiveIntensity={0.15}
+                    roughness={0.4}
+                    metalness={0.3}
+                  />
+                </mesh>
+                {/* Emoji label */}
+                <Text
+                  position={[0, 0.14, 0.02]}
+                  fontSize={0.15}
+                  anchorX="center"
+                  anchorY="middle"
+                  font={undefined}
+                >
+                  {prop.emoji}
+                </Text>
+                {/* Prop name */}
+                <Text
+                  position={[0, -0.06, 0.02]}
+                  fontSize={0.04}
+                  color="#cccccc"
+                  anchorX="center"
+                  anchorY="middle"
+                  font={undefined}
+                  maxWidth={0.35}
+                >
+                  {prop.name}
+                </Text>
+              </>
+            ) : (
+              <>
+                {/* Locked dark box */}
+                <mesh position={[0, 0.075, 0]}>
+                  <boxGeometry args={[0.15, 0.15, 0.15]} />
+                  <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
+                </mesh>
+                {/* Question mark */}
+                <Text
+                  position={[0, 0.075, 0.08]}
+                  fontSize={0.08}
+                  color="#555555"
+                  anchorX="center"
+                  anchorY="middle"
+                  font={undefined}
+                >
+                  ?
+                </Text>
+              </>
+            )}
+          </group>
+        );
+      })}
+
+      {/* Subtle shelf light */}
+      <pointLight position={[0, 1.6, 0.3]} color="#ffeedd" intensity={0.5} distance={3} />
+    </group>
+  );
+}
+
 export function Store({ isMobile }: { isMobile?: boolean }) {
   return (
     <group>
@@ -1565,12 +1747,24 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <meshStandardMaterial color="#3a3a3a" roughness={0.7} />
       </mesh>
       {/* Colorful candy boxes on rack */}
-      {[[-0.2, 0.3], [0, 0.3], [0.2, 0.3], [-0.15, 0.1], [0.1, 0.1]].map(([dx, dy], i) => (
-        <mesh key={`candy${i}`} position={[6 + dx, 0.7 + dy, 4.78]}>
-          <boxGeometry args={[0.12, 0.15, 0.02]} />
-          <meshStandardMaterial color={["#ef4444","#3b82f6","#f59e0b","#22c55e","#a855f7"][i]} roughness={0.5} />
-        </mesh>
-      ))}
+      {[[-0.2, 0.3], [0, 0.3], [0.2, 0.3], [-0.15, 0.1], [0.1, 0.1]].map(([dx, dy], i) => {
+        const rackSnacks = [
+          { name: "Twix", emoji: "\ud83c\udf6b" },
+          { name: "Snickers", emoji: "\ud83e\udd5c" },
+          { name: "Kit Kat", emoji: "\ud83c\udf6b" },
+          { name: "Starburst", emoji: "\u2b50" },
+          { name: "Jolly Ranchers", emoji: "\ud83c\udf6c" },
+        ];
+        const snack = rackSnacks[i];
+        return (
+        <group key={`candy${i}`} position={[6 + dx, 0.7 + dy, 4.78]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
+          <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
+            <boxGeometry args={[0.12, 0.15, 0.02]} />
+            <meshStandardMaterial color={["#ef4444","#3b82f6","#f59e0b","#22c55e","#a855f7"][i]} roughness={0.5} />
+          </mesh>
+        </group>
+        );
+      })}
 
       {/* Security pillars at entrance */}
       <mesh position={[-1.2, 0.75, ROOM_D / 2 - 0.5]}>
@@ -1663,10 +1857,10 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
 
       {/* ── MOVIE NIGHT CHALLENGE BOARD ─────────────────────── */}
       <group position={[ROOM_W / 2 - 0.1, 1.5, 0]} rotation={[0, -Math.PI / 2, 0]}
-        userData={{ interactType: "challenge", label: "Start Movie Night Challenge!" }}
+        userData={{ interactType: "challenge", label: "Challenge Board" }}
       >
         {/* Board backing */}
-        <mesh userData={{ interactType: "challenge", label: "Start Movie Night Challenge!" }}>
+        <mesh userData={{ interactType: "challenge", label: "Challenge Board" }}>
           <boxGeometry args={[1.4, 1.0, 0.04]} />
           <meshStandardMaterial color="#0a0a1a" roughness={0.5} />
         </mesh>
@@ -1689,14 +1883,17 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </Text>
         {/* Description */}
         <Text position={[0, -0.08, 0.03]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
-          Find 3 movies before time runs out!
+          Choose your challenge!
         </Text>
         <Text position={[0, -0.2, 0.03]} fontSize={0.04} color="rgba(255,215,0,0.7)" anchorX="center" anchorY="middle" font={undefined}>
-          Click here to start
+          Click to open
         </Text>
         {/* Glow */}
         <pointLight position={[0, 0, 0.5]} color="#ff3e7a" intensity={1} distance={3} />
       </group>
+
+      {/* ── TROPHY SHELF ────────────────────────────────────── */}
+      <TrophyShelf />
 
       {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
 
