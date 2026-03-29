@@ -175,6 +175,28 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay, closeOverlay]);
 
+  // C to take screenshot
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
+      if (e.key === "c" || e.key === "C") {
+        const canvas = document.querySelector("canvas");
+        if (!canvas) return;
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `fnv-${Date.now()}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   // ── Splash ─────────────────────────────────────────────
   if (!started) {
     return (
