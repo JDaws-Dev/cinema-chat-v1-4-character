@@ -674,21 +674,73 @@ function VinnyCharacter() {
   );
 }
 
+// Aisle waypoints NPCs can walk between (x, z) — stays between shelf rows
+const NPC_WAYPOINTS: [number, number][] = [
+  [-4, -5],   // back-left
+  [4, -5],    // back-right
+  [4, -1.5],  // mid-right (between row 1 & 2)
+  [-4, -1.5], // mid-left
+  [-4, 1.5],  // mid-left-2 (between row 2 & 3)
+  [4, 1.5],   // mid-right-2
+  [4, 4.5],   // front-right
+  [-4, 4.5],  // front-left
+];
+
 function NPCCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
 }) {
   const ref = useRef<THREE.Group>(null);
-  const offset = useMemo(() => Math.random() * Math.PI * 2, []);
+  const speed = 0.8; // units per second
+  const startIdx = useMemo(() => {
+    // Pick nearest waypoint as starting index
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < NPC_WAYPOINTS.length; i++) {
+      const dx = NPC_WAYPOINTS[i][0] - startPos[0];
+      const dz = NPC_WAYPOINTS[i][1] - startPos[2];
+      const d = dx * dx + dz * dz;
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    return best;
+  }, [startPos]);
+  const waypointIdx = useRef(startIdx);
+  const direction = useRef(useMemo(() => (Math.random() > 0.5 ? 1 : -1), []));
+  const waitTimer = useRef(0);
+  const waitDuration = useRef(0);
 
-  useFrame((state) => {
-    if (ref.current) {
-      const t = state.clock.elapsedTime + offset;
-      ref.current.position.x = startPos[0] + Math.sin(t * 0.25) * 2.5;
-      ref.current.position.z = startPos[2] + Math.cos(t * 0.18) * 1.8;
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    const dt = Math.min(delta, 0.1); // clamp large deltas
+    const t = state.clock.elapsedTime;
+
+    // If waiting at a waypoint, count down
+    if (waitTimer.current > 0) {
+      waitTimer.current -= dt;
+      // Still bob slightly while waiting
+      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
+      return;
+    }
+
+    const target = NPC_WAYPOINTS[waypointIdx.current];
+    const dx = target[0] - ref.current.position.x;
+    const dz = target[1] - ref.current.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 0.3) {
+      // Arrived at waypoint — pause briefly, then advance
+      waitTimer.current = 0.5 + Math.random() * 0.5;
+      waitDuration.current = waitTimer.current;
+      waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
+    } else {
+      // Move toward target
+      const nx = dx / dist;
+      const nz = dz / dist;
+      ref.current.position.x += nx * speed * dt;
+      ref.current.position.z += nz * speed * dt;
       // Walk bob
       ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
       // Face direction of movement
-      ref.current.rotation.y = Math.atan2(Math.cos(t * 0.25), -Math.sin(t * 0.18));
+      ref.current.rotation.y = Math.atan2(nx, nz);
     }
   });
 
@@ -1515,10 +1567,10 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <VinnyCharacter />
 
       {/* NPCs — reduce to 2 on mobile for performance */}
-      <NPCCustomer startPos={[-4, 0, -1.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
-      <NPCCustomer startPos={[3, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
-      {!isMobile && <NPCCustomer startPos={[-1, 0, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
-      {!isMobile && <NPCCustomer startPos={[6, 0, -2]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
+      <NPCCustomer startPos={[-4, 0, -5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" />
+      <NPCCustomer startPos={[4, 0, 1.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" />
+      {!isMobile && <NPCCustomer startPos={[-4, 0, 4.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" />}
+      {!isMobile && <NPCCustomer startPos={[4, 0, -1.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" />}
 
       {/* New Releases wall display */}
       <NewReleasesWall />

@@ -873,6 +873,75 @@
   font-size: 0.65rem;
 }
 
+/* ── Trophy Collection Grid ──────────────────────────────── */
+.g3-trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.g3-trophy-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 10px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.g3-trophy-owned {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.g3-trophy-locked {
+  opacity: 0.4;
+}
+
+.g3-trophy-emoji {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+}
+
+.g3-trophy-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e8e2d6;
+  margin-bottom: 2px;
+}
+
+.g3-trophy-movie {
+  font-size: 0.6rem;
+  color: rgba(232, 226, 214, 0.5);
+  margin-bottom: 6px;
+}
+
+.g3-trophy-rarity {
+  display: inline-block;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.g3-trophy-rarity-legendary {
+  color: #000;
+  background: #ffd700;
+}
+
+.g3-trophy-rarity-rare {
+  color: #fff;
+  background: #a855f7;
+}
+
+.g3-trophy-rarity-uncommon {
+  color: #fff;
+  background: #06b6d4;
+}
+
 /* ── Mobile responsive ───────────────────────────────────── */
 @media (max-width: 768px) {
   /* Bottom slide-up panels: full screen on mobile */

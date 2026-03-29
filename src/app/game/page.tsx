@@ -14,8 +14,9 @@ import {
 import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
-import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, type MovieProp } from "@/lib/game-state";
+import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp } from "@/lib/game-state";
 import { playRandomLine } from "@/lib/audio";
+import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -37,7 +38,7 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select";
+type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy";
 
 export default function GamePage() {
   const [started, setStarted] = useState(false);
@@ -81,12 +82,17 @@ export default function GamePage() {
 
   // Movie Night Challenge state
   type ChallengeMovie = { title: string; genre: string };
-  type ChallengeType = "movie_night" | "speed_run";
+  type ChallengeType = "movie_night" | "speed_run" | "vinnys_mystery";
   const [challenge, setChallenge] = useState<{ movies: ChallengeMovie[]; startTime: number; hintsUsed: Set<number>; type: ChallengeType; timeLimit?: number } | null>(null);
   const [challengeComplete, setChallengeComplete] = useState<number | null>(null); // elapsed seconds
   const [challengeTimer, setChallengeTimer] = useState(0);
   const [propsCount, setPropsCount] = useState({ unlocked: 0, total: 15 });
   const [rewardProp, setRewardProp] = useState<MovieProp | null>(null);
+
+  // Vinny's Mystery state
+  const [mysteryClue, setMysteryClue] = useState<MovieClue | null>(null);
+  const [mysteryHintsUsed, setMysteryHintsUsed] = useState(0);
+  const [mysteryWrongMsg, setMysteryWrongMsg] = useState<string | null>(null);
 
   // Load props count on mount
   useEffect(() => { setPropsCount(getPropsCount()); }, []);
@@ -158,6 +164,31 @@ export default function GamePage() {
     document.exitPointerLock();
 
     if (type === "vinny") {
+      // If in a mystery and have a held movie, check it
+      if (mysteryClue && heldMovies.length > 0) {
+        const match = heldMovies.some(m =>
+          m.title.toLowerCase().includes(mysteryClue.movieTitle.toLowerCase()) ||
+          mysteryClue.movieTitle.toLowerCase().includes(m.title.toLowerCase())
+        );
+        if (match) {
+          // Correct! Clear mystery and reward
+          setMysteryClue(null);
+          setMysteryWrongMsg(null);
+          setHeldMovies([]);
+          recordChallengeCompletion("vinnys_mystery", 0);
+          const state = loadGameState();
+          setPropsCount(getPropsCount());
+          setChallengeComplete(0); // 0 signals mystery win (no timer)
+          playRandomLine("challenge_complete");
+          document.exitPointerLock();
+          return;
+        } else {
+          // Wrong movie
+          setMysteryWrongMsg("That's not it... keep looking!");
+          setTimeout(() => setMysteryWrongMsg(null), 2500);
+          return;
+        }
+      }
       // If in a challenge and have all movies, complete it
       if (challenge && heldMovies.length > 0) {
         const found = challenge.movies.filter(cm =>
@@ -219,13 +250,15 @@ export default function GamePage() {
       if (challenge) return; // already running
       setOverlay("challenge_select");
       return;
+    } else if (type === "trophy") {
+      setOverlay("trophy");
     } else if (type === "shelf") {
       setShelfGenre(data || "horror");
       setOverlay("shelf");
     } else if (type === "tv") {
       startPuzzle();
     }
-  }, [overlay, heldMovies, challenge]);
+  }, [overlay, heldMovies, challenge, mysteryClue]);
 
   // ── Start a challenge (movie_night or speed_run) ──────
   const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
@@ -262,6 +295,22 @@ export default function GamePage() {
     });
     setOverlay("none");
   }, [challenge]);
+
+  // ── Start Vinny's Mystery ──────────────────────────────
+  const startMystery = useCallback(() => {
+    const shelfMovies = getShelfMovies();
+    const available = MOVIE_CLUES.filter(c =>
+      shelfMovies.some(m => m.title.toLowerCase().includes(c.movieTitle.toLowerCase()))
+    );
+    if (available.length === 0) return;
+    const clue = available[Math.floor(Math.random() * available.length)];
+    setMysteryClue(clue);
+    setMysteryHintsUsed(0);
+    setMysteryWrongMsg(null);
+    setHeldMovies([]);
+    setOverlay("none");
+    playRandomLine("challenge_start");
+  }, []);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
   const startPuzzle = useCallback(async () => {
@@ -482,6 +531,25 @@ export default function GamePage() {
         </div>
       )}
 
+      {/* Vinny's Mystery HUD */}
+      {mysteryClue && !hasOverlay && (
+        <div className="g3-challenge-list">
+          <div className="g3-challenge-header">VINNY&apos;S MYSTERY</div>
+          <div className="g3-mystery-clue">&ldquo;{mysteryClue.clue}&rdquo;</div>
+          {mysteryClue.hints.slice(0, mysteryHintsUsed).map((hint, i) => (
+            <div key={i} className="g3-challenge-hint">{hint}</div>
+          ))}
+          {mysteryHintsUsed < mysteryClue.hints.length && (
+            <button className="g3-challenge-hint-btn" style={{ marginTop: 6, width: "auto", borderRadius: 4, padding: "3px 10px" }} onClick={() => setMysteryHintsUsed(h => h + 1)}>
+              ? Hint ({mysteryHintsUsed}/{mysteryClue.hints.length})
+            </button>
+          )}
+          {mysteryWrongMsg && (
+            <div style={{ fontSize: "0.75rem", color: "#ef4444", marginTop: 8, fontWeight: 600 }}>{mysteryWrongMsg}</div>
+          )}
+        </div>
+      )}
+
       {/* Challenge complete overlay */}
       {challengeComplete !== null && (
         <div className="g3-challenge-complete" onClick={() => setChallengeComplete(null)}>
@@ -548,6 +616,29 @@ export default function GamePage() {
           </div>
         );
       })()}
+
+      {/* Trophy Collection Overlay */}
+      {overlay === "trophy" && (
+        <div className="g3-overlay g3-overlay-center">
+          <div className="g3-overlay-header">
+            <span className="g3-overlay-title">YOUR COLLECTION</span>
+            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
+          </div>
+          <div className="g3-overlay-body g3-trophy-grid">
+            {PROPS.map((prop) => {
+              const owned = hasProp(prop.id);
+              return (
+                <div key={prop.id} className={`g3-trophy-item ${owned ? "g3-trophy-owned" : "g3-trophy-locked"}`}>
+                  <div className="g3-trophy-emoji">{owned ? prop.emoji : "❓"}</div>
+                  <div className="g3-trophy-name">{owned ? prop.name : "???"}</div>
+                  <div className="g3-trophy-movie">{owned ? `From: ${prop.movie}` : "Keep playing to unlock"}</div>
+                  <div className={`g3-trophy-rarity g3-trophy-rarity-${prop.rarity}`}>{prop.rarity}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Reward prop unlock overlay */}
       {rewardProp && (
