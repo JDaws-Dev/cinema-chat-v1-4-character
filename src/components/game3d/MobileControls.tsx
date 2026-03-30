@@ -14,7 +14,7 @@ export const mobileInput = {
 const STICK_SIZE = 120;
 const KNOB_SIZE = 48;
 const DEAD_ZONE = 8;
-const LOOK_SENSITIVITY = 2.5; // multiplier for look stick output
+const LOOK_SENSITIVITY = 2.5;
 
 export function MobileControls({
   onInteract,
@@ -22,6 +22,10 @@ export function MobileControls({
   onInteract?: () => void;
 }) {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Dynamic stick positions — appear where you touch
+  const [leftPos, setLeftPos] = useState<{ x: number; y: number } | null>(null);
+  const [rightPos, setRightPos] = useState<{ x: number; y: number } | null>(null);
 
   // Left stick (movement)
   const leftKnobRef = useRef<HTMLDivElement>(null);
@@ -37,7 +41,7 @@ export function MobileControls({
     setIsTouchDevice("ontouchstart" in window);
   }, []);
 
-  // Zero out look deltas each frame (consumed by FirstPersonControls)
+  // Zero out look deltas each frame
   useEffect(() => {
     if (!isTouchDevice) return;
     let raf: number;
@@ -53,33 +57,30 @@ export function MobileControls({
     return () => cancelAnimationFrame(raf);
   }, [isTouchDevice]);
 
-  // ── Generic stick handler factory ─────────────────────────
-  const handleStickStart = useCallback(
-    (
-      e: React.TouchEvent,
-      touchIdRef: React.MutableRefObject<number | null>,
-      centerRef: React.MutableRefObject<{ x: number; y: number }>,
-      stickElement: HTMLDivElement | null,
-    ) => {
-      if (touchIdRef.current !== null) return;
+  const handleZoneStart = useCallback(
+    (e: React.TouchEvent, side: "left" | "right") => {
       const touch = e.changedTouches[0];
+      const touchIdRef = side === "left" ? leftTouchId : rightTouchId;
+      const centerRef = side === "left" ? leftCenter : rightCenter;
+      const setPos = side === "left" ? setLeftPos : setRightPos;
+
+      if (touchIdRef.current !== null) return;
       touchIdRef.current = touch.identifier;
-      if (stickElement) {
-        const rect = stickElement.getBoundingClientRect();
-        centerRef.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-      }
+      centerRef.current = { x: touch.clientX, y: touch.clientY };
+      setPos({ x: touch.clientX, y: touch.clientY });
     },
     []
   );
 
-  const handleStickMove = useCallback(
-    (
-      e: React.TouchEvent,
-      touchIdRef: React.MutableRefObject<number | null>,
-      centerRef: React.MutableRefObject<{ x: number; y: number }>,
-      knobRef: React.RefObject<HTMLDivElement | null>,
-      applyInput: (nx: number, ny: number) => void,
-    ) => {
+  const handleZoneMove = useCallback(
+    (e: React.TouchEvent, side: "left" | "right") => {
+      const touchIdRef = side === "left" ? leftTouchId : rightTouchId;
+      const centerRef = side === "left" ? leftCenter : rightCenter;
+      const knobRef = side === "left" ? leftKnobRef : rightKnobRef;
+      const applyInput = side === "left"
+        ? (nx: number, ny: number) => { mobileInput.moveX = nx; mobileInput.moveZ = -ny; }
+        : (nx: number, ny: number) => { mobileInput.lookDeltaX = nx * LOOK_SENSITIVITY; mobileInput.lookDeltaY = ny * LOOK_SENSITIVITY; };
+
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch.identifier !== touchIdRef.current) continue;
@@ -98,10 +99,7 @@ export function MobileControls({
         const clampedDist = Math.min(dist, maxDist);
         const angle = Math.atan2(dy, dx);
         const normDist = clampedDist / maxDist;
-        const nx = Math.cos(angle) * normDist;
-        const ny = Math.sin(angle) * normDist;
-
-        applyInput(nx, ny);
+        applyInput(Math.cos(angle) * normDist, Math.sin(angle) * normDist);
 
         const knobX = Math.cos(angle) * clampedDist;
         const knobY = Math.sin(angle) * clampedDist;
@@ -113,36 +111,27 @@ export function MobileControls({
     []
   );
 
-  const handleStickEnd = useCallback(
-    (
-      e: React.TouchEvent,
-      touchIdRef: React.MutableRefObject<number | null>,
-      knobRef: React.RefObject<HTMLDivElement | null>,
-      applyInput: (nx: number, ny: number) => void,
-    ) => {
+  const handleZoneEnd = useCallback(
+    (e: React.TouchEvent, side: "left" | "right") => {
+      const touchIdRef = side === "left" ? leftTouchId : rightTouchId;
+      const knobRef = side === "left" ? leftKnobRef : rightKnobRef;
+      const setPos = side === "left" ? setLeftPos : setRightPos;
+      const applyInput = side === "left"
+        ? () => { mobileInput.moveX = 0; mobileInput.moveZ = 0; }
+        : () => { mobileInput.lookDeltaX = 0; mobileInput.lookDeltaY = 0; };
+
       for (let i = 0; i < e.changedTouches.length; i++) {
         if (e.changedTouches[i].identifier === touchIdRef.current) {
           touchIdRef.current = null;
-          applyInput(0, 0);
+          applyInput();
           if (knobRef.current) knobRef.current.style.transform = "translate(-50%, -50%)";
+          setPos(null); // hide the stick
         }
       }
     },
     []
   );
 
-  // ── Input appliers ────────────────────────────────────────
-  const applyMove = useCallback((nx: number, ny: number) => {
-    mobileInput.moveX = nx;
-    mobileInput.moveZ = -ny; // screen-up = forward = positive moveZ
-  }, []);
-
-  const applyLook = useCallback((nx: number, ny: number) => {
-    mobileInput.lookDeltaX = nx * LOOK_SENSITIVITY;
-    mobileInput.lookDeltaY = ny * LOOK_SENSITIVITY;
-  }, []);
-
-  // ── Interact button ────────────────────────────────────────
   const handleInteract = useCallback(() => {
     mobileInput.interact = true;
     onInteract?.();
@@ -152,34 +141,48 @@ export function MobileControls({
 
   return (
     <>
-      {/* Left thumbstick — movement (bottom-left) */}
+      {/* Left touch zone — left half of screen */}
       <div
-        className="mobile-joystick"
-        style={{ position: 'fixed', bottom: 32, left: 32 }}
-        onTouchStart={(e) => handleStickStart(e, leftTouchId, leftCenter, e.currentTarget)}
-        onTouchMove={(e) => handleStickMove(e, leftTouchId, leftCenter, leftKnobRef, applyMove)}
-        onTouchEnd={(e) => handleStickEnd(e, leftTouchId, leftKnobRef, applyMove)}
-        onTouchCancel={(e) => handleStickEnd(e, leftTouchId, leftKnobRef, applyMove)}
-      >
-        <div ref={leftKnobRef} className="mobile-joystick-knob" />
-      </div>
+        style={{ position: 'fixed', top: 0, left: 0, width: '40%', height: '100%', zIndex: 10, touchAction: 'none' }}
+        onTouchStart={(e) => handleZoneStart(e, "left")}
+        onTouchMove={(e) => handleZoneMove(e, "left")}
+        onTouchEnd={(e) => handleZoneEnd(e, "left")}
+        onTouchCancel={(e) => handleZoneEnd(e, "left")}
+      />
 
-      {/* Right thumbstick — camera look (bottom-right) */}
+      {/* Right touch zone — right half of screen */}
       <div
-        className="mobile-joystick mobile-joystick-right"
-        style={{ position: 'fixed', bottom: 32, right: 32, left: 'auto' }}
-        onTouchStart={(e) => handleStickStart(e, rightTouchId, rightCenter, e.currentTarget)}
-        onTouchMove={(e) => handleStickMove(e, rightTouchId, rightCenter, rightKnobRef, applyLook)}
-        onTouchEnd={(e) => handleStickEnd(e, rightTouchId, rightKnobRef, applyLook)}
-        onTouchCancel={(e) => handleStickEnd(e, rightTouchId, rightKnobRef, applyLook)}
-      >
-        <div ref={rightKnobRef} className="mobile-joystick-knob" />
-      </div>
+        style={{ position: 'fixed', top: 0, right: 0, width: '40%', height: '100%', zIndex: 10, touchAction: 'none' }}
+        onTouchStart={(e) => handleZoneStart(e, "right")}
+        onTouchMove={(e) => handleZoneMove(e, "right")}
+        onTouchEnd={(e) => handleZoneEnd(e, "right")}
+        onTouchCancel={(e) => handleZoneEnd(e, "right")}
+      />
+
+      {/* Dynamic left stick — appears at touch point */}
+      {leftPos && (
+        <div
+          className="mobile-joystick"
+          style={{ position: 'fixed', left: leftPos.x - STICK_SIZE / 2, top: leftPos.y - STICK_SIZE / 2, pointerEvents: 'none' }}
+        >
+          <div ref={leftKnobRef} className="mobile-joystick-knob" />
+        </div>
+      )}
+
+      {/* Dynamic right stick — appears at touch point */}
+      {rightPos && (
+        <div
+          className="mobile-joystick mobile-joystick-right"
+          style={{ position: 'fixed', left: rightPos.x - STICK_SIZE / 2, top: rightPos.y - STICK_SIZE / 2, pointerEvents: 'none' }}
+        >
+          <div ref={rightKnobRef} className="mobile-joystick-knob" />
+        </div>
+      )}
 
       {/* Interact button — center bottom */}
       <button
         className="mobile-interact-btn"
-        style={{ position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)', right: 'auto' }}
+        style={{ position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 11 }}
         onTouchStart={handleInteract}
       >
         Interact
