@@ -2391,12 +2391,35 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <planeGeometry args={[ROOM_W, ROOM_H]} />
         <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
-      <mesh position={[-6, ROOM_H / 2, ROOM_D / 2]}>
-        <planeGeometry args={[8, ROOM_H]} />
+      {/* Front wall — split into strips above/below windows so windows are see-through */}
+      {/* Left section — below window (y=0 to 0.3) */}
+      <mesh position={[-6, 0.15, ROOM_D / 2]}>
+        <planeGeometry args={[8, 0.3]} />
         <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
-      <mesh position={[6, ROOM_H / 2, ROOM_D / 2]}>
-        <planeGeometry args={[8, ROOM_H]} />
+      {/* Left section — above window (y=2.5 to ROOM_H) */}
+      <mesh position={[-6, 3.0, ROOM_D / 2]}>
+        <planeGeometry args={[8, 1.0]} />
+        <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Left section — side pillars (narrow strips flanking window) */}
+      <mesh position={[-9.5, 1.4, ROOM_D / 2]}>
+        <planeGeometry args={[1, 2.2]} />
+        <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Right section — below window */}
+      <mesh position={[6, 0.15, ROOM_D / 2]}>
+        <planeGeometry args={[8, 0.3]} />
+        <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Right section — above window */}
+      <mesh position={[6, 3.0, ROOM_D / 2]}>
+        <planeGeometry args={[8, 1.0]} />
+        <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Right section — side pillar */}
+      <mesh position={[9.5, 1.4, ROOM_D / 2]}>
+        <planeGeometry args={[1, 2.2]} />
         <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
       <mesh position={[-ROOM_W / 2, ROOM_H / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
