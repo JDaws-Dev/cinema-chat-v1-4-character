@@ -902,8 +902,8 @@ export default function GamePage() {
         camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.6, 5] }}
         dpr={isMobile ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
-        style={{ background: "#050a18" }}
-        onCreated={({ gl }) => { gl.setClearColor("#050a18"); setTimeout(() => setLoading(false), 500); }}
+        style={{ background: "#1a2a48" }}
+        onCreated={({ gl }) => { gl.setClearColor("#1a2a48"); setTimeout(() => setLoading(false), 500); }}
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />

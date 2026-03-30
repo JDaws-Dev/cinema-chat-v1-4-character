@@ -2247,7 +2247,7 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
         const movieIdx = allPosters.length > 0 ? Math.floor(pos.idx / 10) % allPosters.length : -1;
         const poster = movieIdx >= 0 ? allPosters[movieIdx] : null;
         return poster ? (
-          <PosterBox key={pos.idx} url={poster.url} position={[pos.x, pos.y, 0.15]} movieTitle={poster.title} movieId={poster.id} genreColor="#ec4899" />
+          <PosterBox key={pos.idx} url={poster.url} position={[pos.x, pos.y, 0.15]} rotation={Math.PI} movieTitle={poster.title} movieId={poster.id} genreColor="#ec4899" />
         ) : (
           <mesh key={pos.idx} position={[pos.x, pos.y, 0.15]}>
             <boxGeometry args={[0.15, 0.26, 0.025]} />
@@ -2791,6 +2791,17 @@ function KenneyCar({ model, position, rotation = [0, 0, 0], scale = 1 }: {
   return <primitive object={cloned} position={position} rotation={rotation} scale={scale} />;
 }
 
+function KenneyModel({ model, position, rotation = [0, 0, 0], scale = 1 }: {
+  model: string;
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+}) {
+  const { scene } = useGLTF(`/models/${model}.glb`);
+  const cloned = useMemo(() => scene.clone(), [scene]);
+  return <primitive object={cloned} position={position} rotation={rotation} scale={scale} />;
+}
+
 export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: string }) {
   // Sync era into module-level variable so usePosterUrls picks it up
   useEffect(() => {
@@ -3016,8 +3027,8 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       {/* Neon sign */}
       <NeonSign />
 
-      {/* CRT TV with animated screen */}
-      <TVScreen isMobile={isMobile} />
+      {/* CRT TV — left wall, Kenney vintage model */}
+      <KenneyModel model="televisionVintage" position={[-8, 2.2, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.0} />
 
       {/* Wall posters — back wall */}
       {/* Back wall posters — flanking the new releases rack */}
@@ -3108,12 +3119,12 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       ].map((sky, i) => (
         <mesh key={`sky-${i}`} position={sky.pos} rotation={sky.rot}>
           <planeGeometry args={[80, 30]} />
-          <meshBasicMaterial color="#0a1428" />
+          <meshBasicMaterial color="#1a2a48" />
         </mesh>
       ))}
       <mesh position={[0, 22, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[80, 80]} />
-        <meshBasicMaterial color="#0a1428" />
+        <meshBasicMaterial color="#1a2a48" />
       </mesh>
       {/* Stars scattered on the front sky wall (visible from parking lot) */}
       {Array.from({ length: 40 }).map((_, i) => (
@@ -3138,7 +3149,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       {/* Parking lot ground plane — extended for walking approach */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}>
         <planeGeometry args={[ROOM_W + 8, 14]} />
-        <meshBasicMaterial color="#2a2a35" />
+        <meshBasicMaterial color="#2a2a40" />
       </mesh>
       {/* Sidewalk in front of store */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, ROOM_D / 2 + 0.8]}>
@@ -4247,44 +4258,10 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </group>
 
       {/* Potted plant in corner */}
-      <group position={[ROOM_W / 2 - 0.5, 0, -ROOM_D / 2 + 0.5]}>
-        {/* Pot */}
-        <mesh position={[0, 0.2, 0]}>
-          <cylinderGeometry args={[0.15, 0.12, 0.4, 8]} />
-          <Mat color="#6a3a1a" roughness={0.8} />
-        </mesh>
-        {/* Soil */}
-        <mesh position={[0, 0.41, 0]}>
-          <cylinderGeometry args={[0.14, 0.14, 0.02, 8]} />
-          <Mat color="#3a2a1a" roughness={0.9} />
-        </mesh>
-        {/* Plant — simple sphere cluster */}
-        <mesh position={[0, 0.7, 0]}>
-          <sphereGeometry args={[0.2, 8, 8]} />
-          <Mat color="#1a5a1a" roughness={0.8} />
-        </mesh>
-        <mesh position={[0.1, 0.85, 0.05]}>
-          <sphereGeometry args={[0.15, 8, 8]} />
-          <Mat color="#1a6a1a" roughness={0.8} />
-        </mesh>
-        <mesh position={[-0.08, 0.8, -0.05]}>
-          <sphereGeometry args={[0.12, 8, 8]} />
-          <Mat color="#2a5a2a" roughness={0.8} />
-        </mesh>
-      </group>
+      <KenneyModel model="pottedPlant" position={[ROOM_W / 2 - 0.5, 0, -ROOM_D / 2 + 0.5]} scale={0.5} />
 
       {/* Trash can near entrance */}
-      <group position={[-1.5, 0, ROOM_D / 2 - 1]}>
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[0.15, 0.13, 0.6, 8]} />
-          <Mat color="#333333" roughness={0.7} />
-        </mesh>
-        {/* Rim */}
-        <mesh position={[0, 0.61, 0]}>
-          <cylinderGeometry args={[0.16, 0.16, 0.02, 8]} />
-          <Mat color="#444444" roughness={0.5} metalness={0.2} />
-        </mesh>
-      </group>
+      <KenneyModel model="trashcan" position={[-1.5, 0, ROOM_D / 2 - 1]} scale={0.5} />
 
       {/* Standee removed — too big and obtrusive in entrance area */}
 
@@ -4486,28 +4463,8 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         </mesh>
       </group>
 
-      {/* Right wall TV — mounted high, playing trailers */}
-      <group position={[ROOM_W / 2 - 0.3, 2.5, -2]} rotation={[0, -Math.PI / 2, 0]}>
-        <mesh>
-          <boxGeometry args={[0.8, 0.6, 0.35]} />
-          <Mat color="#2a2a2a" roughness={0.5} />
-        </mesh>
-        <mesh position={[0, 0, 0.18]}>
-          <planeGeometry args={[0.65, 0.45]} />
-          <meshBasicMaterial color="#1a3a5a" />
-        </mesh>
-        <mesh position={[0, -0.38, 0]}>
-          <boxGeometry args={[0.5, 0.08, 0.3]} />
-          <meshBasicMaterial color="#1a1a1a" />
-        </mesh>
-        <mesh position={[0, 0, -0.18]}>
-          <boxGeometry args={[0.2, 0.2, 0.02]} />
-          <Mat color="#444" roughness={0.5} />
-        </mesh>
-        <Text position={[0, -0.5, 0.18]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>
-          NOW SHOWING
-        </Text>
-      </group>
+      {/* Right wall TV — Kenney vintage model */}
+      <KenneyModel model="televisionVintage" position={[ROOM_W / 2 - 0.3, 2.2, -2]} rotation={[0, -Math.PI / 2, 0]} scale={1.0} />
 
     </group>
     </MobileCtx.Provider>
@@ -4519,3 +4476,6 @@ useGLTF.preload('/models/van.glb');
 useGLTF.preload('/models/suv.glb');
 useGLTF.preload('/models/hatchback-sports.glb');
 useGLTF.preload('/models/taxi.glb');
+useGLTF.preload('/models/trashcan.glb');
+useGLTF.preload('/models/pottedPlant.glb');
+useGLTF.preload('/models/televisionVintage.glb');

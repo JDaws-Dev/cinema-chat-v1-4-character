@@ -3,8 +3,9 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 
 // ── Store dimensions (from Store.tsx) ──
-const ROOM_W = 20; // x: -10 to +10
-const ROOM_D = 14; // z: -7 to +7
+// Interior: 20x14. Exterior extends to ~z=14 (parking lot) and x=-16..+16 (neighbors)
+const ROOM_W = 32; // x: -16 to +16 (includes Pizza Palace + Laundromat)
+const ROOM_D = 22; // z: -7 to +15 (includes parking lot + road)
 
 // ── SVG coordinate system ──
 // We map store coords to SVG: x maps to svgX, z maps to svgY (inverted so -z is top / back wall)
@@ -28,7 +29,7 @@ function svgToStore(sx: number, sy: number): { x: number; z: number } {
 }
 
 // ── Object types ──
-type ObjCategory = "shelf" | "counter" | "npc" | "prop" | "wall" | "door";
+type ObjCategory = "shelf" | "counter" | "npc" | "prop" | "wall" | "door" | "exterior";
 
 interface StoreObject {
   id: string;
@@ -44,8 +45,10 @@ interface StoreObject {
 }
 
 // ── Initial object data extracted from Store.tsx and FirstPerson.tsx ──
+// Positions updated from editor export (2026-03-30)
 const INITIAL_OBJECTS: StoreObject[] = [
-  // Shelf Row 1 (z = -4) — from SHELF_ROWS
+  // ── INTERIOR ─────────────────────────────────────────────
+  // Shelf Row 1 (z = -4)
   { id: "shelf-r1-1", label: "HORROR", category: "shelf", x: -5, z: -4, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "HORROR / CULT", shape: "rect" },
   { id: "shelf-r1-2", label: "SCI-FI", category: "shelf", x: -1.5, z: -4, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "SCI-FI / FOREIGN", shape: "rect" },
   { id: "shelf-r1-3", label: "COMEDY", category: "shelf", x: 1.5, z: -4, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "COMEDY / INDIE", shape: "rect" },
@@ -60,16 +63,11 @@ const INITIAL_OBJECTS: StoreObject[] = [
   { id: "shelf-r3-2", label: "ANIMATED", category: "shelf", x: -1.5, z: 2, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "ANIMATED / FAMILY", shape: "rect" },
   { id: "shelf-r3-3", label: "DOCS", category: "shelf", x: 1.5, z: 2, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "DOCS / ROMANCE", shape: "rect" },
   { id: "shelf-r3-4", label: "CLASSICS", category: "shelf", x: 5, z: 2, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "CLASSICS / WESTERN", shape: "rect" },
-
-  // New Releases back wall shelf
+  // New Releases back wall
   { id: "new-releases", label: "NEW RELEASES", category: "shelf", x: 0, z: -6.8, w: 19, d: 0.8, color: "#5a3820", shape: "rect" },
-
-  // Counter (position [-6, 0, 5.5], size [6, 0.85, 1.2])
+  // Counter
   { id: "counter", label: "COUNTER", category: "counter", x: -6, z: 5.5, w: 6, d: 1.2, color: "#D2B48C", shape: "rect" },
-
-  // Candy rack near counter (collider: x=-5, z=5, hw=0.6, hd=0.4)
-  { id: "candy-rack", label: "Candy", category: "prop", x: -5, z: 5, w: 1.2, d: 0.8, color: "#e74c3c", shape: "rect" },
-
+  { id: "candy-rack", label: "Candy", category: "prop", x: -3.6, z: 4.39, w: 1.2, d: 0.8, color: "#e74c3c", shape: "rect" },
   // NPCs
   { id: "vinny", label: "Vinny", category: "npc", x: -6, z: 6.2, w: 0.6, d: 0.6, color: "#3b82f6", shape: "circle" },
   { id: "charlie", label: "Charlie", category: "npc", x: -2, z: 1.5, w: 0.6, d: 0.6, color: "#3b82f6", shape: "circle" },
@@ -79,46 +77,67 @@ const INITIAL_OBJECTS: StoreObject[] = [
   { id: "npc-3", label: "Customer 4", category: "npc", x: 3.25, z: -2.5, w: 0.5, d: 0.5, color: "#9b59b6", shape: "circle" },
   { id: "kid", label: "Kid", category: "npc", x: 0, z: 0.5, w: 0.4, d: 0.4, color: "#f0e020", shape: "circle" },
   { id: "tarantino", label: "Tarantino", category: "npc", x: 0, z: -2.5, w: 0.5, d: 0.5, color: "#1a1a1a", shape: "circle" },
-
   // Props
-  { id: "cooler", label: "Cooler", category: "prop", x: -3, z: 5.8, w: 0.8, d: 0.6, color: "#aaddee", shape: "rect" },
+  { id: "cooler", label: "Cooler", category: "prop", x: -8.63, z: 4.53, w: 0.8, d: 0.6, color: "#aaddee", shape: "rect" },
   { id: "trophy-shelf", label: "Trophy Shelf", category: "prop", x: 9.7, z: -4, w: 0.6, d: 2.5, color: "#ffd700", shape: "rect" },
   { id: "staff-picks", label: "Staff Picks", category: "prop", x: 9.8, z: -1, w: 0.4, d: 1.2, color: "#ffd700", shape: "rect" },
   { id: "plant", label: "Plant", category: "prop", x: 9.5, z: -6.5, w: 0.4, d: 0.4, color: "#1a5a1a", shape: "circle" },
   { id: "trash-can", label: "Trash Can", category: "prop", x: -1.5, z: 6, w: 0.35, d: 0.35, color: "#555555", shape: "circle" },
-  { id: "recent-returns", label: "Returns Pile", category: "prop", x: -4, z: 5.2, w: 1.6, d: 0.4, color: "#ca8a04", shape: "rect" },
+  { id: "recent-returns", label: "Returns Pile", category: "prop", x: -3.88, z: 5.77, w: 1.6, d: 0.4, color: "#ca8a04", shape: "rect" },
   { id: "membership-forms", label: "Forms", category: "prop", x: -5, z: 5.3, w: 0.3, d: 0.3, color: "#f5f5f0", shape: "rect" },
-
-  // Wall features — back wall posters
+  // Wall features — posters (updated positions)
   { id: "poster-jaws", label: "JAWS", category: "wall", x: -7, z: -6.95, w: 0.8, d: 0.2, color: "#b91c1c", shape: "rect" },
   { id: "poster-alien", label: "ALIEN", category: "wall", x: -9, z: -6.95, w: 0.8, d: 0.2, color: "#1d4ed8", shape: "rect" },
   { id: "poster-blade", label: "BLADE RUNNER", category: "wall", x: 7, z: -6.95, w: 0.8, d: 0.2, color: "#7c3aed", shape: "rect" },
   { id: "poster-raiders", label: "RAIDERS", category: "wall", x: 9, z: -6.95, w: 0.8, d: 0.2, color: "#059669", shape: "rect" },
-
-  // Wall features — side wall posters
   { id: "poster-shining", label: "THE SHINING", category: "wall", x: -9.95, z: -3, w: 0.2, d: 0.8, color: "#dc2626", shape: "rect" },
-  { id: "poster-starwars", label: "STAR WARS", category: "wall", x: -9.95, z: 2, w: 0.2, d: 0.8, color: "#f59e0b", shape: "rect" },
+  { id: "poster-starwars", label: "STAR WARS", category: "wall", x: -9.96, z: 1.32, w: 0.2, d: 0.8, color: "#f59e0b", shape: "rect" },
   { id: "poster-bttf", label: "BACK TO FUTURE", category: "wall", x: 9.95, z: 0, w: 0.2, d: 0.8, color: "#ec4899", shape: "rect" },
   { id: "poster-et", label: "E.T.", category: "wall", x: 9.95, z: 5, w: 0.2, d: 0.8, color: "#14b8a6", shape: "rect" },
-
-  // Signs
+  // Signs (updated positions)
   { id: "neon-sign", label: "FRIDAY NIGHT VIDEO", category: "wall", x: 0, z: -6.85, w: 5.8, d: 0.15, color: "#ffd700", shape: "rect" },
-  { id: "be-kind-sign", label: "BE KIND REWIND", category: "wall", x: -9.88, z: 3.5, w: 0.2, d: 1.5, color: "#ffd700", shape: "rect" },
+  { id: "be-kind-sign", label: "BE KIND REWIND", category: "wall", x: -9.88, z: 3.18, w: 0.2, d: 1.5, color: "#ffd700", shape: "rect" },
   { id: "late-fees-sign", label: "LATE FEES", category: "wall", x: -9.9, z: 5.2, w: 0.2, d: 1.0, color: "#ef4444", shape: "rect" },
-  { id: "employees-door", label: "EMPLOYEES ONLY", category: "door", x: -9.94, z: -4, w: 0.2, d: 0.9, color: "#4a3020", shape: "rect" },
+  { id: "employees-door", label: "EMPLOYEES ONLY", category: "door", x: -9.94, z: -4.74, w: 0.2, d: 0.9, color: "#4a3020", shape: "rect" },
   { id: "rewards-sign", label: "REWARDS MEMBER?", category: "wall", x: -6, z: 6.5, w: 2.0, d: 0.15, color: "#ffd700", shape: "rect" },
-
-  // TV
   { id: "tv", label: "CRT TV", category: "wall", x: -9.9, z: 0, w: 0.3, d: 1.2, color: "#222222", shape: "rect" },
-
-  // Entrance doors (center of front wall z=7)
   { id: "entrance", label: "ENTRANCE", category: "door", x: 0, z: 6.95, w: 2.2, d: 0.2, color: "#a0c0e0", shape: "rect" },
-
-  // Video return slot (outside, left of entrance)
   { id: "return-slot", label: "Video Return", category: "prop", x: -8, z: 7.1, w: 1.5, d: 0.6, color: "#1a3a6a", shape: "rect" },
-
-  // Open sign
   { id: "open-sign", label: "OPEN", category: "wall", x: -4, z: 7, w: 1.0, d: 0.15, color: "#ff0040", shape: "rect" },
+
+  // ── EXTERIOR ─────────────────────────────────────────────
+  // Pizza Palace (left neighbor, centered x=-13, z=7)
+  { id: "pizza-building", label: "PIZZA PALACE", category: "exterior", x: -13, z: 7, w: 6, d: 0.3, color: "#cc3333", shape: "rect" },
+  { id: "pizza-door", label: "Pizza Door", category: "exterior", x: -12.5, z: 7.16, w: 1.0, d: 0.2, color: "#4a3020", shape: "rect" },
+  { id: "pizza-window", label: "Pizza Window", category: "exterior", x: -14, z: 7.17, w: 2.0, d: 0.2, color: "#553311", shape: "rect" },
+  { id: "pizza-slice-sign", label: "Pizza Slice", category: "exterior", x: -14.5, z: 7.2, w: 0.7, d: 0.7, color: "#ff6622", shape: "circle" },
+
+  // Laundromat (right neighbor, centered x=13, z=7)
+  { id: "laundro-building", label: "LAUNDROMAT", category: "exterior", x: 13, z: 7, w: 6, d: 0.3, color: "#113355", shape: "rect" },
+  { id: "laundro-door", label: "Laundro Door", category: "exterior", x: 13.5, z: 7.16, w: 1.0, d: 0.2, color: "#4a3020", shape: "rect" },
+  { id: "laundro-window", label: "Laundro Window", category: "exterior", x: 12, z: 7.17, w: 2.2, d: 0.2, color: "#223344", shape: "rect" },
+  { id: "laundro-open", label: "Laundro OPEN", category: "exterior", x: 11.2, z: 7.25, w: 0.7, d: 0.35, color: "#33ff66", shape: "rect" },
+
+  // Sidewalk
+  { id: "sidewalk", label: "Sidewalk", category: "exterior", x: 0, z: 7.8, w: 22, d: 1.5, color: "#4a4a4a", shape: "rect" },
+
+  // Parking lot cars
+  { id: "car-sedan", label: "Sedan", category: "exterior", x: 5, z: 11, w: 2.0, d: 1.0, color: "#445566", shape: "rect" },
+  { id: "car-van", label: "Van", category: "exterior", x: -4, z: 11, w: 2.0, d: 1.0, color: "#664433", shape: "rect" },
+  { id: "car-suv", label: "SUV", category: "exterior", x: 1, z: 12.5, w: 2.0, d: 1.0, color: "#336644", shape: "rect" },
+  { id: "car-hatchback", label: "Hatchback", category: "exterior", x: -7, z: 12.5, w: 2.0, d: 1.0, color: "#993333", shape: "rect" },
+  { id: "car-taxi", label: "Taxi", category: "exterior", x: 8, z: 12.5, w: 2.0, d: 1.0, color: "#ccaa22", shape: "rect" },
+
+  // Parking lot lamp posts
+  { id: "lamp-1", label: "Lamp Post", category: "exterior", x: -6, z: 14, w: 0.3, d: 0.3, color: "#cccc88", shape: "circle" },
+  { id: "lamp-2", label: "Lamp Post", category: "exterior", x: 0, z: 14, w: 0.3, d: 0.3, color: "#cccc88", shape: "circle" },
+  { id: "lamp-3", label: "Lamp Post", category: "exterior", x: 6, z: 14, w: 0.3, d: 0.3, color: "#cccc88", shape: "circle" },
+
+  // Handicap sign
+  { id: "handicap-sign", label: "Handicap Sign", category: "exterior", x: -1.5, z: 10.5, w: 0.4, d: 0.4, color: "#2255bb", shape: "rect" },
+
+  // Bike rack
+  { id: "bike-rack", label: "Bike Rack", category: "exterior", x: 8, z: 8, w: 0.8, d: 0.5, color: "#888888", shape: "rect" },
 ];
 
 // ── Category colors for legend ──
@@ -129,6 +148,7 @@ const CATEGORY_META: Record<ObjCategory, { label: string; color: string }> = {
   prop: { label: "Props", color: "#22c55e" },
   wall: { label: "Wall Features", color: "#ffd700" },
   door: { label: "Doors", color: "#a0c0e0" },
+  exterior: { label: "Exterior", color: "#ff6b6b" },
 };
 
 export default function EditorPage() {
@@ -342,7 +362,7 @@ export default function EditorPage() {
 
             {/* Axis labels */}
             <text x={SVG_W / 2} y={16} textAnchor="middle" fill="#888" fontSize={12} fontWeight="bold">
-              X axis (left = -10, right = +10)
+              X axis (left = -16, right = +16)
             </text>
             <text
               x={14}
@@ -353,7 +373,7 @@ export default function EditorPage() {
               fontWeight="bold"
               transform={`rotate(-90, 14, ${SVG_H / 2})`}
             >
-              Z axis (back = -7, front = +7)
+              Z axis (back = -7, front = +15)
             </text>
 
             {/* Wall labels */}
@@ -383,6 +403,40 @@ export default function EditorPage() {
             >
               RIGHT WALL x = +10
             </text>
+
+            {/* ── Zone overlays ────────────────────────── */}
+            {/* Store interior (x: -10..10, z: -7..7) */}
+            {(() => { const tl = storeToSvg(-10, 7); const br = storeToSvg(10, -7); return (
+              <rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+                fill="rgba(20, 24, 48, 0.5)" stroke="#ffd700" strokeWidth={2} strokeDasharray="6 3" />
+            ); })()}
+            {/* Pizza Palace (x: -16..-10, z: 6.8..7.2) */}
+            {(() => { const tl = storeToSvg(-16, 7.3); const br = storeToSvg(-10, 6.7); return (
+              <><rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+                fill="rgba(204, 51, 51, 0.1)" stroke="#cc3333" strokeWidth={1} strokeDasharray="4 2" />
+              <text x={(tl.sx + br.sx) / 2} y={tl.sy - 4} textAnchor="middle" fill="#cc3333" fontSize={9} fontWeight="bold">PIZZA PALACE</text></>
+            ); })()}
+            {/* Laundromat (x: 10..16, z: 6.8..7.2) */}
+            {(() => { const tl = storeToSvg(10, 7.3); const br = storeToSvg(16, 6.7); return (
+              <><rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+                fill="rgba(17, 51, 85, 0.1)" stroke="#3399cc" strokeWidth={1} strokeDasharray="4 2" />
+              <text x={(tl.sx + br.sx) / 2} y={tl.sy - 4} textAnchor="middle" fill="#3399cc" fontSize={9} fontWeight="bold">LAUNDROMAT</text></>
+            ); })()}
+            {/* Sidewalk (z: 7..8.5) */}
+            {(() => { const tl = storeToSvg(-16, 8.5); const br = storeToSvg(16, 7); return (
+              <rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+                fill="rgba(74, 74, 74, 0.15)" stroke="#555" strokeWidth={0.5} />
+            ); })()}
+            {/* Parking lot (z: 8.5..15) */}
+            {(() => { const tl = storeToSvg(-14, 15); const br = storeToSvg(14, 8.5); return (
+              <><rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+                fill="rgba(42, 42, 53, 0.2)" stroke="#444" strokeWidth={0.5} strokeDasharray="4 2" />
+              <text x={(tl.sx + br.sx) / 2} y={(tl.sy + br.sy) / 2} textAnchor="middle" fill="#555" fontSize={11}>PARKING LOT</text></>
+            ); })()}
+            {/* Store interior label */}
+            {(() => { const c = storeToSvg(0, 7); return (
+              <text x={c.sx} y={c.sy - 8} textAnchor="middle" fill="#ffd700" fontSize={10} fontWeight="bold">STORE INTERIOR</text>
+            ); })()}
 
             {/* Store objects */}
             {filteredObjects.map((obj) => {
