@@ -385,50 +385,6 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
         );
       })}
 
-      {/* A-Z divider tabs sticking up between VHS boxes */}
-      {["A","D","G","J","M","P","S","V"].map((letter, i) => {
-        const tabX = -1.2 + i * 0.35;
-        return (
-          <group key={`div-front-${letter}`}>
-            <mesh position={[tabX, 1.22, -0.16]}>
-              <boxGeometry args={[0.02, 0.08, 0.01]} />
-              <meshBasicMaterial color="#f0e8d0" />
-            </mesh>
-            <Text position={[tabX, 1.26, -0.17]} rotation={[0, Math.PI, 0]} fontSize={0.03} color="#333" anchorX="center" font={undefined}>
-              {letter}
-            </Text>
-          </group>
-        );
-      })}
-
-      {/* Genre label sign on top of shelf — facing both sides */}
-      <mesh position={[0, 1.62, 0]}>
-        <boxGeometry args={[1.6, 0.2, 0.04]} />
-        <Mat color="#0a1830" roughness={0.6} />
-      </mesh>
-      {/* Front label */}
-      <Text
-        position={[0, 1.62, -0.025]}
-        rotation={[0, Math.PI, 0]}
-        fontSize={0.15}
-        color={color}
-        anchorX="center"
-        anchorY="middle"
-        font={undefined}
-      >
-        {genre}
-      </Text>
-      {/* Back label — different genre */}
-      <Text
-        position={[0, 1.62, 0.025]}
-        fontSize={0.15}
-        color={bColor}
-        anchorX="center"
-        anchorY="middle"
-        font={undefined}
-      >
-        {backGenre || genre}
-      </Text>
     </group>
   );
 }
@@ -489,32 +445,6 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
         </group>
       ))}
 
-      {/* Label sign */}
-      <mesh position={[0, 1.62, 0]}>
-        <boxGeometry args={[0.9, 0.16, 0.03]} />
-        <Mat color="#b91c1c" roughness={0.5} />
-      </mesh>
-      <Text
-        position={[0, 1.62, -0.02]}
-        rotation={[0, Math.PI, 0]}
-        fontSize={0.06}
-        color="#ffd700"
-        anchorX="center"
-        anchorY="middle"
-        font={undefined}
-      >
-        {label}
-      </Text>
-      <Text
-        position={[0, 1.62, 0.02]}
-        fontSize={0.06}
-        color="#ffd700"
-        anchorX="center"
-        anchorY="middle"
-        font={undefined}
-      >
-        {label}
-      </Text>
     </group>
   );
 }
@@ -2317,15 +2247,20 @@ function NeonSign() {
 
 function WallCrtTv({
   position,
-  rotation,
+  yaw = 0,
+  tilt = 0,
   scale = 1,
   pipeDrop = 0.8,
 }: {
   position: [number, number, number];
-  rotation: [number, number, number];
+  yaw?: number;
+  tilt?: number;
   scale?: number;
   pipeDrop?: number;
 }) {
+  const SCREEN_Y = -0.7;
+  const SCREEN_TOP = SCREEN_Y + 0.3;
+  const SCREEN_SWEEP = 0.6;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matRef = useRef<any>(null);
   const scanBandRef = useRef<THREE.Mesh>(null);
@@ -2334,22 +2269,14 @@ function WallCrtTv({
   // Animate screen color to simulate VHS playback flicker
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    if (matRef.current?.emissive) {
-      // Desktop (MeshStandardMaterial)
-      const r = 0.1 + Math.sin(t * 0.7) * 0.05;
-      const g = 0.2 + Math.sin(t * 1.1 + 1) * 0.08;
-      const b = 0.4 + Math.sin(t * 0.5 + 2) * 0.1;
-      matRef.current.emissive.setRGB(r, g, b);
-      matRef.current.emissiveIntensity = 1.2 + Math.sin(t * 8.3) * 0.18 + (Math.sin(t * 31) > 0.93 ? 0.75 : 0);
-    } else if (matRef.current?.color) {
-      // Mobile (MeshBasicMaterial) — animate color directly
+    if (matRef.current?.color) {
       const r = 0.14 + Math.sin(t * 0.7) * 0.08;
       const g = 0.28 + Math.sin(t * 1.1 + 1) * 0.1;
       const b = 0.56 + Math.sin(t * 0.5 + 2) * 0.15;
       matRef.current.color.setRGB(r, g, b);
     }
     if (scanBandRef.current) {
-      scanBandRef.current.position.y = 0.28 - ((t * 0.55) % 1) * 0.56;
+      scanBandRef.current.position.y = SCREEN_TOP - ((t * 0.55) % 1) * SCREEN_SWEEP;
       const scanBandMat = scanBandRef.current.material as THREE.MeshBasicMaterial;
       scanBandMat.opacity = 0.12 + Math.sin(t * 11) * 0.03;
     }
@@ -2362,106 +2289,108 @@ function WallCrtTv({
     }
   });
   return (
-    <group position={position} rotation={rotation} scale={scale} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-      {/* Ceiling-hung CRTs were bulky and heavy, not sleek flat panels */}
-      <mesh position={[0, 0.62 + pipeDrop * 0.5 + 0.06, -0.02]}>
+    <group position={position} rotation={[0, yaw, 0]} scale={scale} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
+      {/* Ceiling-hung CRTs were bulky and heavy, with a straight pipe and a tilted body */}
+      <mesh position={[0, 0.66 + pipeDrop * 0.5, -0.02]}>
         <cylinderGeometry args={[0.045, 0.05, pipeDrop + 0.12, 10]} />
         <Mat color="#353535" roughness={0.45} metalness={0.45} />
       </mesh>
-      <mesh position={[0, 0.62 + pipeDrop + 0.12, -0.02]}>
+      <mesh position={[0, 0.72 + pipeDrop, -0.02]}>
         <boxGeometry args={[0.26, 0.06, 0.2]} />
         <Mat color="#444444" roughness={0.5} metalness={0.35} />
       </mesh>
-      <mesh position={[0, 0.64, -0.06]}>
-        <boxGeometry args={[0.3, 0.08, 0.18]} />
-        <Mat color="#383838" roughness={0.5} metalness={0.3} />
-      </mesh>
-      <RoundedBox args={[1.45, 1.05, 0.62]} radius={0.05} smoothness={3} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-        <Mat color="#141414" roughness={0.58} />
-      </RoundedBox>
-      {/* CRT back bulge */}
-      <mesh position={[0, 0.02, -0.38]}>
-        <boxGeometry args={[1.18, 0.82, 0.32]} />
-        <Mat color="#101010" roughness={0.72} />
-      </mesh>
-      {/* Rounded bezel */}
-      <RoundedBox args={[1.28, 0.92, 0.07]} radius={0.03} smoothness={2} position={[0, 0, 0.24]}>
-        <Mat color="#090909" roughness={0.45} />
-      </RoundedBox>
-      {/* Screen — animated */}
-      <mesh position={[0, 0, 0.278]}>
-        <planeGeometry args={[1.05, 0.74]} />
-        <Mat ref={matRef} color="#07111d" emissive="#2a6ca0" emissiveIntensity={1.2} side={THREE.DoubleSide} />
-      </mesh>
-      {/* Bright VHS-style image blocks so the set reads as active from a distance */}
-      <mesh position={[0, 0.11, 0.281]}>
-        <planeGeometry args={[0.9, 0.26]} />
-        <meshBasicMaterial color="#5e2ca5" transparent opacity={0.42} />
-      </mesh>
-      <mesh position={[-0.18, -0.08, 0.282]}>
-        <planeGeometry args={[0.32, 0.18]} />
-        <meshBasicMaterial color="#14b8a6" transparent opacity={0.48} />
-      </mesh>
-      <mesh position={[0.16, -0.05, 0.282]}>
-        <planeGeometry args={[0.28, 0.22]} />
-        <meshBasicMaterial color="#f97316" transparent opacity={0.45} />
-      </mesh>
-      <mesh position={[0, -0.23, 0.282]}>
-        <planeGeometry args={[0.95, 0.09]} />
-        <meshBasicMaterial color="#ffd166" transparent opacity={0.28} />
-      </mesh>
-      <group ref={playTextRef} position={[-0.31, 0.23, 0.284]}>
-        <Text fontSize={0.07} color="#f4f8ff" anchorX="left" anchorY="middle" font={undefined}>
-          PLAY
-          <meshBasicMaterial color="#f4f8ff" toneMapped={false} />
-        </Text>
+      <group position={[0, 0.66, -0.06]} rotation={[tilt, 0, 0]}>
+        <mesh position={[0, -0.06, 0]}>
+          <boxGeometry args={[0.3, 0.08, 0.18]} />
+          <Mat color="#383838" roughness={0.5} metalness={0.3} />
+        </mesh>
+        <RoundedBox args={[1.45, 1.05, 0.62]} radius={0.05} smoothness={3} position={[0, -0.7, 0.06]} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
+          <Mat color="#141414" roughness={0.58} />
+        </RoundedBox>
+        {/* CRT back bulge */}
+        <mesh position={[0, -0.68, -0.32]}>
+          <boxGeometry args={[1.18, 0.82, 0.32]} />
+          <Mat color="#101010" roughness={0.72} />
+        </mesh>
+        {/* Rounded bezel */}
+        <RoundedBox args={[1.28, 0.92, 0.07]} radius={0.03} smoothness={2} position={[0, -0.7, 0.3]}>
+          <Mat color="#090909" roughness={0.45} />
+        </RoundedBox>
+        {/* Screen — obvious active image, not a subtle dark emissive */}
+        <mesh position={[0, SCREEN_Y, 0.338]}>
+          <planeGeometry args={[1.05, 0.74]} />
+          <meshBasicMaterial ref={matRef} color="#2f8dff" side={THREE.DoubleSide} toneMapped={false} />
+        </mesh>
+        {/* Loud VHS-style blocks so the screen survives distant review shots */}
+        <mesh position={[0, SCREEN_Y + 0.11, 0.341]}>
+          <planeGeometry args={[0.9, 0.26]} />
+          <meshBasicMaterial color="#7c3aed" transparent opacity={0.64} toneMapped={false} />
+        </mesh>
+        <mesh position={[-0.18, SCREEN_Y - 0.08, 0.342]}>
+          <planeGeometry args={[0.32, 0.18]} />
+          <meshBasicMaterial color="#2dd4bf" transparent opacity={0.72} toneMapped={false} />
+        </mesh>
+        <mesh position={[0.16, SCREEN_Y - 0.05, 0.342]}>
+          <planeGeometry args={[0.28, 0.22]} />
+          <meshBasicMaterial color="#fb923c" transparent opacity={0.7} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, SCREEN_Y - 0.23, 0.342]}>
+          <planeGeometry args={[0.95, 0.09]} />
+          <meshBasicMaterial color="#fde047" transparent opacity={0.45} toneMapped={false} />
+        </mesh>
+        <group ref={playTextRef} position={[-0.31, SCREEN_Y + 0.23, 0.344]}>
+          <Text fontSize={0.07} color="#f4f8ff" anchorX="left" anchorY="middle" font={undefined}>
+            PLAY
+            <meshBasicMaterial color="#f4f8ff" toneMapped={false} />
+          </Text>
+        </group>
+        {/* Bright rolling scan band so the screen reads as active from across the room */}
+        <mesh ref={scanBandRef} position={[0, SCREEN_Y + 0.18, 0.343]}>
+          <planeGeometry args={[1.0, 0.1]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.2} toneMapped={false} />
+        </mesh>
+        {/* Soft glass glare / intermittent VHS bloom */}
+        <mesh ref={glareRef} position={[-0.12, SCREEN_Y + 0.1, 0.344]} rotation={[0, 0, -0.2]}>
+          <planeGeometry args={[0.34, 0.62]} />
+          <meshBasicMaterial color="#f6f2d8" transparent opacity={0.07} toneMapped={false} />
+        </mesh>
+        {/* VHS tracking lines — thin horizontal stripes */}
+        {[-0.2, -0.05, 0.15].map((dy, i) => (
+          <mesh key={`scan-${i}`} position={[0, SCREEN_Y + dy, 0.342]}>
+            <planeGeometry args={[0.98, 0.01]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.08} toneMapped={false} />
+          </mesh>
+        ))}
+        {/* Speaker grill */}
+        <mesh position={[0.49, -0.8, 0.31]}>
+          <boxGeometry args={[0.18, 0.46, 0.02]} />
+          <Mat color="#1c1c1c" roughness={0.85} />
+        </mesh>
+        {[-0.22, -0.1, 0.02, 0.14].map((dy, i) => (
+          <mesh key={`speaker-slot-${i}`} position={[0.49, -0.7 + dy, 0.322]}>
+            <boxGeometry args={[0.13, 0.012, 0.008]} />
+            <Mat color="#050505" roughness={0.5} />
+          </mesh>
+        ))}
+        {/* Control knobs */}
+        <mesh position={[0.43, -0.44, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.03, 10]} />
+          <Mat color="#4d4d4d" roughness={0.38} />
+        </mesh>
+        <mesh position={[0.43, -0.54, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.024, 0.024, 0.03, 10]} />
+          <Mat color="#4d4d4d" roughness={0.38} />
+        </mesh>
+        {/* Rabbit-ear antenna silhouette */}
+        <mesh position={[-0.08, 0.02, -0.23]} rotation={[0.2, 0, -0.35]}>
+          <cylinderGeometry args={[0.01, 0.01, 0.28, 6]} />
+          <Mat color="#7a7a7a" roughness={0.35} metalness={0.55} />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.23]} rotation={[-0.15, 0, 0.35]}>
+          <cylinderGeometry args={[0.01, 0.01, 0.28, 6]} />
+          <Mat color="#7a7a7a" roughness={0.35} metalness={0.55} />
+        </mesh>
       </group>
-      {/* Bright rolling scan band so the screen reads as active from across the room */}
-      <mesh ref={scanBandRef} position={[0, 0.18, 0.283]}>
-        <planeGeometry args={[1.0, 0.1]} />
-        <meshBasicMaterial color="#d7f1ff" transparent opacity={0.12} />
-      </mesh>
-      {/* Soft glass glare / intermittent VHS bloom */}
-      <mesh ref={glareRef} position={[-0.12, 0.1, 0.284]} rotation={[0, 0, -0.2]}>
-        <planeGeometry args={[0.34, 0.62]} />
-        <meshBasicMaterial color="#f6f2d8" transparent opacity={0.03} />
-      </mesh>
-      {/* VHS tracking lines — thin horizontal stripes */}
-      {[-0.2, -0.05, 0.15].map((dy, i) => (
-        <mesh key={`scan-${i}`} position={[0, dy, 0.282]}>
-          <planeGeometry args={[0.98, 0.01]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.055} />
-        </mesh>
-      ))}
-      {/* Speaker grill */}
-      <mesh position={[0.49, -0.1, 0.25]}>
-        <boxGeometry args={[0.18, 0.46, 0.02]} />
-        <Mat color="#1c1c1c" roughness={0.85} />
-      </mesh>
-      {[-0.22, -0.1, 0.02, 0.14].map((dy, i) => (
-        <mesh key={`speaker-slot-${i}`} position={[0.49, dy, 0.262]}>
-          <boxGeometry args={[0.13, 0.012, 0.008]} />
-          <Mat color="#050505" roughness={0.5} />
-        </mesh>
-      ))}
-      {/* Control knobs */}
-      <mesh position={[0.43, 0.26, 0.24]} rotation={[Math.PI/2, 0, 0]}>
-        <cylinderGeometry args={[0.03, 0.03, 0.03, 10]} />
-        <Mat color="#4d4d4d" roughness={0.38} />
-      </mesh>
-      <mesh position={[0.43, 0.16, 0.24]} rotation={[Math.PI/2, 0, 0]}>
-        <cylinderGeometry args={[0.024, 0.024, 0.03, 10]} />
-        <Mat color="#4d4d4d" roughness={0.38} />
-      </mesh>
-      {/* Rabbit-ear antenna silhouette */}
-      <mesh position={[-0.08, 0.68, -0.29]} rotation={[0.2, 0, -0.35]}>
-        <cylinderGeometry args={[0.01, 0.01, 0.28, 6]} />
-        <Mat color="#7a7a7a" roughness={0.35} metalness={0.55} />
-      </mesh>
-      <mesh position={[0.08, 0.68, -0.29]} rotation={[-0.15, 0, 0.35]}>
-        <cylinderGeometry args={[0.01, 0.01, 0.28, 6]} />
-        <Mat color="#7a7a7a" roughness={0.35} metalness={0.55} />
-      </mesh>
     </group>
   );
 }
@@ -3157,7 +3086,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       <NeonSign />
 
       {/* Left wall CRT monitor */}
-      <WallCrtTv position={[-9.05, 2.2, -2.8]} rotation={[0, Math.PI / 2, 0]} scale={0.84} pipeDrop={0.96} />
+      <WallCrtTv position={[-9.05, 2.2, -2.8]} yaw={Math.PI / 2 - 0.18} tilt={0.12} scale={0.84} pipeDrop={0.96} />
 
       {/* Wall posters — back wall */}
       {/* Back wall posters — flanking the new releases rack */}
@@ -4615,7 +4544,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </group>
 
       {/* Right wall CRT monitor */}
-      <WallCrtTv position={[ROOM_W / 2 - 0.72, 2.26, -3.9]} rotation={[0, -Math.PI / 2, 0]} scale={0.7} pipeDrop={1.16} />
+      <WallCrtTv position={[ROOM_W / 2 - 0.72, 2.26, -3.9]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
 
     </group>
     </MobileCtx.Provider>
