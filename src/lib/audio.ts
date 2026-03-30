@@ -1,8 +1,34 @@
+import { ERA_CONVERSATIONS, type EraConversationSet } from './era-conversations';
+
 let audioContext: AudioContext | null = null;
 let isPlaying = false;
 let muted = false;
 let musicMuted = false;
 let audioUnlocked = false;
+
+// ── Current era for conversation selection ──
+let currentEraId = "early90s";
+
+export function setCurrentEra(eraId: string) {
+  currentEraId = eraId;
+}
+
+export function getCurrentEra(): string {
+  return currentEraId;
+}
+
+/** Map era years string (e.g. "1990-1993") to era ID */
+export function eraYearsToId(years: string): string {
+  if (years.startsWith("1987") || years.startsWith("1988") || years.startsWith("1989")) return "late80s";
+  if (years.startsWith("1990") || years.startsWith("1991") || years.startsWith("1992") || years.startsWith("1993")) return "early90s";
+  if (years.startsWith("1994") || years.startsWith("1995") || years.startsWith("1996")) return "mid90s";
+  if (years.startsWith("1997") || years.startsWith("1998") || years.startsWith("1999")) return "late90s";
+  return "present";
+}
+
+function getEraConversations(): EraConversationSet {
+  return ERA_CONVERSATIONS[currentEraId] || ERA_CONVERSATIONS["early90s"];
+}
 
 // Subtitle callback — set by the game page to display subtitles
 let subtitleCallback: ((text: string, duration: number) => void) | null = null;
@@ -298,87 +324,111 @@ let customerPlaying = false;
 let conversationPlaying = false;
 
 // ── Play a single one-liner clip ────────────────────────
+// Era-aware: picks from era-specific one-liners first, falls back to legacy audio clips
 async function playRandomCustomerClip() {
   if (muted || customerPlaying || conversationPlaying || !audioUnlocked) return;
   customerPlaying = true;
-  const idx = Math.floor(Math.random() * CUSTOMER_LINES.length);
-  const line = CUSTOMER_LINES[idx];
-  const name = CUSTOMER_NAMES[idx];
-  const wordCount = line.split(/\s+/).length;
+
+  const eraSet = getEraConversations();
+  const eraLine = eraSet.oneLiners[Math.floor(Math.random() * eraSet.oneLiners.length)];
+  const { speaker, text } = eraLine;
+
+  const wordCount = text.split(/\s+/).length;
   const duration = Math.max(2500, wordCount * 350);
-  subtitleCallback?.(`${name}: "${line}"`, duration);
-  try {
-    const ctx = getAudioContext();
-    if (ctx.state === "suspended") await ctx.resume();
-    const clipFile = idx >= TARANTINO_CLIP_START ? `tarantino_${idx - TARANTINO_CLIP_START}` : idx >= KID_CLIP_START ? `kid_${idx - KID_CLIP_START}` : `customer_${idx}`;
-    const res = await fetch(`/sounds/${clipFile}.mp3`);
-    if (!res.ok) { customerPlaying = false; return; }
-    const ab = await res.arrayBuffer();
-    const buffer = await ctx.decodeAudioData(ab);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    const gain = ctx.createGain();
-    gain.gain.value = 0.3;
-    const panner = createSpatialPanner(ctx, pickRandomNPCPosition());
-    source.connect(gain);
-    gain.connect(panner);
-    panner.connect(ctx.destination);
-    source.onended = () => { customerPlaying = false; };
-    source.start(0);
-  } catch { customerPlaying = false; }
+  subtitleCallback?.(`${speaker}: "${text}"`, duration);
+
+  // Check if this line matches a legacy audio clip (exact text match)
+  const legacyIdx = CUSTOMER_LINES.indexOf(text);
+  if (legacyIdx >= 0) {
+    // Has a pre-recorded audio file — play it with spatial audio
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === "suspended") await ctx.resume();
+      const clipFile = legacyIdx >= TARANTINO_CLIP_START ? `tarantino_${legacyIdx - TARANTINO_CLIP_START}` : legacyIdx >= KID_CLIP_START ? `kid_${legacyIdx - KID_CLIP_START}` : `customer_${legacyIdx}`;
+      const res = await fetch(`/sounds/${clipFile}.mp3`);
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        const buffer = await ctx.decodeAudioData(ab);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.3;
+        const panner = createSpatialPanner(ctx, pickRandomNPCPosition());
+        source.connect(gain);
+        gain.connect(panner);
+        panner.connect(ctx.destination);
+        source.onended = () => { customerPlaying = false; };
+        source.start(0);
+        return;
+      }
+    } catch { /* fall through to subtitle-only */ }
+  }
+
+  // Subtitle-only mode: wait the duration, no audio fetch
+  setTimeout(() => { customerPlaying = false; }, duration);
 }
 
 // ── Play a multi-line conversation sequentially ─────────
+// Era-aware: picks from era-specific conversations, falls back to legacy audio when available
 async function playRandomConversation() {
   if (muted || customerPlaying || conversationPlaying || !audioUnlocked) return;
   conversationPlaying = true;
 
-  const conv = CONVERSATIONS[Math.floor(Math.random() * CONVERSATIONS.length)];
+  const eraSet = getEraConversations();
+  const eraConv = eraSet.conversations[Math.floor(Math.random() * eraSet.conversations.length)];
+
   const ctx = getAudioContext();
   if (ctx.state === "suspended") await ctx.resume();
 
   // All lines in a conversation come from the same spatial position
   const npcPos = pickRandomNPCPosition();
 
-  for (let i = 0; i < conv.lines.length; i++) {
+  for (let i = 0; i < eraConv.lines.length; i++) {
     if (muted) { conversationPlaying = false; return; }
 
-    const { speaker, file } = conv.lines[i];
-    const text = conv.texts[i];
+    const { speaker, text } = eraConv.lines[i];
     const wordCount = text.split(/\s+/).length;
     const subtitleDuration = Math.max(2500, wordCount * 350);
     subtitleCallback?.(`${speaker}: "${text}"`, subtitleDuration);
 
-    try {
-      const res = await fetch(`/sounds/${file}.mp3`);
-      if (!res.ok) {
-        // If clip missing, just wait the subtitle duration then continue
-        await new Promise(r => setTimeout(r, subtitleDuration));
-        continue;
+    // Check if this exact line matches a legacy conversation clip
+    let playedAudio = false;
+    for (const legacyConv of CONVERSATIONS) {
+      const textIdx = legacyConv.texts.indexOf(text);
+      if (textIdx >= 0) {
+        try {
+          const file = legacyConv.lines[textIdx].file;
+          const res = await fetch(`/sounds/${file}.mp3`);
+          if (res.ok) {
+            const ab = await res.arrayBuffer();
+            const buffer = await ctx.decodeAudioData(ab);
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            const gain = ctx.createGain();
+            gain.gain.value = 0.3;
+            const panner = createSpatialPanner(ctx, npcPos);
+            source.connect(gain);
+            gain.connect(panner);
+            panner.connect(ctx.destination);
+            await new Promise<void>(resolve => {
+              source.onended = () => resolve();
+              source.start(0);
+            });
+            playedAudio = true;
+          }
+        } catch { /* fall through to subtitle-only */ }
+        break;
       }
-      const ab = await res.arrayBuffer();
-      const buffer = await ctx.decodeAudioData(ab);
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.3;
-      const panner = createSpatialPanner(ctx, npcPos);
-      source.connect(gain);
-      gain.connect(panner);
-      panner.connect(ctx.destination);
+    }
 
-      // Wait for clip to finish, then pause before next line
-      await new Promise<void>(resolve => {
-        source.onended = () => resolve();
-        source.start(0);
-      });
-
-      // 1.5s pause between lines (except after last line)
-      if (i < conv.lines.length - 1) {
-        await new Promise(r => setTimeout(r, 1500));
-      }
-    } catch {
+    // Subtitle-only: wait the appropriate duration
+    if (!playedAudio) {
       await new Promise(r => setTimeout(r, subtitleDuration));
+    }
+
+    // 1.5s pause between lines (except after last line)
+    if (i < eraConv.lines.length - 1) {
+      await new Promise(r => setTimeout(r, 1500));
     }
   }
 

@@ -19,7 +19,7 @@ import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount,
 import { getWeeklyChallenge, isWeeklyChallengeComplete, completeWeeklyChallenge } from "@/lib/weekly-challenges";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { generateRequest, type ProceduralRequest } from "@/lib/procedural-quests";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, generateVinnyRepDialogue, getVinnyRecommendation, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
@@ -67,6 +67,11 @@ export default function GamePage() {
     { id: "present", label: "Present Day", years: "2024-2026", displayYear: "2025" },
   ];
   const selectedEra = ERA_OPTIONS.find(e => e.id === era) || ERA_OPTIONS[1];
+
+  // Sync era to audio conversation system
+  useEffect(() => {
+    setCurrentEra(era);
+  }, [era]);
 
   useEffect(() => {
     const mobile = 'ontouchstart' in window || window.innerWidth < 768;
