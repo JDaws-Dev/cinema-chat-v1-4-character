@@ -15,12 +15,12 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone } from "@/lib/game-state";
+import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, getMembershipTier, getNextTier } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
-import { getRandomDialogue, getRandomQuestDialogue, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
+import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -42,7 +42,7 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log";
+type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout";
 
 export default function GamePage() {
   const [started, setStarted] = useState(false);
@@ -91,7 +91,7 @@ export default function GamePage() {
   const [hintText, setHintText] = useState<string | null>(null);
 
   // VHS pickup inventory (multiple films)
-  type HeldMovie = { id: number; title: string; posterUrl: string };
+  type HeldMovie = { id: number; title: string; posterUrl: string; genre: string };
   const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
   // Snack inventory (separate from movies)
   type HeldSnack = { name: string; emoji: string };
@@ -142,9 +142,17 @@ export default function GamePage() {
   const [questNotification, setQuestNotification] = useState<string | null>(null);
   const questNotifTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Load props count on mount + wire subtitle handler + start NPC chatter
+  // Membership tier state
+  const [totalXP, setTotalXP] = useState(0);
+  const [currentTier, setCurrentTier] = useState(MEMBERSHIP_TIERS[0]);
+  const [tierUpNotification, setTierUpNotification] = useState<string | null>(null);
+  const tierUpTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Load props count + tier on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
     setPropsCount(getPropsCount());
+    setTotalXP(getTotalXP());
+    setCurrentTier(getMembershipTier());
     setSubtitleHandler((text, duration) => {
       setSubtitle(text);
       if (subtitleTimer.current) clearTimeout(subtitleTimer.current);
@@ -233,6 +241,20 @@ export default function GamePage() {
     questNotifTimer.current = setTimeout(() => setQuestNotification(null), 3000);
   }, []);
 
+  const refreshTierState = useCallback(() => {
+    setTotalXP(getTotalXP());
+    setCurrentTier(getMembershipTier());
+  }, []);
+
+  const handleTierUp = useCallback((result: { tierUp: boolean; newTier: string } | null) => {
+    refreshTierState();
+    if (result?.tierUp) {
+      setTierUpNotification(result.newTier);
+      if (tierUpTimer.current) clearTimeout(tierUpTimer.current);
+      tierUpTimer.current = setTimeout(() => setTierUpNotification(null), 4000);
+    }
+  }, [refreshTierState]);
+
   const trackQuestGenreVisit = useCallback((genre: string) => {
     const active = getActiveQuests();
     const genreUpper = genre.toUpperCase().replace(/_/g, " ").replace("SCIFI", "SCI-FI").replace("NEW RELEASES", "DOCS").replace("STAFF PICKS", "CLASSICS");
@@ -251,7 +273,8 @@ export default function GamePage() {
           const allDone = completeObjective(quest.id, obj.id);
           showQuestNotif(`Quest: Visited ${mappedGenre} section`);
           if (allDone) {
-            completeQuest(quest.id);
+            const tierResult = completeQuest(quest.id);
+            handleTierUp(tierResult);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -262,7 +285,7 @@ export default function GamePage() {
         }
       }
     }
-  }, [showQuestNotif]);
+  }, [showQuestNotif, handleTierUp]);
 
   const trackQuestMoviePickup = useCallback((movieTitle: string, movieGenre: string) => {
     const active = getActiveQuests();
@@ -274,7 +297,8 @@ export default function GamePage() {
           const allDone = completeObjective(quest.id, obj.id);
           showQuestNotif(`Quest: Picked ${genreUpper} movie`);
           if (allDone) {
-            completeQuest(quest.id);
+            const tierResult = completeQuest(quest.id);
+            handleTierUp(tierResult);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -287,7 +311,8 @@ export default function GamePage() {
           const allDone = completeObjective(quest.id, obj.id);
           showQuestNotif(`Quest: Found ${movieTitle}!`);
           if (allDone) {
-            completeQuest(quest.id);
+            const tierResult = completeQuest(quest.id);
+            handleTierUp(tierResult);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -298,7 +323,7 @@ export default function GamePage() {
         }
       }
     }
-  }, [showQuestNotif]);
+  }, [showQuestNotif, handleTierUp]);
 
   const trackQuestNpcTalk = useCallback((npcName: string) => {
     const active = getActiveQuests();
@@ -308,7 +333,8 @@ export default function GamePage() {
           const allDone = completeObjective(quest.id, obj.id);
           showQuestNotif(`Quest: Talked to ${npcName}`);
           if (allDone) {
-            completeQuest(quest.id);
+            const tierResult = completeQuest(quest.id);
+            handleTierUp(tierResult);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -319,7 +345,7 @@ export default function GamePage() {
         }
       }
     }
-  }, [showQuestNotif]);
+  }, [showQuestNotif, handleTierUp]);
 
   // Handle RPG dialogue response selection (quest triggers + node navigation)
   const handleDialogueResponse = useCallback((resp: { text: string; next: DialogueNode; questStart?: string; questComplete?: string }) => {
@@ -347,7 +373,8 @@ export default function GamePage() {
           for (const obj of quest.objectives) {
             completeObjective(questId, obj.id);
           }
-          completeQuest(questId);
+          const tierResult = completeQuest(questId);
+          handleTierUp(tierResult);
           setPropsCount(getPropsCount());
           showQuestNotif(`Side Quest Complete: ${quest.title}! +${quest.reward.xp} XP`);
           playSFX("challenge_complete");
@@ -360,12 +387,43 @@ export default function GamePage() {
       { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
     ]);
     setRpgNode(resp.next);
-  }, [showQuestNotif]);
+  }, [showQuestNotif, handleTierUp]);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
     setHoverLabel(label);
   }, []);
+
+  // ── Movie Night Score Calculation ──────────────────────
+  type ScoreItem = { label: string; points: number };
+  function calculateMovieNightScore(movies: HeldMovie[], snacks: HeldSnack[]): { score: number; breakdown: ScoreItem[] } {
+    let score = 0;
+    const breakdown: ScoreItem[] = [];
+
+    // Base: movies
+    if (movies.length === 1) { score += 50; breakdown.push({ label: "Quick Night", points: 50 }); }
+    if (movies.length === 2) { score += 120; breakdown.push({ label: "Double Feature", points: 120 }); }
+    if (movies.length >= 3) { score += 200; breakdown.push({ label: "Marathon!", points: 200 }); }
+
+    // Genre variety
+    const genres = new Set(movies.map(m => m.genre).filter(Boolean));
+    if (genres.size === movies.length && movies.length > 1) {
+      score += 50; breakdown.push({ label: "Genre Variety", points: 50 });
+    }
+
+    // Snack bonus
+    if (snacks.length > 0) {
+      const snackPts = snacks.length * 25;
+      score += snackPts; breakdown.push({ label: `${snacks.length} Snack(s)`, points: snackPts });
+    }
+
+    // Big feast
+    if (snacks.length >= 3) {
+      score += 50; breakdown.push({ label: "Feast Mode!", points: 50 });
+    }
+
+    return { score, breakdown };
+  }
 
   // ── Interaction handler from 3D world ──────────────────
   const handleInteract = useCallback((type: string, data?: string) => {
@@ -394,7 +452,7 @@ export default function GamePage() {
         // Don't add duplicates
         setHeldMovies(prev => {
           if (prev.some(m => m.id === movie.id)) return prev;
-          return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl }];
+          return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl, genre: movie.genre || "" }];
         });
         setPickupFlash(true);
         setPickupTitle(movie.title);
@@ -527,22 +585,25 @@ export default function GamePage() {
           return;
         }
       }
-      // If holding movies (no challenge), show the first one's detail
+      // If holding movies (no challenge), offer checkout or show film detail
       if (heldMovies.length > 0) {
         playRandomLine("checkout");
-        setFilmId(heldMovies[0].id);
-        setOverlay("film_detail");
+        // Go straight to checkout
+        playSFX("cash_register");
+        setOverlay("checkout");
         return;
       }
       // RPG dialogue with Vinny — sometimes quiz, sometimes conversation
       playRandomLine("greetings");
       const roll = Math.random();
       if (roll < 0.5) {
-        // RPG-style conversation
+        // RPG-style conversation with tier-aware greeting
         const tree = getRandomDialogue("vinny");
+        const tierGreeting = getVinnyTierGreeting(currentTier.name);
+        const openerWithTier = { ...tree.opener, text: tierGreeting + " " + tree.opener.text };
         setRpgDialogue(tree);
-        setRpgNode(tree.opener);
-        setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+        setRpgNode(openerWithTier);
+        setRpgHistory([{ speaker: openerWithTier.speaker, portrait: openerWithTier.portrait, text: openerWithTier.text }]);
         setOverlay("rpg_dialogue");
       } else if (roll < 0.75) {
         setQuote(pickRandom(QUOTES, q => q.id));
@@ -562,7 +623,8 @@ export default function GamePage() {
           if (obj.type === "talk_to_npc" && obj.target === "customer") {
             const allDone = completeObjective(q.id, obj.id);
             if (allDone) {
-              completeQuest(q.id);
+              const tierResult = completeQuest(q.id);
+              handleTierUp(tierResult);
               setPropsCount(getPropsCount());
               showQuestNotif(`Side Quest Complete: ${q.title}! +${q.reward.xp} XP`);
               playSFX("challenge_complete");
@@ -596,7 +658,8 @@ export default function GamePage() {
             const allDone = completeObjective(q.id, obj.id);
             showQuestNotif("Tape returned!");
             if (allDone) {
-              completeQuest(q.id);
+              const tierResult = completeQuest(q.id);
+              handleTierUp(tierResult);
               setPropsCount(getPropsCount());
               showQuestNotif(`Side Quest Complete: ${q.title}! +${q.reward.xp} XP`);
               playSFX("challenge_complete");
@@ -1205,6 +1268,25 @@ export default function GamePage() {
            "WASD move · E interact · J quests"}
         </span>
         <div className="g3-hud-right">
+          {(() => {
+            const next = getNextTier();
+            const progress = next ? ((totalXP - currentTier.minXP) / (next.minXP - currentTier.minXP)) * 100 : 100;
+            return (
+              <div className="g3-tier-badge" style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '4px 10px', borderRadius: 4,
+                border: `1px solid ${currentTier.color}`,
+                color: currentTier.color, fontSize: '0.75rem', fontFamily: 'monospace'
+              }}>
+                <span>{currentTier.emoji}</span>
+                <span>{currentTier.name.toUpperCase()}</span>
+                <div style={{ width: 60, height: 6, background: '#1a1a2a', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(progress, 100)}%`, height: '100%', background: currentTier.color, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                </div>
+                <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>{totalXP}XP</span>
+              </div>
+            );
+          })()}
           <button className="g3-screenshot-btn" onClick={() => { document.exitPointerLock(); setOverlay("quest_log"); }} title="Quest Log (J)">📜</button>
           <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
           <button className="g3-screenshot-btn" onClick={() => { setMusicOff(m => { const next = !m; setMusicMuted(next); return next; }); }} title="Toggle Music">{musicOff ? "🎵" : "🎶"}</button>
@@ -1212,6 +1294,21 @@ export default function GamePage() {
           <button className="g3-screenshot-btn" onClick={takeScreenshot} title="Screenshot">📷</button>
         </div>
       </div>
+
+      {/* Tier-up notification */}
+      {tierUpNotification && (
+        <div className="g3-tier-up-notification" style={{
+          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          padding: '20px 40px', borderRadius: 8,
+          border: '2px solid #ffd700', background: 'rgba(0, 0, 0, 0.9)',
+          color: '#ffd700', fontFamily: 'monospace', fontSize: '1.2rem',
+          textAlign: 'center', zIndex: 100,
+          animation: 'tierUpScale 0.4s ease-out',
+          boxShadow: '0 0 30px rgba(255, 215, 0, 0.3)',
+        }}>
+          🎉 MEMBERSHIP UPGRADED: {tierUpNotification}!
+        </div>
+      )}
 
       {/* ── OVERLAYS ────────────────────────────────────────── */}
 
@@ -1371,6 +1468,74 @@ export default function GamePage() {
       {questNotification && (
         <div className="g3-quest-notif">{questNotification}</div>
       )}
+
+      {/* Checkout Overlay */}
+      {overlay === "checkout" && (() => {
+        const { score: movieNightScore, breakdown: scoreBreakdown } = calculateMovieNightScore(heldMovies, heldSnacks);
+        const prevHigh = parseInt(localStorage.getItem("fnv_high_score") || "0");
+        const isNewHigh = movieNightScore > prevHigh;
+        if (isNewHigh) localStorage.setItem("fnv_high_score", String(movieNightScore));
+        return (
+          <div className="g3-overlay g3-overlay-center g3-checkout-overlay">
+            <div className="g3-receipt">
+              <div className="g3-receipt-header">
+                <pre>FRIDAY NIGHT VIDEO</pre>
+                <pre>YOUR NEIGHBORHOOD VIDEO STORE</pre>
+                <pre>================================</pre>
+              </div>
+              <div className="g3-receipt-items">
+                {heldMovies.map((movie, i) => (
+                  <div key={i} className="g3-receipt-item">
+                    <span>🎬 {movie.title}</span>
+                    <span>$2.99</span>
+                  </div>
+                ))}
+                {heldSnacks.map((snack, i) => (
+                  <div key={i} className="g3-receipt-item">
+                    <span>{snack.emoji} {snack.name}</span>
+                    <span>$1.50</span>
+                  </div>
+                ))}
+              </div>
+              <pre>================================</pre>
+              <div className="g3-receipt-total">
+                <span>TOTAL</span>
+                <span>${(heldMovies.length * 2.99 + heldSnacks.length * 1.50).toFixed(2)}</span>
+              </div>
+              <pre>================================</pre>
+              <div className="g3-receipt-score">
+                <div className="g3-receipt-score-label">MOVIE NIGHT SCORE</div>
+                <div className="g3-score-big">{movieNightScore}</div>
+                {isNewHigh && <div className="g3-score-newhigh">NEW HIGH SCORE!</div>}
+                <div className="g3-score-breakdown">
+                  {scoreBreakdown.map((item, i) => (
+                    <div key={i}>{item.label}: +{item.points}</div>
+                  ))}
+                </div>
+                <div className="g3-score-xp">+{Math.floor(movieNightScore / 10)} XP</div>
+              </div>
+              <pre>================================</pre>
+              <pre>HAVE A GREAT FRIDAY NIGHT!</pre>
+              <pre>BE KIND, REWIND</pre>
+              <div className="g3-receipt-buttons">
+                <button className="g3-receipt-btn g3-receipt-btn-primary" onClick={() => {
+                  const state = loadGameState();
+                  state.totalMoviesFound += heldMovies.length;
+                  saveGameState(state);
+                  setOverlay("none");
+                  setHeldMovies([]);
+                  setHeldSnacks([]);
+                }}>
+                  LEAVE THE STORE
+                </button>
+                <button className="g3-receipt-btn g3-receipt-btn-secondary" onClick={() => setOverlay("none")}>
+                  KEEP BROWSING
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Quest Log Overlay */}
       {overlay === "quest_log" && (() => {

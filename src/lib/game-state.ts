@@ -2,6 +2,43 @@
 
 import { type Quest, type QuestState, VINNY_QUESTS, QUEST_PROPS, ALL_QUESTS, CUSTOMER_SIDE_QUESTS } from "./quest-system";
 
+// ── Membership Tier System ──────────────────────────────────
+
+export const MEMBERSHIP_TIERS = [
+  { name: "Bronze", minXP: 0, color: "#cd7f32", emoji: "🟫" },
+  { name: "Silver", minXP: 200, color: "#c0c0c0", emoji: "⬜" },
+  { name: "Gold", minXP: 500, color: "#ffd700", emoji: "🟨" },
+  { name: "Platinum", minXP: 1000, color: "#e5e4e2", emoji: "💎" },
+];
+
+export function getTotalXP(): number {
+  return parseInt(localStorage.getItem("fnv_total_xp") || "0", 10);
+}
+
+export function addXP(amount: number): { newTotal: number; tierUp: boolean; newTier: string } {
+  const oldXP = getTotalXP();
+  const newXP = oldXP + amount;
+  localStorage.setItem("fnv_total_xp", String(newXP));
+  const oldTier = getMembershipTier(oldXP);
+  const newTier = getMembershipTier(newXP);
+  return { newTotal: newXP, tierUp: newTier.name !== oldTier.name, newTier: newTier.name };
+}
+
+export function getMembershipTier(xp?: number) {
+  const total = xp ?? getTotalXP();
+  let tier = MEMBERSHIP_TIERS[0];
+  for (const t of MEMBERSHIP_TIERS) {
+    if (total >= t.minXP) tier = t;
+  }
+  return tier;
+}
+
+export function getNextTier() {
+  const current = getMembershipTier();
+  const idx = MEMBERSHIP_TIERS.indexOf(current);
+  return idx < MEMBERSHIP_TIERS.length - 1 ? MEMBERSHIP_TIERS[idx + 1] : null;
+}
+
 export interface MovieProp {
   id: string;
   name: string;
@@ -191,10 +228,10 @@ export function isQuestComplete(questId: string): boolean {
   return quest.objectives.every(obj => state.questProgress[questId][obj.id]);
 }
 
-export function completeQuest(questId: string): void {
+export function completeQuest(questId: string): { tierUp: boolean; newTier: string } | null {
   const state = getQuestState();
-  if (!state.activeQuests.includes(questId)) return;
-  if (state.completedQuests.includes(questId)) return;
+  if (!state.activeQuests.includes(questId)) return null;
+  if (state.completedQuests.includes(questId)) return null;
   state.activeQuests = state.activeQuests.filter(id => id !== questId);
   state.completedQuests.push(questId);
   saveQuestState(state);
@@ -203,6 +240,12 @@ export function completeQuest(questId: string): void {
   if (quest?.reward.propId) {
     unlockProp(quest.reward.propId);
   }
+  // Grant XP and check for tier-up
+  if (quest?.reward.xp) {
+    const result = addXP(quest.reward.xp);
+    return { tierUp: result.tierUp, newTier: result.newTier };
+  }
+  return null;
 }
 
 export function getAvailableQuests(): Quest[] {

@@ -3959,6 +3959,68 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <Mat color="#4a2020" roughness={0.95} />
       </mesh>
 
+      {/* Featured new releases standee just inside the entrance */}
+      <group position={[-6.05, 0, 5.66]} rotation={[0, -0.02, 0]}>
+        <mesh position={[0, 0.72, 0]}>
+          <boxGeometry args={[0.56, 1.24, 0.035]} />
+          <Mat color="#f0e5b8" roughness={0.82} />
+        </mesh>
+        <mesh position={[0, 1.16, 0.025]}>
+          <boxGeometry args={[0.5, 0.18, 0.016]} />
+          <meshBasicMaterial color="#ffd700" />
+        </mesh>
+        <Text position={[0, 1.16, 0.035]} fontSize={0.055} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          FEATURED
+        </Text>
+        <Text position={[0, 0.98, 0.03]} fontSize={0.045} color="#1a3a6a" anchorX="center" anchorY="middle" font={undefined}>
+          NEW RELEASES
+        </Text>
+        <Text position={[0, 0.82, 0.03]} fontSize={0.04} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>
+          GUARANTEED
+        </Text>
+        <Text position={[0, 0.68, 0.03]} fontSize={0.036} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          FRIDAY NIGHT PICKS
+        </Text>
+        {[[-0.14, 0.32, "#7c3aed"], [0.0, 0.3, "#ec4899"], [0.14, 0.33, "#0ea5e9"]].map(([dx, dy, c], i) => (
+          <group key={`featured-vhs-${i}`} position={[dx as number, dy as number, 0.026]}>
+            <mesh>
+              <boxGeometry args={[0.12, 0.22, 0.018]} />
+              <Mat color={c as string} roughness={0.6} />
+            </mesh>
+            <mesh position={[0, -0.06, -0.01]}>
+              <planeGeometry args={[0.1, 0.05]} />
+              <meshBasicMaterial color="#f4f0dd" />
+            </mesh>
+          </group>
+        ))}
+        <mesh position={[0, 0.08, 0.02]}>
+          <boxGeometry args={[0.38, 0.12, 0.18]} />
+          <Mat color="#1c3766" roughness={0.65} />
+        </mesh>
+        <mesh position={[-0.12, 0.28, -0.06]} rotation={[-0.35, 0, 0]}>
+          <boxGeometry args={[0.035, 0.56, 0.035]} />
+          <Mat color="#535353" roughness={0.55} metalness={0.2} />
+        </mesh>
+        <mesh position={[0.12, 0.28, -0.06]} rotation={[-0.35, 0, 0]}>
+          <boxGeometry args={[0.035, 0.56, 0.035]} />
+          <Mat color="#535353" roughness={0.55} metalness={0.2} />
+        </mesh>
+      </group>
+
+      {/* Kids and family destination banner near the front-right aisle */}
+      <group position={[7.6, 2.4, 2.35]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[1.4, 0.3, 0.04]} />
+          <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.12} roughness={0.5} />
+        </mesh>
+        <Text position={[0, 0.03, 0.03]} fontSize={0.085} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          KIDS & FAMILY
+        </Text>
+        <Text position={[0, -0.085, 0.03]} fontSize={0.045} color="#1a3a6a" anchorX="center" anchorY="middle" font={undefined}>
+          favorites this way
+        </Text>
+      </group>
+
       {/* ── Double entrance doors ────────────────────────────── */}
       {/* Left door */}
       <group position={[-0.55, 0, ROOM_D / 2 - 0.05]}>
@@ -4378,60 +4440,36 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         </Text>
       </group>
 
-      {/* ─── SPECIALS chalkboard on right wall near entrance ─── */}
-      <group position={[9.85, 1.8, 3]} rotation={[0, -Math.PI / 2, 0]}>
-        {/* Green chalkboard */}
+      {/* ─── Promo board on right wall near entrance ─── */}
+      <group position={[9.84, 1.72, 3.05]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh>
-          <boxGeometry args={[1.4, 1.0, 0.04]} />
-          <Mat color="#1a3a1a" roughness={0.95} />
+          <boxGeometry args={[1.02, 0.78, 0.04]} />
+          <Mat color="#1a2f58" roughness={0.7} />
         </mesh>
-        {/* Wood frame — top */}
-        <mesh position={[0, 0.52, 0]}>
-          <boxGeometry args={[1.48, 0.06, 0.06]} />
-          <Mat color="#6a3a0a" roughness={0.8} />
+        <mesh position={[0, 0, 0.012]}>
+          <boxGeometry args={[1.12, 0.88, 0.02]} />
+          <Mat color="#d4a514" roughness={0.45} metalness={0.1} />
         </mesh>
-        {/* Wood frame — bottom */}
-        <mesh position={[0, -0.52, 0]}>
-          <boxGeometry args={[1.48, 0.06, 0.06]} />
-          <Mat color="#6a3a0a" roughness={0.8} />
+        <mesh position={[0, 0, 0.02]}>
+          <boxGeometry args={[0.98, 0.74, 0.012]} />
+          <Mat color="#10203e" roughness={0.78} />
         </mesh>
-        {/* Wood frame — left */}
-        <mesh position={[-0.72, 0, 0]}>
-          <boxGeometry args={[0.06, 1.1, 0.06]} />
-          <Mat color="#6a3a0a" roughness={0.8} />
+        <mesh position={[0, 0.23, 0.028]}>
+          <boxGeometry args={[0.7, 0.14, 0.008]} />
+          <meshBasicMaterial color="#ffd700" />
         </mesh>
-        {/* Wood frame — right */}
-        <mesh position={[0.72, 0, 0]}>
-          <boxGeometry args={[0.06, 1.1, 0.06]} />
-          <Mat color="#6a3a0a" roughness={0.8} />
-        </mesh>
-        {/* Chalk ledge */}
-        <mesh position={[0, -0.55, 0.04]}>
-          <boxGeometry args={[1.2, 0.03, 0.06]} />
-          <Mat color="#6a3a0a" roughness={0.8} />
-        </mesh>
-        {/* Chalk piece on ledge */}
-        <mesh position={[0.3, -0.53, 0.06]} rotation={[0, 0, 0.1]}>
-          <cylinderGeometry args={[0.01, 0.01, 0.06, 6]} />
-          <Mat color="#eeeeee" roughness={0.9} />
-        </mesh>
-        {/* Header text */}
-        <Text position={[0, 0.32, 0.025]} fontSize={0.12} color="#ffffff" anchorX="center" font={undefined}>
-          ★ SPECIALS ★
+        <Text position={[0, 0.23, 0.034]} fontSize={0.075} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          STORE SPECIALS
         </Text>
-        {/* Deal 1 */}
-        <Text position={[0, 0.1, 0.025]} fontSize={0.08} color="#fffe8a" anchorX="center" font={undefined}>
-          RENT 2 GET 1 FREE!
+        <Text position={[0, 0.04, 0.03]} fontSize={0.065} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+          RENT 2 GET 1 FREE
         </Text>
-        {/* Deal 2 */}
-        <Text position={[0, -0.1, 0.025]} fontSize={0.07} color="#ffffff" anchorX="center" font={undefined}>
-          KIDS MOVIES $0.99/night
+        <Text position={[0, -0.11, 0.03]} fontSize={0.055} color="#ffe88a" anchorX="center" anchorY="middle" font={undefined}>
+          KIDS FAVORITES $0.99
         </Text>
-        {/* Decorative underline */}
-        <mesh position={[0, -0.2, 0.025]}>
-          <boxGeometry args={[0.9, 0.008, 0.002]} />
-          <Mat color="#fffe8a" roughness={0.9} />
-        </mesh>
+        <Text position={[0, -0.25, 0.03]} fontSize={0.042} color="#7ec8ff" anchorX="center" anchorY="middle" font={undefined}>
+          NEW RELEASES TUESDAY
+        </Text>
       </group>
 
       {/* ─── Stack of returned VHS tapes behind counter ─── */}

@@ -660,3 +660,30 @@ function extractQuestIds(node: DialogueNode): string[] {
   }
   return ids;
 }
+
+// ── Tier-aware Vinny greetings ──────────────────────────────
+
+const VINNY_TIER_GREETINGS: Record<string, string[]> = {
+  Bronze: [
+    "Hey, new face! Welcome to Friday Night Video.",
+    "First time here? Take a look around — we got something for everyone.",
+  ],
+  Silver: [
+    "Welcome back! Good to see a regular.",
+    "Hey, you're becoming a familiar face around here. Nice.",
+  ],
+  Gold: [
+    "My favorite customer! What are we watching tonight?",
+    "The gold member returns! I saved some good stuff for you.",
+  ],
+  Platinum: [
+    "The VIP is here! Want to see the back room?",
+    "Platinum member in the house! Say the word and I'll pull the special shelf.",
+  ],
+};
+
+/** Get a tier-appropriate greeting for Vinny, given the player's membership tier name */
+export function getVinnyTierGreeting(tierName: string): string {
+  const greetings = VINNY_TIER_GREETINGS[tierName] || VINNY_TIER_GREETINGS.Bronze;
+  return greetings[Math.floor(Math.random() * greetings.length)];
+}

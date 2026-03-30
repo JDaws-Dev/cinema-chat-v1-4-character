@@ -1856,3 +1856,190 @@
     font-size: 1em;
   }
 }
+
+/* ── Checkout Receipt Overlay ─────────────────────────── */
+.g3-checkout-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  animation: receiptSlideIn 0.4s ease-out;
+}
+
+@keyframes receiptSlideIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.g3-receipt {
+  background: #f5f0e0;
+  color: #1a1a1a;
+  font-family: 'Courier New', monospace;
+  padding: 24px;
+  max-width: 340px;
+  width: 90vw;
+  margin: 0 auto;
+  border-radius: 2px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.g3-receipt pre {
+  text-align: center;
+  font-size: 0.75rem;
+  margin: 4px 0;
+  font-family: 'Courier New', monospace;
+  color: #1a1a1a;
+  background: none;
+  padding: 0;
+  overflow: visible;
+  white-space: pre;
+}
+
+.g3-receipt-header pre:first-child {
+  font-size: 0.9rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.g3-receipt-items {
+  margin: 8px 0;
+}
+
+.g3-receipt-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 4px 0;
+  border-bottom: 1px dotted #ccc;
+}
+
+.g3-receipt-item:last-child {
+  border-bottom: none;
+}
+
+.g3-receipt-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: bold;
+  padding: 4px 0;
+}
+
+.g3-receipt-score {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.g3-receipt-score-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.g3-score-big {
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-align: center;
+  color: #b8860b;
+  line-height: 1.1;
+}
+
+.g3-score-newhigh {
+  font-size: 0.85rem;
+  color: #d4a017;
+  font-weight: bold;
+  animation: highScorePulse 0.6s ease-in-out infinite alternate;
+  margin: 4px 0;
+}
+
+@keyframes highScorePulse {
+  from { opacity: 0.6; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.05); }
+}
+
+.g3-score-breakdown {
+  font-size: 0.75rem;
+  color: #555;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.g3-score-xp {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #2e7d32;
+  margin-top: 4px;
+}
+
+.g3-receipt-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.g3-receipt-btn {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 10px 16px;
+  border: 2px solid #1a1a1a;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.15s ease;
+}
+
+.g3-receipt-btn-primary {
+  background: #1a1a1a;
+  color: #f5f0e0;
+}
+
+.g3-receipt-btn-primary:hover {
+  background: #333;
+}
+
+.g3-receipt-btn-secondary {
+  background: transparent;
+  color: #1a1a1a;
+}
+
+.g3-receipt-btn-secondary:hover {
+  background: #e0dbc8;
+}
+
+/* Mobile receipt adjustments */
+@media (max-width: 480px) {
+  .g3-receipt {
+    padding: 16px;
+    max-width: 300px;
+  }
+  .g3-score-big {
+    font-size: 2rem;
+  }
+}
+
+/* ── Tier-up notification ──────────────────────────────────── */
+@keyframes tierUpScale {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  60% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.g3-tier-up-notification {
+  pointer-events: none;
+}
+
+/* ── Tier badge responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .g3-tier-badge {
+    font-size: 0.65rem !important;
+    padding: 2px 6px !important;
+  }
+  .g3-tier-badge > div {
+    width: 40px !important;
+  }
+}

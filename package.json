@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "eval": "node eval-game.mjs"
+    "eval": "node eval-game.mjs",
+    "visual-qa": "node scripts/visual-qa.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
