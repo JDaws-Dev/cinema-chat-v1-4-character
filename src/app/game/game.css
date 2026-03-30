@@ -1567,3 +1567,292 @@
   .g3-quest-log { max-height: 60vh; }
   .g3-quest-card { padding: 10px 12px; }
 }
+
+
+/* ════════════════════════════════════════════════════════════
+   VHS BACK — Film Detail Panel (back-of-the-case design)
+   ════════════════════════════════════════════════════════════ */
+
+.vhs-back {
+  position: relative;
+  width: 360px;
+  max-height: 80vh;
+  background: #1a1a2a;
+  border: 3px solid #333;
+  border-left: 8px solid var(--genre-color, #ffd700);
+  border-radius: 4px;
+  padding: 20px 20px 16px;
+  color: #e0e0e0;
+  font-family: 'Courier New', Courier, monospace;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow:
+    0 0 30px rgba(0, 0, 0, 0.8),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Subtle worn-plastic texture overlay */
+.vhs-back::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.01) 2px,
+    rgba(255, 255, 255, 0.01) 4px
+  );
+  pointer-events: none;
+  border-radius: 4px;
+}
+
+.vhs-back-loading {
+  padding: 48px 0;
+  text-align: center;
+  color: #666;
+  font-size: 0.85em;
+}
+
+.vhs-back-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.4em;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  transition: color 0.15s;
+  z-index: 2;
+}
+.vhs-back-close:hover {
+  color: #fff;
+}
+
+/* Header: poster thumbnail + title */
+.vhs-back-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.vhs-back-poster {
+  width: 72px;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.vhs-back-title-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.vhs-back-title {
+  font-size: 1.15em;
+  font-weight: bold;
+  color: #ffffff;
+  margin: 0 0 4px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.vhs-back-meta {
+  font-size: 0.75em;
+  color: #888;
+  margin: 0 0 4px;
+}
+
+.vhs-back-genres {
+  font-size: 0.7em;
+  color: var(--genre-color, #ffd700);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Divider */
+.vhs-back-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #444, transparent);
+  margin: 12px 0;
+}
+
+/* Synopsis */
+.vhs-back-synopsis {
+  font-size: 0.82em;
+  line-height: 1.55;
+  color: #ccc;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Credits block */
+.vhs-back-credits {
+  font-size: 0.75em;
+  line-height: 1.7;
+  color: #aaa;
+}
+.vhs-back-credits p {
+  margin: 0;
+}
+
+.vhs-back-label {
+  color: #888;
+  font-weight: bold;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Streaming providers */
+.vhs-back-providers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.75em;
+}
+
+.vhs-back-provider-logos {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.vhs-back-provider-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+}
+
+.vhs-back-provider-text {
+  color: #999;
+  background: #2a2a3a;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* Action buttons */
+.vhs-back-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.vhs-back-pick-btn {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8em;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 3px;
+  border: 2px solid var(--genre-color, #ffd700);
+  background: transparent;
+  color: var(--genre-color, #ffd700);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: background 0.15s, color 0.15s;
+}
+.vhs-back-pick-btn:hover {
+  background: var(--genre-color, #ffd700);
+  color: #1a1a2a;
+}
+.vhs-back-pick-btn--active {
+  background: var(--genre-color, #ffd700);
+  color: #1a1a2a;
+}
+
+/* Similar films row */
+.vhs-back-similar {
+  margin-top: 14px;
+}
+
+.vhs-back-similar-row {
+  display: flex;
+  gap: 6px;
+}
+
+.vhs-back-similar-item {
+  width: 48px;
+  background: none;
+  border: 1px solid #333;
+  border-radius: 2px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.vhs-back-similar-item:hover {
+  border-color: var(--genre-color, #ffd700);
+}
+.vhs-back-similar-item img {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.vhs-back-similar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  font-size: 7px;
+  color: #666;
+  text-align: center;
+  padding: 2px;
+  background: #222;
+}
+
+/* Footer: barcode + copyright */
+.vhs-back-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 8px;
+}
+
+.vhs-back-barcode {
+  display: flex;
+  gap: 1px;
+  height: 22px;
+  opacity: 0.35;
+}
+.vhs-back-barcode span {
+  background: #888;
+  display: block;
+  height: 100%;
+}
+
+.vhs-back-copyright {
+  font-size: 0.65em;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* Mobile: slightly narrower */
+@media (max-width: 480px) {
+  .vhs-back {
+    width: calc(100vw - 32px);
+    max-height: 85vh;
+    padding: 16px 14px 12px;
+  }
+  .vhs-back-poster {
+    width: 60px;
+  }
+  .vhs-back-title {
+    font-size: 1em;
+  }
+}
