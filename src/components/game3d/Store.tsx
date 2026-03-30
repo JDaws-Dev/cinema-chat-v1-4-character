@@ -3306,6 +3306,16 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
 
+      {/* Mullion pillars — fill gap between windows and door frame */}
+      <mesh position={[-1.7, 1.4, ROOM_D / 2 + 0.02]}>
+        <boxGeometry args={[0.8, 2.5, 0.08]} />
+        <Mat color="#1a1a2a" roughness={0.4} metalness={0.5} />
+      </mesh>
+      <mesh position={[1.7, 1.4, ROOM_D / 2 + 0.02]}>
+        <boxGeometry args={[0.8, 2.5, 0.08]} />
+        <Mat color="#1a1a2a" roughness={0.4} metalness={0.5} />
+      </mesh>
+
       {/* Left storefront window — warm interior glow visible from outside */}
       <mesh position={[-5, 1.4, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, 2.2]} />
