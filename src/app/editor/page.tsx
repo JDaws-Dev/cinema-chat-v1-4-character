@@ -14,19 +14,28 @@ const SCALE = 40; // pixels per store unit
 const SVG_W = ROOM_W * SCALE + SVG_PADDING * 2;
 const SVG_H = ROOM_D * SCALE + SVG_PADDING * 2;
 
+// True top-down: back wall (z=-7) at top, entrance (z=7) and parking at bottom.
+// Left wall (-x) on left, right wall (+x) on right.
+const Z_MAX = 15;  // top of parking lot area
+const Z_MIN = -7;  // back wall
+const Z_RANGE = Z_MAX - Z_MIN; // 22
+
 function storeToSvg(x: number, z: number): { sx: number; sy: number } {
   return {
     sx: (x + ROOM_W / 2) * SCALE + SVG_PADDING,
-    sy: (-z + ROOM_D / 2) * SCALE + SVG_PADDING,
+    sy: (z - Z_MIN) * SCALE + SVG_PADDING,
   };
 }
 
 function svgToStore(sx: number, sy: number): { x: number; z: number } {
   return {
     x: Math.round(((sx - SVG_PADDING) / SCALE - ROOM_W / 2) * 100) / 100,
-    z: Math.round((-(sy - SVG_PADDING) / SCALE + ROOM_D / 2) * 100) / 100,
+    z: Math.round(((sy - SVG_PADDING) / SCALE + Z_MIN) * 100) / 100,
   };
 }
+
+// Min clickable size for thin objects (pixels)
+const MIN_HIT_SIZE = 20;
 
 // ── Object types ──
 type ObjCategory = "shelf" | "counter" | "npc" | "prop" | "wall" | "door" | "exterior";
@@ -342,9 +351,9 @@ export default function EditorPage() {
               );
             })}
 
-            {/* Z-axis labels (store z coords, remember inverted) */}
+            {/* Z-axis labels */}
             {Array.from({ length: ROOM_D + 1 }, (_, i) => {
-              const storeZ = ROOM_D / 2 - i;
+              const storeZ = Z_MIN + i;
               const py = SVG_PADDING + i * SCALE;
               return (
                 <text
@@ -373,15 +382,15 @@ export default function EditorPage() {
               fontWeight="bold"
               transform={`rotate(-90, 14, ${SVG_H / 2})`}
             >
-              Z axis (back = -7, front = +15)
+              Z axis (back = -7 top, front = +7 bottom)
             </text>
 
             {/* Wall labels */}
-            <text x={SVG_W / 2} y={SVG_PADDING + ROOM_D * SCALE + 20} textAnchor="middle" fill="#ffd700" fontSize={12}>
-              FRONT WALL (Entrance) z = +7
-            </text>
             <text x={SVG_W / 2} y={SVG_PADDING - 22} textAnchor="middle" fill="#ffd700" fontSize={12}>
               BACK WALL z = -7
+            </text>
+            <text x={SVG_W / 2} y={SVG_PADDING + ROOM_D * SCALE + 20} textAnchor="middle" fill="#ffd700" fontSize={12}>
+              PARKING LOT / ENTRANCE z = +7
             </text>
             <text
               x={SVG_PADDING - 30}
@@ -405,37 +414,46 @@ export default function EditorPage() {
             </text>
 
             {/* ── Zone overlays ────────────────────────── */}
+            {/* Helper: draw a zone rect from two store corners (handles any z direction) */}
             {/* Store interior (x: -10..10, z: -7..7) */}
-            {(() => { const tl = storeToSvg(-10, 7); const br = storeToSvg(10, -7); return (
-              <rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
-                fill="rgba(20, 24, 48, 0.5)" stroke="#ffd700" strokeWidth={2} strokeDasharray="6 3" />
-            ); })()}
-            {/* Pizza Palace (x: -16..-10, z: 6.8..7.2) */}
-            {(() => { const tl = storeToSvg(-16, 7.3); const br = storeToSvg(-10, 6.7); return (
-              <><rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+            {(() => { const a = storeToSvg(-10, -7); const b = storeToSvg(10, 7);
+              const x = Math.min(a.sx, b.sx); const y = Math.min(a.sy, b.sy);
+              return <rect x={x} y={y} width={Math.abs(b.sx - a.sx)} height={Math.abs(b.sy - a.sy)}
+                fill="rgba(20, 24, 48, 0.5)" stroke="#ffd700" strokeWidth={2} strokeDasharray="6 3" />;
+            })()}
+            {/* Pizza Palace (x: -16..-10, z: 6.7..7.3) */}
+            {(() => { const a = storeToSvg(-16, 6.7); const b = storeToSvg(-10, 7.3);
+              const x = Math.min(a.sx, b.sx); const y = Math.min(a.sy, b.sy);
+              const cx = (a.sx + b.sx) / 2; const ty = Math.min(a.sy, b.sy);
+              return <><rect x={x} y={y} width={Math.abs(b.sx - a.sx)} height={Math.abs(b.sy - a.sy)}
                 fill="rgba(204, 51, 51, 0.1)" stroke="#cc3333" strokeWidth={1} strokeDasharray="4 2" />
-              <text x={(tl.sx + br.sx) / 2} y={tl.sy - 4} textAnchor="middle" fill="#cc3333" fontSize={9} fontWeight="bold">PIZZA PALACE</text></>
-            ); })()}
-            {/* Laundromat (x: 10..16, z: 6.8..7.2) */}
-            {(() => { const tl = storeToSvg(10, 7.3); const br = storeToSvg(16, 6.7); return (
-              <><rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+              <text x={cx} y={ty - 4} textAnchor="middle" fill="#cc3333" fontSize={9} fontWeight="bold">PIZZA PALACE</text></>;
+            })()}
+            {/* Laundromat (x: 10..16, z: 6.7..7.3) */}
+            {(() => { const a = storeToSvg(10, 6.7); const b = storeToSvg(16, 7.3);
+              const x = Math.min(a.sx, b.sx); const y = Math.min(a.sy, b.sy);
+              const cx = (a.sx + b.sx) / 2; const ty = Math.min(a.sy, b.sy);
+              return <><rect x={x} y={y} width={Math.abs(b.sx - a.sx)} height={Math.abs(b.sy - a.sy)}
                 fill="rgba(17, 51, 85, 0.1)" stroke="#3399cc" strokeWidth={1} strokeDasharray="4 2" />
-              <text x={(tl.sx + br.sx) / 2} y={tl.sy - 4} textAnchor="middle" fill="#3399cc" fontSize={9} fontWeight="bold">LAUNDROMAT</text></>
-            ); })()}
+              <text x={cx} y={ty - 4} textAnchor="middle" fill="#3399cc" fontSize={9} fontWeight="bold">LAUNDROMAT</text></>;
+            })()}
             {/* Sidewalk (z: 7..8.5) */}
-            {(() => { const tl = storeToSvg(-16, 8.5); const br = storeToSvg(16, 7); return (
-              <rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
-                fill="rgba(74, 74, 74, 0.15)" stroke="#555" strokeWidth={0.5} />
-            ); })()}
+            {(() => { const a = storeToSvg(-16, 7); const b = storeToSvg(16, 8.5);
+              const x = Math.min(a.sx, b.sx); const y = Math.min(a.sy, b.sy);
+              return <rect x={x} y={y} width={Math.abs(b.sx - a.sx)} height={Math.abs(b.sy - a.sy)}
+                fill="rgba(74, 74, 74, 0.15)" stroke="#555" strokeWidth={0.5} />;
+            })()}
             {/* Parking lot (z: 8.5..15) */}
-            {(() => { const tl = storeToSvg(-14, 15); const br = storeToSvg(14, 8.5); return (
-              <><rect x={tl.sx} y={tl.sy} width={br.sx - tl.sx} height={br.sy - tl.sy}
+            {(() => { const a = storeToSvg(-14, 8.5); const b = storeToSvg(14, 15);
+              const x = Math.min(a.sx, b.sx); const y = Math.min(a.sy, b.sy);
+              const cx = (a.sx + b.sx) / 2; const cy = (a.sy + b.sy) / 2;
+              return <><rect x={x} y={y} width={Math.abs(b.sx - a.sx)} height={Math.abs(b.sy - a.sy)}
                 fill="rgba(42, 42, 53, 0.2)" stroke="#444" strokeWidth={0.5} strokeDasharray="4 2" />
-              <text x={(tl.sx + br.sx) / 2} y={(tl.sy + br.sy) / 2} textAnchor="middle" fill="#555" fontSize={11}>PARKING LOT</text></>
-            ); })()}
+              <text x={cx} y={cy} textAnchor="middle" fill="#555" fontSize={11}>PARKING LOT</text></>;
+            })()}
             {/* Store interior label */}
-            {(() => { const c = storeToSvg(0, 7); return (
-              <text x={c.sx} y={c.sy - 8} textAnchor="middle" fill="#ffd700" fontSize={10} fontWeight="bold">STORE INTERIOR</text>
+            {(() => { const c = storeToSvg(0, -6); return (
+              <text x={c.sx} y={c.sy} textAnchor="middle" fill="#ffd700" fontSize={10} fontWeight="bold">STORE INTERIOR</text>
             ); })()}
 
             {/* Store objects */}
@@ -459,6 +477,8 @@ export default function EditorPage() {
                 >
                   {obj.shape === "circle" ? (
                     <>
+                      {/* Invisible hit target for small circles */}
+                      <circle cx={sx} cy={sy} r={Math.max(pw / 2, MIN_HIT_SIZE / 2)} fill="transparent" />
                       <circle
                         cx={sx}
                         cy={sy}
@@ -482,6 +502,14 @@ export default function EditorPage() {
                     </>
                   ) : (
                     <>
+                      {/* Invisible hit target for thin rects */}
+                      <rect
+                        x={sx - Math.max(pw, MIN_HIT_SIZE) / 2}
+                        y={sy - Math.max(ph, MIN_HIT_SIZE) / 2}
+                        width={Math.max(pw, MIN_HIT_SIZE)}
+                        height={Math.max(ph, MIN_HIT_SIZE)}
+                        fill="transparent"
+                      />
                       <rect
                         x={sx - pw / 2}
                         y={sy - ph / 2}

@@ -4,21 +4,31 @@
 
 ---
 
-## 0. CURRENT 3D STORE STATE (Updated 2026-03-29, end of session)
+## 0. CURRENT 3D STORE STATE (Updated 2026-03-30)
 
 ### Architecture
 - **React Three Fiber** with first-person controls (WASD + mouse look)
-- Main file: `src/components/game3d/Store.tsx` (~3400 lines)
-- Controls: `src/components/game3d/FirstPerson.tsx` (collision boxes, spawn point)
-- Interaction: `src/components/game3d/Interaction.tsx` (raycaster + userData system)
+- **MeshToonMaterial** cel-shading on desktop (4-step gradient map)
+- Main file: `src/components/game3d/Store.tsx` (~4500 lines)
+- Controls: `src/components/game3d/FirstPerson.tsx` (collision boxes, spawn, spatial audio listener)
+- Interaction: `src/components/game3d/Interaction.tsx` (raycaster + E/F key + click)
 - Security cameras: `src/components/game3d/SecurityCameras.tsx` (10 angles, saves to /tmp/fnv-cams/)
-- Debug: `src/app/debug/page.tsx` (top-down + side elevation views at /debug)
-- Audio: `src/lib/audio.ts` (ambient muzak + hum + 20 ElevenLabs customer conversation clips)
+- Quest system: `src/lib/quest-system.ts` (5 Vinny quests + 5 customer side quests)
+- NPC dialogues: `src/lib/npc-dialogues.ts` (RPG dialogue trees, branching responses)
+- Audio: `src/lib/audio.ts` (65 audio clips: ambient, SFX, 31 customer voices, 6 conversations, spatial PannerNode)
+- VHS detail: `src/components/FilmDetailModal.tsx` (back-of-box VHS case design)
+- Debug: `src/app/debug/page.tsx` (top-down + side elevation views)
+
+### Kenney GLB Models (CC0)
+- **Cars**: sedan, van, suv, hatchback-sports, taxi (parking lot)
+- **Furniture**: televisionVintage (2x TVs), trashcan, pottedPlant, bookcaseOpen, cardboardBoxOpen, radio
+- **Food**: candy-bar, candy-bar-wrapper, chocolate, cookie-chocolate, soda-can, soda-bottle, soda
+- All loaded via `KenneyModel` / `KenneyCar` components using `useGLTF` from drei
 
 ### Room Dimensions
 - Width (X): 20 units (-10 to +10), Depth (Z): 14 units (-7 to +7), Height (Y): 3.5 units
+- Shelves at z=-4, -1, 2 (pushed back for entrance breathing room)
 - Front wall (entrance): z = +7, Back wall: z = -7
-- Left wall: x = -10, Right wall: x = +10
 
 ### Current Layout (Top-Down)
 ```
@@ -27,51 +37,49 @@
   |  ALIEN  JAWS  [NEW RELEASES WALL] BLADE RAIDERS  |
   |               [FNV NEON SIGN y=3.1]              |
   |  EMPLOYEES                              TROPHIES |
-  |  ONLY DOOR    ROW 1: HORROR SCI-FI COMEDY DRAMA  |
-  |  (z=-4)       x = -5  -1.7   1.7   5  (z=-3)   |
-  | TV  SHINING   ROW 2: ACTION CLASSICS FAMILY ROM   |
-  |     (z=2)     x = -5  -1.7   1.7   5  (z=0)  BTTF(z=1)|
-  | BE KIND(z=3.5) ROW 3: THRILLER ANIMATED DOCS WESTERN |
-  | BULLETIN(z=4.8) x = -5  -1.7   1.7   5  (z=3)  E.T.(z=5.5)|
-  | LATE FEES(z=6.2) ─── aisle dashes at z=-1.5, 1.5 ─── SPECIALS(z=4.5)|
-  | PHONE(z=6) COUNTER[-6,5.5] [FRIDAY NIGHT VIDEO RUG z=5.2] CLOCK(z=4)|
-  | RETURN     VINNY[-6,6.2] OPEN    [DOORS] PILLARS  HOURS  |
-  | CHUTE                                                     |
+  |  ONLY DOOR    ROW 1 (z=-4): front/back genres    |
+  |               HORROR/CULT  SCI-FI/FOREIGN etc.   |
+  | TV(Kenney)    ROW 2 (z=-1): front/back genres    |
+  | SHINING(z=2)  ACTION/HORROR  FAMILY/SCI-FI etc.  |
+  | STAR WARS     ROW 3 (z=2): front/back genres     |
+  | BE KIND(z=3.5) THRILLER/ACTION  ANIMATED/FAMILY  |
+  | BULLETIN(z=4.8)  SPECIALS(z=3)  BTTF(z=0)  E.T.(z=5)|
+  | LATE FEES(z=5.2) COUNTER[-6,5.5]  RUG(z=5.2)   |
+  | PHONE(z=6.3) VINNY  COOLER  OPEN  [DOORS] CLOCK(z=6.2)|
+  | RETURN CHUTE                    HOURS            |
   +──────────────────────────────────────────────+
-              VIDEO RETURN [-8, ext]  ENTRANCE (z = +7)
-     PIZZA PALACE | SIDEWALK | LAUNDROMAT
-          [MINIVAN]  [PARKING LOT]  [SEDAN]
-              [BIKE RACK] [CART RETURN]
-                    [ROAD]
+     PIZZA PALACE | SIDEWALK+GLOW | LAUNDROMAT
+          [KENNEY CARS x5]  [BIKE]  [CART RETURN]
+                    [ROAD]  [STARS+MOON]
 ```
 
-### What's Built (Completed This Session)
-- **12 genre shelves**: HORROR, SCI-FI, COMEDY, DRAMA, ACTION, CLASSICS, FAMILY, ROMANCE, THRILLER, ANIMATED, DOCS, WESTERN
-- **Counter + return chute**: Video return on exterior → chute through wall → bin behind counter → "Recent Returns" display on counter
-- **Exterior**: Pizza Palace (neon pizza slice, checkered awning, menu board, "OPEN LATE"), Laundromat (washing machines, neon "OPEN"), 90s sedan + minivan, bike rack, handicap sign, cart return, storm drain, strip mall roofline
-- **Nostalgia details**: Specials chalkboard, returned VHS stack, membership forms, wall phone
-- **Audio**: Ambient store muzak + fluorescent hum + 20 ElevenLabs customer conversation clips (10 different voices, subtitles)
-- **Performance**: ALL dynamic lights removed (ambient only), poster fetches throttled to 6 concurrent, images w154/w92, reduced VHS/poster counts
-- **Security camera system**: 10 fixed camera angles, renders to PNG, saves to /tmp/fnv-cams/ — Claude can evaluate layout from multiple viewpoints
-- **Screenshot fix**: Works with preserveDrawingBuffer:false via gl.readPixels
-- **Spawn**: Player starts outside on sidewalk facing store entrance
-- **Floor rug**: "FRIDAY NIGHT VIDEO" branded with gold border at z=5.2 (clear of shelves)
-- **Overlap audit**: All 8 wall element overlaps fixed
-- **Landing page**: "Browse the shelves. Pick a movie. Chat with Vinny. It's Friday night, 1997."
+### What's Built
+- **12 gondola shelves**: Open frame design (0.35m deep), visible shelf boards, different genres front/back (24 total). VHS tapes 0.15x0.26x0.025 with TMDB poster art. No repeats per side.
+- **Era selector**: Late 80s, Early 90s, Mid 90s, Late 90s, Present Day — filters all movie posters
+- **RPG quest system**: 5 Vinny main quests (sequential unlock), 5 customer side quests (50% chance on NPC talk). Quest log UI (J key). Props as rewards.
+- **NPC system**: 4 adults (distinct hair/outfits/faces), 1 kid (backpack, sneakers), Charlie (vest, name tag), Tarantino easter egg (30% spawn). Shelf collision avoidance, NPC-to-NPC avoidance, walk animation (leg+arm swing), browse behavior (face shelves).
+- **Audio**: 65 clips total — 20 adult customer lines, 6 kid lines, 5 Tarantino rants, 6 multi-voice conversations (24 clips), 3 ambient tracks, 7 SFX. Spatial PannerNode tied to NPC positions.
+- **Counter**: RoundedBox geometry, Kenney candy/soda models, register with keypad, barcode scanner, computer monitor, membership cards, return bin, VHS rewinder
+- **Exterior**: Kenney car models (5 cars), Pizza Palace (neon/checkered/menu), Laundromat (washing machines), window decals, light spill, dusk sky with stars+moon
+- **Kenney GLB models**: 19 models replacing procedural geometry (cars, TV, trash, plant, food items)
+- **Cel-shaded rendering**: MeshToonMaterial with 4-step gradient, single directional light
+- **VHS detail view**: Back-of-box design (genre stripe, synopsis, barcode, monospace)
+- **PWA**: manifest.json, Apple meta tags, landscape orientation, safe area CSS
+- **Performance**: Poster throttle (6 concurrent), w154/w92 images, RoundedBox on key furniture
+- **Security cameras**: 10 angles for AI-assisted visual QA (verified by o3 vision)
 
 ### TODO (Future Sessions)
-- [ ] NPC customer interactions — ability to talk to customers, have conversations, get recommendations
-- [ ] Kid NPC customers (smaller models, kid voice clips)
-- [ ] Voices attached to specific NPC positions (spatial audio)
-- [ ] Staff Picks shelf with actual TMDB movie posters (currently colored boxes)
-- [ ] GLTF prebake for static store shell (biggest perf win)
-- [ ] InstancedMesh for VHS tape bodies
-- [ ] Zone-based exterior toggle (hide outside when inside)
+- [ ] InstancedMesh for VHS boxes (720 draw calls → 1)
+- [ ] More Kenney model swaps (bookcases, desks, lamps from furniture kit)
 - [ ] Arcade cabinet (Prop Hunt game mode)
 - [ ] Door animation + bell sound
-- [ ] NPC browse animations (stop at shelf, head-tilt)
 - [ ] Counter bell interaction (Name That Quote)
-- [ ] More storefront windows / glass transparency from outside
+- [ ] Zone-based exterior toggle
+- [ ] CrazyGames SDK integration
+- [ ] itch.io listing + press kit
+- [ ] Share buttons + URL watermark on screenshots
+- [ ] Streaming affiliate links (TMDB → JustWatch)
+- [ ] Multiplayer lobby (browse together)
 
 ### Security Camera System
 Trigger from Playwright or browser console:
