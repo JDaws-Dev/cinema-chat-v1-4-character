@@ -27,7 +27,12 @@ export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
       if (hit.distance > 4) continue;
       const obj = hit.object;
       const type = obj.userData?.interactType || findParentData(obj);
-      const data = obj.userData?.interactData || findParentInteractData(obj);
+      let data = obj.userData?.interactData || findParentInteractData(obj);
+      // For customer NPCs, attach personality type so dialogue handler can use it
+      if (type === "customer") {
+        const pType = obj.userData?.personalityType || findParentPersonalityType(obj);
+        if (pType) data = pType;
+      }
       if (type) {
         onInteract(type, data);
         return;
@@ -134,6 +139,15 @@ function findParentInteractData(obj: THREE.Object3D): string | undefined {
   let current: THREE.Object3D | null = obj;
   while (current) {
     if (current.userData?.interactData) return current.userData.interactData;
+    current = current.parent;
+  }
+  return undefined;
+}
+
+function findParentPersonalityType(obj: THREE.Object3D): string | undefined {
+  let current: THREE.Object3D | null = obj;
+  while (current) {
+    if (current.userData?.personalityType) return current.userData.personalityType;
     current = current.parent;
   }
   return undefined;

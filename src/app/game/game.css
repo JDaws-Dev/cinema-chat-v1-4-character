@@ -1342,12 +1342,8 @@
 
 /* ── Quest System ──────────────────────────────────────── */
 
-/* Quest notification toast */
+/* Quest notification toast — stacked */
 .g3-quest-notif {
-  position: fixed;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
   background: rgba(10, 24, 48, 0.95);
   border: 1px solid rgba(255, 215, 0, 0.6);
   border-radius: 8px;
@@ -1356,19 +1352,28 @@
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  z-index: 1000;
   pointer-events: none;
-  animation: questNotifIn 0.3s ease-out, questNotifOut 0.5s 2.5s ease-in forwards;
+  animation: g3-notif-in 0.3s ease-out, g3-notif-out 0.5s 3.5s ease-in forwards;
   box-shadow: 0 4px 20px rgba(255, 215, 0, 0.2);
+  white-space: nowrap;
 }
 
-@keyframes questNotifIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+@keyframes g3-notif-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@keyframes questNotifOut {
+@keyframes g3-notif-out {
   from { opacity: 1; }
   to { opacity: 0; }
+}
+
+/* Typewriter cursor blink */
+.g3-rpg-cursor {
+  animation: g3-blink 0.5s step-end infinite;
+  color: rgba(255, 255, 255, 0.7);
+}
+@keyframes g3-blink {
+  50% { opacity: 0; }
 }
 
 /* Active procedural request tracker */

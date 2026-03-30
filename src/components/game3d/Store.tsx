@@ -6,6 +6,7 @@ import { Text, useTexture, RoundedBox, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { registerNPCPosition, unregisterNPCPosition, playSFX } from "@/lib/audio";
+import { type NpcPersonality, type PersonalityType, PERSONALITIES, getRandomAdultPersonality, getPersonalityLabel } from "@/lib/npc-personalities";
 
 // Mobile context — meshBasicMaterial on mobile, meshToonMaterial on desktop
 const MobileCtx = createContext(false);
@@ -1018,9 +1019,10 @@ function npcTooCloseToOther(id: string, px: number, pz: number, threshold = 0.8)
   return false;
 }
 
-function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle = "flattop" }: {
+function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle = "flattop", personality }: {
   id: string; startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
   hairStyle?: "flattop" | "long" | "cap" | "ponytail";
+  personality?: NpcPersonality;
 }) {
   const ref = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Mesh>(null);
@@ -1146,7 +1148,7 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
   const hasBag = useMemo(() => Math.random() > 0.5, []);
 
   return (
-    <group ref={ref} position={startPos} userData={{ interactType: "customer", label: "Talk to Customer" }}>
+    <group ref={ref} position={startPos} userData={{ interactType: "customer", label: personality ? getPersonalityLabel(personality) : "Talk to Customer", personalityType: personality?.type, personality }}>
       {/* Legs */}
       <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
@@ -1660,7 +1662,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   }, [kidId]);
 
   return (
-    <group ref={ref} position={startPos} scale={0.65} userData={{ interactType: "customer", label: "Talk to Kid" }}>
+    <group ref={ref} position={startPos} scale={0.65} userData={{ interactType: "customer", label: "Talk to Kid", personalityType: "kid" as PersonalityType, personality: PERSONALITIES.kid }}>
       {/* Legs — shorter kid proportions */}
       <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
@@ -2950,12 +2952,37 @@ function AnimatedEmployeeDoor({ open, children }: { open: boolean; children: Rea
   );
 }
 
+const NPC_POOL = [
+  { id: 'npc-a', shirtColor: '#3498db', hairColor: '#2a1a0a', skinTone: '#d4a574', hairStyle: 'flattop' as const },
+  { id: 'npc-b', shirtColor: '#e74c3c', hairColor: '#4a3020', skinTone: '#c49a6c', hairStyle: 'long' as const },
+  { id: 'npc-c', shirtColor: '#27ae60', hairColor: '#1a1a1a', skinTone: '#e8c4a0', hairStyle: 'cap' as const },
+  { id: 'npc-d', shirtColor: '#9b59b6', hairColor: '#8b6914', skinTone: '#d4a574', hairStyle: 'ponytail' as const },
+  { id: 'npc-e', shirtColor: '#e67e22', hairColor: '#3a1a0a', skinTone: '#c49a6c', hairStyle: 'flattop' as const },
+  { id: 'npc-f', shirtColor: '#1abc9c', hairColor: '#2a2a2a', skinTone: '#e8c4a0', hairStyle: 'long' as const },
+  { id: 'npc-g', shirtColor: '#c0392b', hairColor: '#6a4a2a', skinTone: '#d4a574', hairStyle: 'cap' as const },
+  { id: 'npc-h', shirtColor: '#8e44ad', hairColor: '#1a1a1a', skinTone: '#c49a6c', hairStyle: 'ponytail' as const },
+  { id: 'npc-i', shirtColor: '#2980b9', hairColor: '#4a2a0a', skinTone: '#e8c4a0', hairStyle: 'flattop' as const },
+  { id: 'npc-j', shirtColor: '#d35400', hairColor: '#2a1a0a', skinTone: '#d4a574', hairStyle: 'long' as const },
+  { id: 'npc-k', shirtColor: '#16a085', hairColor: '#3a3a3a', skinTone: '#c49a6c', hairStyle: 'cap' as const },
+  { id: 'npc-l', shirtColor: '#f39c12', hairColor: '#1a1a1a', skinTone: '#e8c4a0', hairStyle: 'ponytail' as const },
+];
+
 export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number; backRoomOpen?: boolean }) {
   // Sync era into module-level variable so usePosterUrls picks it up
   useEffect(() => {
     if (eraYears) setEraYears(eraYears);
   }, [eraYears]);
   const [showTarantino] = useState(() => Math.random() < 0.3);
+
+  // Randomly select 4-6 NPCs from the pool each mount, each with a random personality
+  const spawnedNpcs = useMemo(() => {
+    const shuffled = [...NPC_POOL].sort(() => Math.random() - 0.5);
+    const count = 4 + Math.floor(Math.random() * 3); // 4-6 NPCs
+    return shuffled.slice(0, count).map(npc => ({
+      ...npc,
+      personality: getRandomAdultPersonality(),
+    }));
+  }, []);
 
   // ── Entrance door proximity detection ──
   const { camera } = useThree();
@@ -3224,11 +3251,19 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       <Counter />
       <VinnyCharacter />
 
-      {/* NPCs + Charlie — NPCs leave as closing time approaches */}
-      {maxNpcs >= 1 && <NPCCustomer id="npc-0" startPos={[-3.25, -0.05, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" hairStyle="flattop" />}
-      {maxNpcs >= 2 && <NPCCustomer id="npc-1" startPos={[3.25, -0.05, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" hairStyle="long" />}
-      {maxNpcs >= 3 && !isMobile && <NPCCustomer id="npc-2" startPos={[-3.25, -0.05, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" hairStyle="cap" />}
-      {maxNpcs >= 4 && !isMobile && <NPCCustomer id="npc-3" startPos={[3.25, -0.05, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" hairStyle="ponytail" />}
+      {/* NPCs + Charlie — randomly selected NPCs from pool, plus fixed kid */}
+      {spawnedNpcs.slice(0, maxNpcs).map((npc, i) => (
+        <NPCCustomer
+          key={npc.id}
+          id={npc.id}
+          startPos={[NPC_WAYPOINTS[i % NPC_WAYPOINTS.length][0], -0.05, NPC_WAYPOINTS[i % NPC_WAYPOINTS.length][1]]}
+          shirtColor={npc.shirtColor}
+          hairColor={npc.hairColor}
+          skinTone={npc.skinTone}
+          hairStyle={npc.hairStyle}
+          personality={npc.personality}
+        />
+      ))}
       {maxNpcs >= 1 && <KidCustomer startPos={[0, -0.05, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
       <CharlieCharacter isMobile={isMobile} />
       {showTarantino && <TarantinoNPC />}

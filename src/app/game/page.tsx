@@ -152,6 +152,32 @@ export default function GamePage() {
   const [rpgNode, setRpgNode] = useState<DialogueNode | null>(null);
   const [rpgHistory, setRpgHistory] = useState<{ speaker: string; portrait?: string; text: string }[]>([]);
 
+  // Typewriter effect for RPG dialogue
+  const [displayedText, setDisplayedText] = useState('');
+  const [typewriterDone, setTypewriterDone] = useState(false);
+
+  useEffect(() => {
+    if (!rpgNode) { setDisplayedText(''); setTypewriterDone(false); return; }
+    setDisplayedText('');
+    setTypewriterDone(false);
+    let i = 0;
+    const text = rpgNode.text;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayedText(text.substring(0, i));
+      if (i >= text.length) { clearInterval(interval); setTypewriterDone(true); }
+    }, 25); // 25ms per character
+    return () => clearInterval(interval);
+  }, [rpgNode]);
+
+  // Notification stacking system
+  const [notifications, setNotifications] = useState<{ id: number; text: string }[]>([]);
+  const addNotification = useCallback((text: string) => {
+    const id = Date.now();
+    setNotifications(prev => [...prev.slice(-2), { id, text }]); // max 3
+    setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 4000);
+  }, []);
+
   // Side quest state (uses existing showQuestNotif for notifications)
 
   // Procedural customer request state
@@ -307,10 +333,8 @@ export default function GamePage() {
 
   // ── Quest System ──────────────────────────────────────
   const showQuestNotif = useCallback((msg: string) => {
-    setQuestNotification(msg);
-    if (questNotifTimer.current) clearTimeout(questNotifTimer.current);
-    questNotifTimer.current = setTimeout(() => setQuestNotification(null), 3000);
-  }, []);
+    addNotification(msg);
+  }, [addNotification]);
 
   const refreshTierState = useCallback(() => {
     setTotalXP(getTotalXP());
@@ -1700,10 +1724,12 @@ export default function GamePage() {
           <span className="g3-active-request-icon">&#128203;</span> Find: {activeRequest.targetMovie.title}
         </div>
       )}
-      {/* Quest notification toast */}
-      {questNotification && (
-        <div className="g3-quest-notif">{questNotification}</div>
-      )}
+      {/* Quest notification toast — stacked */}
+      <div className="g3-quest-notif-stack" style={{ position: 'fixed', top: '10px', right: '10px', display: 'flex', flexDirection: 'column', gap: '6px', zIndex: 9999, pointerEvents: 'none' }}>
+        {notifications.map((n) => (
+          <div key={n.id} className="g3-quest-notif" style={{ position: 'relative', animation: 'g3-notif-in 0.3s ease-out' }}>{n.text}</div>
+        ))}
+      </div>
 
       {/* Checkout Overlay */}
       {overlay === "checkout" && (() => {
@@ -1904,27 +1930,29 @@ export default function GamePage() {
               <span className="g3-rpg-portrait">{rpgNode.portrait || rpgDialogue?.portrait || "?"}</span>
               <span className="g3-rpg-name">{rpgNode.speaker}</span>
             </div>
-            {/* Dialogue text */}
-            <p className="g3-rpg-text">{rpgNode.text}</p>
-            {/* Response choices */}
+            {/* Dialogue text — typewriter effect */}
+            <p className="g3-rpg-text">{displayedText}{!typewriterDone && <span className="g3-rpg-cursor">|</span>}</p>
+            {/* Response choices — only shown after typewriter completes */}
             <div className="g3-rpg-responses">
-              {rpgNode.responses ? (
-                rpgNode.responses.map((resp, i) => (
-                  <button
-                    key={i}
-                    className="g3-rpg-choice"
-                    onClick={() => handleDialogueResponse(resp)}
-                  >
-                    <span className="g3-rpg-choice-num">{i + 1}</span>
-                    <span className="g3-rpg-choice-text">{resp.text}</span>
+              {typewriterDone ? (
+                rpgNode.responses ? (
+                  rpgNode.responses.map((resp, i) => (
+                    <button
+                      key={i}
+                      className="g3-rpg-choice"
+                      onClick={() => handleDialogueResponse(resp)}
+                    >
+                      <span className="g3-rpg-choice-num">{i + 1}</span>
+                      <span className="g3-rpg-choice-text">{resp.text}</span>
+                    </button>
+                  ))
+                ) : (
+                  <button className="g3-rpg-choice g3-rpg-choice-end" onClick={closeOverlay}>
+                    <span className="g3-rpg-choice-num">Q</span>
+                    <span className="g3-rpg-choice-text">End conversation</span>
                   </button>
-                ))
-              ) : (
-                <button className="g3-rpg-choice g3-rpg-choice-end" onClick={closeOverlay}>
-                  <span className="g3-rpg-choice-num">Q</span>
-                  <span className="g3-rpg-choice-text">End conversation</span>
-                </button>
-              )}
+                )
+              ) : null}
             </div>
           </div>
         </div>
