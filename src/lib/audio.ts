@@ -1,6 +1,7 @@
 let audioContext: AudioContext | null = null;
 let isPlaying = false;
 let muted = false;
+let musicMuted = false;
 let audioUnlocked = false;
 
 // Subtitle callback — set by the game page to display subtitles
@@ -71,6 +72,14 @@ export function setMuted(m: boolean) {
 }
 export function isMuted(): boolean { return muted; }
 
+export function setMusicMuted(m: boolean) {
+  musicMuted = m;
+  if (muzakGain) {
+    muzakGain.gain.value = m ? 0 : 0.12;
+  }
+}
+export function isMusicMuted(): boolean { return musicMuted; }
+
 function getAudioContext(): AudioContext {
   if (!audioContext) {
     audioContext = new AudioContext();
@@ -100,6 +109,7 @@ let ambientSources: { source: AudioBufferSourceNode; gain: GainNode }[] = [];
 let ambientStarted = false;
 let chatterTimeout: ReturnType<typeof setTimeout> | null = null;
 let customerInterval: ReturnType<typeof setInterval> | null = null;
+let muzakGain: GainNode | null = null;
 
 const AMBIENT_TRACKS = [
   { file: "ambient_muzak", volume: 0.12 },
@@ -123,10 +133,12 @@ async function startAmbient() {
       source.buffer = buffer;
       source.loop = true;
       const gain = ctx.createGain();
-      gain.gain.value = track.volume;
+      const isMuzak = track.file === "ambient_muzak";
+      gain.gain.value = (isMuzak && musicMuted) ? 0 : track.volume;
       source.connect(gain);
       gain.connect(ctx.destination);
       source.start(0);
+      if (isMuzak) muzakGain = gain;
       ambientSources.push({ source, gain });
     } catch { /* missing file is fine — ambient is optional */ }
   }

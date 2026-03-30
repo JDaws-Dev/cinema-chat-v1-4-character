@@ -17,7 +17,7 @@ import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
 import { getRandomDialogue, getRandomQuestDialogue, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
@@ -122,6 +122,7 @@ export default function GamePage() {
 
   // Audio state
   const [audioMuted, setAudioMuted] = useState(false);
+  const [musicOff, setMusicOff] = useState(false);
   const [subtitle, setSubtitle] = useState<string | null>(null);
   const subtitleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -1206,8 +1207,9 @@ export default function GamePage() {
         <div className="g3-hud-right">
           <button className="g3-screenshot-btn" onClick={() => { document.exitPointerLock(); setOverlay("quest_log"); }} title="Quest Log (J)">📜</button>
           <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
-          <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); return next; }); }}>{audioMuted ? "🔇" : "🔊"}</button>
-          <button className="g3-screenshot-btn" onClick={takeScreenshot}>📷</button>
+          <button className="g3-screenshot-btn" onClick={() => { setMusicOff(m => { const next = !m; setMusicMuted(next); return next; }); }} title="Toggle Music">{musicOff ? "🎵" : "🎶"}</button>
+          <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); return next; }); }} title="Mute All">{audioMuted ? "🔇" : "🔊"}</button>
+          <button className="g3-screenshot-btn" onClick={takeScreenshot} title="Screenshot">📷</button>
         </div>
       </div>
 

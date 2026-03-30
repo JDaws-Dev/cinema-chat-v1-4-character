@@ -55,3 +55,55 @@
 - **MeshToonMaterial**: Drop-in replacement for Mat component
 - **InstancedMesh**: Collapses 720 VHS draw calls into 1
 - **PS1 shader**: Codrops tutorial for R3F specifically
+
+---
+
+## Alternative Name Analysis
+
+### Top 5 Name Picks
+
+| # | Name | Score | Why |
+|---|------|-------|-----|
+| 1 | **Late Fee** | 8.5 | Emotional, unique, short. Everyone who rented VHS feels this. No existing game. |
+| 2 | **Rewind Night** | 8.0 | Clean, evocative. Differentiates from Retro Rewind. No conflicts. |
+| 3 | **Please Rewind** | 7.8 | Triggers sticker memory without trademark. Personality. |
+| 4 | **Tape Night** | 7.5 | Simple, clean, era-specific. |
+| 5 | **Neon Video** | 7.3 | Captures the aesthetic. Works as game title AND store name. |
+
+### Names to AVOID
+- **Friday Night [anything]** — Friday Night Funkin' dominates all "Friday Night" game searches (SEO disaster)
+- **Be Kind Rewind** — active trademarks, existing film
+- **The Last Blockbuster** — documentary + trademark
+- **Rewind** (alone) — too crowded
+
+---
+
+## Marketing Plan (Ranked by Impact/Effort)
+
+### Phase 1: Launch Week ($0, ~8 hours)
+1. List on itch.io with full tags
+2. Post to r/WebGames, r/nostalgia, r/90s
+3. Post to r/ThreeJS, r/webdev (dev angle)
+4. Add share buttons + URL watermark to screenshots
+5. SEO: optimize landing page meta tags
+
+### Phase 2: First Month ($0, ~15 hours)
+6. Press kit (screenshots, trailer, pitch)
+7. Email 5-10 journalists — piggyback on Retro Rewind coverage wave
+8. List on Newgrounds
+9. First TikTok ("POV: it's 1995...")
+10. Submit to CrazyGames (20M monthly players)
+11. Twitter #IndieGame #ScreenshotSaturday
+12. Start Discord server
+
+### Phase 3: Month 2-3 ($0, ongoing)
+13. YouTube devlog
+14. PWA → Microsoft Store (free via PWABuilder)
+15. Reach out to cozy game Twitch streamers
+16. Submit to PC Gamer "best browser games" list
+
+### Key Pitch
+"Retro Rewind sold 100K copies recreating the 90s video store. We built one you can visit for free in your browser. No download. No cost. Just click."
+
+### Retro Rewind Press Wave
+Still active (March 2026). Narrow window to ride it with targeted press outreach.
