@@ -271,9 +271,16 @@ const CUSTOMER_LINES = [
   "This store is so cool. I wanna work here when I grow up.",
   "I already watched that one like a hundred times.",
   "Is this one scary? I dont wanna have nightmares again.",
+  // Tarantino lines (indices 26-30, files: tarantino_0.mp3 through tarantino_4.mp3)
+  "You know what the problem with movies today is? Nobody takes RISKS anymore. Give me a Reservoir Dogs over any of this safe studio garbage.",
+  "That right there? That is a MASTERPIECE and I will fight anyone who says otherwise. The dialogue alone is worth the rental fee ten times over.",
+  "See, what people dont understand about cinema is its not about the PLOT. Its about the MOMENTS. The little moments between characters. Thats where the magic lives.",
+  "If you havent seen Taxi Driver at LEAST five times, we cant even have this conversation. Im serious. Go rent it. Right now.",
+  "Every frame of that film is a painting. Every single frame. And the soundtrack? Dont even get me started on the soundtrack.",
 ];
-const CUSTOMER_NAMES = ["Roger", "Jessica", "Liam", "Mom", "Laura", "George", "Kid", "Chris", "Sarah", "Roger", "Jessica", "Lily", "Brian", "Laura", "George", "Liam", "Jessica", "Bella", "Sarah", "Brian", "Kid", "Kid", "Kid", "Kid", "Kid", "Kid"];
-const KID_CLIP_START = 20; // indices 20+ use kid_N.mp3 files
+const CUSTOMER_NAMES = ["Roger", "Jessica", "Liam", "Mom", "Laura", "George", "Kid", "Chris", "Sarah", "Roger", "Jessica", "Lily", "Brian", "Laura", "George", "Liam", "Jessica", "Bella", "Sarah", "Brian", "Kid", "Kid", "Kid", "Kid", "Kid", "Kid", "Quentin", "Quentin", "Quentin", "Quentin", "Quentin"];
+const KID_CLIP_START = 20; // indices 20-25 use kid_N.mp3 files
+const TARANTINO_CLIP_START = 26; // indices 26+ use tarantino_N.mp3 files
 
 let customerPlaying = false;
 let conversationPlaying = false;
@@ -291,7 +298,7 @@ async function playRandomCustomerClip() {
   try {
     const ctx = getAudioContext();
     if (ctx.state === "suspended") await ctx.resume();
-    const clipFile = idx >= KID_CLIP_START ? `kid_${idx - KID_CLIP_START}` : `customer_${idx}`;
+    const clipFile = idx >= TARANTINO_CLIP_START ? `tarantino_${idx - TARANTINO_CLIP_START}` : idx >= KID_CLIP_START ? `kid_${idx - KID_CLIP_START}` : `customer_${idx}`;
     const res = await fetch(`/sounds/${clipFile}.mp3`);
     if (!res.ok) { customerPlaying = false; return; }
     const ab = await res.arrayBuffer();

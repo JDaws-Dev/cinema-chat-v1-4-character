@@ -256,7 +256,7 @@ const ROOM_W = 20;
 const ROOM_D = 14;
 const ROOM_H = 3.5;
 const WALL_COLOR = "#1a2a50";     // Readable blue — not too dark, not too bright
-const FLOOR_COLOR = "#111522";    // Codex: slightly lighter blue-black
+const FLOOR_COLOR = "#1a2040";    // Dark blue commercial carpet — readable, not black
 const CEILING_COLOR = "#8a8478";  // Darker warm gray — ceiling recedes, floor/shelves dominate
 const COUNTER_COLOR = "#8a6830";  // warmer wood
 const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't disappear
@@ -1329,6 +1329,238 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
       {/* Shadow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
         <circleGeometry args={[0.2, 12]} />
+        <Mat color="#000000" transparent opacity={0.15} />
+      </mesh>
+    </group>
+  );
+}
+
+// ── Tarantino Easter Egg NPC ─────────────────────────────
+// Rare NPC (30% spawn) — walks fast, wears Hawaiian shirt, rants about movies
+function TarantinoNPC() {
+  const id = "npc-tarantino";
+  const startPos: [number, number, number] = [0, -0.05, -2.5];
+  const ref = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Mesh>(null);
+  const rightLegRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Mesh>(null);
+  const rightArmRef = useRef<THREE.Mesh>(null);
+  const speed = 1.0; // faster than regular NPCs
+  const startIdx = useMemo(() => {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < NPC_WAYPOINTS.length; i++) {
+      const dx = NPC_WAYPOINTS[i][0] - startPos[0];
+      const dz = NPC_WAYPOINTS[i][1] - startPos[2];
+      const d = dx * dx + dz * dz;
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    return best;
+  }, []);
+  const waypointIdx = useRef(startIdx);
+  const direction = useRef(useMemo(() => (Math.random() > 0.5 ? 1 : -1), []));
+  const waitTimer = useRef(0);
+  const waitDuration = useRef(0);
+  const isBrowsing = useRef(false);
+
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    const dt = Math.min(delta, 0.1);
+    const t = state.clock.elapsedTime;
+
+    npcPositions.set(id, { x: ref.current.position.x, z: ref.current.position.z });
+
+    const resetLimbs = () => {
+      if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
+    };
+
+    if (waitTimer.current > 0) {
+      waitTimer.current -= dt;
+      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
+      resetLimbs();
+      return;
+    }
+
+    const target = NPC_WAYPOINTS[waypointIdx.current];
+    const dx = target[0] - ref.current.position.x;
+    const dz = target[1] - ref.current.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    if (dist < 0.3) {
+      if (Math.random() < 0.4) {
+        isBrowsing.current = true;
+        waitTimer.current = 5 + Math.random() * 5;
+        waitDuration.current = waitTimer.current;
+        const npcZ = ref.current.position.z;
+        const shelfZs = [-4, -1, 2];
+        let nearestZ = shelfZs[0];
+        let nearestDist = Math.abs(npcZ - shelfZs[0]);
+        for (const sz of shelfZs) {
+          const d = Math.abs(npcZ - sz);
+          if (d < nearestDist) { nearestDist = d; nearestZ = sz; }
+        }
+        ref.current.rotation.y = nearestZ < npcZ ? Math.PI : 0;
+      } else {
+        isBrowsing.current = false;
+        waitTimer.current = 0.5 + Math.random() * 0.5;
+        waitDuration.current = waitTimer.current;
+      }
+      waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
+    } else {
+      const nx = dx / dist;
+      const nz = dz / dist;
+      const newX = ref.current.position.x + nx * speed * dt;
+      const newZ = ref.current.position.z + nz * speed * dt;
+
+      if (npcTooCloseToOther(id, newX, newZ)) {
+        waitTimer.current = 0.3 + Math.random() * 0.3;
+        waitDuration.current = waitTimer.current;
+        resetLimbs();
+      } else {
+        if (!npcCollidesShelf(newX, ref.current.position.z)) ref.current.position.x = newX;
+        if (!npcCollidesShelf(ref.current.position.x, newZ)) ref.current.position.z = newZ;
+        ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
+        ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+        const swing = Math.sin(t * 8) * 0.3;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * 0.6;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.6;
+      }
+    }
+
+    registerNPCPosition(id, ref.current.position.x, ref.current.position.z);
+  });
+
+  useEffect(() => {
+    return () => { unregisterNPCPosition(id); npcPositions.delete(id); };
+  }, []);
+
+  const skinTone = "#e0b896";
+  const hairColor = "#1a1a1a";
+  const shirtColor = "#cc4422"; // Hawaiian shirt base
+
+  return (
+    <group ref={ref} position={startPos} scale={1.1} userData={{ interactType: "tarantino", label: "Talk to Quentin" }}>
+      {/* Legs */}
+      <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
+        <boxGeometry args={[0.1, 0.6, 0.12]} />
+        <Mat color="#2a2a3a" roughness={0.8} />
+      </mesh>
+      <mesh ref={rightLegRef} position={[0.06, 0.3, 0]}>
+        <boxGeometry args={[0.1, 0.6, 0.12]} />
+        <Mat color="#2a2a3a" roughness={0.8} />
+      </mesh>
+      {/* Body — Hawaiian shirt */}
+      <mesh position={[0, 0.8, 0]}>
+        <boxGeometry args={[0.34, 0.44, 0.22]} />
+        <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      {/* Hawaiian pattern overlay stripes */}
+      <mesh position={[-0.08, 0.82, -0.115]}>
+        <boxGeometry args={[0.06, 0.38, 0.005]} />
+        <Mat color="#e8a030" roughness={0.7} />
+      </mesh>
+      <mesh position={[0.08, 0.82, -0.115]}>
+        <boxGeometry args={[0.06, 0.38, 0.005]} />
+        <Mat color="#30a060" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.82, -0.115]}>
+        <boxGeometry args={[0.06, 0.38, 0.005]} />
+        <Mat color="#e8d040" roughness={0.7} />
+      </mesh>
+      {/* Open collar */}
+      <mesh position={[-0.06, 1.01, -0.08]} rotation={[0.3, 0, 0.3]}>
+        <boxGeometry args={[0.08, 0.04, 0.02]} />
+        <Mat color={shirtColor} roughness={0.6} />
+      </mesh>
+      <mesh position={[0.06, 1.01, -0.08]} rotation={[0.3, 0, -0.3]}>
+        <boxGeometry args={[0.08, 0.04, 0.02]} />
+        <Mat color={shirtColor} roughness={0.6} />
+      </mesh>
+      {/* Belt line */}
+      <mesh position={[0, 0.58, 0]}>
+        <boxGeometry args={[0.35, 0.03, 0.23]} />
+        <Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      {/* Left arm */}
+      <mesh ref={leftArmRef} position={[-0.22, 0.78, 0]}>
+        <boxGeometry args={[0.1, 0.35, 0.1]} />
+        <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      <mesh position={[-0.22, 0.58, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <Mat color={skinTone} roughness={0.8} />
+      </mesh>
+      {/* Right arm */}
+      <mesh ref={rightArmRef} position={[0.22, 0.78, 0]}>
+        <boxGeometry args={[0.1, 0.35, 0.1]} />
+        <Mat color={shirtColor} roughness={0.7} />
+      </mesh>
+      <mesh position={[0.22, 0.58, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} />
+        <Mat color={skinTone} roughness={0.8} />
+      </mesh>
+
+      {/* Head — slightly taller with prominent chin */}
+      <mesh position={[0, 1.2, 0]}>
+        <sphereGeometry args={[0.16, 12, 14]} />
+        <Mat color={skinTone} roughness={0.75} />
+      </mesh>
+      <mesh position={[0, 1.26, 0]}>
+        <sphereGeometry args={[0.13, 12, 8]} />
+        <Mat color={skinTone} roughness={0.75} />
+      </mesh>
+      {/* Prominent chin/jaw */}
+      <mesh position={[0, 1.08, -0.04]}>
+        <boxGeometry args={[0.22, 0.08, 0.16]} />
+        <Mat color={skinTone} roughness={0.75} />
+      </mesh>
+      <mesh position={[0, 1.04, -0.06]}>
+        <boxGeometry args={[0.16, 0.04, 0.1]} />
+        <Mat color={skinTone} roughness={0.75} />
+      </mesh>
+
+      {/* Dark slicked-back hair */}
+      <mesh position={[0, 1.34, 0.04]}>
+        <boxGeometry args={[0.28, 0.1, 0.24]} />
+        <Mat color={hairColor} roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.28, 0.12]}>
+        <boxGeometry args={[0.22, 0.16, 0.06]} />
+        <Mat color={hairColor} roughness={0.9} />
+      </mesh>
+
+      {/* Nose */}
+      <mesh position={[0, 1.18, -0.16]}>
+        <boxGeometry args={[0.03, 0.05, 0.04]} />
+        <Mat color={skinTone} roughness={0.8} />
+      </mesh>
+      {/* Eyebrows — thick */}
+      <mesh position={[-0.05, 1.26, -0.14]}>
+        <boxGeometry args={[0.06, 0.015, 0.02]} />
+        <Mat color={hairColor} roughness={0.9} />
+      </mesh>
+      <mesh position={[0.05, 1.26, -0.14]}>
+        <boxGeometry args={[0.06, 0.015, 0.02]} />
+        <Mat color={hairColor} roughness={0.9} />
+      </mesh>
+      {/* Eyes */}
+      <mesh position={[-0.05, 1.22, -0.14]}>
+        <sphereGeometry args={[0.018, 8, 8]} />
+        <Mat color="#1a1a1a" />
+      </mesh>
+      <mesh position={[0.05, 1.22, -0.14]}>
+        <sphereGeometry args={[0.018, 8, 8]} />
+        <Mat color="#1a1a1a" />
+      </mesh>
+
+      {/* Shadow */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
+        <circleGeometry args={[0.22, 12]} />
         <Mat color="#000000" transparent opacity={0.15} />
       </mesh>
     </group>
@@ -2484,6 +2716,7 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
 }
 
 export function Store({ isMobile }: { isMobile?: boolean }) {
+  const [showTarantino] = useState(() => Math.random() < 0.3);
   return (
     <MobileCtx.Provider value={!!isMobile}>
     <group>
@@ -2636,25 +2869,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         </group>
       ))}
 
-      {/* Warm light pools on floor under fixtures — simulates fluorescent falloff */}
-      {[-6, -2, 2, 6].map((fx) => (
-        <group key={`lp-${fx}`}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[fx, 0.003, -1.5]}>
-            <planeGeometry args={[2.5, 2.0]} />
-            <meshBasicMaterial color="#332810" transparent opacity={0.25} />
-          </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[fx, 0.003, 2]}>
-            <planeGeometry args={[2.5, 2.0]} />
-            <meshBasicMaterial color="#332810" transparent opacity={0.25} />
-          </mesh>
-        </group>
-      ))}
-      {[-4, 0, 4].map((fx) => (
-        <mesh key={`lpm-${fx}`} rotation={[-Math.PI / 2, 0, 0]} position={[fx, 0.003, 0]}>
-          <planeGeometry args={[2.5, 2.0]} />
-          <meshBasicMaterial color="#332810" transparent opacity={0.25} />
-        </mesh>
-      ))}
+      {/* Floor pools removed — carpet color handles the look now */}
 
       {/* Warm glow on counter top — register/monitor light simulation */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, 0.88, 5.5]}>
@@ -2711,6 +2926,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {!isMobile && <NPCCustomer id="npc-3" startPos={[3.25, -0.05, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" hairStyle="ponytail" />}
       <KidCustomer startPos={[0, -0.05, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
       <CharlieCharacter isMobile={isMobile} />
+      {showTarantino && <TarantinoNPC />}
 
       {/* New Releases wall display */}
       <NewReleasesWall isMobile={isMobile} />
@@ -2870,6 +3086,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
             <boxGeometry args={[0.3, 0.08, 0.15]} />
             <meshBasicMaterial color="#555" />
           </mesh>
+          {/* Glow circle on ground under lamp */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
+            <circleGeometry args={[1.5, 12]} />
+            <meshBasicMaterial color="#332a15" transparent opacity={0.3} />
+          </mesh>
         </group>
       ))}
 
@@ -2986,6 +3207,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <boxGeometry args={[1.1, 0.04, 0.04]} />
         <meshBasicMaterial color="#553322" />
       </mesh>
+      {/* Warm interior light spilling from Pizza Palace door */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-ROOM_W / 2 - 2.5, -0.03, ROOM_D / 2 + 0.6]}>
+        <planeGeometry args={[1.6, 1.0]} />
+        <meshBasicMaterial color="#553311" transparent opacity={0.35} />
+      </mesh>
       {/* Pizza Palace sign backing */}
       <group position={[-ROOM_W / 2 - 3, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}>
         <mesh>
@@ -3004,13 +3230,18 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Text
           position={[0, 0, 0.04]}
           fontSize={0.24}
-          color="#ff4444"
+          color="#ff6666"
           anchorX="center"
           anchorY="middle"
         >
           PIZZA PALACE
-          <meshBasicMaterial color="#ff4444" toneMapped={false} />
+          <meshBasicMaterial color="#ff6666" toneMapped={false} />
         </Text>
+        {/* Sign glow halo */}
+        <mesh position={[0, 0, -0.01]}>
+          <planeGeometry args={[3.8, 0.9]} />
+          <meshBasicMaterial color="#ff3333" transparent opacity={0.08} />
+        </mesh>
       </group>
 
       {/* Neon pizza slice sign — triangle */}
@@ -3151,13 +3382,18 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Text
           position={[0, 0, 0.03]}
           fontSize={0.24}
-          color="#55bbee"
+          color="#77ddff"
           anchorX="center"
           anchorY="middle"
         >
           LAUNDROMAT
-          <meshBasicMaterial color="#55bbee" toneMapped={false} />
+          <meshBasicMaterial color="#77ddff" toneMapped={false} />
         </Text>
+        {/* Sign glow halo */}
+        <mesh position={[0, 0, -0.01]}>
+          <planeGeometry args={[3.8, 0.9]} />
+          <meshBasicMaterial color="#3399cc" transparent opacity={0.08} />
+        </mesh>
       </group>
       {/* Right neighbor awning */}
       <mesh position={[ROOM_W / 2 + 3, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}>
@@ -3588,6 +3824,58 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <mesh position={[5, 0.3, ROOM_D / 2 + 0.06]}>
         <boxGeometry args={[5.7, 0.06, 0.04]} />
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
+      </mesh>
+
+      {/* ── Window decals/stickers ──────── */}
+      {/* "VISA / MASTERCARD ACCEPTED" — bottom-left of left window */}
+      <group position={[-6.8, 0.55, ROOM_D / 2 + 0.03]}>
+        <mesh>
+          <boxGeometry args={[1.4, 0.22, 0.005]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.85} />
+        </mesh>
+        <Text position={[0, 0, 0.004]} fontSize={0.07} color="#1a1a6a" anchorX="center" anchorY="middle" font={undefined}>
+          VISA / MASTERCARD ACCEPTED
+        </Text>
+      </group>
+      {/* "NEW RELEASES EVERY TUESDAY" — right window */}
+      <group position={[5, 1.9, ROOM_D / 2 + 0.03]}>
+        <mesh>
+          <boxGeometry args={[2.0, 0.28, 0.005]} />
+          <meshBasicMaterial color="#ffd700" transparent opacity={0.9} />
+        </mesh>
+        <Text position={[0, 0, 0.004]} fontSize={0.09} color="#1a0a3a" anchorX="center" anchorY="middle" font={undefined}>
+          NEW RELEASES EVERY TUESDAY
+        </Text>
+      </group>
+      {/* "OPEN 7 DAYS" — right window lower area */}
+      <group position={[5, 0.55, ROOM_D / 2 + 0.03]}>
+        <mesh>
+          <boxGeometry args={[1.1, 0.22, 0.005]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.85} />
+        </mesh>
+        <Text position={[0, 0, 0.004]} fontSize={0.08} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>
+          OPEN 7 DAYS
+        </Text>
+      </group>
+
+      {/* ── Interior light spill through windows (exterior warm glow) ──────── */}
+      <mesh position={[-5, 1.2, ROOM_D / 2 + 0.03]}>
+        <planeGeometry args={[5.3, 2.0]} />
+        <meshBasicMaterial color="#ffd080" transparent opacity={0.06} />
+      </mesh>
+      <mesh position={[5, 1.2, ROOM_D / 2 + 0.03]}>
+        <planeGeometry args={[5.3, 2.0]} />
+        <meshBasicMaterial color="#ffd080" transparent opacity={0.06} />
+      </mesh>
+
+      {/* ── Window sills ──────── */}
+      <mesh position={[-5, 0.28, ROOM_D / 2 + 0.05]}>
+        <boxGeometry args={[5.5, 0.06, 0.1]} />
+        <Mat color="#2a2a3a" roughness={0.5} />
+      </mesh>
+      <mesh position={[5, 0.28, ROOM_D / 2 + 0.05]}>
+        <boxGeometry args={[5.5, 0.06, 0.1]} />
+        <Mat color="#2a2a3a" roughness={0.5} />
       </mesh>
 
       {/* Awning above entrance — blue/yellow canopy */}
