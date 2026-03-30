@@ -15,11 +15,12 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp } from "@/lib/game-state";
+import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone } from "@/lib/game-state";
+import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
-import { getRandomDialogue, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
+import { getRandomDialogue, getRandomQuestDialogue, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -41,7 +42,7 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue";
+type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log";
 
 export default function GamePage() {
   const [started, setStarted] = useState(false);
@@ -134,6 +135,12 @@ export default function GamePage() {
   const [rpgNode, setRpgNode] = useState<DialogueNode | null>(null);
   const [rpgHistory, setRpgHistory] = useState<{ speaker: string; portrait?: string; text: string }[]>([]);
 
+  // Side quest state (uses existing showQuestNotif for notifications)
+
+  // Quest system state
+  const [questNotification, setQuestNotification] = useState<string | null>(null);
+  const questNotifTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
   // Load props count on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
     setPropsCount(getPropsCount());
@@ -218,6 +225,142 @@ export default function GamePage() {
     return () => { window.removeEventListener("click", handler); window.removeEventListener("keydown", handler); };
   }, []);
 
+  // ── Quest System ──────────────────────────────────────
+  const showQuestNotif = useCallback((msg: string) => {
+    setQuestNotification(msg);
+    if (questNotifTimer.current) clearTimeout(questNotifTimer.current);
+    questNotifTimer.current = setTimeout(() => setQuestNotification(null), 3000);
+  }, []);
+
+  const trackQuestGenreVisit = useCallback((genre: string) => {
+    const active = getActiveQuests();
+    const genreUpper = genre.toUpperCase().replace(/_/g, " ").replace("SCIFI", "SCI-FI").replace("NEW RELEASES", "DOCS").replace("STAFF PICKS", "CLASSICS");
+    const GENRE_MAP: Record<string, string> = {
+      "HORROR": "HORROR", "SCIFI": "SCI-FI", "COMEDY": "COMEDY", "DRAMA": "DRAMA",
+      "ACTION": "ACTION", "CLASSICS": "CLASSICS", "FAMILY": "FAMILY", "NEW RELEASES": "DOCS",
+      "NEW_RELEASES": "DOCS", "STAFF PICKS": "CLASSICS", "STAFF_PICKS": "CLASSICS",
+      "ROMANCE": "ROMANCE", "WESTERN": "WESTERN", "THRILLER": "THRILLER",
+      "ANIMATED": "ANIMATED", "DOCS": "DOCS", "SCI-FI": "SCI-FI",
+    };
+    const mappedGenre = GENRE_MAP[genreUpper] || genreUpper;
+
+    for (const quest of active) {
+      for (const obj of quest.objectives) {
+        if (obj.type === "visit_section" && obj.target === mappedGenre) {
+          const allDone = completeObjective(quest.id, obj.id);
+          showQuestNotif(`Quest: Visited ${mappedGenre} section`);
+          if (allDone) {
+            completeQuest(quest.id);
+            setPropsCount(getPropsCount());
+            showQuestNotif(`Quest Complete: ${quest.title}!`);
+            if (quest.reward.propId) {
+              const prop = PROPS.find(p => p.id === quest.reward.propId);
+              if (prop) setRewardProp(prop);
+            }
+          }
+        }
+      }
+    }
+  }, [showQuestNotif]);
+
+  const trackQuestMoviePickup = useCallback((movieTitle: string, movieGenre: string) => {
+    const active = getActiveQuests();
+    const genreUpper = movieGenre.toUpperCase();
+
+    for (const quest of active) {
+      for (const obj of quest.objectives) {
+        if (obj.type === "browse_genre" && obj.target === genreUpper) {
+          const allDone = completeObjective(quest.id, obj.id);
+          showQuestNotif(`Quest: Picked ${genreUpper} movie`);
+          if (allDone) {
+            completeQuest(quest.id);
+            setPropsCount(getPropsCount());
+            showQuestNotif(`Quest Complete: ${quest.title}!`);
+            if (quest.reward.propId) {
+              const prop = PROPS.find(p => p.id === quest.reward.propId);
+              if (prop) setRewardProp(prop);
+            }
+          }
+        }
+        if (obj.type === "find_movie" && obj.target && movieTitle.toLowerCase().includes(obj.target.toLowerCase())) {
+          const allDone = completeObjective(quest.id, obj.id);
+          showQuestNotif(`Quest: Found ${movieTitle}!`);
+          if (allDone) {
+            completeQuest(quest.id);
+            setPropsCount(getPropsCount());
+            showQuestNotif(`Quest Complete: ${quest.title}!`);
+            if (quest.reward.propId) {
+              const prop = PROPS.find(p => p.id === quest.reward.propId);
+              if (prop) setRewardProp(prop);
+            }
+          }
+        }
+      }
+    }
+  }, [showQuestNotif]);
+
+  const trackQuestNpcTalk = useCallback((npcName: string) => {
+    const active = getActiveQuests();
+    for (const quest of active) {
+      for (const obj of quest.objectives) {
+        if (obj.type === "talk_to_npc" && obj.target === npcName) {
+          const allDone = completeObjective(quest.id, obj.id);
+          showQuestNotif(`Quest: Talked to ${npcName}`);
+          if (allDone) {
+            completeQuest(quest.id);
+            setPropsCount(getPropsCount());
+            showQuestNotif(`Quest Complete: ${quest.title}!`);
+            if (quest.reward.propId) {
+              const prop = PROPS.find(p => p.id === quest.reward.propId);
+              if (prop) setRewardProp(prop);
+            }
+          }
+        }
+      }
+    }
+  }, [showQuestNotif]);
+
+  // Handle RPG dialogue response selection (quest triggers + node navigation)
+  const handleDialogueResponse = useCallback((resp: { text: string; next: DialogueNode; questStart?: string; questComplete?: string }) => {
+    if (resp.questStart) {
+      const questId = resp.questStart;
+      const state = getQuestState();
+      if (!state.activeQuests.includes(questId) && !state.completedQuests.includes(questId)) {
+        startQuest(questId);
+        const quest = CUSTOMER_SIDE_QUESTS.find(q => q.id === questId);
+        if (quest) {
+          showQuestNotif(`New Side Quest: ${quest.title}`);
+          playSFX("challenge_start");
+        }
+      }
+    }
+    if (resp.questComplete) {
+      const questId = resp.questComplete;
+      const quest = CUSTOMER_SIDE_QUESTS.find(q => q.id === questId);
+      if (quest) {
+        const state = getQuestState();
+        if (!state.completedQuests.includes(questId)) {
+          if (!state.activeQuests.includes(questId)) {
+            startQuest(questId);
+          }
+          for (const obj of quest.objectives) {
+            completeObjective(questId, obj.id);
+          }
+          completeQuest(questId);
+          setPropsCount(getPropsCount());
+          showQuestNotif(`Side Quest Complete: ${quest.title}! +${quest.reward.xp} XP`);
+          playSFX("challenge_complete");
+        }
+      }
+    }
+    setRpgHistory(prev => [
+      ...prev,
+      { speaker: "You", text: resp.text },
+      { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
+    ]);
+    setRpgNode(resp.next);
+  }, [showQuestNotif]);
+
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
     setHoverLabel(label);
@@ -257,6 +400,8 @@ export default function GamePage() {
         setTimeout(() => setPickupFlash(false), 800);
         setTimeout(() => setPickupTitle(null), 1500);
         playSFX("vhs_pickup");
+        // Track movie pickup for quest objectives
+        trackQuestMoviePickup(movie.title, movie.genre || "");
         // Vinny quip on pickup (30% chance to avoid spam)
         if (Math.random() < 0.3) playRandomLine("pickup");
         // Check if this movie wins the race
@@ -304,6 +449,8 @@ export default function GamePage() {
         }
         return;
       }
+      // Track Charlie talk for quest objectives
+      trackQuestNpcTalk("charlie");
       // RPG dialogue with Charlie
       document.exitPointerLock();
       const tree = getRandomDialogue("charlie");
@@ -405,6 +552,62 @@ export default function GamePage() {
         setQuizAnswer(null);
         setOverlay("synopsis");
       }
+    } else if (type === "customer") {
+      // Customer side quest dialogue
+      // If a side quest needs "talk to customer" objective, complete it
+      const activeSide = getActiveSideQuests();
+      for (const q of activeSide) {
+        for (const obj of q.objectives) {
+          if (obj.type === "talk_to_npc" && obj.target === "customer") {
+            const allDone = completeObjective(q.id, obj.id);
+            if (allDone) {
+              completeQuest(q.id);
+              setPropsCount(getPropsCount());
+              showQuestNotif(`Side Quest Complete: ${q.title}! +${q.reward.xp} XP`);
+              playSFX("challenge_complete");
+              return;
+            }
+          }
+        }
+      }
+      // Offer a new side quest (50% chance) or normal customer dialogue
+      const completedIds = getQuestState().completedQuests;
+      const questTree = Math.random() < 0.5 ? getRandomQuestDialogue(completedIds) : null;
+      if (questTree) {
+        setRpgDialogue(questTree);
+        setRpgNode(questTree.opener);
+        setRpgHistory([{ speaker: questTree.opener.speaker, portrait: questTree.opener.portrait, text: questTree.opener.text }]);
+        setOverlay("rpg_dialogue");
+      } else {
+        const tree = getRandomDialogue("customer");
+        setRpgDialogue(tree);
+        setRpgNode(tree.opener);
+        setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+        setOverlay("rpg_dialogue");
+      }
+    } else if (type === "return_slot") {
+      // Complete "return_run" side quest objective if active
+      const activeSide = getActiveSideQuests();
+      let handledQuest = false;
+      for (const q of activeSide) {
+        for (const obj of q.objectives) {
+          if (obj.type === "visit_section" && obj.target === "RETURN_SLOT") {
+            const allDone = completeObjective(q.id, obj.id);
+            showQuestNotif("Tape returned!");
+            if (allDone) {
+              completeQuest(q.id);
+              setPropsCount(getPropsCount());
+              showQuestNotif(`Side Quest Complete: ${q.title}! +${q.reward.xp} XP`);
+              playSFX("challenge_complete");
+            }
+            handledQuest = true;
+          }
+        }
+      }
+      if (!handledQuest) {
+        playVinnyLine("The video return slot. Drop your tapes here when you're done!", "Vinny");
+      }
+      return;
     } else if (type === "challenge") {
       // Open challenge selection overlay
       if (challenge) return; // already running
@@ -413,12 +616,15 @@ export default function GamePage() {
     } else if (type === "trophy") {
       setOverlay("trophy");
     } else if (type === "shelf") {
-      setShelfGenre(data || "horror");
+      const genre = data || "horror";
+      setShelfGenre(genre);
       setOverlay("shelf");
+      // Track genre visit for quest objectives
+      trackQuestGenreVisit(genre);
     } else if (type === "tv") {
       startPuzzle();
     }
-  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft]);
+  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit]);
 
   // ── Start a challenge (movie_night or speed_run) ──────
   const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
@@ -572,19 +778,13 @@ export default function GamePage() {
         const num = parseInt(e.key);
         if (num >= 1 && num <= rpgNode.responses.length) {
           e.preventDefault();
-          const resp = rpgNode.responses[num - 1];
-          setRpgHistory(prev => [
-            ...prev,
-            { speaker: "You", text: resp.text },
-            { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
-          ]);
-          setRpgNode(resp.next);
+          handleDialogueResponse(rpgNode.responses[num - 1]);
         }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [overlay, closeOverlay, rpgNode]);
+  }, [overlay, closeOverlay, rpgNode, handleDialogueResponse]);
 
   // Screenshot helper — forces a render frame then captures (works with preserveDrawingBuffer: false)
   const takeScreenshot = useCallback(() => {
@@ -634,15 +834,19 @@ export default function GamePage() {
     });
   }, []);
 
-  // C to take screenshot
+  // C to take screenshot, J to open quest log
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
       if (e.key === "c" || e.key === "C") takeScreenshot();
+      if ((e.key === "j" || e.key === "J") && overlay === "none") {
+        document.exitPointerLock();
+        setOverlay("quest_log");
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [takeScreenshot]);
+  }, [takeScreenshot, overlay]);
 
   // ── Splash ─────────────────────────────────────────────
   if (!started) {
@@ -679,7 +883,7 @@ export default function GamePage() {
               try { document.documentElement.requestFullscreen?.(); } catch {}
             }
           }}>ENTER THE STORE</button>
-          <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; E to interact</p>
+          <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; E to interact &bull; J quests</p>
         </div>
       </div>
     );
@@ -997,9 +1201,10 @@ export default function GamePage() {
            hasOverlay ? "Press Q or click ✕ to close" :
            heldMovies.length > 0 ? `Take your ${heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny!` :
            challenge ? "" :
-           "WASD move · E to interact"}
+           "WASD move · E interact · J quests"}
         </span>
         <div className="g3-hud-right">
+          <button className="g3-screenshot-btn" onClick={() => { document.exitPointerLock(); setOverlay("quest_log"); }} title="Quest Log (J)">📜</button>
           <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
           <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); return next; }); }}>{audioMuted ? "🔇" : "🔊"}</button>
           <button className="g3-screenshot-btn" onClick={takeScreenshot}>📷</button>
@@ -1160,6 +1365,106 @@ export default function GamePage() {
           </div>
         </div>
       )}
+      {/* Quest notification toast */}
+      {questNotification && (
+        <div className="g3-quest-notif">{questNotification}</div>
+      )}
+
+      {/* Quest Log Overlay */}
+      {overlay === "quest_log" && (() => {
+        const available = getAvailableQuests();
+        const active = getActiveQuests();
+        const completed = getCompletedQuests();
+        const qs = getQuestState();
+        return (
+          <div className="g3-overlay g3-overlay-center">
+            <div className="g3-overlay-header">
+              <span className="g3-overlay-title">QUEST LOG</span>
+              <button className="g3-overlay-close" onClick={closeOverlay}>&#10005;</button>
+            </div>
+            <div className="g3-overlay-body g3-quest-log">
+              {/* Active Quests */}
+              {active.length > 0 && (
+                <div className="g3-quest-section">
+                  <div className="g3-quest-section-title">ACTIVE QUESTS</div>
+                  {active.map(quest => {
+                    const progress = qs.questProgress[quest.id] || {};
+                    const doneCount = quest.objectives.filter(o => progress[o.id]).length;
+                    return (
+                      <div key={quest.id} className="g3-quest-card g3-quest-active">
+                        <div className="g3-quest-card-header">
+                          <span className="g3-quest-title">{quest.title}</span>
+                          <span className="g3-quest-progress">{doneCount}/{quest.objectives.length}</span>
+                        </div>
+                        <p className="g3-quest-desc">{quest.description}</p>
+                        <div className="g3-quest-objectives">
+                          {quest.objectives.map(obj => (
+                            <div key={obj.id} className={`g3-quest-obj ${progress[obj.id] ? "g3-quest-obj-done" : ""}`}>
+                              <span className="g3-quest-obj-check">{progress[obj.id] ? "\u2713" : "\u25CB"}</span>
+                              <span>{obj.description}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="g3-quest-reward">
+                          Reward: {quest.reward.xp} XP{quest.reward.propId ? ` + ${PROPS.find(p => p.id === quest.reward.propId)?.name || "Prop"}` : ""}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Available Quests */}
+              {available.length > 0 && (
+                <div className="g3-quest-section">
+                  <div className="g3-quest-section-title">AVAILABLE QUESTS</div>
+                  {available.map(quest => (
+                    <div key={quest.id} className="g3-quest-card g3-quest-available">
+                      <div className="g3-quest-card-header">
+                        <span className="g3-quest-title">{quest.title}</span>
+                        <span className="g3-quest-giver">From: {quest.giverNpc === "vinny" ? "Vinny" : quest.giverNpc === "charlie" ? "Charlie" : "Customer"}</span>
+                      </div>
+                      <p className="g3-quest-desc">{quest.description}</p>
+                      <div className="g3-quest-reward">
+                        Reward: {quest.reward.xp} XP{quest.reward.propId ? ` + ${PROPS.find(p => p.id === quest.reward.propId)?.name || "Prop"}` : ""}
+                      </div>
+                      <button className="g3-quest-accept" onClick={() => {
+                        startQuest(quest.id);
+                        showQuestNotif(`Quest Started: ${quest.title}`);
+                        closeOverlay();
+                      }}>ACCEPT QUEST</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Completed Quests */}
+              {completed.length > 0 && (
+                <div className="g3-quest-section">
+                  <div className="g3-quest-section-title">COMPLETED</div>
+                  {completed.map(quest => (
+                    <div key={quest.id} className="g3-quest-card g3-quest-completed">
+                      <div className="g3-quest-card-header">
+                        <span className="g3-quest-title">{quest.title}</span>
+                        <span className="g3-quest-check-done">\u2713</span>
+                      </div>
+                      <p className="g3-quest-desc">{quest.description}</p>
+                      <div className="g3-quest-reward">
+                        Earned: {quest.reward.xp} XP{quest.reward.propId ? ` + ${PROPS.find(p => p.id === quest.reward.propId)?.name || "Prop"}` : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {active.length === 0 && available.length === 0 && completed.length === 0 && (
+                <div className="g3-quest-empty">No quests yet. Talk to Vinny to get started!</div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* RPG-style NPC Dialogue — classic bottom text box */}
       {overlay === "rpg_dialogue" && rpgNode && (
         <div className="g3-rpg-overlay">
@@ -1178,7 +1483,7 @@ export default function GamePage() {
                   <button
                     key={i}
                     className="g3-rpg-choice"
-                    onClick={() => setRpgNode(resp.next)}
+                    onClick={() => handleDialogueResponse(resp)}
                   >
                     <span className="g3-rpg-choice-num">{i + 1}</span>
                     <span className="g3-rpg-choice-text">{resp.text}</span>

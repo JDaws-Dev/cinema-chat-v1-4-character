@@ -3942,7 +3942,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </mesh>
 
       {/* ── Return window (outside, left of entrance — behind counter) ──────── */}
-      <group position={[-8, 0, ROOM_D / 2 + 0.1]}>
+      <group position={[-8, 0, ROOM_D / 2 + 0.1]} userData={{ interactType: "return_slot", label: "Video Return Slot" }}>
         {/* Return counter structure */}
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[1.5, 1.0, 0.6]} />

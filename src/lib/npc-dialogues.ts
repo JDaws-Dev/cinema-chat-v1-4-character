@@ -11,6 +11,8 @@ export interface DialogueNode {
 export interface DialogueResponse {
   text: string;
   next: DialogueNode; // what the NPC says after this response
+  questStart?: string; // starts a side quest with this ID when chosen
+  questComplete?: string; // completes a side quest with this ID when chosen
 }
 
 export interface DialogueTree {
@@ -381,6 +383,234 @@ const CUSTOMER_DIALOGUES: DialogueTree[] = [
   },
 ];
 
+// ── CUSTOMER SIDE QUEST DIALOGUES ─────────────────────────
+
+const CUSTOMER_QUEST_DIALOGUES: DialogueTree[] = [
+  {
+    id: "quest_help_me_find_it",
+    npc: "Customer",
+    portrait: "?",
+    opener: {
+      speaker: "Customer",
+      portrait: "?",
+      text: "I'm looking for that movie with the guy... you know, the one with the car chase? It's on the tip of my tongue.",
+      responses: [
+        {
+          text: "I'll help you look!",
+          questStart: "help_me_find_it",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Really? You're a lifesaver. I think it was in the Action section. Grab something from there and bring it back to me — I'll know it when I see it!",
+          },
+        },
+        {
+          text: "Try asking at the counter.",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "I already did. The counter guy just shrugged. Some help he is.",
+          },
+        },
+        {
+          text: "Good luck with that.",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Yeah... I might be here a while.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "quest_date_night",
+    npc: "Customer",
+    portrait: "?",
+    opener: {
+      speaker: "Customer",
+      portrait: "?",
+      text: "My partner wants a romance but I want horror. Can you find something we'd both enjoy?",
+      responses: [
+        {
+          text: "Let me check the Comedy section.",
+          questStart: "date_night_dilemma",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Comedy? That's actually genius — we both like to laugh. Go check the Comedy section and let me know what you find!",
+          },
+        },
+        {
+          text: "Just watch both.",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Double feature? On a Friday? ...Actually that's not a bad idea.",
+          },
+        },
+        {
+          text: "Horror is always the answer.",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Ha! I wish my partner agreed with you.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "quest_kids_pick",
+    npc: "Kid",
+    portrait: "K",
+    opener: {
+      speaker: "Kid",
+      portrait: "K",
+      text: "My mom said I can only get a Family movie but I REALLY want to see that scary one. Can you help me convince her?",
+      responses: [
+        {
+          text: "Your mom's right — Family section has great stuff!",
+          questStart: "kids_pick_family",
+          next: {
+            speaker: "Kid",
+            portrait: "K",
+            text: "Ughhh fine. But only if you go find me something REALLY cool from the Family section. Deal?",
+          },
+        },
+        {
+          text: "What scary movie?",
+          next: {
+            speaker: "Kid",
+            portrait: "K",
+            text: "The one with the clown on the cover! My friend Tommy said it's SO cool. But mom said absolutely not.",
+            responses: [
+              {
+                text: "Yeah, listen to your mom on this one.",
+                questStart: "kids_pick_family",
+                next: {
+                  speaker: "Kid",
+                  portrait: "K",
+                  text: "Everyone always says that! Fine — go grab me something from Family. But it better be good!",
+                },
+              },
+              {
+                text: "Maybe when you're older.",
+                next: {
+                  speaker: "Kid",
+                  portrait: "K",
+                  text: "That's what EVERYONE says. Being a kid is the worst.",
+                },
+              },
+            ],
+          },
+        },
+        {
+          text: "Sorry kid, can't help you there.",
+          next: {
+            speaker: "Kid",
+            portrait: "K",
+            text: "Aw man. Nobody ever takes my side.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "quest_trivia_bet",
+    npc: "Customer",
+    portrait: "?",
+    opener: {
+      speaker: "Customer",
+      portrait: "?",
+      text: "Hey, I bet you $5 you can't name the director of Jaws. Go on, take a guess.",
+      responses: [
+        {
+          text: "Steven Spielberg.",
+          questComplete: "trivia_bet",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "No way... you actually knew that? Alright, fair's fair. Here's your five bucks. You really know your movies!",
+          },
+        },
+        {
+          text: "Ridley Scott?",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Ha! It's Spielberg! Steven Spielberg. Better luck next time, kid.",
+          },
+        },
+        {
+          text: "I don't gamble.",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Smart. But just so you know, it's Spielberg. The answer is always Spielberg.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "quest_return_run",
+    npc: "Customer",
+    portrait: "?",
+    opener: {
+      speaker: "Customer",
+      portrait: "?",
+      text: "Oh no, I forgot to return my tape and it's overdue! I can't go back out there — can you take it to the return slot for me?",
+      responses: [
+        {
+          text: "Sure, I'll run it over.",
+          questStart: "return_run",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "You're a lifesaver! Just take it to the video return window outside. The one with the big yellow sign. I owe you one!",
+          },
+        },
+        {
+          text: "That's not really my job...",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "I know, I know. But the late fees here are brutal! Vinny charges by the HOUR on Fridays.",
+          },
+        },
+        {
+          text: "How overdue is it?",
+          next: {
+            speaker: "Customer",
+            portrait: "?",
+            text: "Let's just say I've had it since last Friday. Vinny's gonna kill me. Please help!",
+            responses: [
+              {
+                text: "Alright, I'll do it.",
+                questStart: "return_run",
+                next: {
+                  speaker: "Customer",
+                  portrait: "?",
+                  text: "Thank you SO much! The video return window is outside — look for the yellow sign!",
+                },
+              },
+              {
+                text: "You're on your own.",
+                next: {
+                  speaker: "Customer",
+                  portrait: "?",
+                  text: "Fair enough. Guess I'll face Vinny's wrath myself...",
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  },
+];
+
 // ── PUBLIC API ──────────────────────────────────────────────
 
 const ALL_DIALOGUES: Record<string, DialogueTree[]> = {
@@ -400,4 +630,33 @@ export function getRandomDialogue(npc: string): DialogueTree {
     : pool[Math.floor(Math.random() * pool.length)];
   usedDialogues.add(pick.id);
   return pick;
+}
+
+/** Get a random customer side quest dialogue (filters out completed quests) */
+export function getRandomQuestDialogue(completedQuests: string[]): DialogueTree | null {
+  const available = CUSTOMER_QUEST_DIALOGUES.filter(d => {
+    // Extract quest IDs from this dialogue tree's responses
+    const questIds = extractQuestIds(d.opener);
+    // Skip if ALL quests in this dialogue are already completed
+    return questIds.length === 0 || !questIds.every(id => completedQuests.includes(id));
+  });
+  if (available.length === 0) return null;
+  const unseen = available.filter(d => !usedDialogues.has(d.id));
+  const pool = unseen.length > 0 ? unseen : available;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  usedDialogues.add(pick.id);
+  return pick;
+}
+
+/** Recursively extract all questStart/questComplete IDs from a dialogue node */
+function extractQuestIds(node: DialogueNode): string[] {
+  const ids: string[] = [];
+  if (node.responses) {
+    for (const resp of node.responses) {
+      if (resp.questStart) ids.push(resp.questStart);
+      if (resp.questComplete) ids.push(resp.questComplete);
+      ids.push(...extractQuestIds(resp.next));
+    }
+  }
+  return ids;
 }
