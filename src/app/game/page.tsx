@@ -1162,10 +1162,14 @@ export default function GamePage() {
           </div>
           <button className="g3-splash-btn" onClick={() => {
             setStarted(true); setLoading(true);
-            // Request fullscreen on mobile only to hide Safari chrome
-            if (/Mobi|Android/i.test(navigator.userAgent)) {
-              try { document.documentElement.requestFullscreen?.(); } catch {}
-            }
+            // Unlock audio immediately on this user gesture (critical for mobile Safari)
+            unlockAudio();
+            // Request fullscreen on all devices
+            try {
+              const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
+              if (el.requestFullscreen) { el.requestFullscreen().catch(() => {}); }
+              else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+            } catch {}
           }}>ENTER THE STORE</button>
           <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; E to interact &bull; J quests</p>
         </div>
