@@ -255,11 +255,11 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
 const ROOM_W = 20;
 const ROOM_D = 14;
 const ROOM_H = 3.5;
-const WALL_COLOR = "#1a3468";
-const FLOOR_COLOR = "#2a3050";
-const CEILING_COLOR = "#e8e4d8";
-const COUNTER_COLOR = "#6a4830";
-const SHELF_COLOR = "#5a3820";
+const WALL_COLOR = "#0E1730";     // Codex: lift from near-black to readable midnight blue
+const FLOOR_COLOR = "#111522";    // Codex: slightly lighter blue-black
+const CEILING_COLOR = "#b8b0a0";  // Codex: darken to warm gray-beige (was too bright)
+const COUNTER_COLOR = "#8a6830";  // warmer wood
+const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't disappear
 
 // ── Shelf layout ─────────────────────────────────────────
 const SHELF_ROWS = [
@@ -992,11 +992,42 @@ const NPC_WAYPOINTS: [number, number][] = [
   [3.35, 3.5],  // right front
 ];
 
+// ── NPC collision helpers ─────────────────────────────────
+// Shelf AABB bounds with padding for NPC radius
+const SHELF_BOUNDS = SHELF_ROWS.map(s => ({
+  minX: s.x - 1.7, maxX: s.x + 1.7,
+  minZ: s.z - 0.55, maxZ: s.z + 0.55,
+}));
+
+function npcCollidesShelf(px: number, pz: number): boolean {
+  for (const b of SHELF_BOUNDS) {
+    if (px > b.minX && px < b.maxX && pz > b.minZ && pz < b.maxZ) return true;
+  }
+  return false;
+}
+
+// Global NPC position registry for NPC-to-NPC avoidance
+const npcPositions = new Map<string, { x: number; z: number }>();
+
+function npcTooCloseToOther(id: string, px: number, pz: number, threshold = 0.8): boolean {
+  for (const [otherId, pos] of npcPositions) {
+    if (otherId === id) continue;
+    const dx = px - pos.x;
+    const dz = pz - pos.z;
+    if (dx * dx + dz * dz < threshold * threshold) return true;
+  }
+  return false;
+}
+
 function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle = "flattop" }: {
   id: string; startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
   hairStyle?: "flattop" | "long" | "cap" | "ponytail";
 }) {
   const ref = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Mesh>(null);
+  const rightLegRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Mesh>(null);
+  const rightArmRef = useRef<THREE.Mesh>(null);
   const speed = 0.8; // units per second
   const startIdx = useMemo(() => {
     // Pick nearest waypoint as starting index
@@ -1021,11 +1052,23 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
     const dt = Math.min(delta, 0.1); // clamp large deltas
     const t = state.clock.elapsedTime;
 
+    // Register position for NPC-to-NPC avoidance
+    npcPositions.set(id, { x: ref.current.position.x, z: ref.current.position.z });
+
+    // Reset leg/arm swing when not moving
+    const resetLimbs = () => {
+      if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
+    };
+
     // If waiting at a waypoint, count down
     if (waitTimer.current > 0) {
       waitTimer.current -= dt;
       // Still bob slightly while waiting
       ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
+      resetLimbs();
       return;
     }
 
@@ -1059,24 +1102,42 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
       }
       waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
     } else {
-      // Move toward target
+      // Move toward target with shelf collision + NPC avoidance
       const nx = dx / dist;
       const nz = dz / dist;
-      ref.current.position.x += nx * speed * dt;
-      ref.current.position.z += nz * speed * dt;
-      // Walk bob
-      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
-      // Face direction of movement (model faces -z, so add PI)
-      ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+      const newX = ref.current.position.x + nx * speed * dt;
+      const newZ = ref.current.position.z + nz * speed * dt;
+
+      // NPC-to-NPC avoidance: pause if too close
+      if (npcTooCloseToOther(id, newX, newZ)) {
+        waitTimer.current = 0.3 + Math.random() * 0.3;
+        waitDuration.current = waitTimer.current;
+        resetLimbs();
+      } else {
+        // Shelf collision: slide along edges
+        if (!npcCollidesShelf(newX, ref.current.position.z)) ref.current.position.x = newX;
+        if (!npcCollidesShelf(ref.current.position.x, newZ)) ref.current.position.z = newZ;
+        // Walk bob
+        ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
+        // Face direction of movement (model faces -z, so add PI)
+        ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+        // Leg swing animation
+        const swing = Math.sin(t * 8) * 0.3;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+        // Arm swing (opposite to legs)
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * 0.6;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.6;
+      }
     }
 
     // Update spatial audio position for this NPC
     registerNPCPosition(id, ref.current.position.x, ref.current.position.z);
   });
 
-  // Unregister spatial audio on unmount
+  // Unregister spatial audio + NPC avoidance on unmount
   useEffect(() => {
-    return () => { unregisterNPCPosition(id); };
+    return () => { unregisterNPCPosition(id); npcPositions.delete(id); };
   }, [id]);
 
   const vhsColor = useMemo(() => {
@@ -1088,11 +1149,11 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
   return (
     <group ref={ref} position={startPos} userData={{ interactType: "customer", label: "Talk to Customer" }}>
       {/* Legs */}
-      <mesh position={[-0.06, 0.3, 0]}>
+      <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
         <Mat color="#3a3a4a" roughness={0.8} />
       </mesh>
-      <mesh position={[0.06, 0.3, 0]}>
+      <mesh ref={rightLegRef} position={[0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
         <Mat color="#3a3a4a" roughness={0.8} />
       </mesh>
@@ -1116,7 +1177,7 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
         <Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
       {/* Left arm with VHS tape in hand */}
-      <mesh position={[-0.22, 0.78, 0]}>
+      <mesh ref={leftArmRef} position={[-0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
         <Mat color={shirtColor} roughness={0.7} />
       </mesh>
@@ -1137,7 +1198,7 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
       </mesh>
 
       {/* Right arm */}
-      <mesh position={[0.22, 0.78, 0]}>
+      <mesh ref={rightArmRef} position={[0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
         <Mat color={shirtColor} roughness={0.7} />
       </mesh>
@@ -1264,6 +1325,11 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
 }) {
   const ref = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Mesh>(null);
+  const rightLegRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Mesh>(null);
+  const rightArmRef = useRef<THREE.Mesh>(null);
+  const kidId = useMemo(() => `kid-${startPos[0].toFixed(1)}-${startPos[2].toFixed(1)}`, [startPos]);
   const speed = 0.6; // slightly slower than adults
   const startIdx = useMemo(() => {
     let best = 0;
@@ -1287,9 +1353,20 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
     const dt = Math.min(delta, 0.1);
     const t = state.clock.elapsedTime;
 
+    // Register position for NPC-to-NPC avoidance
+    npcPositions.set(kidId, { x: ref.current.position.x, z: ref.current.position.z });
+
+    const resetLimbs = () => {
+      if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
+    };
+
     if (waitTimer.current > 0) {
       waitTimer.current -= dt;
       ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
+      resetLimbs();
       return;
     }
 
@@ -1322,22 +1399,43 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
     } else {
       const nx = dx / dist;
       const nz = dz / dist;
-      ref.current.position.x += nx * speed * dt;
-      ref.current.position.z += nz * speed * dt;
-      ref.current.position.y = Math.abs(Math.sin(t * 2.5)) * 0.025;
-      // Face direction of movement (model faces -z, so add PI)
-      ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+      const newX = ref.current.position.x + nx * speed * dt;
+      const newZ = ref.current.position.z + nz * speed * dt;
+
+      // NPC-to-NPC avoidance
+      if (npcTooCloseToOther(kidId, newX, newZ)) {
+        waitTimer.current = 0.3 + Math.random() * 0.3;
+        waitDuration.current = waitTimer.current;
+        resetLimbs();
+      } else {
+        // Shelf collision: slide along edges
+        if (!npcCollidesShelf(newX, ref.current.position.z)) ref.current.position.x = newX;
+        if (!npcCollidesShelf(ref.current.position.x, newZ)) ref.current.position.z = newZ;
+        ref.current.position.y = Math.abs(Math.sin(t * 2.5)) * 0.025;
+        ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+        // Leg swing animation (faster for kids)
+        const swing = Math.sin(t * 10) * 0.35;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * 0.6;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.6;
+      }
     }
   });
+
+  // Unregister NPC avoidance on unmount
+  useEffect(() => {
+    return () => { npcPositions.delete(kidId); };
+  }, [kidId]);
 
   return (
     <group ref={ref} position={startPos} scale={0.65} userData={{ interactType: "customer", label: "Talk to Kid" }}>
       {/* Legs — shorter kid proportions */}
-      <mesh position={[-0.06, 0.3, 0]}>
+      <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
         <Mat color="#4a6fa5" roughness={0.8} />
       </mesh>
-      <mesh position={[0.06, 0.3, 0]}>
+      <mesh ref={rightLegRef} position={[0.06, 0.3, 0]}>
         <boxGeometry args={[0.1, 0.6, 0.12]} />
         <Mat color="#4a6fa5" roughness={0.8} />
       </mesh>
@@ -1383,7 +1481,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         <Mat color="#d35400" roughness={0.8} />
       </mesh>
       {/* Left arm */}
-      <mesh position={[-0.22, 0.78, 0]}>
+      <mesh ref={leftArmRef} position={[-0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
         <Mat color={shirtColor} roughness={0.7} />
       </mesh>
@@ -1393,7 +1491,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         <Mat color={skinTone} roughness={0.8} />
       </mesh>
       {/* Right arm */}
-      <mesh position={[0.22, 0.78, 0]}>
+      <mesh ref={rightArmRef} position={[0.22, 0.78, 0]}>
         <boxGeometry args={[0.1, 0.35, 0.1]} />
         <Mat color={shirtColor} roughness={0.7} />
       </mesh>
@@ -1433,6 +1531,11 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
 function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Mesh>(null);
+  const rightLegRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Mesh>(null);
+  const rightArmRef = useRef<THREE.Mesh>(null);
+  const charlieId = "charlie";
   const speed = 0.8;
   const startPos: [number, number, number] = [-2, 0, 1.5];
   const startIdx = useMemo(() => {
@@ -1456,6 +1559,16 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
     const dt = Math.min(delta, 0.1);
     const t = state.clock.elapsedTime;
 
+    // Register position for NPC-to-NPC avoidance
+    npcPositions.set(charlieId, { x: ref.current.position.x, z: ref.current.position.z });
+
+    const resetLimbs = () => {
+      if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
+    };
+
     // Idle bob
     if (waitTimer.current > 0) {
       waitTimer.current -= dt;
@@ -1464,6 +1577,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       if (headRef.current) {
         headRef.current.rotation.y = Math.sin(t * 0.3) * 0.2;
       }
+      resetLimbs();
       return;
     }
 
@@ -1494,10 +1608,26 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
     } else {
       const nx = dx / dist;
       const nz = dz / dist;
-      ref.current.position.x += nx * speed * dt;
-      ref.current.position.z += nz * speed * dt;
-      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
-      ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+      const newX = ref.current.position.x + nx * speed * dt;
+      const newZ = ref.current.position.z + nz * speed * dt;
+
+      // NPC-to-NPC avoidance
+      if (npcTooCloseToOther(charlieId, newX, newZ)) {
+        waitTimer.current = 0.3 + Math.random() * 0.3;
+        resetLimbs();
+      } else {
+        // Shelf collision: slide along edges
+        if (!npcCollidesShelf(newX, ref.current.position.z)) ref.current.position.x = newX;
+        if (!npcCollidesShelf(ref.current.position.x, newZ)) ref.current.position.z = newZ;
+        ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
+        ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+        // Leg swing animation
+        const swing = Math.sin(t * 8) * 0.3;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * 0.6;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.6;
+      }
     }
 
     if (headRef.current) {
@@ -1505,14 +1635,19 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
     }
   });
 
+  // Unregister NPC avoidance on unmount
+  useEffect(() => {
+    return () => { npcPositions.delete(charlieId); };
+  }, []);
+
   return (
     <group ref={ref} position={startPos} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
       {/* Legs — Dark jeans */}
-      <mesh position={[-0.08, 0.3, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
+      <mesh ref={leftLegRef} position={[-0.08, 0.3, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
         <boxGeometry args={[0.12, 0.6, 0.13]} />
         <Mat color="#1a3050" roughness={0.85} />
       </mesh>
-      <mesh position={[0.08, 0.3, 0]}>
+      <mesh ref={rightLegRef} position={[0.08, 0.3, 0]}>
         <boxGeometry args={[0.12, 0.6, 0.13]} />
         <Mat color="#1a3050" roughness={0.85} />
       </mesh>
@@ -1606,7 +1741,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       </Text>
 
       {/* Left arm */}
-      <mesh position={[-0.24, 0.82, 0]}>
+      <mesh ref={leftArmRef} position={[-0.24, 0.82, 0]}>
         <boxGeometry args={[0.11, 0.4, 0.12]} />
         <Mat color="#0a4a8a" roughness={0.7} />
       </mesh>
@@ -1616,7 +1751,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
         <Mat color="#e8c4a0" roughness={0.8} />
       </mesh>
       {/* Right arm */}
-      <mesh position={[0.24, 0.82, 0]}>
+      <mesh ref={rightArmRef} position={[0.24, 0.82, 0]}>
         <boxGeometry args={[0.11, 0.4, 0.12]} />
         <Mat color="#0a4a8a" roughness={0.7} />
       </mesh>
@@ -2352,7 +2487,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Floor — blue commercial carpet like Blockbuster */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[ROOM_W, ROOM_D]} />
-        <Mat color="#1a2248" roughness={0.95} />
+        <Mat color={FLOOR_COLOR} roughness={0.95} />
       </mesh>
       {/* Entrance tile area — different floor near the door */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, ROOM_D / 2 - 1]}>
