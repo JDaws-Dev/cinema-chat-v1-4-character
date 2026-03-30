@@ -267,7 +267,7 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Poster plane — offset clearly in front, flipped to face camera */}
-      <mesh position={[0, 0, -0.014]} rotation={[0, Math.PI, 0]}>
+      <mesh position={[0, 0, -0.0135]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[0.14, 0.25]} />
         <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
@@ -2242,12 +2242,17 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
         ★ NEW RELEASES ★
       </Text>
 
-      {/* VHS boxes — 10 copies of each movie grouped together */}
+      {/* VHS boxes — uses same PosterBox as shelves for consistent look */}
       {positions.map((pos) => {
         const movieIdx = allPosters.length > 0 ? Math.floor(pos.idx / 10) % allPosters.length : -1;
         const poster = movieIdx >= 0 ? allPosters[movieIdx] : null;
-        return (
-          <NewReleaseVHS key={pos.idx} url={poster?.url || ""} position={[pos.x, pos.y, 0.15]} />
+        return poster ? (
+          <PosterBox key={pos.idx} url={poster.url} position={[pos.x, pos.y, 0.15]} movieTitle={poster.title} movieId={poster.id} genreColor="#ec4899" />
+        ) : (
+          <mesh key={pos.idx} position={[pos.x, pos.y, 0.15]}>
+            <boxGeometry args={[0.15, 0.26, 0.025]} />
+            <Mat color="#ec4899" roughness={0.6} />
+          </mesh>
         );
       })}
 
