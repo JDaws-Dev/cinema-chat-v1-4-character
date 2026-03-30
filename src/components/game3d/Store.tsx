@@ -257,7 +257,7 @@ const ROOM_D = 14;
 const ROOM_H = 3.5;
 const WALL_COLOR = "#0E1730";     // Codex: lift from near-black to readable midnight blue
 const FLOOR_COLOR = "#111522";    // Codex: slightly lighter blue-black
-const CEILING_COLOR = "#b8b0a0";  // Codex: darken to warm gray-beige (was too bright)
+const CEILING_COLOR = "#8a8478";  // Darker warm gray — ceiling recedes, floor/shelves dominate
 const COUNTER_COLOR = "#8a6830";  // warmer wood
 const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't disappear
 
@@ -284,8 +284,8 @@ const SHELF_ROWS = [
 ];
 
 function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; isMobile?: boolean }) {
-  const frontPosters = usePosterUrls(genre, 15);
-  const backPosters = usePosterUrls(backGenre || genre, 15);
+  const frontPosters = usePosterUrls(genre, 30); // 10 tapes × 3 tiers = 30, no repeats
+  const backPosters = usePosterUrls(backGenre || genre, 30);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const backGenreKey = (backGenre || genre).toLowerCase().replace(/[- ]/g, "");
   const bColor = backColor || color;
@@ -348,15 +348,31 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
         const flipRot = isBack ? Math.PI : 0;
         const tilt = isBack ? -0.15 : 0.15; // slight lean-back for face-out display
         return poster ? (
-          <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
+          <PosterBox key={`${pos.side}-${pos.idx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
         ) : (
-          <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
+          <mesh key={`${pos.side}-${pos.idx}`} position={[pos.x, pos.y, pos.z]}>
             <boxGeometry args={[0.15, 0.26, 0.025]} />
             <Mat
               color={new THREE.Color(sideColor).offsetHSL(0, -(posterIdx % 4) * 0.05, -(posterIdx % 5) * 0.06)}
               roughness={0.6}
             />
           </mesh>
+        );
+      })}
+
+      {/* A-Z divider tabs sticking up between VHS boxes */}
+      {["A","D","G","J","M","P","S","V"].map((letter, i) => {
+        const tabX = -1.2 + i * 0.35;
+        return (
+          <group key={`div-front-${letter}`}>
+            <mesh position={[tabX, 1.22, -0.16]}>
+              <boxGeometry args={[0.02, 0.08, 0.01]} />
+              <meshBasicMaterial color="#f0e8d0" />
+            </mesh>
+            <Text position={[tabX, 1.26, -0.17]} rotation={[0, Math.PI, 0]} fontSize={0.03} color="#333" anchorX="center" font={undefined}>
+              {letter}
+            </Text>
+          </group>
         );
       })}
 
@@ -2591,8 +2607,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </mesh>
 
       {/* Ambient lighting only — no dynamic pointLights/spotLights for performance */}
-      <ambientLight intensity={2.8} color="#e8e4d8" />
-      <hemisphereLight args={["#fff4e0", "#3a4060", 1.6]} />
+      <ambientLight intensity={1.8} color="#e8e4d8" />
+      <hemisphereLight args={["#fff4e0", "#3a4060", 1.0]} />
 
       {/* Fluorescent ceiling fixtures — visual only (emissive materials, no lights) */}
       {[-6, -2, 2, 6].map((fx) => (
@@ -2600,13 +2616,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           {/* Back aisle fixtures (z=-1.5) */}
           <group position={[fx, ROOM_H - 0.04, -1.5]}>
             <mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh>
-            <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#e8f0ff" /></mesh>
+            <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh>
             <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh>
           </group>
           {/* Front aisle fixtures (z=2) */}
           <group position={[fx, ROOM_H - 0.04, 2]}>
             <mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh>
-            <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fff8e0" /></mesh>
+            <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh>
             <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh>
           </group>
         </group>
@@ -2615,10 +2631,58 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {[-4, 0, 4].map((fx) => (
         <group key={`mid-${fx}`} position={[fx, ROOM_H - 0.04, 0]}>
           <mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh>
-          <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#f0f4e8" /></mesh>
+          <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh>
           <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh>
         </group>
       ))}
+
+      {/* Warm light pools on floor under fixtures — simulates fluorescent falloff */}
+      {[-6, -2, 2, 6].map((fx) => (
+        <group key={`lp-${fx}`}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[fx, 0.003, -1.5]}>
+            <planeGeometry args={[2.5, 2.0]} />
+            <meshBasicMaterial color="#332810" transparent opacity={0.25} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[fx, 0.003, 2]}>
+            <planeGeometry args={[2.5, 2.0]} />
+            <meshBasicMaterial color="#332810" transparent opacity={0.25} />
+          </mesh>
+        </group>
+      ))}
+      {[-4, 0, 4].map((fx) => (
+        <mesh key={`lpm-${fx}`} rotation={[-Math.PI / 2, 0, 0]} position={[fx, 0.003, 0]}>
+          <planeGeometry args={[2.5, 2.0]} />
+          <meshBasicMaterial color="#332810" transparent opacity={0.25} />
+        </mesh>
+      ))}
+
+      {/* Warm glow on counter top — register/monitor light simulation */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, 0.88, 5.5]}>
+        <planeGeometry args={[5, 1.0]} />
+        <meshBasicMaterial color="#2a2010" transparent opacity={0.3} />
+      </mesh>
+
+      {/* Edge darkening — dark strips along floor-wall junctions for visual grounding */}
+      {/* Back wall */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, -ROOM_D / 2 + 0.5]}>
+        <planeGeometry args={[ROOM_W, 1.0]} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+      </mesh>
+      {/* Front wall */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, ROOM_D / 2 - 0.5]}>
+        <planeGeometry args={[ROOM_W, 1.0]} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+      </mesh>
+      {/* Left wall */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-ROOM_W / 2 + 0.5, 0.002, 0]}>
+        <planeGeometry args={[1.0, ROOM_D]} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+      </mesh>
+      {/* Right wall */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ROOM_W / 2 - 0.5, 0.002, 0]}>
+        <planeGeometry args={[1.0, ROOM_D]} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+      </mesh>
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
@@ -3962,7 +4026,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
             </mesh>
           </group>
         ))}
-        <Text position={[0, 1.55, -0.1]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#cc0000" anchorX="center" font={undefined}>
+        <Text position={[0, 1.55, -0.1]} fontSize={0.04} color="#cc0000" anchorX="center" font={undefined}>
           COLD DRINKS $1
         </Text>
       </group>
@@ -4130,6 +4194,29 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[0.08, 0.1, 0.01]} />
           <Mat color="#bba878" roughness={0.7} />
         </mesh>
+      </group>
+
+      {/* Right wall TV — mounted high, playing trailers */}
+      <group position={[ROOM_W / 2 - 0.3, 2.5, -2]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[0.8, 0.6, 0.35]} />
+          <Mat color="#2a2a2a" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0, 0.18]}>
+          <planeGeometry args={[0.65, 0.45]} />
+          <meshBasicMaterial color="#1a3a5a" />
+        </mesh>
+        <mesh position={[0, -0.38, 0]}>
+          <boxGeometry args={[0.5, 0.08, 0.3]} />
+          <meshBasicMaterial color="#1a1a1a" />
+        </mesh>
+        <mesh position={[0, 0, -0.18]}>
+          <boxGeometry args={[0.2, 0.2, 0.02]} />
+          <Mat color="#444" roughness={0.5} />
+        </mesh>
+        <Text position={[0, -0.5, 0.18]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>
+          NOW SHOWING
+        </Text>
       </group>
 
     </group>
