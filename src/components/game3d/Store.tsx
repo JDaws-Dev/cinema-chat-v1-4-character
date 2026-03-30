@@ -348,9 +348,9 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
           <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
-            <boxGeometry args={[0.20, 0.30, 0.10]} />
+            <boxGeometry args={[0.10, 0.18, 0.025]} />
             <Mat
-              color={new THREE.Color(sideColor).offsetHSL(0, -0.1, -(posterIdx % 3) * 0.1)}
+              color={new THREE.Color(sideColor).offsetHSL(0, -(posterIdx % 4) * 0.05, -(posterIdx % 5) * 0.06)}
               roughness={0.6}
             />
           </mesh>
