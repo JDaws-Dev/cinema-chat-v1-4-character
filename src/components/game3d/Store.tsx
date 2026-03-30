@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo, useState, useEffect, useContext, createContext } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { Text, useTexture } from "@react-three/drei";
+import { Text, useTexture, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
@@ -350,16 +350,14 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
         <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       {/* Top cap */}
-      <mesh position={[0, 1.52, 0]}>
-        <boxGeometry args={[2.85, 0.04, 0.38]} />
+      <RoundedBox args={[2.85, 0.04, 0.38]} radius={0.01} smoothness={2} position={[0, 1.52, 0]}>
         <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
-      </mesh>
+      </RoundedBox>
       {/* 3 visible shelf boards — these are what the VHS tapes sit on */}
       {[0.02, 0.50, 1.0].map((sy, i) => (
-        <mesh key={`board-${i}`} position={[0, sy, 0]}>
-          <boxGeometry args={[2.76, 0.04, 0.35]} />
+        <RoundedBox key={`board-${i}`} args={[2.76, 0.04, 0.35]} radius={0.01} smoothness={2} position={[0, sy, 0]}>
           <Mat color="#6a4226" roughness={0.7} />
-        </mesh>
+        </RoundedBox>
       ))}
 
       {/* VHS Boxes — only render as many as we have unique posters (no repeats) */}
@@ -525,24 +523,13 @@ function Counter() {
   return (
     <group position={[-6, 0, 5.5]} rotation={[0, 0, 0]}>
       {/* Counter — near entrance left side, facing right (+x) */}
-      <mesh position={[0, 0.425, -0.55]}>
-        <boxGeometry args={[6, 0.85, 0.08]} />
+      <RoundedBox args={[6, 0.85, 1.2]} radius={0.03} smoothness={3} position={[0, 0.425, 0]}>
         <Mat color="#5a3820" roughness={0.8} />
-      </mesh>
-      {/* Counter body — sides */}
-      <mesh position={[-3, 0.425, 0]}>
-        <boxGeometry args={[0.08, 0.85, 1.2]} />
-        <Mat color="#4a2818" roughness={0.8} />
-      </mesh>
-      <mesh position={[3, 0.425, 0]}>
-        <boxGeometry args={[0.08, 0.85, 1.2]} />
-        <Mat color="#4a2818" roughness={0.8} />
-      </mesh>
+      </RoundedBox>
       {/* Counter top — polished wood */}
-      <mesh position={[0, 0.87, 0]}>
-        <boxGeometry args={[6.15, 0.06, 1.3]} />
+      <RoundedBox args={[6.15, 0.06, 1.3]} radius={0.02} smoothness={2} position={[0, 0.87, 0]}>
         <Mat color="#9a7850" roughness={0.35} metalness={0.08} />
-      </mesh>
+      </RoundedBox>
       {/* Counter kick panel */}
       <mesh position={[0, 0.05, -0.55]}>
         <boxGeometry args={[5.9, 0.1, 0.06]} />
@@ -614,20 +601,29 @@ function Counter() {
       </Text>
 
       {/* Register */}
-      <mesh position={[-1.5, 1.10, 0]}>
-        <boxGeometry args={[0.65, 0.45, 0.5]} />
-        <Mat color="#2a2a2a" roughness={0.4} />
-      </mesh>
-      {/* Register screen */}
-      <mesh position={[-1.5, 1.23, -0.26]}>
-        <boxGeometry args={[0.42, 0.22, 0.01]} />
-        <Mat color="#0a3a0a" emissive="#0a4a0a" emissiveIntensity={0.5} />
-      </mesh>
-      {/* Register keypad */}
-      <mesh position={[-1.5, 0.91, -0.1]}>
-        <boxGeometry args={[0.4, 0.02, 0.3]} />
-        <Mat color="#333" roughness={0.6} />
-      </mesh>
+      <group position={[-1.5, 0.95, 0]}>
+        {/* Register body — rounded */}
+        <RoundedBox args={[0.55, 0.35, 0.4]} radius={0.03} smoothness={3}>
+          <Mat color="#2a2a2a" roughness={0.4} />
+        </RoundedBox>
+        {/* Angled screen */}
+        <mesh position={[0, 0.22, -0.12]} rotation={[-0.4, 0, 0]}>
+          <boxGeometry args={[0.42, 0.22, 0.02]} />
+          <meshBasicMaterial color="#0a3a0a" />
+        </mesh>
+        {/* Number pad buttons — grid of small boxes */}
+        {Array.from({length: 12}).map((_, i) => (
+          <mesh key={`key-${i}`} position={[-0.1 + (i % 3) * 0.07, 0.04, -0.08 - Math.floor(i / 3) * 0.06]}>
+            <boxGeometry args={[0.05, 0.02, 0.04]} />
+            <Mat color="#444" roughness={0.5} />
+          </mesh>
+        ))}
+        {/* Cash drawer */}
+        <mesh position={[0, -0.12, -0.05]}>
+          <boxGeometry args={[0.5, 0.08, 0.35]} />
+          <Mat color="#333" roughness={0.5} />
+        </mesh>
+      </group>
 
       {/* "CHECKOUT" sign */}
       <Text position={[0, 1.00, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
@@ -885,7 +881,7 @@ function VinnyCharacter() {
       {/* Head group (turns left/right) */}
       <group ref={headRef} position={[0, 1.45, 0]}>
         {/* Head — slightly bigger */}
-        <mesh position={[0, 0, 0]}>
+        <mesh position={[0, 0, 0]} scale={[1, 1.1, 0.9]}>
           <sphereGeometry args={[0.23, 16, 16]} />
           <Mat color="#d4a574" roughness={0.75} />
         </mesh>
@@ -1265,7 +1261,7 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
       )}
 
       {/* Head — slightly taller */}
-      <mesh position={[0, 1.2, 0]}>
+      <mesh position={[0, 1.2, 0]} scale={[1, 1.1, 0.9]}>
         <sphereGeometry args={[0.16, 12, 14]} />
         <Mat color={skinTone} roughness={0.75} />
       </mesh>
@@ -1533,7 +1529,7 @@ function TarantinoNPC() {
       </mesh>
 
       {/* Head — slightly taller with prominent chin */}
-      <mesh position={[0, 1.2, 0]}>
+      <mesh position={[0, 1.2, 0]} scale={[1, 1.1, 0.9]}>
         <sphereGeometry args={[0.16, 12, 14]} />
         <Mat color={skinTone} roughness={0.75} />
       </mesh>
@@ -1774,7 +1770,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         <Mat color={skinTone} roughness={0.8} />
       </mesh>
       {/* Head — rounder kid proportions */}
-      <mesh position={[0, 1.18, 0]}>
+      <mesh position={[0, 1.18, 0]} scale={[1, 1.1, 0.9]}>
         <sphereGeometry args={[0.17, 12, 14]} />
         <Mat color={skinTone} roughness={0.75} />
       </mesh>
@@ -2037,7 +2033,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
       {/* Head group */}
       <group ref={headRef} position={[0, 1.3, 0]}>
         {/* Head — slightly smaller than Vinny */}
-        <mesh position={[0, 0, 0]}>
+        <mesh position={[0, 0, 0]} scale={[1, 1.1, 0.9]}>
           <sphereGeometry args={[0.2, 16, 16]} />
           <Mat color="#e8c4a0" roughness={0.75} />
         </mesh>
@@ -2281,15 +2277,18 @@ function TVScreen({ isMobile }: { isMobile?: boolean }) {
   return (
     <group position={[-8, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
       {/* CRT TV body — chunky retro shape */}
-      <mesh userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-        <boxGeometry args={[1.2, 0.9, 0.4]} />
+      <RoundedBox args={[1.2, 0.9, 0.4]} radius={0.04} smoothness={3} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
         <Mat color="#2a2a2a" roughness={0.5} />
+      </RoundedBox>
+      {/* CRT back bulge */}
+      <mesh position={[0, 0, -0.28]}>
+        <boxGeometry args={[1.0, 0.7, 0.2]} />
+        <Mat color="#222" roughness={0.6} />
       </mesh>
       {/* Rounded bezel */}
-      <mesh position={[0, 0, 0.18]}>
-        <boxGeometry args={[1.1, 0.8, 0.05]} />
+      <RoundedBox args={[1.1, 0.8, 0.05]} radius={0.02} smoothness={2} position={[0, 0, 0.18]}>
         <Mat color="#1a1a1a" roughness={0.4} />
-      </mesh>
+      </RoundedBox>
       {/* Screen — animated */}
       <mesh position={[0, 0, 0.21]}>
         <planeGeometry args={[0.95, 0.65]} />
@@ -2302,7 +2301,15 @@ function TVScreen({ isMobile }: { isMobile?: boolean }) {
           <meshBasicMaterial color="#ffffff" transparent opacity={0.06} />
         </mesh>
       ))}
-      {/* Screen glow */}
+      {/* Control knobs */}
+      <mesh position={[0.3, -0.25, 0.19]} rotation={[Math.PI/2, 0, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.02, 8]} />
+        <Mat color="#555" roughness={0.4} />
+      </mesh>
+      <mesh position={[0.4, -0.25, 0.19]} rotation={[Math.PI/2, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
+        <Mat color="#555" roughness={0.4} />
+      </mesh>
       {/* TV stand bracket */}
       <mesh position={[0, -0.55, -0.05]}>
         <boxGeometry args={[0.15, 0.2, 0.08]} />
@@ -3945,6 +3952,12 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         {/* Push bar */}
         <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        {/* Mounting brackets */}
+        <mesh position={[-0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
+        {/* PUSH text plate */}
+        <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
+        <Text position={[0, 1.15, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
         <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </group>
       {/* Right door */}
@@ -3957,6 +3970,12 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        {/* Mounting brackets */}
+        <mesh position={[-0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
+        {/* PUSH text plate */}
+        <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
+        <Text position={[0, 1.15, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
         <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </group>
       {/* Center divider between doors */}
