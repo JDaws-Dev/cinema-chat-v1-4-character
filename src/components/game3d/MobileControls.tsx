@@ -14,7 +14,7 @@ export const mobileInput = {
 const STICK_SIZE = 120;
 const KNOB_SIZE = 48;
 const DEAD_ZONE = 8;
-const LOOK_SENSITIVITY = 2.5;
+const LOOK_SENSITIVITY = 1.5; // reduced from 2.5 — was too sensitive
 
 export function MobileControls({
   onInteract,
