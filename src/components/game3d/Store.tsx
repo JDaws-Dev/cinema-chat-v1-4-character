@@ -239,12 +239,12 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
       userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}
     >
       <mesh userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}>
-        <boxGeometry args={[0.10, 0.18, 0.025]} />
+        <boxGeometry args={[0.15, 0.26, 0.025]} />
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Poster plane — offset clearly in front, flipped to face camera */}
       <mesh position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[0.09, 0.17]} />
+        <planeGeometry args={[0.14, 0.25]} />
         <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -263,21 +263,24 @@ const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't
 
 // ── Shelf layout ─────────────────────────────────────────
 const SHELF_ROWS = [
-  // Row 1 — back of store (z = -4). Front faces entrance (+z), back faces back wall (-z)
+  // 12 fronts: all unique. 12 backs: all unique. No genre appears on both a front AND a back.
+  // Fronts (customer-facing, +z side): HORROR, SCI-FI, COMEDY, DRAMA, ACTION, FAMILY, ROMANCE, WESTERN, THRILLER, ANIMATED, DOCS, CLASSICS
+  // Backs (-z side): CULT, FOREIGN, INDIE, HORROR, SCI-FI, COMEDY, DRAMA, ACTION, FAMILY, ROMANCE, WESTERN, THRILLER
+  // Row 1 — back of store (z = -4)
   { x: -5, z: -4, genre: "HORROR", color: "#dc2626", backGenre: "CULT", backColor: "#991b1b" },
   { x: -1.5, z: -4, genre: "SCI-FI", color: "#3b82f6", backGenre: "FOREIGN", backColor: "#6366f1" },
   { x: 1.5, z: -4, genre: "COMEDY", color: "#f97316", backGenre: "INDIE", backColor: "#a855f7" },
-  { x: 5, z: -4, genre: "DRAMA", color: "#6366f1", backGenre: "CLASSICS", backColor: "#ca8a04" },
+  { x: 5, z: -4, genre: "DRAMA", color: "#6366f1", backGenre: "DOCS", backColor: "#65a30d" },
   // Row 2 — middle (z = -1)
-  { x: -5, z: -1, genre: "ACTION", color: "#ef4444", backGenre: "THRILLER", backColor: "#7c3aed" },
-  { x: -1.5, z: -1, genre: "FAMILY", color: "#22c55e", backGenre: "ANIMATED", backColor: "#06b6d4" },
+  { x: -5, z: -1, genre: "ACTION", color: "#ef4444", backGenre: "HORROR", backColor: "#dc2626" },
+  { x: -1.5, z: -1, genre: "FAMILY", color: "#22c55e", backGenre: "SCI-FI", backColor: "#3b82f6" },
   { x: 1.5, z: -1, genre: "ROMANCE", color: "#f43f5e", backGenre: "COMEDY", backColor: "#f97316" },
-  { x: 5, z: -1, genre: "WESTERN", color: "#92400e", backGenre: "DOCS", backColor: "#65a30d" },
+  { x: 5, z: -1, genre: "WESTERN", color: "#92400e", backGenre: "DRAMA", backColor: "#6366f1" },
   // Row 3 — mid-front (z = 2)
-  { x: -5, z: 2, genre: "SCI-FI", color: "#3b82f6", backGenre: "ACTION", backColor: "#ef4444" },
-  { x: -1.5, z: 2, genre: "DRAMA", color: "#6366f1", backGenre: "HORROR", backColor: "#dc2626" },
-  { x: 1.5, z: 2, genre: "FAMILY", color: "#22c55e", backGenre: "WESTERN", backColor: "#92400e" },
-  { x: 5, z: 2, genre: "ANIMATED", color: "#06b6d4", backGenre: "ROMANCE", backColor: "#f43f5e" },
+  { x: -5, z: 2, genre: "THRILLER", color: "#7c3aed", backGenre: "ACTION", backColor: "#ef4444" },
+  { x: -1.5, z: 2, genre: "ANIMATED", color: "#06b6d4", backGenre: "FAMILY", backColor: "#22c55e" },
+  { x: 1.5, z: 2, genre: "DOCS", color: "#65a30d", backGenre: "ROMANCE", backColor: "#f43f5e" },
+  { x: 5, z: 2, genre: "CLASSICS", color: "#ca8a04", backGenre: "WESTERN", backColor: "#92400e" },
 ];
 
 function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; isMobile?: boolean }) {
@@ -348,7 +351,7 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
           <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
         ) : (
           <mesh key={`${pos.side}-${posterIdx}`} position={[pos.x, pos.y, pos.z]}>
-            <boxGeometry args={[0.10, 0.18, 0.025]} />
+            <boxGeometry args={[0.15, 0.26, 0.025]} />
             <Mat
               color={new THREE.Color(sideColor).offsetHSL(0, -(posterIdx % 4) * 0.05, -(posterIdx % 5) * 0.06)}
               roughness={0.6}
@@ -421,7 +424,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {vhsColors.map((color, i) => (
         <group key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
           <mesh>
-            <boxGeometry args={[0.10, 0.18, 0.025]} />
+            <boxGeometry args={[0.15, 0.26, 0.025]} />
             <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
@@ -434,7 +437,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {vhsColors.map((color, i) => (
         <group key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
           <mesh>
-            <boxGeometry args={[0.10, 0.18, 0.025]} />
+            <boxGeometry args={[0.15, 0.26, 0.025]} />
             <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
@@ -2089,12 +2092,12 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
     <group position={position}>
       {/* VHS box */}
       <mesh>
-        <boxGeometry args={[0.10, 0.18, 0.025]} />
+        <boxGeometry args={[0.15, 0.26, 0.025]} />
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Cover art facing into the room (+z) */}
       <mesh position={[0, 0, 0.06]}>
-        <planeGeometry args={[0.09, 0.17]} />
+        <planeGeometry args={[0.14, 0.25]} />
         <meshBasicMaterial ref={matRef} color="#333" side={THREE.DoubleSide} />
       </mesh>
     </group>
