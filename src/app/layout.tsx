@@ -63,8 +63,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${pressStart.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${inter.variable} ${pressStart.variable} antialiased`} style={{ height: "100%", margin: 0 }}>
+      <body style={{ height: "100%", margin: 0, padding: 0, overflow: "hidden" }}>{children}</body>
     </html>
   );
 }
