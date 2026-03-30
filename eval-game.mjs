@@ -1,105 +1,167 @@
-// Game evaluation script — Playwright takes screenshots of the game for AI review
+#!/usr/bin/env node
+// Friday Night Video — visual game evaluation
+// Usage: npm run eval
+// Launches a real browser, screenshots the game, then sends to Codex for AI review.
+
 import { chromium } from 'playwright';
-import { mkdirSync } from 'fs';
+import { mkdirSync, existsSync, readdirSync } from 'fs';
+import { execSync } from 'child_process';
 
 const OUT = '/tmp/fnv-eval';
-mkdirSync(OUT, { recursive: true });
+const REPORT = '/tmp/fnv-eval-report.md';
+const PORT = process.env.PORT || '3001';
+const URL = `http://localhost:${PORT}/game`;
 
-const SCREENSHOTS = [];
+mkdirSync(OUT, { recursive: true });
+// Clean old screenshots
+if (existsSync(OUT)) {
+  for (const f of readdirSync(OUT)) {
+    if (f.endsWith('.png')) execSync(`rm "${OUT}/${f}"`);
+  }
+}
+
+const shots = [];
 async function snap(page, name, delay = 500) {
   await page.waitForTimeout(delay);
   const path = `${OUT}/${name}.png`;
   await page.screenshot({ path });
-  SCREENSHOTS.push(path);
-  console.log(`📸 ${name}: ${path}`);
+  shots.push(path);
+  console.log(`  📸 ${name}`);
 }
 
-(async () => {
-  const browser = await chromium.launch({ headless: false, args: ['--no-sandbox', '--enable-webgl', '--ignore-gpu-blocklist'] });
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  const page = await ctx.newPage();
+console.log(`\n🎬 Friday Night Video — Visual Eval`);
+console.log(`   Target: ${URL}\n`);
 
-  // 1. Landing page
-  console.log('--- Loading game ---');
-  await page.goto('http://localhost:3001/game', { waitUntil: 'networkidle' });
-  await snap(page, '01_landing_page', 1000);
+// ── Phase 1: Capture screenshots ───────────────────────────
 
-  // 2. Click "Enter the Store"
-  console.log('--- Entering store ---');
-  const enterBtn = page.locator('button:has-text("ENTER THE STORE")');
-  if (await enterBtn.isVisible()) {
-    await enterBtn.click();
-    await snap(page, '02_loading', 1000);
-    // Wait for loading to finish
-    await page.waitForTimeout(4000);
-    await snap(page, '03_store_entry', 500);
-  }
+console.log('Phase 1: Capturing screenshots...');
 
-  // 3. Take screenshots from the 3D view at different points
-  // Since we can't WASD in headless, let's capture the initial view
-  // and check for UI elements
-  await snap(page, '04_initial_view', 1000);
+const browser = await chromium.launch({
+  headless: false,
+  args: ['--no-sandbox', '--enable-webgl', '--ignore-gpu-blocklist'],
+});
+const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+const page = await ctx.newPage();
 
-  // 4. Check HUD elements
-  const hud = await page.locator('.g3-hud').isVisible().catch(() => false);
-  console.log(`HUD visible: ${hud}`);
+// Collect JS errors
+const jsErrors = [];
+page.on('pageerror', err => jsErrors.push(err.message));
+page.on('console', msg => {
+  if (msg.type() === 'error') jsErrors.push(msg.text());
+});
 
-  // 5. Check crosshair
-  const crosshair = await page.locator('.g3-crosshair').isVisible().catch(() => false);
-  console.log(`Crosshair visible: ${crosshair}`);
+// Landing page
+await page.goto(URL, { waitUntil: 'networkidle' });
+await snap(page, '01_landing', 1000);
 
-  // 6. Check for any overlay elements
-  const overlays = await page.locator('[class*="g3-overlay"]').count().catch(() => 0);
-  console.log(`Overlay elements: ${overlays}`);
+// Enter the store
+const enterBtn = page.locator('button:has-text("ENTER THE STORE")');
+if (await enterBtn.isVisible()) {
+  await enterBtn.click();
+  await page.waitForTimeout(5000); // wait for 3D to load
+  await snap(page, '02_store_spawn', 500);
+}
 
-  // 7. Check for hover label
-  const hoverLabel = await page.locator('.g3-hover-label').isVisible().catch(() => false);
-  console.log(`Hover label visible: ${hoverLabel}`);
+// Capture initial view
+await snap(page, '03_forward_view', 1000);
 
-  // 8. Simulate clicking the canvas to trigger pointer lock (won't work headless but captures state)
-  await page.locator('canvas').click().catch(() => {});
-  await snap(page, '05_after_click', 1000);
+// Click canvas to engage, then look around via mouse
+await page.locator('canvas').click().catch(() => {});
+await page.waitForTimeout(500);
+await snap(page, '04_after_click', 500);
 
-  // 9. Try pressing E to interact
-  await page.keyboard.press('e');
-  await snap(page, '06_after_e_key', 500);
+// Simulate walking forward (W key held for 2s)
+await page.keyboard.down('w');
+await page.waitForTimeout(2000);
+await page.keyboard.up('w');
+await snap(page, '05_walked_forward', 500);
 
-  // 10. Try pressing Q to close any overlay
-  await page.keyboard.press('q');
-  await snap(page, '07_after_q_close', 500);
+// Turn left
+await page.keyboard.down('a');
+await page.waitForTimeout(1000);
+await page.keyboard.up('a');
+await snap(page, '06_strafed_left', 500);
 
-  // 11. Check console for any errors
-  const errors = [];
-  page.on('pageerror', err => errors.push(err.message));
-  page.on('console', msg => {
-    if (msg.type() === 'error') errors.push(msg.text());
-  });
-  await page.waitForTimeout(2000);
+// Walk more and interact
+await page.keyboard.down('w');
+await page.waitForTimeout(1500);
+await page.keyboard.up('w');
+await page.keyboard.press('e');
+await page.waitForTimeout(500);
+await snap(page, '07_deep_in_store', 500);
 
-  // 12. Get page dimensions and canvas info
-  const canvasInfo = await page.evaluate(() => {
-    const c = document.querySelector('canvas');
-    if (!c) return null;
-    return { width: c.width, height: c.height, style: c.style.cssText };
-  });
-  console.log(`Canvas info: ${JSON.stringify(canvasInfo)}`);
+// Try Q to close any overlay
+await page.keyboard.press('q');
+await page.waitForTimeout(300);
 
-  // 13. Check mobile controls are NOT showing on desktop
-  const mobileControls = await page.locator('.mobile-joystick, .mobile-interact-btn').count().catch(() => 0);
-  console.log(`Mobile controls visible: ${mobileControls}`);
+// Walk right toward counter
+await page.keyboard.down('d');
+await page.waitForTimeout(2000);
+await page.keyboard.up('d');
+await page.keyboard.down('w');
+await page.waitForTimeout(1000);
+await page.keyboard.up('w');
+await snap(page, '08_near_counter', 500);
 
-  // 14. Final full page screenshot
-  await snap(page, '08_final_state', 500);
+// Check UI state
+const uiState = await page.evaluate(() => {
+  const c = document.querySelector('canvas');
+  return {
+    canvas: c ? { w: c.width, h: c.height } : null,
+    hud: !!document.querySelector('.g3-hud'),
+    crosshair: !!document.querySelector('.g3-crosshair'),
+    hoverLabel: document.querySelector('.g3-hover-label')?.textContent || null,
+    overlay: document.querySelector('[class*="g3-overlay"]')?.className || null,
+    mobileControls: document.querySelectorAll('.mobile-joystick, .mobile-interact-btn').length,
+  };
+});
 
-  // Report
-  console.log('\n--- EVALUATION REPORT ---');
-  console.log(`Screenshots saved: ${SCREENSHOTS.length}`);
-  console.log(`JS errors captured: ${errors.length}`);
-  if (errors.length > 0) {
-    console.log('Errors:');
-    errors.forEach(e => console.log(`  - ${e}`));
-  }
-  console.log(`Screenshot paths:\n${SCREENSHOTS.join('\n')}`);
+await browser.close();
 
-  await browser.close();
-})();
+console.log(`\n  Captured ${shots.length} screenshots`);
+console.log(`  JS errors: ${jsErrors.length}`);
+console.log(`  UI state: ${JSON.stringify(uiState, null, 2)}`);
+
+// ── Phase 2: Send to Codex for evaluation ──────────────────
+
+console.log('\nPhase 2: Sending to Codex for AI evaluation...\n');
+
+// Pick best screenshots (max 5 for token efficiency)
+const evalShots = shots.filter((_, i) => [0, 1, 4, 6, 7].includes(i)).slice(0, 5);
+if (evalShots.length === 0) {
+  console.error('No screenshots captured. Is the dev server running?');
+  process.exit(1);
+}
+
+const imageArgs = evalShots.map(s => `-i "${s}"`).join(' ');
+const errorContext = jsErrors.length > 0
+  ? `\n\nJS console errors captured during gameplay:\n${jsErrors.slice(0, 5).map(e => `- ${e}`).join('\n')}`
+  : '\n\nNo JS errors detected during gameplay.';
+
+const prompt = `You are evaluating screenshots from a 3D first-person Blockbuster Video Store game called "Friday Night Video" set in 1992. Built with Next.js + React Three Fiber.
+
+The screenshots show: landing page, store spawn point, walking through aisles, deep in store, and near the counter area.
+
+UI state during capture: ${JSON.stringify(uiState)}${errorContext}
+
+Rate each area 1-10 with specific observations:
+1. LANDING PAGE: branding, typography, CTA clarity
+2. STORE ATMOSPHERE: lighting, color, mood, does it feel like a 90s video store at night?
+3. ENVIRONMENT DETAIL: shelves, props, signage, NPCs, density of objects
+4. HUD/UI: crosshair, interaction prompts, readability, consistency
+5. VISUAL BUGS: z-fighting, missing textures, mirrored text, clipping, alignment
+6. OVERALL: playable demo or rough prototype? What's the single biggest thing holding it back?
+
+Then list the TOP 10 specific visual improvements ranked by impact. Reference what you see in the actual screenshots. Do NOT modify any files.`;
+
+try {
+  execSync(
+    `codex exec --full-auto ${imageArgs} -o "${REPORT}" "${prompt.replace(/"/g, '\\"')}"`,
+    { stdio: 'inherit', timeout: 300000 }
+  );
+  console.log(`\n✅ Report saved to: ${REPORT}`);
+  console.log(`   Screenshots in: ${OUT}/`);
+} catch (e) {
+  console.error('Codex evaluation failed. Screenshots are still available at:', OUT);
+  process.exit(1);
+}

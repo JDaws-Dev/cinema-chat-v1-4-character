@@ -239,12 +239,12 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
       userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}
     >
       <mesh userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}>
-        <boxGeometry args={[0.18, 0.28, 0.10]} />
+        <boxGeometry args={[0.14, 0.20, 0.03]} />
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Poster plane — offset clearly in front, flipped to face camera */}
-      <mesh position={[0, 0, -0.06]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[0.17, 0.26]} />
+      <mesh position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]}>
+        <planeGeometry args={[0.13, 0.19]} />
         <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -290,13 +290,13 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
   // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = isMobile ? 5 : 8;
-    const spacing = 0.24;
+    const count = isMobile ? 8 : 14; // more tapes, thinner now
+    const spacing = 0.17; // small gaps between tapes
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
     for (const side of ["front", "back"] as const) {
-      const z = side === "front" ? -0.25 : 0.25;
-      for (const y of [1.17, 0.67, 0.19]) { // sit on shelf boards at y=0.035, 0.515, 1.015
+      const z = side === "front" ? -0.16 : 0.16; // narrower shelf (0.35 deep)
+      for (const y of [1.17, 0.67, 0.19]) { // sit on shelf boards at y=0.04, 0.54, 1.04
         for (let i = 0; i < count; i++) {
           result.push({ x: startX + i * spacing, y, z, side, idx: idx++ });
         }
@@ -307,39 +307,33 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
 
   return (
     <group position={[x, 0, z]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
-      {/* Shelf frame — 3 tiers */}
+      {/* Gondola shelf — open frame with visible shelf boards, narrower (0.35 deep) */}
+      {/* Back panel — thin vertical board running the length */}
       <mesh position={[0, 0.75, 0]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
-        <boxGeometry args={[2.8, 1.5, 0.55]} />
+        <boxGeometry args={[2.8, 1.5, 0.04]} />
         <Mat color={SHELF_COLOR} roughness={0.8} />
-      </mesh>
-      {/* Shelf top surface */}
-      <mesh position={[0, 1.52, 0]}>
-        <boxGeometry args={[2.9, 0.05, 0.6]} />
-        <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
       {/* Side panels */}
       <mesh position={[-1.4, 0.75, 0]}>
-        <boxGeometry args={[0.04, 1.5, 0.55]} />
+        <boxGeometry args={[0.04, 1.5, 0.35]} />
         <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       <mesh position={[1.4, 0.75, 0]}>
-        <boxGeometry args={[0.04, 1.5, 0.55]} />
+        <boxGeometry args={[0.04, 1.5, 0.35]} />
         <Mat color="#4a2818" roughness={0.8} />
       </mesh>
-      {/* Shelf dividers (2 dividers = 3 tiers) */}
-      <mesh position={[0, 0.50, 0]}>
-        <boxGeometry args={[2.75, 0.03, 0.52]} />
-        <Mat color="#6a4226" roughness={0.8} />
+      {/* Top cap */}
+      <mesh position={[0, 1.52, 0]}>
+        <boxGeometry args={[2.85, 0.04, 0.38]} />
+        <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
-      <mesh position={[0, 1.0, 0]}>
-        <boxGeometry args={[2.75, 0.03, 0.52]} />
-        <Mat color="#6a4226" roughness={0.8} />
-      </mesh>
-      {/* Bottom board */}
-      <mesh position={[0, 0.02, 0]}>
-        <boxGeometry args={[2.75, 0.03, 0.52]} />
-        <Mat color="#6a4226" roughness={0.8} />
-      </mesh>
+      {/* 3 visible shelf boards — these are what the VHS tapes sit on */}
+      {[0.02, 0.50, 1.0].map((sy, i) => (
+        <mesh key={`board-${i}`} position={[0, sy, 0]}>
+          <boxGeometry args={[2.76, 0.04, 0.35]} />
+          <Mat color="#6a4226" roughness={0.7} />
+        </mesh>
+      ))}
 
       {/* VHS Boxes — front side uses genre posters, back side uses backGenre posters */}
       {positions.map((pos) => {
@@ -349,6 +343,7 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
         const posterIdx = pos.idx % Math.max(sidePosters.length, 1);
         const poster = sidePosters[posterIdx];
         const flipRot = isBack ? Math.PI : 0;
+        const tilt = isBack ? -0.15 : 0.15; // slight lean-back for face-out display
         return poster ? (
           <PosterBox key={`${pos.side}-${posterIdx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
         ) : (
@@ -426,7 +421,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {vhsColors.map((color, i) => (
         <group key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
           <mesh>
-            <boxGeometry args={[0.18, 0.28, 0.10]} />
+            <boxGeometry args={[0.14, 0.20, 0.03]} />
             <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
@@ -439,7 +434,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {vhsColors.map((color, i) => (
         <group key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
           <mesh>
-            <boxGeometry args={[0.18, 0.28, 0.10]} />
+            <boxGeometry args={[0.14, 0.20, 0.03]} />
             <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
@@ -996,7 +991,7 @@ const NPC_WAYPOINTS: [number, number][] = [
 // Shelf AABB bounds with padding for NPC radius
 const SHELF_BOUNDS = SHELF_ROWS.map(s => ({
   minX: s.x - 1.7, maxX: s.x + 1.7,
-  minZ: s.z - 0.55, maxZ: s.z + 0.55,
+  minZ: s.z - 0.35, maxZ: s.z + 0.35, // narrower shelves
 }));
 
 function npcCollidesShelf(px: number, pz: number): boolean {
@@ -2094,12 +2089,12 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
     <group position={position}>
       {/* VHS box */}
       <mesh>
-        <boxGeometry args={[0.18, 0.28, 0.10]} />
+        <boxGeometry args={[0.14, 0.20, 0.03]} />
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Cover art facing into the room (+z) */}
       <mesh position={[0, 0, 0.06]}>
-        <planeGeometry args={[0.17, 0.26]} />
+        <planeGeometry args={[0.13, 0.19]} />
         <meshBasicMaterial ref={matRef} color="#333" side={THREE.DoubleSide} />
       </mesh>
     </group>
