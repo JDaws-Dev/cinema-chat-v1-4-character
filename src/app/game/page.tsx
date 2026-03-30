@@ -47,9 +47,25 @@ export default function GamePage() {
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [era, setEra] = useState<string>("early90s");
+  const ERA_OPTIONS = [
+    { id: "late80s", label: "Late 80s", years: "1987-1989", displayYear: "1989" },
+    { id: "early90s", label: "Early 90s", years: "1990-1993", displayYear: "1992" },
+    { id: "mid90s", label: "Mid 90s", years: "1994-1996", displayYear: "1995" },
+    { id: "late90s", label: "Late 90s", years: "1997-1999", displayYear: "1998" },
+    { id: "present", label: "Present Day", years: "2024-2026", displayYear: "2025" },
+  ];
+  const selectedEra = ERA_OPTIONS.find(e => e.id === era) || ERA_OPTIONS[1];
 
   useEffect(() => {
-    setIsMobile('ontouchstart' in window || window.innerWidth < 768);
+    const mobile = 'ontouchstart' in window || window.innerWidth < 768;
+    setIsMobile(mobile);
+    if (mobile) {
+      // Minimize Safari address bar
+      setTimeout(() => window.scrollTo(0, 1), 100);
+      // Lock orientation if supported
+      try { (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.("landscape").catch(() => {}); } catch {}
+    }
   }, []);
   const [overlay, setOverlay] = useState<Overlay>("none");
   const [shelfGenre, setShelfGenre] = useState("");
@@ -642,7 +658,20 @@ export default function GamePage() {
           </div>
           <h1 className="g3-splash-title">FRIDAY NIGHT<br/>VIDEO</h1>
           <p className="g3-splash-tagline">Your neighborhood video store</p>
-          <p className="g3-splash-tagline" style={{ fontSize: "0.8em", opacity: 0.7, marginTop: 8 }}>Browse the shelves. Pick a movie. Chat with Vinny.<br/>It&apos;s Friday night, 1992.</p>
+          <p className="g3-splash-tagline" style={{ fontSize: "0.8em", opacity: 0.7, marginTop: 8 }}>Browse the shelves. Pick a movie. Chat with Vinny.<br/>It&apos;s Friday night, {selectedEra.displayYear}.</p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0", flexWrap: "wrap" }}>
+            {ERA_OPTIONS.map(opt => (
+              <button key={opt.id} onClick={() => setEra(opt.id)}
+                style={{
+                  padding: "6px 12px", fontSize: "0.7em", border: "1px solid #ffd700",
+                  background: era === opt.id ? "#ffd700" : "transparent",
+                  color: era === opt.id ? "#0a1830" : "#ffd700",
+                  borderRadius: 4, cursor: "pointer", fontFamily: "inherit"
+                }}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <button className="g3-splash-btn" onClick={() => {
             setStarted(true); setLoading(true);
             // Request fullscreen on mobile only to hide Safari chrome
@@ -673,7 +702,7 @@ export default function GamePage() {
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
-          <Store isMobile={isMobile} />
+          <Store isMobile={isMobile} eraYears={selectedEra.years} />
           <FirstPersonControls disabled={hasOverlay} />
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />

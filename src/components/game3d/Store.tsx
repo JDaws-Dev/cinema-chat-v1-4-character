@@ -124,6 +124,10 @@ const GENRE_TMDB_IDS: Record<string, string> = {
 
 interface PosterData { url: string; title: string; id: number; }
 
+// Era-based date filtering — set by Store component, read by usePosterUrls
+let currentEraYears = "1990-1993";
+export function setEraYears(years: string) { currentEraYears = years; }
+
 // Global registry of movies actually loaded on shelves — challenge picks from this
 const shelfMovieRegistry: Map<string, { title: string; genre: string; id: number }> = new Map();
 
@@ -136,12 +140,13 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
 
   useEffect(() => {
     const genreId = GENRE_TMDB_IDS[genre];
+    const [startYear, endYear] = currentEraYears.split("-");
 
     if (!genreId) {
-      // "New Releases" wall — popular movies from 1991-1992 (store is set in 1992)
+      // "New Releases" wall — popular movies from the selected era
       Promise.all([
-        fetch(`/api/search?releaseDateGte=1991-01-01&releaseDateLte=1992-12-31&ratingMin=5&page=1`).then(r => r.json()),
-        fetch(`/api/search?releaseDateGte=1991-01-01&releaseDateLte=1992-12-31&ratingMin=5&page=2`).then(r => r.json()),
+        fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=1`).then(r => r.json()),
+        fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=2`).then(r => r.json()),
       ]).then(([p1, p2]) => {
         const all = [...(p1.results || []), ...(p2.results || [])];
         const seen = new Set<number>();
@@ -167,10 +172,10 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
         })).filter((p: PosterData) => p.url));
       }).catch(() => {});
     } else {
-      // Genre — fetch 2 pages for more variety
+      // Genre — fetch 2 pages for more variety, filtered by era
       Promise.all([
-        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateLte=1992-12-31&page=1`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateLte=1992-12-31&page=2`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=1`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=2`).then(r => r.json()),
       ]).then(([p1, p2]) => {
         const all = [...(p1.results || []), ...(p2.results || [])];
         setPosters(all.slice(0, count).map((m: Record<string, unknown>) => ({
@@ -2715,7 +2720,11 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
   );
 }
 
-export function Store({ isMobile }: { isMobile?: boolean }) {
+export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: string }) {
+  // Sync era into module-level variable so usePosterUrls picks it up
+  useEffect(() => {
+    if (eraYears) setEraYears(eraYears);
+  }, [eraYears]);
   const [showTarantino] = useState(() => Math.random() < 0.3);
   return (
     <MobileCtx.Provider value={!!isMobile}>
