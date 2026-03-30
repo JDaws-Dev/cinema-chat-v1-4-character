@@ -170,8 +170,20 @@ try {
   await enterBtn.waitFor({ state: "visible", timeout: 10000 });
   await enterBtn.click();
 
-  // Wait for 3D scene to load — poll for __securityCams availability
-  console.log("  Waiting for 3D scene and security cameras to initialize...");
+  // Wait for loading overlay to finish (scene geometry loaded)
+  console.log("  Waiting for 3D scene to load...");
+  try {
+    await page.waitForSelector(".g3-loading-overlay.g3-loaded", { timeout: 30000 });
+    console.log("  Loading overlay dismissed.");
+  } catch {
+    console.log("  WARNING: Loading overlay never got .g3-loaded class, continuing anyway...");
+  }
+
+  // Extra time for textures and geometry to fully render
+  await page.waitForTimeout(3000);
+
+  // Wait for __securityCams to be available
+  console.log("  Waiting for security cameras to initialize...");
   const maxWait = 30000;
   const pollInterval = 1000;
   let camsReady = false;
