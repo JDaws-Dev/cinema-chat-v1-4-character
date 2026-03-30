@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo, useState, useEffect, useContext, createContext } from "react";
 import { useFrame, useLoader } from "@react-three/fiber";
-import { Text, useTexture, RoundedBox } from "@react-three/drei";
+import { Text, useTexture, RoundedBox, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
@@ -2196,13 +2196,39 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
         <boxGeometry args={[8.2, 0.05, 0.35]} />
         <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
-      {/* Shelf dividers */}
-      {[1.5, 1.0, 0.5, 0.02].map((y, i) => (
-        <mesh key={i} position={[0, y, 0]}><boxGeometry args={[7.8, 0.03, 0.28]} /><Mat color="#6a4226" roughness={0.8} /></mesh>
+      {/* Shelf boards — aligned to VHS row bottoms (rows at y=1.75,1.25,0.75; VHS half-height=0.13) */}
+      {[1.61, 1.11, 0.61, 0.02].map((y, i) => (
+        <mesh key={`shelf-${i}`} position={[0, y, 0.05]}>
+          <boxGeometry args={[7.8, 0.04, 0.32]} />
+          <Mat color="#6a4226" roughness={0.7} />
+        </mesh>
       ))}
+      {/* Shelf bracket supports — metal L-brackets under each shelf */}
+      {[1.61, 1.11, 0.61].map((y, i) =>
+        [-3.2, -1.6, 0, 1.6, 3.2].map((x, j) => (
+          <group key={`bracket-${i}-${j}`} position={[x, y, 0.05]}>
+            {/* Vertical part (against wall) */}
+            <mesh position={[0, -0.1, -0.12]}>
+              <boxGeometry args={[0.04, 0.2, 0.03]} />
+              <Mat color="#3a3a3a" roughness={0.4} metalness={0.6} />
+            </mesh>
+            {/* Horizontal part (under shelf) */}
+            <mesh position={[0, -0.03, 0]}>
+              <boxGeometry args={[0.04, 0.03, 0.28]} />
+              <Mat color="#3a3a3a" roughness={0.4} metalness={0.6} />
+            </mesh>
+          </group>
+        ))
+      )}
       {/* Side panels */}
-      <mesh position={[-4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><Mat color="#4a2818" roughness={0.8} /></mesh>
-      <mesh position={[4, 1.0, 0]}><boxGeometry args={[0.04, 2.0, 0.3]} /><Mat color="#4a2818" roughness={0.8} /></mesh>
+      <mesh position={[-4, 1.0, 0]}>
+        <boxGeometry args={[0.05, 2.0, 0.32]} />
+        <Mat color="#4a2818" roughness={0.8} />
+      </mesh>
+      <mesh position={[4, 1.0, 0]}>
+        <boxGeometry args={[0.05, 2.0, 0.32]} />
+        <Mat color="#4a2818" roughness={0.8} />
+      </mesh>
 
       {/* BIG "NEW RELEASES" illuminated sign above */}
       <mesh position={[0, 2.6, 0.05]}>
@@ -2747,6 +2773,17 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
       {/* Subtle shelf light */}
     </group>
   );
+}
+
+function KenneyCar({ model, position, rotation = [0, 0, 0], scale = 1 }: {
+  model: string;
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+}) {
+  const { scene } = useGLTF(`/models/${model}.glb`);
+  const cloned = useMemo(() => scene.clone(), [scene]);
+  return <primitive object={cloned} position={position} rotation={rotation} scale={scale} />;
 }
 
 export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: string }) {
@@ -3501,115 +3538,12 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <meshBasicMaterial color="#555555" />
       </mesh>
 
-      {/* ── Parked car — 90s sedan, parked perpendicular to store */}
-      <group position={[5, 0, ROOM_D / 2 + 5]} rotation={[0, Math.PI / 2, 0]}>
-        {/* Body */}
-        <mesh position={[0, 0.5, 0]}>
-          <boxGeometry args={[2.0, 0.8, 1.0]} />
-          <meshBasicMaterial color="#1a2233" />
-        </mesh>
-        {/* Cabin / windows */}
-        <mesh position={[0.1, 1.1, 0]}>
-          <boxGeometry args={[1.2, 0.5, 0.9]} />
-          <meshBasicMaterial color="#1a2a44" />
-        </mesh>
-        {/* Wheels */}
-        {[[-0.7, 0.15, 0.5], [-0.7, 0.15, -0.5], [0.7, 0.15, 0.5], [0.7, 0.15, -0.5]].map(([wx, wy, wz], i) => (
-          <mesh key={`wheel-${i}`} position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.15, 0.15, 0.08, 8]} />
-            <meshBasicMaterial color="#111111" />
-          </mesh>
-        ))}
-        {/* Headlights */}
-        <mesh position={[-1.01, 0.55, 0.3]}>
-          <boxGeometry args={[0.02, 0.12, 0.15]} />
-          <meshBasicMaterial color="#ffeeaa" toneMapped={false} />
-        </mesh>
-        <mesh position={[-1.01, 0.55, -0.3]}>
-          <boxGeometry args={[0.02, 0.12, 0.15]} />
-          <meshBasicMaterial color="#ffeeaa" toneMapped={false} />
-        </mesh>
-        {/* Taillights */}
-        <mesh position={[1.01, 0.55, 0.3]}>
-          <boxGeometry args={[0.02, 0.1, 0.12]} />
-          <meshBasicMaterial color="#cc2222" />
-        </mesh>
-        <mesh position={[1.01, 0.55, -0.3]}>
-          <boxGeometry args={[0.02, 0.1, 0.12]} />
-          <meshBasicMaterial color="#cc2222" />
-        </mesh>
-        {/* Bumpers */}
-        <mesh position={[-1.02, 0.3, 0]}>
-          <boxGeometry args={[0.04, 0.12, 0.9]} />
-          <meshBasicMaterial color="#333333" />
-        </mesh>
-        <mesh position={[1.02, 0.3, 0]}>
-          <boxGeometry args={[0.04, 0.12, 0.9]} />
-          <meshBasicMaterial color="#333333" />
-        </mesh>
-      </group>
-
-      {/* ── 90s Minivan, parked perpendicular to store */}
-      <group position={[-4, 0, ROOM_D / 2 + 5]} rotation={[0, Math.PI / 2, 0]}>
-        {/* Body — boxy and tall */}
-        <mesh position={[0, 0.6, 0]}>
-          <boxGeometry args={[2.2, 1.0, 1.1]} />
-          <meshBasicMaterial color="#556644" />
-        </mesh>
-        {/* Tall cabin */}
-        <mesh position={[0.1, 1.4, 0]}>
-          <boxGeometry args={[1.8, 0.7, 1.05]} />
-          <meshBasicMaterial color="#334433" />
-        </mesh>
-        {/* Windows */}
-        <mesh position={[0.1, 1.4, 0.53]}>
-          <planeGeometry args={[1.6, 0.5]} />
-          <meshBasicMaterial color="#445566" />
-        </mesh>
-        <mesh position={[0.1, 1.4, -0.53]}>
-          <planeGeometry args={[1.6, 0.5]} />
-          <meshBasicMaterial color="#445566" />
-        </mesh>
-        {/* Wheels */}
-        {[[-0.8, 0.18, 0.55], [-0.8, 0.18, -0.55], [0.8, 0.18, 0.55], [0.8, 0.18, -0.55]].map(([wx, wy, wz], i) => (
-          <mesh key={`van-wheel-${i}`} position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.18, 0.18, 0.08, 8]} />
-            <meshBasicMaterial color="#111111" />
-          </mesh>
-        ))}
-        {/* Headlights */}
-        <mesh position={[-1.11, 0.65, 0.35]}>
-          <boxGeometry args={[0.02, 0.14, 0.18]} />
-          <meshBasicMaterial color="#ffeeaa" toneMapped={false} />
-        </mesh>
-        <mesh position={[-1.11, 0.65, -0.35]}>
-          <boxGeometry args={[0.02, 0.14, 0.18]} />
-          <meshBasicMaterial color="#ffeeaa" toneMapped={false} />
-        </mesh>
-        {/* Taillights */}
-        <mesh position={[1.11, 0.65, 0.35]}>
-          <boxGeometry args={[0.02, 0.12, 0.14]} />
-          <meshBasicMaterial color="#cc2222" />
-        </mesh>
-        <mesh position={[1.11, 0.65, -0.35]}>
-          <boxGeometry args={[0.02, 0.12, 0.14]} />
-          <meshBasicMaterial color="#cc2222" />
-        </mesh>
-        {/* Bumpers */}
-        <mesh position={[-1.12, 0.35, 0]}>
-          <boxGeometry args={[0.04, 0.14, 1.0]} />
-          <meshBasicMaterial color="#333333" />
-        </mesh>
-        <mesh position={[1.12, 0.35, 0]}>
-          <boxGeometry args={[0.04, 0.14, 1.0]} />
-          <meshBasicMaterial color="#333333" />
-        </mesh>
-        {/* Roof rack */}
-        <mesh position={[0, 1.78, 0]}>
-          <boxGeometry args={[1.6, 0.04, 0.9]} />
-          <meshBasicMaterial color="#444444" />
-        </mesh>
-      </group>
+      {/* Parking lot cars — Kenney models */}
+      <KenneyCar model="sedan" position={[5, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
+      <KenneyCar model="van" position={[-4, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
+      <KenneyCar model="suv" position={[1, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
+      <KenneyCar model="hatchback-sports" position={[-7, 0, ROOM_D/2 + 5.5]} rotation={[0, -Math.PI/2, 0]} scale={0.7} />
+      <KenneyCar model="taxi" position={[8, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
 
       {/* ── Handicap parking sign ──────── */}
       <group position={[-1.5, 0, ROOM_D / 2 + 3.5]}>
@@ -4574,3 +4508,9 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
     </MobileCtx.Provider>
   );
 }
+
+useGLTF.preload('/models/sedan.glb');
+useGLTF.preload('/models/van.glb');
+useGLTF.preload('/models/suv.glb');
+useGLTF.preload('/models/hatchback-sports.glb');
+useGLTF.preload('/models/taxi.glb');
