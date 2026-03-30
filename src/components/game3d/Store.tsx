@@ -279,9 +279,9 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
 const ROOM_W = 20;
 const ROOM_D = 14;
 const ROOM_H = 3.5;
-const WALL_COLOR = "#1a2a50";     // Readable blue — not too dark, not too bright
-const FLOOR_COLOR = "#1a2040";    // Dark blue commercial carpet — readable, not black
-const CEILING_COLOR = "#8a8478";  // Darker warm gray — ceiling recedes, floor/shelves dominate
+const WALL_COLOR = "#223663";     // Brighter Blockbuster blue so shelves/signs read from a distance
+const FLOOR_COLOR = "#202a4f";    // Slightly lighter carpet so aisles do not fall into black
+const CEILING_COLOR = "#969081";  // Warm retail drop ceiling
 const COUNTER_COLOR = "#8a6830";  // warmer wood
 const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't disappear
 
@@ -535,6 +535,16 @@ function Counter() {
         <boxGeometry args={[5.9, 0.1, 0.06]} />
         <Mat color="#3a2010" roughness={0.9} />
       </mesh>
+      {/* Blue laminate band so the counter has a stronger retail identity from aisle shots */}
+      <mesh position={[0, 0.64, -0.56]}>
+        <boxGeometry args={[5.92, 0.16, 0.05]} />
+        <Mat color="#1c3f73" roughness={0.55} />
+      </mesh>
+      {/* Brass foot rail */}
+      <mesh position={[0, 0.18, -0.71]}>
+        <boxGeometry args={[5.15, 0.04, 0.04]} />
+        <Mat color="#b8952a" roughness={0.3} metalness={0.65} />
+      </mesh>
 
       {/* Candy display shelves on front of counter (customer side) */}
       {/* Shelf brackets */}
@@ -614,6 +624,20 @@ function Counter() {
         CHECKOUT
       </Text>
 
+      {/* Counter tent card / impulse promo */}
+      <group position={[2.15, 1.0, 0.16]} rotation={[0, -0.2, 0]}>
+        <mesh rotation={[0.35, 0, 0]}>
+          <boxGeometry args={[0.3, 0.18, 0.02]} />
+          <Mat color="#f4efe2" roughness={0.65} />
+        </mesh>
+        <Text position={[0, 0.03, -0.01]} rotation={[0.35, Math.PI, 0]} fontSize={0.028} color="#1a3a6a" anchorX="center" anchorY="middle" font={undefined}>
+          JOIN
+        </Text>
+        <Text position={[0, -0.03, -0.01]} rotation={[0.35, Math.PI, 0]} fontSize={0.028} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>
+          REWARDS
+        </Text>
+      </group>
+
       {/* Snack display on counter — Kenney food models */}
       {[1.0, 1.3, 1.6, 1.9].map((dx, i) => {
         const counterSnacks = [
@@ -672,6 +696,22 @@ function Counter() {
         </mesh>
       </group>
 
+      {/* Small desk lamp to make the checkout area feel lived-in */}
+      <group position={[-0.15, 0.92, 0.28]}>
+        <mesh position={[0, 0.12, 0]}>
+          <cylinderGeometry args={[0.025, 0.03, 0.24, 8]} />
+          <Mat color="#444444" roughness={0.45} metalness={0.4} />
+        </mesh>
+        <mesh position={[0, 0.25, 0.02]} rotation={[-0.45, 0, 0]}>
+          <coneGeometry args={[0.09, 0.16, 10]} />
+          <Mat color="#173560" roughness={0.5} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.05, 0.01, -0.04]}>
+          <circleGeometry args={[0.18, 16]} />
+          <meshBasicMaterial color="#ffcf86" transparent opacity={0.16} />
+        </mesh>
+      </group>
+
       {/* Barcode scanner */}
       <mesh position={[1.0, 0.95, -0.2]}>
         <boxGeometry args={[0.15, 0.08, 0.2]} />
@@ -698,6 +738,13 @@ function Counter() {
       <Text position={[2, 1.25, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
         MEMBERSHIP CARDS
       </Text>
+      {/* Membership form stacks */}
+      {[-0.15, 0, 0.15].map((dx, i) => (
+        <mesh key={`form-stack-${i}`} position={[2.05 + dx, 0.97 + i * 0.01, -0.1 + i * 0.03]} rotation={[0, -0.1 + i * 0.08, 0]}>
+          <boxGeometry args={[0.22, 0.02, 0.14]} />
+          <Mat color={i === 1 ? "#f1eddc" : "#ece6d4"} roughness={0.8} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -2268,7 +2315,15 @@ function NeonSign() {
   );
 }
 
-function TVScreen({ isMobile }: { isMobile?: boolean }) {
+function WallCrtTv({
+  position,
+  rotation,
+  scale = 1,
+}: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale?: number;
+}) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matRef = useRef<any>(null);
   // Animate screen color to simulate VHS playback flicker
@@ -2291,50 +2346,61 @@ function TVScreen({ isMobile }: { isMobile?: boolean }) {
     }
   });
   return (
-    <group position={[-8, 2.5, 0]} rotation={[0, Math.PI / 2, 0]} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-      {/* CRT TV body — chunky retro shape */}
-      <RoundedBox args={[1.2, 0.9, 0.4]} radius={0.04} smoothness={3} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-        <Mat color="#2a2a2a" roughness={0.5} />
+    <group position={position} rotation={rotation} scale={scale} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
+      {/* Wall-mounted CRTs were bulky and heavy, not sleek flat panels */}
+      <RoundedBox args={[1.45, 1.05, 0.62]} radius={0.05} smoothness={3} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
+        <Mat color="#141414" roughness={0.58} />
       </RoundedBox>
       {/* CRT back bulge */}
-      <mesh position={[0, 0, -0.28]}>
-        <boxGeometry args={[1.0, 0.7, 0.2]} />
-        <Mat color="#222" roughness={0.6} />
+      <mesh position={[0, 0.02, -0.38]}>
+        <boxGeometry args={[1.18, 0.82, 0.32]} />
+        <Mat color="#101010" roughness={0.72} />
       </mesh>
       {/* Rounded bezel */}
-      <RoundedBox args={[1.1, 0.8, 0.05]} radius={0.02} smoothness={2} position={[0, 0, 0.18]}>
-        <Mat color="#1a1a1a" roughness={0.4} />
+      <RoundedBox args={[1.28, 0.92, 0.07]} radius={0.03} smoothness={2} position={[0, 0, 0.24]}>
+        <Mat color="#090909" roughness={0.45} />
       </RoundedBox>
       {/* Screen — animated */}
-      <mesh position={[0, 0, 0.21]}>
-        <planeGeometry args={[0.95, 0.65]} />
-        <Mat ref={matRef} color="#000000" emissive="#1a4a6a" emissiveIntensity={0.8} side={THREE.DoubleSide} />
+      <mesh position={[0, 0, 0.278]}>
+        <planeGeometry args={[1.05, 0.74]} />
+        <Mat ref={matRef} color="#020202" emissive="#173a52" emissiveIntensity={0.7} side={THREE.DoubleSide} />
       </mesh>
       {/* VHS tracking lines — thin horizontal stripes */}
       {[-0.2, -0.05, 0.15].map((dy, i) => (
-        <mesh key={`scan-${i}`} position={[0, dy, 0.215]}>
-          <planeGeometry args={[0.9, 0.008]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.06} />
+        <mesh key={`scan-${i}`} position={[0, dy, 0.282]}>
+          <planeGeometry args={[0.98, 0.01]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.055} />
+        </mesh>
+      ))}
+      {/* Speaker grill */}
+      <mesh position={[0.49, -0.1, 0.25]}>
+        <boxGeometry args={[0.18, 0.46, 0.02]} />
+        <Mat color="#1c1c1c" roughness={0.85} />
+      </mesh>
+      {[-0.22, -0.1, 0.02, 0.14].map((dy, i) => (
+        <mesh key={`speaker-slot-${i}`} position={[0.49, dy, 0.262]}>
+          <boxGeometry args={[0.13, 0.012, 0.008]} />
+          <Mat color="#050505" roughness={0.5} />
         </mesh>
       ))}
       {/* Control knobs */}
-      <mesh position={[0.3, -0.25, 0.19]} rotation={[Math.PI/2, 0, 0]}>
-        <cylinderGeometry args={[0.02, 0.02, 0.02, 8]} />
-        <Mat color="#555" roughness={0.4} />
+      <mesh position={[0.43, 0.26, 0.24]} rotation={[Math.PI/2, 0, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.03, 10]} />
+        <Mat color="#4d4d4d" roughness={0.38} />
       </mesh>
-      <mesh position={[0.4, -0.25, 0.19]} rotation={[Math.PI/2, 0, 0]}>
-        <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
-        <Mat color="#555" roughness={0.4} />
+      <mesh position={[0.43, 0.16, 0.24]} rotation={[Math.PI/2, 0, 0]}>
+        <cylinderGeometry args={[0.024, 0.024, 0.03, 10]} />
+        <Mat color="#4d4d4d" roughness={0.38} />
       </mesh>
-      {/* TV stand bracket */}
-      <mesh position={[0, -0.55, -0.05]}>
-        <boxGeometry args={[0.15, 0.2, 0.08]} />
+      {/* Deep wall bracket */}
+      <mesh position={[0, -0.66, -0.08]}>
+        <boxGeometry args={[0.2, 0.3, 0.12]} />
         <Mat color="#333" roughness={0.5} metalness={0.3} />
       </mesh>
       {/* Wall mount plate */}
-      <mesh position={[0, 0, -0.21]}>
-        <boxGeometry args={[0.3, 0.3, 0.02]} />
-        <Mat color="#444" roughness={0.5} metalness={0.4} />
+      <mesh position={[0, 0, -0.3]}>
+        <boxGeometry args={[0.42, 0.42, 0.03]} />
+        <Mat color="#2e2e2e" roughness={0.55} metalness={0.35} />
       </mesh>
     </group>
   );
@@ -2817,24 +2883,24 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       {/* Ceiling */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}>
         <planeGeometry args={[ROOM_W, ROOM_D]} />
-        <Mat color={CEILING_COLOR} roughness={0.9} />
+        <Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
       {/* Extra ceiling plane to close gap above storefront */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, ROOM_D / 2]}>
         <planeGeometry args={[ROOM_W + 2, 2]} />
-        <Mat color={CEILING_COLOR} roughness={0.9} />
+        <Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
       {/* Ceiling drop-tile grid */}
       {Array.from({ length: Math.floor(18 / 1.2) + 1 }, (_, i) => -9 + i * 1.2).map(x => (
         <mesh key={`cgx${x}`} position={[x, ROOM_H - 0.01, 0]}>
           <boxGeometry args={[0.02, 0.01, ROOM_D]} />
-          <Mat color="#c0b8a8" />
+          <Mat color="#8f897d" transparent opacity={0.45} />
         </mesh>
       ))}
       {Array.from({ length: Math.floor(12 / 1.2) + 1 }, (_, i) => -6 + i * 1.2).map(z => (
         <mesh key={`cgz${z}`} position={[0, ROOM_H - 0.01, z]}>
           <boxGeometry args={[ROOM_W, 0.01, 0.02]} />
-          <Mat color="#c0b8a8" />
+          <Mat color="#8f897d" transparent opacity={0.45} />
         </mesh>
       ))}
 
@@ -2915,11 +2981,17 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
 
-      {/* Ambient lighting only — no dynamic pointLights/spotLights for performance */}
-      <ambientLight intensity={1.5} color="#e8e4d8" />
-      <hemisphereLight args={["#fff4e0", "#3a4060", 0.8]} />
-      {/* Single directional light — required for toon shading to create visible shade steps */}
-      <directionalLight position={[5, 8, 3]} intensity={2.0} color="#fff4e0" />
+      {/* Retail lighting pass — brighter, flatter Blockbuster-style wash with a warmer counter/front entrance lift */}
+      <ambientLight intensity={1.85} color="#f0eadc" />
+      <hemisphereLight args={["#fff6e4", "#44507a", 1.05]} />
+      <directionalLight position={[4, 8, 5]} intensity={2.4} color="#fff1dc" />
+      <pointLight position={[0, ROOM_H - 0.5, -1.2]} intensity={1.8} distance={15} color="#fff6e8" />
+      <pointLight position={[0, ROOM_H - 0.45, 2.2]} intensity={1.8} distance={15} color="#fff6e8" />
+      <pointLight position={[-5.5, 2.5, 5.2]} intensity={2.2} distance={8} color="#ffd9a0" />
+      <pointLight position={[0, 2.6, ROOM_D / 2 - 1.2]} intensity={1.6} distance={7} color="#ffe3b3" />
+      <pointLight position={[-6.2, 2.35, 5.6]} intensity={2.6} distance={6.5} color="#ffd2a0" />
+      <pointLight position={[5.4, 2.2, 4.8]} intensity={1.7} distance={7.5} color="#fff1d8" />
+      <pointLight position={[0, ROOM_H - 0.38, 5.1]} intensity={1.35} distance={8.5} color="#fff4e2" />
 
       {/* Fluorescent ceiling fixtures — visual only (emissive materials, no lights) */}
       {[-6, -2, 2, 6].map((fx) => (
@@ -2946,6 +3018,14 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
           <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh>
         </group>
       ))}
+      {/* Entrance / checkout fixture row */}
+      {[-4.5, -0.5, 3.5].map((fx) => (
+        <group key={`front-${fx}`} position={[fx, ROOM_H - 0.04, 4.9]}>
+          <mesh><boxGeometry args={[1.65, 0.05, 0.28]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh>
+          <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.45, 0.03, 0.08]} /><meshBasicMaterial color="#fff6dd" /></mesh>
+          <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.55, 0.01, 0.22]} /><Mat color="#ece8da" roughness={0.22} /></mesh>
+        </group>
+      ))}
 
       {/* Floor pools removed — carpet color handles the look now */}
 
@@ -2954,27 +3034,31 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <planeGeometry args={[5, 1.0]} />
         <meshBasicMaterial color="#2a2010" transparent opacity={0.3} />
       </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, 0.012, 5.7]}>
+        <planeGeometry args={[6.8, 2.1]} />
+        <meshBasicMaterial color="#443018" transparent opacity={0.14} />
+      </mesh>
 
       {/* Edge darkening — dark strips along floor-wall junctions for visual grounding */}
       {/* Back wall */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, -ROOM_D / 2 + 0.5]}>
         <planeGeometry args={[ROOM_W, 1.0]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
       </mesh>
       {/* Front wall */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, ROOM_D / 2 - 0.5]}>
         <planeGeometry args={[ROOM_W, 1.0]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
       </mesh>
       {/* Left wall */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-ROOM_W / 2 + 0.5, 0.002, 0]}>
         <planeGeometry args={[1.0, ROOM_D]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
       </mesh>
       {/* Right wall */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ROOM_W / 2 - 0.5, 0.002, 0]}>
         <planeGeometry args={[1.0, ROOM_D]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.2} />
+        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
       </mesh>
 
       {/* Shelves */}
@@ -3012,8 +3096,8 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       {/* Neon sign */}
       <NeonSign />
 
-      {/* CRT TV — left wall, Kenney vintage model */}
-      <KenneyModel model="televisionVintage" position={[-8, 2.2, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.0} />
+      {/* Left wall CRT monitor */}
+      <WallCrtTv position={[-8.9, 2.15, -0.4]} rotation={[0, Math.PI / 2, 0]} scale={1.15} />
 
       {/* Wall posters — back wall */}
       {/* Back wall posters — flanking the new releases rack */}
@@ -3747,7 +3831,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <Mat
           color="#d4c8a0"
           transparent
-          opacity={0.15}
+          opacity={0.24}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
@@ -3777,7 +3861,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <Mat
           color="#d4c8a0"
           transparent
-          opacity={0.15}
+          opacity={0.24}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
@@ -3836,12 +3920,24 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       {/* ── Interior light spill through windows (exterior warm glow) ──────── */}
       <mesh position={[-5, 1.2, ROOM_D / 2 + 0.03]}>
         <planeGeometry args={[5.3, 2.0]} />
-        <meshBasicMaterial color="#ffd080" transparent opacity={0.06} />
+        <meshBasicMaterial color="#ffd080" transparent opacity={0.14} />
       </mesh>
       <mesh position={[5, 1.2, ROOM_D / 2 + 0.03]}>
         <planeGeometry args={[5.3, 2.0]} />
-        <meshBasicMaterial color="#ffd080" transparent opacity={0.06} />
+        <meshBasicMaterial color="#ffd080" transparent opacity={0.14} />
       </mesh>
+      {/* Window reflections so the exterior reads as glass, not open cutouts */}
+      {[
+        [-6.2, 1.45, ROOM_D / 2 + 0.05, -0.14] as [number, number, number, number],
+        [-3.8, 1.45, ROOM_D / 2 + 0.05, -0.14] as [number, number, number, number],
+        [3.8, 1.45, ROOM_D / 2 + 0.05, 0.14] as [number, number, number, number],
+        [6.2, 1.45, ROOM_D / 2 + 0.05, 0.14] as [number, number, number, number],
+      ].map(([x, y, z, rot], i) => (
+        <mesh key={`window-reflection-${i}`} position={[x, y, z]} rotation={[0, rot, 0.18]}>
+          <planeGeometry args={[1.0, 2.05]} />
+          <meshBasicMaterial color="#fff8ea" transparent opacity={0.045} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
 
       {/* ── Window sills ──────── */}
       <mesh position={[-5, 0.28, ROOM_D / 2 + 0.05]}>
@@ -4068,39 +4164,38 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </group>
 
       {/* ── MOVIE NIGHT CHALLENGE BOARD ─────────────────────── */}
-      <group position={[ROOM_W / 2 - 0.1, 1.5, 1.5]} rotation={[0, -Math.PI / 2, 0]}
+      <group position={[ROOM_W / 2 - 0.08, 1.52, 2.15]} rotation={[0, -Math.PI / 2, 0]}
         userData={{ interactType: "challenge", label: "Challenge Board" }}
       >
         {/* Board backing */}
         <mesh userData={{ interactType: "challenge", label: "Challenge Board" }}>
-          <boxGeometry args={[1.4, 1.0, 0.04]} />
-          <Mat color="#0a0a1a" roughness={0.5} />
+          <boxGeometry args={[0.9, 0.62, 0.04]} />
+          <Mat color="#122448" roughness={0.55} />
         </mesh>
-        {/* Neon border glow */}
+        {/* Gold frame */}
         <mesh position={[0, 0, 0.01]}>
-          <boxGeometry args={[1.5, 1.1, 0.01]} />
-          <Mat color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.3} roughness={0.5} />
+          <boxGeometry args={[1.0, 0.72, 0.02]} />
+          <Mat color="#d4a514" emissive="#ffd700" emissiveIntensity={0.08} roughness={0.55} />
         </mesh>
         {/* Inner border */}
         <mesh position={[0, 0, 0.02]}>
-          <boxGeometry args={[1.35, 0.95, 0.01]} />
-          <Mat color="#0a0a1a" roughness={0.5} />
+          <boxGeometry args={[0.86, 0.58, 0.01]} />
+          <Mat color="#0f1a33" roughness={0.5} />
         </mesh>
         {/* Title */}
-        <Text position={[0, 0.25, 0.03]} fontSize={0.1} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, 0.15, 0.03]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
           MOVIE NIGHT
         </Text>
-        <Text position={[0, 0.1, 0.03]} fontSize={0.07} color="#ff3e7a" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, 0.04, 0.03]} fontSize={0.05} color="#7ec8ff" anchorX="center" anchorY="middle" font={undefined}>
           CHALLENGE
         </Text>
         {/* Description */}
-        <Text position={[0, -0.08, 0.03]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
-          Choose your challenge!
+        <Text position={[0, -0.06, 0.03]} fontSize={0.028} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+          Pick tonight's theme
         </Text>
-        <Text position={[0, -0.2, 0.03]} fontSize={0.04} color="rgba(255,215,0,0.7)" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, -0.145, 0.03]} fontSize={0.026} color="#d4c28a" anchorX="center" anchorY="middle" font={undefined}>
           Click to open
         </Text>
-        {/* Glow */}
       </group>
 
       {/* ── TROPHY SHELF ────────────────────────────────────── */}
@@ -4113,14 +4208,14 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       <SecurityDome position={[ROOM_W / 2 - 0.5, ROOM_H - 0.05, ROOM_D / 2 - 0.5]} />
 
       {/* AC vent on ceiling */}
-      <mesh position={[3, ROOM_H - 0.02, -2]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.8, 0.8]} />
+      <mesh position={[3, ROOM_H - 0.015, -2]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.52, 0.52]} />
         <Mat color="#c8c0b0" roughness={0.6} />
       </mesh>
       {/* Vent slats */}
-      {[-0.25, -0.1, 0.05, 0.2].map((dy, i) => (
-        <mesh key={`vent-${i}`} position={[3, ROOM_H - 0.018, -2 + dy]}>
-          <boxGeometry args={[0.7, 0.004, 0.02]} />
+      {[-0.16, -0.06, 0.04, 0.14].map((dy, i) => (
+        <mesh key={`vent-${i}`} position={[3, ROOM_H - 0.014, -2 + dy]}>
+          <boxGeometry args={[0.42, 0.003, 0.015]} />
           <Mat color="#aaa89a" roughness={0.5} />
         </mesh>
       ))}
@@ -4254,11 +4349,28 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       <group position={[-8.63, 0, 4.53]}>
         <mesh position={[0, 0.75, 0]}>
           <boxGeometry args={[0.8, 1.5, 0.6]} />
-          <Mat color="#e8e8e8" roughness={0.5} />
+          <Mat color="#d6d8dd" roughness={0.55} />
+        </mesh>
+        {/* Blue side trim so it reads as a cooler, not a placeholder block */}
+        <mesh position={[-0.37, 0.75, 0]}>
+          <boxGeometry args={[0.05, 1.42, 0.56]} />
+          <Mat color="#31568c" roughness={0.45} />
+        </mesh>
+        <mesh position={[0.37, 0.75, 0]}>
+          <boxGeometry args={[0.05, 1.42, 0.56]} />
+          <Mat color="#31568c" roughness={0.45} />
+        </mesh>
+        <mesh position={[0, 1.42, 0]}>
+          <boxGeometry args={[0.72, 0.08, 0.56]} />
+          <Mat color="#31568c" roughness={0.45} />
         </mesh>
         <mesh position={[0, 0.75, -0.31]}>
           <planeGeometry args={[0.75, 1.2]} />
-          <Mat color="#aaddee" transparent opacity={0.15} side={THREE.DoubleSide} />
+          <Mat color="#aaddee" transparent opacity={0.22} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh position={[0, 0.75, -0.29]}>
+          <boxGeometry args={[0.04, 1.05, 0.03]} />
+          <Mat color="#f1f5f9" roughness={0.35} />
         </mesh>
         {[0.5, 1.0].map((sy, i) => (
           <mesh key={`cooler-shelf-${i}`} position={[0, sy, 0]}>
@@ -4442,8 +4554,8 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         </mesh>
       </group>
 
-      {/* Right wall TV — Kenney vintage model */}
-      <KenneyModel model="televisionVintage" position={[ROOM_W / 2 - 0.3, 2.2, -2]} rotation={[0, -Math.PI / 2, 0]} scale={1.0} />
+      {/* Right wall CRT monitor */}
+      <WallCrtTv position={[ROOM_W / 2 - 0.82, 2.12, -2.2]} rotation={[0, -Math.PI / 2, 0]} scale={1.1} />
 
     </group>
     </MobileCtx.Provider>

@@ -16,16 +16,16 @@ import * as THREE from "three";
 
 // Camera definitions — position, lookAt target, and label
 const CAMERAS = [
-  { name: "overhead",    pos: [0, 12, 0],      lookAt: [0, 0, 0],      fov: 90, label: "Overhead (top-down)" },
+  { name: "overhead",    pos: [0, 3.15, 0],    lookAt: [0, 0, 0],      fov: 96, label: "Overhead (top-down)" },
   { name: "entrance",    pos: [0, 2, 9],       lookAt: [0, 1.5, 0],    fov: 70, label: "From parking lot" },
   { name: "back_wall",   pos: [0, 2, -6],      lookAt: [0, 1.5, 3],    fov: 70, label: "From back wall" },
-  { name: "left_wall",   pos: [-9, 2, 0],      lookAt: [5, 1.5, 0],    fov: 70, label: "Left wall looking right" },
+  { name: "left_wall",   pos: [-10.6, 2, 0.2], lookAt: [5, 1.5, 0],    fov: 66, label: "Left wall looking right" },
   { name: "right_wall",  pos: [9, 2, 0],       lookAt: [-5, 1.5, 0],   fov: 70, label: "Right wall looking left" },
   { name: "counter",     pos: [-3, 2, 4],      lookAt: [-6, 1.2, 5.5], fov: 60, label: "Counter area" },
   { name: "ceiling_front",pos: [0, 3.4, 5],    lookAt: [0, 0, -3],     fov: 80, label: "Ceiling front corner" },
   { name: "ceiling_back", pos: [0, 3.4, -5],   lookAt: [0, 0, 3],      fov: 80, label: "Ceiling back corner" },
   { name: "exterior",    pos: [0, 4, 14],      lookAt: [0, 2, 7],      fov: 70, label: "Exterior wide" },
-  { name: "side_elev",   pos: [14, 2, 0],      lookAt: [0, 1.75, 0],   fov: 50, label: "Side elevation" },
+  { name: "side_elev",   pos: [15.5, 2.15, -0.35], lookAt: [0, 1.7, -0.4],   fov: 44, label: "Side elevation" },
 ];
 
 export function SecurityCameras() {
