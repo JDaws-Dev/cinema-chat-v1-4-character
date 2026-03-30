@@ -2558,7 +2558,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* "OPEN" neon sign near entrance — classic hanging sign */}
-      <group position={[-4, 2.5, ROOM_D / 2 - 0.1]} rotation={[0, Math.PI, 0]}>
+      <group position={[-4, 2.3, ROOM_D / 2 + 0.05]} rotation={[0, 0, 0]}>
         {/* Sign backing — dark */}
         <mesh>
           <boxGeometry args={[1.0, 0.45, 0.03]} />
@@ -2576,7 +2576,7 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* Store hours sign near door — white with blue border */}
-      <group position={[4, 2.0, ROOM_D / 2 - 0.1]} rotation={[0, Math.PI, 0]}>
+      <group position={[4, 1.8, ROOM_D / 2 + 0.05]} rotation={[0, 0, 0]}>
         {/* Blue border */}
         <mesh position={[0, 0, -0.005]}>
           <boxGeometry args={[1.3, 0.9, 0.03]} />
@@ -3306,14 +3306,14 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
 
-      {/* Mullion pillars — fill gap between windows and door frame */}
+      {/* Mullion strips — thin metal frames between windows and doors */}
       <mesh position={[-1.7, 1.4, ROOM_D / 2 + 0.02]}>
-        <boxGeometry args={[0.8, 2.5, 0.08]} />
-        <Mat color="#1a1a2a" roughness={0.4} metalness={0.5} />
+        <boxGeometry args={[0.12, 2.8, 0.06]} />
+        <Mat color="#3a3a4a" roughness={0.4} metalness={0.5} />
       </mesh>
       <mesh position={[1.7, 1.4, ROOM_D / 2 + 0.02]}>
-        <boxGeometry args={[0.8, 2.5, 0.08]} />
-        <Mat color="#1a1a2a" roughness={0.4} metalness={0.5} />
+        <boxGeometry args={[0.12, 2.8, 0.06]} />
+        <Mat color="#3a3a4a" roughness={0.4} metalness={0.5} />
       </mesh>
 
       {/* Left storefront window — warm interior glow visible from outside */}
@@ -3442,22 +3442,22 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[1.6, 0.04, 0.65]} />
           <Mat color="#2a4a7a" roughness={0.5} />
         </mesh>
-        {/* Return slot opening */}
-        <mesh position={[0, 0.7, -0.28]}>
+        {/* Return slot opening — faces outward (+z toward parking lot) */}
+        <mesh position={[0, 0.7, 0.28]}>
           <boxGeometry args={[0.8, 0.15, 0.08]} />
           <Mat color="#0a0a1a" roughness={0.9} />
         </mesh>
-        {/* "VIDEO RETURN" sign */}
-        <mesh position={[0, 1.4, -0.1]}>
+        {/* "VIDEO RETURN" sign — faces outward */}
+        <mesh position={[0, 1.4, 0.1]}>
           <boxGeometry args={[1.2, 0.3, 0.03]} />
           <Mat color="#ffd700" roughness={0.5} />
         </mesh>
-        <Text position={[0, 1.4, -0.13]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, 1.4, 0.17]} fontSize={0.08} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
           VIDEO RETURN
         </Text>
         {/* A few tapes sitting in the slot */}
         {[-0.15, 0, 0.15].map((dx, i) => (
-          <mesh key={`ret-tape-${i}`} position={[dx, 0.78, -0.2]} rotation={[0.1, 0.1 * i, 0]}>
+          <mesh key={`ret-tape-${i}`} position={[dx, 0.78, 0.2]} rotation={[0.1, 0.1 * i, 0]}>
             <boxGeometry args={[0.18, 0.04, 0.10]} />
             <Mat color={["#1a3a6a", "#6a1a3a", "#3a6a1a"][i]} roughness={0.6} />
           </mesh>
