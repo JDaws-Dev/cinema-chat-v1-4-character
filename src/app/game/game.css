@@ -2,6 +2,30 @@
    FRIDAY NIGHT VIDEO — 3D Store Experience
    ════════════════════════════════════════════════════════════ */
 
+:root {
+  /* Friday Night Video Design Tokens */
+  --fnv-gold: #ffd700;
+  --fnv-blue: #1a2a50;
+  --fnv-dark: #0a0e18;
+  --fnv-text: #e0e0e0;
+  --fnv-text-dim: #888888;
+  --fnv-success: #22c55e;
+  --fnv-danger: #ef4444;
+  --fnv-warning: #f59e0b;
+
+  --fnv-font-game: 'Courier New', monospace;
+  --fnv-font-ui: system-ui, -apple-system, sans-serif;
+
+  --fnv-hud-bg: rgba(10, 14, 24, 0.85);
+  --fnv-hud-border: rgba(255, 215, 0, 0.3);
+  --fnv-hud-radius: 6px;
+
+  --fnv-tier-bronze: #cd7f32;
+  --fnv-tier-silver: #c0c0c0;
+  --fnv-tier-gold: #ffd700;
+  --fnv-tier-platinum: #e5e4e2;
+}
+
 /* ── Splash screen ────────────────────────────────────────── */
 .g3-splash {
   width: 100%;
@@ -134,13 +158,22 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 2px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.6);
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3);
-  z-index: 10;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   pointer-events: none;
+  z-index: 20;
+  transition: all 0.15s ease;
+}
+
+.g3-crosshair-active {
+  width: 10px;
+  height: 10px;
+  background: var(--fnv-gold);
+  border-color: var(--fnv-gold);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
 /* ── Subtitle display ────────────────────────────────────── */
@@ -195,11 +228,11 @@
   transform: translateX(-50%);
   font-size: 0.75rem;
   font-weight: 600;
-  color: #ffd700;
-  background: rgba(6, 8, 16, 0.85);
+  color: var(--fnv-gold);
+  background: var(--fnv-hud-bg);
   padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: var(--fnv-hud-radius);
+  border: 1px solid var(--fnv-hud-border);
   z-index: 11;
   pointer-events: none;
   white-space: nowrap;
@@ -252,120 +285,33 @@
   100% { opacity: 0; }
 }
 
-/* ── Inventory HUD ───────────────────────────────────────── */
-.g3-inventory {
+/* ── Unified Inventory Bar ──────────────────────────────── */
+.g3-inventory-bar {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 4px;
+  z-index: 15;
+}
+.g3-inv-slot {
+  width: 52px;
+  height: 52px;
+  background: var(--fnv-hud-bg);
+  border: 1px solid var(--fnv-hud-border);
+  border-radius: var(--fnv-hud-radius);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  z-index: 12;
-  animation: slide-up 0.4s ease-out;
-}
-
-.g3-inventory-label {
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #ffd700;
-  letter-spacing: 0.15em;
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
-}
-
-.g3-inventory-stack {
-  display: flex;
-  gap: 6px;
-  flex-direction: row-reverse;
-  align-items: flex-end;
-  max-width: 280px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.g3-inventory-stack::-webkit-scrollbar { display: none; }
-
-.g3-inventory-card {
-  position: relative;
-  width: 60px;
-  min-width: 60px;
-  background: rgba(10, 14, 24, 0.9);
-  border: 2px solid rgba(255, 215, 0, 0.4);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.15);
-}
-
-.g3-inventory-remove {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 16px;
-  height: 16px;
-  background: rgba(0, 0, 0, 0.7);
-  border: none;
-  border-radius: 50%;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.5rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s;
-  font-family: inherit;
-  padding: 0;
-  line-height: 1;
-}
-
-.g3-inventory-card:hover .g3-inventory-remove {
-  opacity: 1;
-}
-
-.g3-inventory-poster {
-  width: 100%;
-  height: 78px;
-  object-fit: cover;
-  display: block;
-}
-
-.g3-inventory-title {
-  font-size: 0.55rem;
-  font-weight: 600;
-  color: #e8e2d6;
-  padding: 4px 5px;
-  text-align: center;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.g3-inventory-hint {
-  font-size: 0.55rem;
-  color: rgba(232, 226, 214, 0.4);
-  text-align: center;
-}
-
-.g3-inventory-drop {
-  font-size: 0.55rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  padding: 3px 10px;
+  font-size: 0.6rem;
+  color: var(--fnv-text);
   cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
+  font-family: var(--fnv-font-game);
 }
-
-.g3-inventory-drop:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.7);
-}
+.g3-inv-movie { border-color: var(--fnv-gold); }
+.g3-inv-snack { border-color: var(--fnv-success); }
+.g3-inv-empty { opacity: 0.3; cursor: default; }
 
 /* ── Controls hint ────────────────────────────────────────── */
 .g3-hint {
@@ -403,20 +349,22 @@
   padding: 0 16px;
   z-index: 10;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(6, 8, 16, 0.7) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--fnv-hud-bg) 0%, transparent 100%);
+  font-family: var(--fnv-font-game);
 }
 
 .g3-hud-title {
   font-size: 0.65rem;
   font-weight: 700;
-  color: rgba(212, 168, 83, 0.6);
+  color: var(--fnv-gold);
+  opacity: 0.6;
   letter-spacing: 0.15em;
   flex-shrink: 0;
 }
 
 .g3-hud-hint {
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--fnv-text-dim);
   text-align: center;
   flex: 1;
 }
@@ -1079,23 +1027,16 @@
     min-height: 48px;
   }
 
-  /* Move inventory above mobile controls */
-  .g3-inventory {
+  /* Move inventory bar above mobile controls */
+  .g3-inventory-bar {
     bottom: 160px;
     right: 10px;
   }
 
-  .g3-inventory-stack {
-    max-width: 200px;
-  }
-
-  .g3-inventory-card {
-    width: 50px;
-    min-width: 50px;
-  }
-
-  .g3-inventory-poster {
-    height: 65px;
+  .g3-inv-slot {
+    width: 44px;
+    height: 44px;
+    font-size: 0.5rem;
   }
 
   /* Compact challenge list */

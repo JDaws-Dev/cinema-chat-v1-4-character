@@ -1210,7 +1210,7 @@ export default function GamePage() {
       </div>
 
       {/* Crosshair */}
-      {!hasOverlay && <div className="g3-crosshair" />}
+      {!hasOverlay && <div className={`g3-crosshair ${hoverLabel ? 'g3-crosshair-active' : ''}`} />}
 
       {/* Hover label near crosshair */}
       {!hasOverlay && hoverLabel && (
@@ -1437,40 +1437,22 @@ export default function GamePage() {
         <RewardOverlay prop={rewardProp} onDismiss={() => setRewardProp(null)} />
       )}
 
-      {/* Held movies inventory HUD */}
-      {heldMovies.length > 0 && !hasOverlay && (
-        <div className="g3-inventory">
-          <div className="g3-inventory-label">MOVIES ({heldMovies.length})</div>
-          <div className="g3-inventory-stack">
-            {heldMovies.map((movie) => (
-              <div key={movie.id} className="g3-inventory-card">
-                {movie.posterUrl && (
-                  <img src={movie.posterUrl} alt={movie.title} className="g3-inventory-poster" />
-                )}
-                <div className="g3-inventory-title">{movie.title}</div>
-                <button className="g3-inventory-remove" onClick={() => setHeldMovies(prev => prev.filter(m => m.id !== movie.id))}>✕</button>
-              </div>
-            ))}
-          </div>
-          <div className="g3-inventory-hint">Take to Vinny to check out</div>
-          <button className="g3-inventory-drop" onClick={() => setHeldMovies([])}>DROP ALL</button>
-        </div>
-      )}
-
-      {/* Held snacks inventory HUD */}
-      {heldSnacks.length > 0 && !hasOverlay && (
-        <div className="g3-inventory" style={{ bottom: heldMovies.length > 0 ? 180 : 20 }}>
-          <div className="g3-inventory-label">SNACKS ({heldSnacks.length})</div>
-          <div className="g3-inventory-stack">
-            {heldSnacks.map((snack) => (
-              <div key={snack.name} className="g3-inventory-card" style={{ background: "rgba(10, 24, 14, 0.9)", borderColor: "rgba(34, 197, 94, 0.4)" }}>
-                <div style={{ fontSize: "1.5rem", textAlign: "center", padding: "8px 0" }}>{snack.emoji}</div>
-                <div className="g3-inventory-title">{snack.name}</div>
-                <button className="g3-inventory-remove" onClick={() => setHeldSnacks(prev => prev.filter(s => s.name !== snack.name))}>✕</button>
-              </div>
-            ))}
-          </div>
-          <button className="g3-inventory-drop" onClick={() => setHeldSnacks([])}>DROP ALL</button>
+      {/* Unified inventory bar */}
+      {!hasOverlay && (
+        <div className="g3-inventory-bar">
+          {heldMovies.map((movie, i) => (
+            <div key={`m${i}`} className="g3-inv-slot g3-inv-movie" onClick={() => setHeldMovies(prev => prev.filter(m => m.id !== movie.id))}>
+              <span role="img" aria-label="movie">🎬</span> <span>{movie.title.substring(0, 12)}</span>
+            </div>
+          ))}
+          {heldSnacks.map((snack, i) => (
+            <div key={`s${i}`} className="g3-inv-slot g3-inv-snack" onClick={() => setHeldSnacks(prev => prev.filter(s => s.name !== snack.name))}>
+              {snack.emoji}
+            </div>
+          ))}
+          {Array.from({ length: 8 - heldMovies.length - heldSnacks.length }).map((_, i) => (
+            <div key={`e${i}`} className="g3-inv-slot g3-inv-empty" />
+          ))}
         </div>
       )}
 

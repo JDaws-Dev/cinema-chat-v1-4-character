@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useRef, useMemo, useState, useEffect, useContext, createContext } from "react";
-import { useFrame, useLoader } from "@react-three/fiber";
+import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Text, useTexture, RoundedBox, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
-import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
+import { registerNPCPosition, unregisterNPCPosition, playSFX } from "@/lib/audio";
 
 // Mobile context — meshBasicMaterial on mobile, meshToonMaterial on desktop
 const MobileCtx = createContext(false);
@@ -2902,12 +2902,79 @@ function BackRoomShelf({ position, genre, color, isMobile }: { position: [number
   );
 }
 
+/* ── Animated entrance door (swings open on player approach) ──────── */
+function AnimatedEntranceDoor({ side, doorOpen, children }: { side: 'left' | 'right'; doorOpen: boolean; children: React.ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  const targetAngle = doorOpen ? (side === 'left' ? -Math.PI / 3 : Math.PI / 3) : 0;
+
+  useFrame(() => {
+    if (ref.current) {
+      ref.current.rotation.y += (targetAngle - ref.current.rotation.y) * 0.08;
+    }
+  });
+
+  // Pivot from the hinge edge: left door hinges at +x edge, right door at -x edge
+  const hingeX = side === 'left' ? -0.55 : 0.55;
+  return (
+    <group position={[hingeX, 0, ROOM_D / 2 - 0.05]}>
+      <group ref={ref}>
+        {/* Offset children so mesh rotates around the hinge */}
+        <group position={[side === 'left' ? 0.55 : -0.55, 0, 0]}>
+          {children}
+        </group>
+      </group>
+    </group>
+  );
+}
+
+/* ── Animated employees-only door (swings open instead of slides) ── */
+function AnimatedEmployeeDoor({ open, children }: { open: boolean; children: React.ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  // Swings inward (into back room) — hinge on the left frame edge (negative x side)
+  const targetAngle = open ? -Math.PI / 2.5 : 0;
+
+  useFrame(() => {
+    if (ref.current) {
+      ref.current.rotation.y += (targetAngle - ref.current.rotation.y) * 0.08;
+    }
+  });
+
+  return (
+    <group position={[-0.45, 0, 0]}>
+      <group ref={ref}>
+        <group position={[0.45, 0, 0]}>
+          {children}
+        </group>
+      </group>
+    </group>
+  );
+}
+
 export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number; backRoomOpen?: boolean }) {
   // Sync era into module-level variable so usePosterUrls picks it up
   useEffect(() => {
     if (eraYears) setEraYears(eraYears);
   }, [eraYears]);
   const [showTarantino] = useState(() => Math.random() < 0.3);
+
+  // ── Entrance door proximity detection ──
+  const { camera } = useThree();
+  const [entranceDoorOpen, setEntranceDoorOpen] = useState(false);
+  const prevEntranceDoorOpen = useRef(false);
+
+  useFrame(() => {
+    const near = camera.position.z > ROOM_D / 2 - 3 && camera.position.z < ROOM_D / 2 + 2;
+    if (near !== entranceDoorOpen) setEntranceDoorOpen(near);
+  });
+
+  // Play door chime SFX when entrance doors open
+  useEffect(() => {
+    if (entranceDoorOpen && !prevEntranceDoorOpen.current) {
+      playSFX("door_chime");
+    }
+    prevEntranceDoorOpen.current = entranceDoorOpen;
+  }, [entranceDoorOpen]);
+
   return (
     <MobileCtx.Provider value={!!isMobile}>
     <group>
@@ -3042,17 +3109,27 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
 
-      {/* Retail lighting pass — brighter, flatter Blockbuster-style wash with a warmer counter/front entrance lift */}
+      {/* ── 3-Light Recipe (per 3D-DESIGN-GUIDE.md) ───────────────────────── */}
+      {/* Layer 1: Warm ambient base — simulates light bouncing off walls/floor */}
       <ambientLight intensity={1.85} color="#f0eadc" />
+
+      {/* Layer 2a: Primary hemisphere — warm ceiling / cool floor bounce */}
       <hemisphereLight args={["#fff6e4", "#44507a", 1.05]} />
-      <directionalLight position={[4, 8, 5]} intensity={2.4} color="#fff1dc" />
+      {/* Layer 2b: Secondary hemisphere — slightly warmer balance for counter/entrance warmth */}
+      <hemisphereLight args={["#ffe8c8", "#3d4a6a", 0.35]} />
+
+      {/* Layer 3: Key light — main overhead directional, warm white */}
+      <directionalLight position={[5, 8, 3]} intensity={2.0} color="#fff1dc" />
+      {/* Rim / back light — subtle silhouette definition on shelves when looking toward back wall */}
+      <directionalLight position={[-3, 6, -8]} intensity={0.5} color="#c8d4e8" />
+
+      {/* Overhead fluorescent simulation — 2 main ceiling pools */}
       <pointLight position={[0, ROOM_H - 0.5, -1.2]} intensity={1.8} distance={15} color="#fff6e8" />
       <pointLight position={[0, ROOM_H - 0.45, 2.2]} intensity={1.8} distance={15} color="#fff6e8" />
+      {/* Counter / entrance warm zone */}
       <pointLight position={[-5.5, 2.5, 5.2]} intensity={2.2} distance={8} color="#ffd9a0" />
+      {/* Mid-store fill */}
       <pointLight position={[0, 2.6, ROOM_D / 2 - 1.2]} intensity={1.6} distance={7} color="#ffe3b3" />
-      <pointLight position={[-6.2, 2.35, 5.6]} intensity={2.6} distance={6.5} color="#ffd2a0" />
-      <pointLight position={[5.4, 2.2, 4.8]} intensity={1.7} distance={7.5} color="#fff1d8" />
-      <pointLight position={[0, ROOM_H - 0.38, 5.1]} intensity={1.35} distance={8.5} color="#fff4e2" />
 
       {/* Fluorescent ceiling fixtures — visual only (emissive materials, no lights) */}
       {[-6, -2, 2, 6].map((fx) => (
@@ -3098,6 +3175,11 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, 0.012, 5.7]}>
         <planeGeometry args={[6.8, 2.1]} />
         <meshBasicMaterial color="#443018" transparent opacity={0.14} />
+      </mesh>
+      {/* Warm emissive ceiling plane above counter — warm/cool zoning per design guide */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, ROOM_H - 0.08, 5.5]}>
+        <planeGeometry args={[5, 2]} />
+        <meshBasicMaterial color="#ffd9a0" transparent opacity={0.08} />
       </mesh>
 
       {/* Edge darkening — dark strips along floor-wall junctions for visual grounding */}
@@ -4093,9 +4175,9 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </Text>
       </group>
 
-      {/* ── Double entrance doors ────────────────────────────── */}
+      {/* ── Double entrance doors (animated swing open) ──────── */}
       {/* Left door */}
-      <group position={[-0.55, 0, ROOM_D / 2 - 0.05]}>
+      <AnimatedEntranceDoor side="left" doorOpen={entranceDoorOpen}>
         <mesh position={[0, 1.4, 0]}>
           <planeGeometry args={[1.0, 2.8]} />
           <Mat color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} />
@@ -4113,9 +4195,9 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
         <Text position={[0, 1.15, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
         <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
-      </group>
+      </AnimatedEntranceDoor>
       {/* Right door */}
-      <group position={[0.55, 0, ROOM_D / 2 - 0.05]}>
+      <AnimatedEntranceDoor side="right" doorOpen={entranceDoorOpen}>
         <mesh position={[0, 1.4, 0]}>
           <planeGeometry args={[1.0, 2.8]} />
           <Mat color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} />
@@ -4131,7 +4213,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
         <Text position={[0, 1.15, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
         <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
-      </group>
+      </AnimatedEntranceDoor>
       {/* Center divider between doors */}
       <mesh position={[0, 1.4, ROOM_D / 2 - 0.05]}>
         <boxGeometry args={[0.06, 2.84, 0.04]} />
@@ -4356,29 +4438,28 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* "EMPLOYEES ONLY" door on left wall */}
       <group position={[-ROOM_W / 2 + 0.07, 0, -5.19]} rotation={[0, Math.PI / 2, 0]}>
-        {/* Door — slides sideways when open */}
-        <group
-          position={[backRoomOpen ? -1.0 : 0, 0, 0]}
-          userData={{ interactType: "employees_door", label: "Employees Only" }}
-        >
-          <mesh position={[0, 1.15, 0]}>
-            <boxGeometry args={[0.9, 2.3, 0.04]} />
-            <Mat color="#4a3020" roughness={0.8} />
-          </mesh>
-          {/* Door handle */}
-          <mesh position={[0.32, 1.0, 0.03]}>
-            <sphereGeometry args={[0.04, 8, 8]} />
-            <Mat color="#b8960a" roughness={0.3} metalness={0.6} />
-          </mesh>
-          {/* Sign */}
-          <mesh position={[0, 1.7, 0.03]}>
-            <boxGeometry args={[0.5, 0.15, 0.01]} />
-            <Mat color="#cc2222" roughness={0.5} />
-          </mesh>
-          <Text position={[0, 1.7, 0.04]} fontSize={0.05} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
-            EMPLOYEES ONLY
-          </Text>
-        </group>
+        {/* Door — swings open when backRoomOpen */}
+        <AnimatedEmployeeDoor open={backRoomOpen}>
+          <group userData={{ interactType: "employees_door", label: "Employees Only" }}>
+            <mesh position={[0, 1.15, 0]}>
+              <boxGeometry args={[0.9, 2.3, 0.04]} />
+              <Mat color="#4a3020" roughness={0.8} />
+            </mesh>
+            {/* Door handle */}
+            <mesh position={[0.32, 1.0, 0.03]}>
+              <sphereGeometry args={[0.04, 8, 8]} />
+              <Mat color="#b8960a" roughness={0.3} metalness={0.6} />
+            </mesh>
+            {/* Sign */}
+            <mesh position={[0, 1.7, 0.03]}>
+              <boxGeometry args={[0.5, 0.15, 0.01]} />
+              <Mat color="#cc2222" roughness={0.5} />
+            </mesh>
+            <Text position={[0, 1.7, 0.04]} fontSize={0.05} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+              EMPLOYEES ONLY
+            </Text>
+          </group>
+        </AnimatedEmployeeDoor>
         {/* Door frame — always visible */}
         <mesh position={[-0.48, 1.15, 0]}>
           <boxGeometry args={[0.04, 2.4, 0.06]} />
