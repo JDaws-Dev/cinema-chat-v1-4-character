@@ -2319,35 +2319,63 @@ function WallCrtTv({
   position,
   rotation,
   scale = 1,
+  pipeDrop = 0.8,
 }: {
   position: [number, number, number];
   rotation: [number, number, number];
   scale?: number;
+  pipeDrop?: number;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matRef = useRef<any>(null);
+  const scanBandRef = useRef<THREE.Mesh>(null);
+  const glareRef = useRef<THREE.Mesh>(null);
+  const playTextRef = useRef<THREE.Group>(null);
   // Animate screen color to simulate VHS playback flicker
   useFrame((state) => {
-    if (!matRef.current) return;
     const t = state.clock.elapsedTime;
-    if (matRef.current.emissive) {
+    if (matRef.current?.emissive) {
       // Desktop (MeshStandardMaterial)
       const r = 0.1 + Math.sin(t * 0.7) * 0.05;
       const g = 0.2 + Math.sin(t * 1.1 + 1) * 0.08;
       const b = 0.4 + Math.sin(t * 0.5 + 2) * 0.1;
       matRef.current.emissive.setRGB(r, g, b);
-      matRef.current.emissiveIntensity = 0.8 + Math.sin(t * 8.3) * 0.1 + (Math.sin(t * 37) > 0.95 ? 0.4 : 0);
-    } else if (matRef.current.color) {
+      matRef.current.emissiveIntensity = 1.2 + Math.sin(t * 8.3) * 0.18 + (Math.sin(t * 31) > 0.93 ? 0.75 : 0);
+    } else if (matRef.current?.color) {
       // Mobile (MeshBasicMaterial) — animate color directly
-      const r = 0.1 + Math.sin(t * 0.7) * 0.08;
-      const g = 0.25 + Math.sin(t * 1.1 + 1) * 0.1;
-      const b = 0.5 + Math.sin(t * 0.5 + 2) * 0.15;
+      const r = 0.14 + Math.sin(t * 0.7) * 0.08;
+      const g = 0.28 + Math.sin(t * 1.1 + 1) * 0.1;
+      const b = 0.56 + Math.sin(t * 0.5 + 2) * 0.15;
       matRef.current.color.setRGB(r, g, b);
+    }
+    if (scanBandRef.current) {
+      scanBandRef.current.position.y = 0.28 - ((t * 0.55) % 1) * 0.56;
+      const scanBandMat = scanBandRef.current.material as THREE.MeshBasicMaterial;
+      scanBandMat.opacity = 0.12 + Math.sin(t * 11) * 0.03;
+    }
+    if (glareRef.current) {
+      const glareMat = glareRef.current.material as THREE.MeshBasicMaterial;
+      glareMat.opacity = 0.05 + (Math.sin(t * 6.5) > 0.9 ? 0.03 : 0);
+    }
+    if (playTextRef.current) {
+      playTextRef.current.visible = Math.sin(t * 3.2) > -0.2;
     }
   });
   return (
     <group position={position} rotation={rotation} scale={scale} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
-      {/* Wall-mounted CRTs were bulky and heavy, not sleek flat panels */}
+      {/* Ceiling-hung CRTs were bulky and heavy, not sleek flat panels */}
+      <mesh position={[0, 0.62 + pipeDrop * 0.5 + 0.06, -0.02]}>
+        <cylinderGeometry args={[0.045, 0.05, pipeDrop + 0.12, 10]} />
+        <Mat color="#353535" roughness={0.45} metalness={0.45} />
+      </mesh>
+      <mesh position={[0, 0.62 + pipeDrop + 0.12, -0.02]}>
+        <boxGeometry args={[0.26, 0.06, 0.2]} />
+        <Mat color="#444444" roughness={0.5} metalness={0.35} />
+      </mesh>
+      <mesh position={[0, 0.64, -0.06]}>
+        <boxGeometry args={[0.3, 0.08, 0.18]} />
+        <Mat color="#383838" roughness={0.5} metalness={0.3} />
+      </mesh>
       <RoundedBox args={[1.45, 1.05, 0.62]} radius={0.05} smoothness={3} userData={{ interactType: "tv", label: "Friday Night Pick" }}>
         <Mat color="#141414" roughness={0.58} />
       </RoundedBox>
@@ -2363,7 +2391,40 @@ function WallCrtTv({
       {/* Screen — animated */}
       <mesh position={[0, 0, 0.278]}>
         <planeGeometry args={[1.05, 0.74]} />
-        <Mat ref={matRef} color="#020202" emissive="#173a52" emissiveIntensity={0.7} side={THREE.DoubleSide} />
+        <Mat ref={matRef} color="#07111d" emissive="#2a6ca0" emissiveIntensity={1.2} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Bright VHS-style image blocks so the set reads as active from a distance */}
+      <mesh position={[0, 0.11, 0.281]}>
+        <planeGeometry args={[0.9, 0.26]} />
+        <meshBasicMaterial color="#5e2ca5" transparent opacity={0.42} />
+      </mesh>
+      <mesh position={[-0.18, -0.08, 0.282]}>
+        <planeGeometry args={[0.32, 0.18]} />
+        <meshBasicMaterial color="#14b8a6" transparent opacity={0.48} />
+      </mesh>
+      <mesh position={[0.16, -0.05, 0.282]}>
+        <planeGeometry args={[0.28, 0.22]} />
+        <meshBasicMaterial color="#f97316" transparent opacity={0.45} />
+      </mesh>
+      <mesh position={[0, -0.23, 0.282]}>
+        <planeGeometry args={[0.95, 0.09]} />
+        <meshBasicMaterial color="#ffd166" transparent opacity={0.28} />
+      </mesh>
+      <group ref={playTextRef} position={[-0.31, 0.23, 0.284]}>
+        <Text fontSize={0.07} color="#f4f8ff" anchorX="left" anchorY="middle" font={undefined}>
+          PLAY
+          <meshBasicMaterial color="#f4f8ff" toneMapped={false} />
+        </Text>
+      </group>
+      {/* Bright rolling scan band so the screen reads as active from across the room */}
+      <mesh ref={scanBandRef} position={[0, 0.18, 0.283]}>
+        <planeGeometry args={[1.0, 0.1]} />
+        <meshBasicMaterial color="#d7f1ff" transparent opacity={0.12} />
+      </mesh>
+      {/* Soft glass glare / intermittent VHS bloom */}
+      <mesh ref={glareRef} position={[-0.12, 0.1, 0.284]} rotation={[0, 0, -0.2]}>
+        <planeGeometry args={[0.34, 0.62]} />
+        <meshBasicMaterial color="#f6f2d8" transparent opacity={0.03} />
       </mesh>
       {/* VHS tracking lines — thin horizontal stripes */}
       {[-0.2, -0.05, 0.15].map((dy, i) => (
@@ -2392,15 +2453,14 @@ function WallCrtTv({
         <cylinderGeometry args={[0.024, 0.024, 0.03, 10]} />
         <Mat color="#4d4d4d" roughness={0.38} />
       </mesh>
-      {/* Deep wall bracket */}
-      <mesh position={[0, -0.66, -0.08]}>
-        <boxGeometry args={[0.2, 0.3, 0.12]} />
-        <Mat color="#333" roughness={0.5} metalness={0.3} />
+      {/* Rabbit-ear antenna silhouette */}
+      <mesh position={[-0.08, 0.68, -0.29]} rotation={[0.2, 0, -0.35]}>
+        <cylinderGeometry args={[0.01, 0.01, 0.28, 6]} />
+        <Mat color="#7a7a7a" roughness={0.35} metalness={0.55} />
       </mesh>
-      {/* Wall mount plate */}
-      <mesh position={[0, 0, -0.3]}>
-        <boxGeometry args={[0.42, 0.42, 0.03]} />
-        <Mat color="#2e2e2e" roughness={0.55} metalness={0.35} />
+      <mesh position={[0.08, 0.68, -0.29]} rotation={[-0.15, 0, 0.35]}>
+        <cylinderGeometry args={[0.01, 0.01, 0.28, 6]} />
+        <Mat color="#7a7a7a" roughness={0.35} metalness={0.55} />
       </mesh>
     </group>
   );
@@ -3097,7 +3157,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       <NeonSign />
 
       {/* Left wall CRT monitor */}
-      <WallCrtTv position={[-8.9, 2.15, -0.4]} rotation={[0, Math.PI / 2, 0]} scale={1.15} />
+      <WallCrtTv position={[-9.05, 2.2, -2.8]} rotation={[0, Math.PI / 2, 0]} scale={0.84} pipeDrop={0.96} />
 
       {/* Wall posters — back wall */}
       {/* Back wall posters — flanking the new releases rack */}
@@ -4164,36 +4224,36 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </group>
 
       {/* ── MOVIE NIGHT CHALLENGE BOARD ─────────────────────── */}
-      <group position={[ROOM_W / 2 - 0.08, 1.52, 2.15]} rotation={[0, -Math.PI / 2, 0]}
+      <group position={[ROOM_W / 2 - 0.08, 1.62, 2.65]} rotation={[0, -Math.PI / 2, 0]}
         userData={{ interactType: "challenge", label: "Challenge Board" }}
       >
         {/* Board backing */}
         <mesh userData={{ interactType: "challenge", label: "Challenge Board" }}>
-          <boxGeometry args={[0.9, 0.62, 0.04]} />
+          <boxGeometry args={[0.72, 0.5, 0.04]} />
           <Mat color="#122448" roughness={0.55} />
         </mesh>
         {/* Gold frame */}
         <mesh position={[0, 0, 0.01]}>
-          <boxGeometry args={[1.0, 0.72, 0.02]} />
+          <boxGeometry args={[0.82, 0.6, 0.02]} />
           <Mat color="#d4a514" emissive="#ffd700" emissiveIntensity={0.08} roughness={0.55} />
         </mesh>
         {/* Inner border */}
         <mesh position={[0, 0, 0.02]}>
-          <boxGeometry args={[0.86, 0.58, 0.01]} />
+          <boxGeometry args={[0.68, 0.46, 0.01]} />
           <Mat color="#0f1a33" roughness={0.5} />
         </mesh>
         {/* Title */}
-        <Text position={[0, 0.15, 0.03]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, 0.115, 0.03]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
           MOVIE NIGHT
         </Text>
-        <Text position={[0, 0.04, 0.03]} fontSize={0.05} color="#7ec8ff" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, 0.03, 0.03]} fontSize={0.038} color="#7ec8ff" anchorX="center" anchorY="middle" font={undefined}>
           CHALLENGE
         </Text>
         {/* Description */}
-        <Text position={[0, -0.06, 0.03]} fontSize={0.028} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, -0.045, 0.03]} fontSize={0.021} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
           Pick tonight's theme
         </Text>
-        <Text position={[0, -0.145, 0.03]} fontSize={0.026} color="#d4c28a" anchorX="center" anchorY="middle" font={undefined}>
+        <Text position={[0, -0.115, 0.03]} fontSize={0.02} color="#d4c28a" anchorX="center" anchorY="middle" font={undefined}>
           Click to open
         </Text>
       </group>
@@ -4555,7 +4615,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </group>
 
       {/* Right wall CRT monitor */}
-      <WallCrtTv position={[ROOM_W / 2 - 0.82, 2.12, -2.2]} rotation={[0, -Math.PI / 2, 0]} scale={1.1} />
+      <WallCrtTv position={[ROOM_W / 2 - 0.72, 2.26, -3.9]} rotation={[0, -Math.PI / 2, 0]} scale={0.7} pipeDrop={1.16} />
 
     </group>
     </MobileCtx.Provider>
