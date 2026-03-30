@@ -611,6 +611,162 @@ const CUSTOMER_QUEST_DIALOGUES: DialogueTree[] = [
   },
 ];
 
+// ── CHARLIE TRIVIA ───────────────────────────────────────────
+
+const TRIVIA_QUESTIONS = [
+  { q: "What year was Jaws released?", a: "1975", wrong: ["1973", "1977", "1979"] },
+  { q: "Who directed The Godfather?", a: "Francis Ford Coppola", wrong: ["Martin Scorsese", "Steven Spielberg", "Brian De Palma"] },
+  { q: "What's the highest grossing film of the 80s?", a: "E.T.", wrong: ["Star Wars", "Indiana Jones", "Back to the Future"] },
+  { q: "Who played the Terminator?", a: "Arnold Schwarzenegger", wrong: ["Sylvester Stallone", "Bruce Willis", "Chuck Norris"] },
+  { q: "What was the first Pixar movie?", a: "Toy Story", wrong: ["A Bug's Life", "Finding Nemo", "Monsters Inc"] },
+  { q: "Who directed Jurassic Park?", a: "Steven Spielberg", wrong: ["James Cameron", "Ridley Scott", "George Lucas"] },
+  { q: "What year was The Matrix released?", a: "1999", wrong: ["1997", "1998", "2000"] },
+  { q: "Who played Forrest Gump?", a: "Tom Hanks", wrong: ["Robin Williams", "Jim Carrey", "Bill Murray"] },
+];
+
+export function generateTriviaDialogue(): DialogueTree {
+  const q = TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)];
+  const options = [q.a, ...q.wrong].sort(() => Math.random() - 0.5);
+
+  return {
+    id: "charlie_trivia",
+    npc: "Charlie",
+    portrait: "C",
+    opener: {
+      speaker: "Charlie",
+      portrait: "C",
+      text: `Pop quiz! ${q.q}`,
+      responses: options.map(opt => ({
+        text: opt,
+        questComplete: opt === q.a ? "trivia_correct" : undefined,
+        next: {
+          speaker: "Charlie",
+          portrait: "C",
+          text: opt === q.a
+            ? "That's right! You know your movies. Here's some XP for that."
+            : `Nope! It's ${q.a}. Better luck next time!`,
+        }
+      }))
+    }
+  };
+}
+
+// ── VINNY REPUTATION-AWARE DIALOGUE ──────────────────────────
+
+import { getVinnyReputation } from "./game-state";
+
+/** Movies Vinny can recommend — title must match shelf titles for tracking */
+const VINNY_RECOMMENDATIONS = [
+  "Groundhog Day", "Field of Dreams", "Alien", "The Thing",
+  "Escape from New York", "Big Trouble in Little China",
+  "Raiders of the Lost Ark", "Die Hard",
+];
+
+export function getVinnyRecommendation(): string {
+  return VINNY_RECOMMENDATIONS[Math.floor(Math.random() * VINNY_RECOMMENDATIONS.length)];
+}
+
+export function generateVinnyRepDialogue(recommendedMovie: string): DialogueTree {
+  const rep = getVinnyReputation();
+  let repLine: string;
+  if (rep.followed > rep.ignored) {
+    repLine = "You've got great taste! Always trust my picks.";
+  } else if (rep.ignored > rep.followed * 2) {
+    repLine = "You never take my recommendations! What's wrong with my taste?";
+  } else {
+    repLine = "So, gonna trust me this time?";
+  }
+
+  return {
+    id: "vinny_recommendation",
+    npc: "Vinny",
+    portrait: "V",
+    opener: {
+      speaker: "Vinny",
+      portrait: "V",
+      text: `${repLine} Tonight I'd say you gotta check out ${recommendedMovie}. Absolute classic.`,
+      responses: [
+        {
+          text: `I'll grab ${recommendedMovie}!`,
+          next: {
+            speaker: "Vinny",
+            portrait: "V",
+            text: "Now that's what I like to hear. You won't regret it.",
+          },
+        },
+        {
+          text: "I'll think about it.",
+          next: {
+            speaker: "Vinny",
+            portrait: "V",
+            text: "Don't think too long — someone else might snag it.",
+          },
+        },
+        {
+          text: "Not really my thing.",
+          next: {
+            speaker: "Vinny",
+            portrait: "V",
+            text: "Your loss! But hey, there's plenty more where that came from.",
+          },
+        },
+      ],
+    },
+  };
+}
+
+// ── RELATIONSHIP-AWARE GREETINGS ─────────────────────────────
+
+const RELATIONSHIP_GREETINGS: Record<string, { repeat: string[]; regular: string[] }> = {
+  customer: {
+    repeat: [
+      "Hey, I remember you!",
+      "Oh hey, you're that person from before!",
+      "Wait, didn't I see you earlier?",
+    ],
+    regular: [
+      "My favorite person to talk to! Got any recommendations for ME this time?",
+      "You again! At this point we should exchange numbers.",
+      "Hey, my movie buddy! What are we watching tonight?",
+    ],
+  },
+  charlie: {
+    repeat: [
+      "Hey, welcome back! Still browsing?",
+      "Oh hey, I remember you! Good to see a fellow movie nerd.",
+    ],
+    regular: [
+      "My favorite customer! I saved a recommendation just for you.",
+      "You're here more than I am! Got any picks for me this time?",
+      "The usual? Just kidding, I know you like variety.",
+    ],
+  },
+  vinny: {
+    repeat: [
+      "Back so soon? Can't stay away, huh?",
+      "Hey, I know that face. Welcome back.",
+    ],
+    regular: [
+      "The VIP returns! What'll it be tonight?",
+      "My number one customer! I set aside something special for you.",
+      "At this point I should put your name on a shelf. What are we watching?",
+    ],
+  },
+};
+
+/** Get a relationship-aware greeting prefix for an NPC type, or null if first meeting (level 0) */
+export function getRelationshipGreeting(npcType: string, relationshipLevel: number): string | null {
+  const greetings = RELATIONSHIP_GREETINGS[npcType];
+  if (!greetings) return null;
+  if (relationshipLevel >= 3 && greetings.regular.length > 0) {
+    return greetings.regular[Math.floor(Math.random() * greetings.regular.length)];
+  }
+  if (relationshipLevel >= 1 && greetings.repeat.length > 0) {
+    return greetings.repeat[Math.floor(Math.random() * greetings.repeat.length)];
+  }
+  return null; // First meeting — use normal dialogue
+}
+
 // ── PUBLIC API ──────────────────────────────────────────────
 
 const ALL_DIALOGUES: Record<string, DialogueTree[]> = {

@@ -9,6 +9,8 @@ import { setPlayerPosition } from "@/lib/audio";
 const SPEED = 3.5;
 const MOUSE_SENS = 0.002;
 const ROOM_BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -6.5, maxZ: 14 }; // extended +z for outside area
+// Back room bounds: x=-13.5 to -10.5, z=-6.0 to -4.0
+const BACK_ROOM_BOUNDS = { minX: -13.5, maxX: -10.0, minZ: -6.0, maxZ: -4.0 };
 const PLAYER_RADIUS = 0.4;
 
 // Collision boxes: { x, z, halfW, halfD } — rectangular obstacles
@@ -36,7 +38,15 @@ const COLLIDERS = [
   { x: -8.63, z: 4.53, hw: 0.5, hd: 0.4 },
 ];
 
-function collidesWithAny(px: number, pz: number): boolean {
+// Employees Only door collider — blocks doorway when closed
+const DOOR_COLLIDER = { x: -9.8, z: -5.19, hw: 0.3, hd: 0.55 };
+
+// Back room desk collider
+const BACK_ROOM_COLLIDERS = [
+  { x: -13.2, z: -4.2, hw: 0.55, hd: 0.35 },
+];
+
+function collidesWithAny(px: number, pz: number, doorOpen: boolean): boolean {
   for (const c of COLLIDERS) {
     if (
       px + PLAYER_RADIUS > c.x - c.hw &&
@@ -47,10 +57,48 @@ function collidesWithAny(px: number, pz: number): boolean {
       return true;
     }
   }
+  // Door collider — only when door is closed
+  if (!doorOpen) {
+    const c = DOOR_COLLIDER;
+    if (
+      px + PLAYER_RADIUS > c.x - c.hw &&
+      px - PLAYER_RADIUS < c.x + c.hw &&
+      pz + PLAYER_RADIUS > c.z - c.hd &&
+      pz - PLAYER_RADIUS < c.z + c.hd
+    ) {
+      return true;
+    }
+  }
+  // Back room colliders — only relevant when door is open
+  if (doorOpen) {
+    for (const c of BACK_ROOM_COLLIDERS) {
+      if (
+        px + PLAYER_RADIUS > c.x - c.hw &&
+        px - PLAYER_RADIUS < c.x + c.hw &&
+        pz + PLAYER_RADIUS > c.z - c.hd &&
+        pz - PLAYER_RADIUS < c.z + c.hd
+      ) {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
-export function FirstPersonControls({ disabled = false }: { disabled?: boolean }) {
+// Check if position is within the back room area (used for extended bounds)
+function isInBackRoomArea(px: number, pz: number): boolean {
+  return px < ROOM_BOUNDS.minX &&
+    px >= BACK_ROOM_BOUNDS.minX &&
+    pz >= BACK_ROOM_BOUNDS.minZ &&
+    pz <= BACK_ROOM_BOUNDS.maxZ;
+}
+
+// Check if position is in the doorway transition zone
+function isInDoorway(px: number, pz: number): boolean {
+  return px <= -9.0 && px >= -10.5 && pz >= -5.75 && pz <= -4.65;
+}
+
+export function FirstPersonControls({ disabled = false, backRoomOpen = false }: { disabled?: boolean; backRoomOpen?: boolean }) {
   const { camera, gl } = useThree();
   const keys = useRef(new Set<string>());
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
@@ -155,21 +203,35 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
       const newX = camera.position.x + dir.x;
       const newZ = camera.position.z + dir.z;
 
-      // Room bounds
-      const clampedX = Math.max(ROOM_BOUNDS.minX, Math.min(ROOM_BOUNDS.maxX, newX));
-      const clampedZ = Math.max(ROOM_BOUNDS.minZ, Math.min(ROOM_BOUNDS.maxZ, newZ));
+      // Room bounds — extend for back room when door is open
+      let clampedX: number;
+      let clampedZ: number;
+
+      if (backRoomOpen && (isInBackRoomArea(newX, newZ) || isInDoorway(newX, newZ))) {
+        // In back room or doorway — use extended bounds
+        clampedX = Math.max(BACK_ROOM_BOUNDS.minX, Math.min(ROOM_BOUNDS.maxX, newX));
+        clampedZ = Math.max(BACK_ROOM_BOUNDS.minZ, Math.min(ROOM_BOUNDS.maxZ, newZ));
+      } else if (backRoomOpen && isInBackRoomArea(camera.position.x, camera.position.z)) {
+        // Currently in back room, trying to move — use back room bounds
+        clampedX = Math.max(BACK_ROOM_BOUNDS.minX, Math.min(ROOM_BOUNDS.maxX, newX));
+        clampedZ = Math.max(BACK_ROOM_BOUNDS.minZ, Math.min(ROOM_BOUNDS.maxZ, newZ));
+      } else {
+        // Normal main store bounds
+        clampedX = Math.max(ROOM_BOUNDS.minX, Math.min(ROOM_BOUNDS.maxX, newX));
+        clampedZ = Math.max(ROOM_BOUNDS.minZ, Math.min(ROOM_BOUNDS.maxZ, newZ));
+      }
 
       // Try full movement first
-      if (!collidesWithAny(clampedX, clampedZ)) {
+      if (!collidesWithAny(clampedX, clampedZ, backRoomOpen)) {
         camera.position.x = clampedX;
         camera.position.z = clampedZ;
       }
       // Try sliding along X only
-      else if (!collidesWithAny(clampedX, camera.position.z)) {
+      else if (!collidesWithAny(clampedX, camera.position.z, backRoomOpen)) {
         camera.position.x = clampedX;
       }
       // Try sliding along Z only
-      else if (!collidesWithAny(camera.position.x, clampedZ)) {
+      else if (!collidesWithAny(camera.position.x, clampedZ, backRoomOpen)) {
         camera.position.z = clampedZ;
       }
       // Blocked both ways — don't move

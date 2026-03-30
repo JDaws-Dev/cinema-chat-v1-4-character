@@ -2842,7 +2842,67 @@ function KenneyModel({ model, position, rotation = [0, 0, 0], scale = 1 }: {
   return <primitive object={cloned} position={position} rotation={rotation} scale={scale} />;
 }
 
-export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number }) {
+// ── Back Room mini shelf (smaller than main ShelfUnit) ──
+function BackRoomShelf({ position, genre, color, isMobile }: { position: [number, number, number]; genre: string; color: string; isMobile?: boolean }) {
+  const posters = usePosterUrls(genre, 12);
+  const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
+
+  const count = isMobile ? 3 : 5;
+  const spacing = 0.20;
+  const startX = -(count - 1) * spacing * 0.5;
+
+  return (
+    <group position={position} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
+      {/* Small shelf frame */}
+      <mesh position={[0, 0.6, 0]}>
+        <boxGeometry args={[1.3, 1.2, 0.04]} />
+        <meshBasicMaterial color="#3a2515" />
+      </mesh>
+      {/* Side panels */}
+      <mesh position={[-0.65, 0.6, 0]}>
+        <boxGeometry args={[0.03, 1.2, 0.3]} />
+        <meshBasicMaterial color="#2a1a0a" />
+      </mesh>
+      <mesh position={[0.65, 0.6, 0]}>
+        <boxGeometry args={[0.03, 1.2, 0.3]} />
+        <meshBasicMaterial color="#2a1a0a" />
+      </mesh>
+      {/* 2 shelf boards */}
+      {[0.05, 0.55].map((sy, i) => (
+        <mesh key={`br-board-${i}`} position={[0, sy, 0]}>
+          <boxGeometry args={[1.26, 0.03, 0.28]} />
+          <meshBasicMaterial color="#4a2818" />
+        </mesh>
+      ))}
+      {/* Top cap */}
+      <mesh position={[0, 1.22, 0]}>
+        <boxGeometry args={[1.34, 0.03, 0.32]} />
+        <meshBasicMaterial color="#5a3828" />
+      </mesh>
+      {/* Genre label */}
+      <Text position={[0, 1.28, 0]} fontSize={0.06} color={color} anchorX="center" anchorY="bottom" font={undefined}>
+        {genre}
+      </Text>
+      {/* VHS tapes — 2 rows */}
+      {[0.20, 0.70].map((shelfY, row) =>
+        Array.from({ length: count }).map((_, i) => {
+          const idx = row * count + i;
+          const poster = posters[idx];
+          return poster ? (
+            <PosterBox key={`br-${row}-${i}`} url={poster.url} position={[startX + i * spacing, shelfY, -0.08]} rotation={0} movieTitle={poster.title} movieId={poster.id} genreColor={color} />
+          ) : (
+            <mesh key={`br-${row}-${i}`} position={[startX + i * spacing, shelfY, -0.08]}>
+              <boxGeometry args={[0.15, 0.26, 0.025]} />
+              <meshBasicMaterial color={color} />
+            </mesh>
+          );
+        })
+      )}
+    </group>
+  );
+}
+
+export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number; backRoomOpen?: boolean }) {
   // Sync era into module-level variable so usePosterUrls picks it up
   useEffect(() => {
     if (eraYears) setEraYears(eraYears);
@@ -2929,8 +2989,20 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
         <planeGeometry args={[1, 2.2]} />
         <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} />
       </mesh>
-      <mesh position={[-ROOM_W / 2, ROOM_H / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[ROOM_D, ROOM_H]} />
+      {/* Left wall — split around Employees Only doorway at z=-5.19 */}
+      {/* Section below back room: z=-7 to z=-5.69 */}
+      <mesh position={[-ROOM_W / 2, ROOM_H / 2, -6.345]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[1.31, ROOM_H]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+      {/* Section above doorway: z=-5.69 to z=-4.69, y=2.35 to ROOM_H */}
+      <mesh position={[-ROOM_W / 2, (2.35 + ROOM_H) / 2, -5.19]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[1.0, ROOM_H - 2.35]} />
+        <Mat color={WALL_COLOR} roughness={0.85} />
+      </mesh>
+      {/* Main section: z=-4.69 to z=+7 */}
+      <mesh position={[-ROOM_W / 2, ROOM_H / 2, 1.155]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[11.69, ROOM_H]} />
         <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
       <mesh position={[ROOM_W / 2, ROOM_H / 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
@@ -4284,12 +4356,30 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
 
       {/* "EMPLOYEES ONLY" door on left wall */}
       <group position={[-ROOM_W / 2 + 0.07, 0, -5.19]} rotation={[0, Math.PI / 2, 0]}>
-        {/* Door */}
-        <mesh position={[0, 1.15, 0]}>
-          <boxGeometry args={[0.9, 2.3, 0.04]} />
-          <Mat color="#4a3020" roughness={0.8} />
-        </mesh>
-        {/* Door frame */}
+        {/* Door — slides sideways when open */}
+        <group
+          position={[backRoomOpen ? -1.0 : 0, 0, 0]}
+          userData={{ interactType: "employees_door", label: "Employees Only" }}
+        >
+          <mesh position={[0, 1.15, 0]}>
+            <boxGeometry args={[0.9, 2.3, 0.04]} />
+            <Mat color="#4a3020" roughness={0.8} />
+          </mesh>
+          {/* Door handle */}
+          <mesh position={[0.32, 1.0, 0.03]}>
+            <sphereGeometry args={[0.04, 8, 8]} />
+            <Mat color="#b8960a" roughness={0.3} metalness={0.6} />
+          </mesh>
+          {/* Sign */}
+          <mesh position={[0, 1.7, 0.03]}>
+            <boxGeometry args={[0.5, 0.15, 0.01]} />
+            <Mat color="#cc2222" roughness={0.5} />
+          </mesh>
+          <Text position={[0, 1.7, 0.04]} fontSize={0.05} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+            EMPLOYEES ONLY
+          </Text>
+        </group>
+        {/* Door frame — always visible */}
         <mesh position={[-0.48, 1.15, 0]}>
           <boxGeometry args={[0.04, 2.4, 0.06]} />
           <Mat color="#3a2010" roughness={0.7} />
@@ -4302,19 +4392,146 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
           <boxGeometry args={[1.0, 0.04, 0.06]} />
           <Mat color="#3a2010" roughness={0.7} />
         </mesh>
-        {/* Door handle */}
-        <mesh position={[0.32, 1.0, 0.03]}>
-          <sphereGeometry args={[0.04, 8, 8]} />
-          <Mat color="#b8960a" roughness={0.3} metalness={0.6} />
+      </group>
+
+      {/* ── EMPLOYEES ONLY BACK ROOM ─────────────────────────── */}
+      {/* Room: 4 wide (x: -10 to -14) x 3 deep (z: -3.5 to -6.5) x 3.5 tall */}
+      {/* Only geometry — always present behind the wall; door blocks passage */}
+      <group>
+        {/* Back room floor — darker carpet */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-12, 0.001, -5]}>
+          <planeGeometry args={[4, 3]} />
+          <meshBasicMaterial color="#0a0a1a" />
         </mesh>
-        {/* Sign */}
-        <mesh position={[0, 1.7, 0.03]}>
-          <boxGeometry args={[0.5, 0.15, 0.01]} />
-          <Mat color="#cc2222" roughness={0.5} />
+
+        {/* Back room ceiling */}
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[-12, ROOM_H, -5]}>
+          <planeGeometry args={[4, 3]} />
+          <meshBasicMaterial color={CEILING_COLOR} />
         </mesh>
-        <Text position={[0, 1.7, 0.04]} fontSize={0.05} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
-          EMPLOYEES ONLY
-        </Text>
+
+        {/* Back room walls — darker blue */}
+        {/* Back wall (x = -14) */}
+        <mesh position={[-14, ROOM_H / 2, -5]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[3, ROOM_H]} />
+          <meshBasicMaterial color="#0a1220" />
+        </mesh>
+        {/* Far wall (z = -6.5) */}
+        <mesh position={[-12, ROOM_H / 2, -6.5]}>
+          <planeGeometry args={[4, ROOM_H]} />
+          <meshBasicMaterial color="#0a1220" />
+        </mesh>
+        {/* Near wall (z = -3.5) */}
+        <mesh position={[-12, ROOM_H / 2, -3.5]} rotation={[0, Math.PI, 0]}>
+          <planeGeometry args={[4, ROOM_H]} />
+          <meshBasicMaterial color="#0a1220" />
+        </mesh>
+        {/* Left wall section above/below doorway — patches on the main store left wall */}
+        {/* Above door opening */}
+        <mesh position={[-ROOM_W / 2, 2.65, -5.19]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[1.0, 0.85]} />
+          <meshBasicMaterial color="#0a1220" />
+        </mesh>
+
+        {/* "VINNY'S PRIVATE COLLECTION" sign on back wall */}
+        <group position={[-13.95, 2.2, -5]} rotation={[0, Math.PI / 2, 0]}>
+          <mesh>
+            <boxGeometry args={[2.0, 0.35, 0.02]} />
+            <meshBasicMaterial color="#1a0a2a" />
+          </mesh>
+          <Text position={[0, 0, 0.015]} fontSize={0.09} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+            {"VINNY'S PRIVATE COLLECTION"}
+          </Text>
+        </group>
+
+        {/* Cult classic poster on far wall */}
+        <group position={[-12.5, 1.8, -6.45]}>
+          <mesh>
+            <boxGeometry args={[0.6, 0.9, 0.02]} />
+            <meshBasicMaterial color="#2a0a0a" />
+          </mesh>
+          <Text position={[0, 0.28, 0.015]} fontSize={0.06} color="#ff4444" anchorX="center" font={undefined}>
+            THE ROCKY
+          </Text>
+          <Text position={[0, 0.18, 0.015]} fontSize={0.06} color="#ff4444" anchorX="center" font={undefined}>
+            HORROR
+          </Text>
+          <Text position={[0, 0.08, 0.015]} fontSize={0.06} color="#ff4444" anchorX="center" font={undefined}>
+            PICTURE SHOW
+          </Text>
+          <Text position={[0, -0.12, 0.015]} fontSize={0.04} color="#cc8888" anchorX="center" font={undefined}>
+            {"Don't dream it, be it."}
+          </Text>
+          {/* Lips icon */}
+          <Text position={[0, -0.28, 0.015]} fontSize={0.12} color="#ff2222" anchorX="center" font={undefined}>
+            {"\uD83D\uDC8B"}
+          </Text>
+        </group>
+
+        {/* Another poster — Eraserhead */}
+        <group position={[-11.3, 1.8, -6.45]}>
+          <mesh>
+            <boxGeometry args={[0.6, 0.9, 0.02]} />
+            <meshBasicMaterial color="#0a0a0a" />
+          </mesh>
+          <Text position={[0, 0.2, 0.015]} fontSize={0.065} color="#cccccc" anchorX="center" font={undefined}>
+            ERASERHEAD
+          </Text>
+          <Text position={[0, -0.05, 0.015]} fontSize={0.035} color="#888888" anchorX="center" font={undefined}>
+            A DAVID LYNCH FILM
+          </Text>
+        </group>
+
+        {/* Small desk with lamp */}
+        <group position={[-13.2, 0, -4.2]}>
+          {/* Desk surface */}
+          <mesh position={[0, 0.7, 0]}>
+            <boxGeometry args={[1.0, 0.04, 0.6]} />
+            <meshBasicMaterial color="#3a2515" />
+          </mesh>
+          {/* Desk legs */}
+          {[[-0.45, -0.25], [-0.45, 0.25], [0.45, -0.25], [0.45, 0.25]].map(([lx, lz], i) => (
+            <mesh key={`desk-leg-${i}`} position={[lx, 0.35, lz]}>
+              <boxGeometry args={[0.04, 0.7, 0.04]} />
+              <meshBasicMaterial color="#2a1a0a" />
+            </mesh>
+          ))}
+          {/* Lamp base */}
+          <mesh position={[0.3, 0.75, 0]}>
+            <cylinderGeometry args={[0.06, 0.08, 0.04, 8]} />
+            <meshBasicMaterial color="#b8960a" />
+          </mesh>
+          {/* Lamp pole */}
+          <mesh position={[0.3, 0.95, 0]}>
+            <cylinderGeometry args={[0.012, 0.012, 0.38, 6]} />
+            <meshBasicMaterial color="#b8960a" />
+          </mesh>
+          {/* Lamp shade — warm glow */}
+          <mesh position={[0.3, 1.15, 0]}>
+            <cylinderGeometry args={[0.04, 0.1, 0.15, 8]} />
+            <meshBasicMaterial color="#ffdd88" transparent opacity={0.8} />
+          </mesh>
+          {/* Warm light pool on desk */}
+          <mesh position={[0.3, 0.725, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.3, 12]} />
+            <meshBasicMaterial color="#443320" transparent opacity={0.4} />
+          </mesh>
+        </group>
+
+        {/* Shelf 1 — CULT section (left side of room) */}
+        <BackRoomShelf position={[-13.5, 0, -5.8]} genre="CULT" color="#991b1b" isMobile={isMobile} />
+
+        {/* Shelf 2 — FOREIGN section (center) */}
+        <BackRoomShelf position={[-12, 0, -5.8]} genre="FOREIGN" color="#6366f1" isMobile={isMobile} />
+
+        {/* Shelf 3 — INDIE section (right side) */}
+        <BackRoomShelf position={[-10.5, 0, -5.8]} genre="INDIE" color="#a855f7" isMobile={isMobile} />
+
+        {/* Ambient warm floor glow */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-12, 0.003, -5]}>
+          <circleGeometry args={[1.5, 16]} />
+          <meshBasicMaterial color="#1a1508" transparent opacity={0.5} />
+        </mesh>
       </group>
 
       {/* "LATE FEES" warning sign near checkout */}

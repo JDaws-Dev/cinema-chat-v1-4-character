@@ -15,13 +15,14 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNextTier } from "@/lib/game-state";
+import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNextTier, recordVinnyRec, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
+import { getWeeklyChallenge, isWeeklyChallengeComplete, completeWeeklyChallenge } from "@/lib/weekly-challenges";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { generateRequest, type ProceduralRequest } from "@/lib/procedural-quests";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
-import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
+import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, generateVinnyRepDialogue, getVinnyRecommendation, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -150,9 +151,15 @@ export default function GamePage() {
   // Procedural customer request state
   const [activeRequest, setActiveRequest] = useState<ProceduralRequest | null>(null);
 
+  // Vinny recommendation tracking
+  const [vinnyRec, setVinnyRec] = useState<string | null>(null);
+
   // Quest system state
   const [questNotification, setQuestNotification] = useState<string | null>(null);
   const questNotifTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Back room door state
+  const [backRoomOpen, setBackRoomOpen] = useState(false);
 
   // Membership tier state
   const [totalXP, setTotalXP] = useState(0);
@@ -433,22 +440,40 @@ export default function GamePage() {
     }
     if (resp.questComplete) {
       const questId = resp.questComplete;
-      const quest = CUSTOMER_SIDE_QUESTS.find(q => q.id === questId);
-      if (quest) {
-        const state = getQuestState();
-        if (!state.completedQuests.includes(questId)) {
-          if (!state.activeQuests.includes(questId)) {
-            startQuest(questId);
+      // Handle Charlie trivia correct answer — award 25 XP directly
+      if (questId === "trivia_correct") {
+        const result = addXP(25);
+        setTotalXP(result.newTotal);
+        setCurrentTier(getMembershipTier(result.newTotal));
+        handleTierUp(result.tierUp ? { tierUp: true, newTier: result.newTier } : null);
+        showQuestNotif("Trivia correct! +25 XP");
+        playSFX("challenge_complete");
+      } else {
+        const quest = CUSTOMER_SIDE_QUESTS.find(q => q.id === questId);
+        if (quest) {
+          const state = getQuestState();
+          if (!state.completedQuests.includes(questId)) {
+            if (!state.activeQuests.includes(questId)) {
+              startQuest(questId);
+            }
+            for (const obj of quest.objectives) {
+              completeObjective(questId, obj.id);
+            }
+            const tierResult = completeQuest(questId);
+            handleTierUp(tierResult);
+            setPropsCount(getPropsCount());
+            showQuestNotif(`Side Quest Complete: ${quest.title}! +${quest.reward.xp} XP`);
+            playSFX("challenge_complete");
           }
-          for (const obj of quest.objectives) {
-            completeObjective(questId, obj.id);
-          }
-          const tierResult = completeQuest(questId);
-          handleTierUp(tierResult);
-          setPropsCount(getPropsCount());
-          showQuestNotif(`Side Quest Complete: ${quest.title}! +${quest.reward.xp} XP`);
-          playSFX("challenge_complete");
         }
+      }
+    }
+    // Track Vinny recommendation dialogue — store recommendation when player sees it
+    if (rpgDialogue?.id === "vinny_recommendation") {
+      // Extract recommended movie from the opener text
+      const match = rpgDialogue.opener.text.match(/check out (.+?)\. Absolute classic/);
+      if (match) {
+        setVinnyRec(match[1]);
       }
     }
     setRpgHistory(prev => [
@@ -563,6 +588,12 @@ export default function GamePage() {
           }
           setCurrentTier(getMembershipTier(xpResult.newTotal));
         }
+        // Track if player picked up Vinny's recommendation
+        if (vinnyRec && movie.title.toLowerCase().includes(vinnyRec.toLowerCase())) {
+          recordVinnyRec(true);
+          setVinnyRec(null);
+          showQuestNotif("Vinny's pick! He'll remember that.");
+        }
         // Vinny quip on pickup (30% chance to avoid spam)
         if (Math.random() < 0.3) playRandomLine("pickup");
         // Check if this movie wins the race
@@ -612,12 +643,22 @@ export default function GamePage() {
       }
       // Track Charlie talk for quest objectives
       trackQuestNpcTalk("charlie");
-      // RPG dialogue with Charlie
+      // RPG dialogue with Charlie — 30% chance of trivia quiz
       document.exitPointerLock();
-      const tree = getRandomDialogue("charlie");
-      setRpgDialogue(tree);
-      setRpgNode(tree.opener);
-      setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+      const tree = Math.random() < 0.3 ? generateTriviaDialogue() : getRandomDialogue("charlie");
+      // Apply relationship-aware greeting for Charlie
+      const charlieRelLevel = getNpcRelationship("charlie");
+      const charlieRelGreeting = getRelationshipGreeting("charlie", charlieRelLevel);
+      if (charlieRelGreeting) {
+        const enhancedOpener: DialogueNode = { ...tree.opener, text: `${charlieRelGreeting} ${tree.opener.text}` };
+        setRpgDialogue(tree);
+        setRpgNode(enhancedOpener);
+        setRpgHistory([{ speaker: enhancedOpener.speaker, portrait: enhancedOpener.portrait, text: enhancedOpener.text }]);
+      } else {
+        setRpgDialogue(tree);
+        setRpgNode(tree.opener);
+        setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+      }
       setOverlay("rpg_dialogue");
       return;
     }
@@ -695,10 +736,19 @@ export default function GamePage() {
         setOverlay("checkout");
         return;
       }
-      // RPG dialogue with Vinny — sometimes quiz, sometimes conversation
+      // RPG dialogue with Vinny — sometimes quiz, recommendation, or conversation
       playRandomLine("greetings");
       const roll = Math.random();
-      if (roll < 0.5) {
+      if (roll < 0.2) {
+        // Vinny recommendation dialogue (reputation-aware)
+        const recMovie = getVinnyRecommendation();
+        const tree = generateVinnyRepDialogue(recMovie);
+        setRpgDialogue(tree);
+        setRpgNode(tree.opener);
+        setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+        setVinnyRec(recMovie);
+        setOverlay("rpg_dialogue");
+      } else if (roll < 0.6) {
         // RPG-style conversation with tier-aware greeting
         const tree = getRandomDialogue("vinny");
         const tierGreeting = getVinnyTierGreeting(currentTier.name);
@@ -707,7 +757,7 @@ export default function GamePage() {
         setRpgNode(openerWithTier);
         setRpgHistory([{ speaker: openerWithTier.speaker, portrait: openerWithTier.portrait, text: openerWithTier.text }]);
         setOverlay("rpg_dialogue");
-      } else if (roll < 0.75) {
+      } else if (roll < 0.8) {
         setQuote(pickRandom(QUOTES, q => q.id));
         setQuizAnswer(null);
         setOverlay("quote");
@@ -771,9 +821,22 @@ export default function GamePage() {
         setOverlay("rpg_dialogue");
       } else {
         const tree = getRandomDialogue("customer");
-        setRpgDialogue(tree);
-        setRpgNode(tree.opener);
-        setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+        // Apply relationship-aware greeting if returning customer
+        const relLevel = getNpcRelationship("customer");
+        const relGreeting = getRelationshipGreeting("customer", relLevel);
+        if (relGreeting) {
+          const enhancedOpener: DialogueNode = {
+            ...tree.opener,
+            text: `${relGreeting} ${tree.opener.text}`,
+          };
+          setRpgDialogue(tree);
+          setRpgNode(enhancedOpener);
+          setRpgHistory([{ speaker: enhancedOpener.speaker, portrait: enhancedOpener.portrait, text: enhancedOpener.text }]);
+        } else {
+          setRpgDialogue(tree);
+          setRpgNode(tree.opener);
+          setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
+        }
         setOverlay("rpg_dialogue");
       }
     } else if (type === "return_slot") {
@@ -815,8 +878,27 @@ export default function GamePage() {
       trackQuestGenreVisit(genre);
     } else if (type === "tv") {
       startPuzzle();
+    } else if (type === "employees_door") {
+      // Employees Only back room — Platinum members only
+      const tier = getMembershipTier();
+      if (tier.name === "Platinum") {
+        playSFX("door_chime");
+        setBackRoomOpen(prev => {
+          const opening = !prev;
+          playVinnyLine(
+            opening
+              ? "Welcome to the inner sanctum... browse at your leisure."
+              : "Locking it up. Come back anytime.",
+            "Vinny"
+          );
+          return opening;
+        });
+      } else {
+        playVinnyLine("Sorry, that area is for Platinum members only. Keep earning XP!", "Vinny");
+      }
+      return; // Don't exit pointer lock — stay in game
     }
-  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit, activeRequest]);
+  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit, activeRequest, backRoomOpen]);
 
   // ── Start a challenge (movie_night or speed_run) ──────
   const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
@@ -945,6 +1027,11 @@ export default function GamePage() {
   }, []);
 
   const closeOverlay = useCallback(() => {
+    // Track NPC relationship when ending a dialogue
+    if (overlay === "rpg_dialogue" && rpgDialogue) {
+      const npcType = rpgDialogue.npc?.toLowerCase() || "customer";
+      incrementNpcRelationship(npcType);
+    }
     setOverlay("none");
     setPuzzle(null);
     setQuote(null);
@@ -953,7 +1040,7 @@ export default function GamePage() {
     setRpgDialogue(null);
     setRpgNode(null);
     setRpgHistory([]);
-  }, []);
+  }, [overlay, rpgDialogue]);
 
   // Q or Backspace to close overlays (ESC exits pointer lock, so don't use it)
   // Number keys 1-4 to select RPG dialogue responses
@@ -1098,8 +1185,8 @@ export default function GamePage() {
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
-          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} />
-          <FirstPersonControls disabled={hasOverlay} />
+          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} backRoomOpen={backRoomOpen} />
+          <FirstPersonControls disabled={hasOverlay} backRoomOpen={backRoomOpen} />
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
         </Suspense>
@@ -1665,6 +1752,11 @@ export default function GamePage() {
                   const state = loadGameState();
                   state.totalMoviesFound += heldMovies.length;
                   saveGameState(state);
+                  // Track if player ignored Vinny's recommendation at checkout
+                  if (vinnyRec && !heldMovies.some(m => m.title.toLowerCase().includes(vinnyRec.toLowerCase()))) {
+                    recordVinnyRec(false);
+                  }
+                  setVinnyRec(null);
                   setOverlay("none");
                   setHeldMovies([]);
                   setHeldSnacks([]);
@@ -1693,6 +1785,28 @@ export default function GamePage() {
               <button className="g3-overlay-close" onClick={closeOverlay}>&#10005;</button>
             </div>
             <div className="g3-overlay-body g3-quest-log">
+              {/* Weekly Challenge */}
+              {(() => {
+                const wc = getWeeklyChallenge();
+                const done = isWeeklyChallengeComplete(wc.id);
+                return (
+                  <div className="g3-quest-section">
+                    <div className="g3-quest-section-title">WEEKLY CHALLENGE</div>
+                    <div className={`g3-quest-card ${done ? "g3-quest-completed" : "g3-quest-active"}`}>
+                      <div className="g3-quest-card-header">
+                        <span className="g3-quest-title">{wc.title}</span>
+                        {done && <span className="g3-quest-check-done">{"\u2713"}</span>}
+                      </div>
+                      <p className="g3-quest-desc">{wc.description}</p>
+                      <div className="g3-quest-reward">
+                        {done ? `Earned: ${wc.reward} XP` : `Reward: ${wc.reward} XP`}
+                      </div>
+                      <p style={{ fontSize: "0.7rem", opacity: 0.6, marginTop: "0.25rem" }}>Resets every Monday</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Active Quests */}
               {active.length > 0 && (
                 <div className="g3-quest-section">

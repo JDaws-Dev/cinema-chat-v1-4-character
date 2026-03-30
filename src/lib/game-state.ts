@@ -299,3 +299,36 @@ export function getQuestProgress(questId: string): Record<string, boolean> {
   const state = getQuestState();
   return state.questProgress[questId] || {};
 }
+
+// ── Vinny Recommendation Reputation ──────────────────────
+
+export function getVinnyReputation(): { followed: number; ignored: number } {
+  return JSON.parse(localStorage.getItem("fnv_vinny_rep") || '{"followed":0,"ignored":0}');
+}
+
+export function recordVinnyRec(followed: boolean) {
+  const rep = getVinnyReputation();
+  if (followed) rep.followed++; else rep.ignored++;
+  localStorage.setItem("fnv_vinny_rep", JSON.stringify(rep));
+}
+
+// ── NPC Relationship Memory ─────────────────────────────────
+
+export function getNpcRelationship(npcType: string): number {
+  try {
+    const rels = JSON.parse(localStorage.getItem("fnv_npc_rels") || "{}");
+    return rels[npcType] || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function incrementNpcRelationship(npcType: string) {
+  try {
+    const rels = JSON.parse(localStorage.getItem("fnv_npc_rels") || "{}");
+    rels[npcType] = (rels[npcType] || 0) + 1;
+    localStorage.setItem("fnv_npc_rels", JSON.stringify(rels));
+  } catch {
+    // Storage unavailable - fail silently
+  }
+}
