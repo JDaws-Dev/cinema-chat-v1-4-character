@@ -15,18 +15,18 @@ const PLAYER_RADIUS = 0.4;
 const COLLIDERS = [
   // Shelf Row 1 (z = -4)
   { x: -5, z: -4, hw: 1.6, hd: 0.5 },
-  { x: -1.7, z: -4, hw: 1.6, hd: 0.5 },
-  { x: 1.7,  z: -4, hw: 1.6, hd: 0.5 },
+  { x: -1.5, z: -4, hw: 1.6, hd: 0.5 },
+  { x: 1.5,  z: -4, hw: 1.6, hd: 0.5 },
   { x: 5,    z: -4, hw: 1.6, hd: 0.5 },
   // Shelf Row 2 (z = -1)
   { x: -5, z: -1, hw: 1.6, hd: 0.5 },
-  { x: -1.7, z: -1, hw: 1.6, hd: 0.5 },
-  { x: 1.7,  z: -1, hw: 1.6, hd: 0.5 },
+  { x: -1.5, z: -1, hw: 1.6, hd: 0.5 },
+  { x: 1.5,  z: -1, hw: 1.6, hd: 0.5 },
   { x: 5,    z: -1, hw: 1.6, hd: 0.5 },
   // Shelf Row 3 (z = 2)
   { x: -5, z: 2, hw: 1.6, hd: 0.5 },
-  { x: -1.7, z: 2, hw: 1.6, hd: 0.5 },
-  { x: 1.7,  z: 2, hw: 1.6, hd: 0.5 },
+  { x: -1.5, z: 2, hw: 1.6, hd: 0.5 },
+  { x: 1.5,  z: 2, hw: 1.6, hd: 0.5 },
   { x: 5,    z: 2, hw: 1.6, hd: 0.5 },
   // Counter (left side near entrance)
   { x: -6, z: 5.5, hw: 3.2, hd: 0.8 },

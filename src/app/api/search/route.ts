@@ -15,6 +15,8 @@ export async function GET(req: Request) {
   const genreId = searchParams.get("genreId");
   const ratingMin = searchParams.get("ratingMin");
   const language = searchParams.get("language");
+  const releaseDateLte = searchParams.get("releaseDateLte");
+  const releaseDateGte = searchParams.get("releaseDateGte");
   const page = searchParams.get("page") || "1";
 
   try {
@@ -54,6 +56,8 @@ export async function GET(req: Request) {
       if (genreId) params.with_genres = genreId;
       if (ratingMin) params["vote_average.gte"] = ratingMin;
       if (language) params.with_original_language = language;
+      if (releaseDateLte) params["primary_release_date.lte"] = releaseDateLte;
+      if (releaseDateGte) params["primary_release_date.gte"] = releaseDateGte;
 
       const res = await tmdbFetch("/discover/movie", params);
       const data = await res.json();

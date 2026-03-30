@@ -138,12 +138,12 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
     const genreId = GENRE_TMDB_IDS[genre];
 
     if (!genreId) {
-      // Trending — fetch 2 pages
+      // "New Releases" wall — popular movies from 1991-1992 (store is set in 1992)
       Promise.all([
-        fetch(`/api/trending?window=week`).then(r => r.json()),
-        fetch(`/api/trending?window=day`).then(r => r.json()),
-      ]).then(([week, day]) => {
-        const all = [...(week.movies || []), ...(day.movies || [])];
+        fetch(`/api/search?releaseDateGte=1991-01-01&releaseDateLte=1992-12-31&ratingMin=5&page=1`).then(r => r.json()),
+        fetch(`/api/search?releaseDateGte=1991-01-01&releaseDateLte=1992-12-31&ratingMin=5&page=2`).then(r => r.json()),
+      ]).then(([p1, p2]) => {
+        const all = [...(p1.results || []), ...(p2.results || [])];
         const seen = new Set<number>();
         const unique = all.filter((m: Record<string, unknown>) => {
           if (seen.has(m.id as number)) return false;
@@ -169,8 +169,8 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
     } else {
       // Genre — fetch 2 pages for more variety
       Promise.all([
-        fetch(`/api/search?genreId=${genreId}&ratingMin=6&page=1`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=6&page=2`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateLte=1992-12-31&page=1`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateLte=1992-12-31&page=2`).then(r => r.json()),
       ]).then(([p1, p2]) => {
         const all = [...(p1.results || []), ...(p2.results || [])];
         setPosters(all.slice(0, count).map((m: Record<string, unknown>) => ({
@@ -265,18 +265,18 @@ const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't
 const SHELF_ROWS = [
   // Row 1 — back of store (z = -4). Front faces entrance (+z), back faces back wall (-z)
   { x: -5, z: -4, genre: "HORROR", color: "#dc2626", backGenre: "CULT", backColor: "#991b1b" },
-  { x: -1.7, z: -4, genre: "SCI-FI", color: "#3b82f6", backGenre: "FOREIGN", backColor: "#6366f1" },
-  { x: 1.7, z: -4, genre: "COMEDY", color: "#f97316", backGenre: "INDIE", backColor: "#a855f7" },
+  { x: -1.5, z: -4, genre: "SCI-FI", color: "#3b82f6", backGenre: "FOREIGN", backColor: "#6366f1" },
+  { x: 1.5, z: -4, genre: "COMEDY", color: "#f97316", backGenre: "INDIE", backColor: "#a855f7" },
   { x: 5, z: -4, genre: "DRAMA", color: "#6366f1", backGenre: "CLASSICS", backColor: "#ca8a04" },
   // Row 2 — middle (z = -1)
   { x: -5, z: -1, genre: "ACTION", color: "#ef4444", backGenre: "THRILLER", backColor: "#7c3aed" },
-  { x: -1.7, z: -1, genre: "FAMILY", color: "#22c55e", backGenre: "ANIMATED", backColor: "#06b6d4" },
-  { x: 1.7, z: -1, genre: "ROMANCE", color: "#f43f5e", backGenre: "COMEDY", backColor: "#f97316" },
+  { x: -1.5, z: -1, genre: "FAMILY", color: "#22c55e", backGenre: "ANIMATED", backColor: "#06b6d4" },
+  { x: 1.5, z: -1, genre: "ROMANCE", color: "#f43f5e", backGenre: "COMEDY", backColor: "#f97316" },
   { x: 5, z: -1, genre: "WESTERN", color: "#92400e", backGenre: "DOCS", backColor: "#65a30d" },
   // Row 3 — mid-front (z = 2)
   { x: -5, z: 2, genre: "SCI-FI", color: "#3b82f6", backGenre: "ACTION", backColor: "#ef4444" },
-  { x: -1.7, z: 2, genre: "DRAMA", color: "#6366f1", backGenre: "HORROR", backColor: "#dc2626" },
-  { x: 1.7, z: 2, genre: "FAMILY", color: "#22c55e", backGenre: "WESTERN", backColor: "#92400e" },
+  { x: -1.5, z: 2, genre: "DRAMA", color: "#6366f1", backGenre: "HORROR", backColor: "#dc2626" },
+  { x: 1.5, z: 2, genre: "FAMILY", color: "#22c55e", backGenre: "WESTERN", backColor: "#92400e" },
   { x: 5, z: 2, genre: "ANIMATED", color: "#06b6d4", backGenre: "ROMANCE", backColor: "#f43f5e" },
 ];
 
@@ -364,14 +364,14 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
 
       {/* Genre label sign on top of shelf — facing both sides */}
       <mesh position={[0, 1.62, 0]}>
-        <boxGeometry args={[1.2, 0.2, 0.04]} />
+        <boxGeometry args={[1.6, 0.2, 0.04]} />
         <Mat color="#0a1830" roughness={0.6} />
       </mesh>
       {/* Front label */}
       <Text
         position={[0, 1.62, -0.025]}
         rotation={[0, Math.PI, 0]}
-        fontSize={0.1}
+        fontSize={0.15}
         color={color}
         anchorX="center"
         anchorY="middle"
@@ -382,7 +382,7 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
       {/* Back label — different genre */}
       <Text
         position={[0, 1.62, 0.025]}
-        fontSize={0.1}
+        fontSize={0.15}
         color={bColor}
         anchorX="center"
         anchorY="middle"
@@ -484,21 +484,21 @@ function Counter() {
   return (
     <group position={[-6, 0, 5.5]} rotation={[0, 0, 0]}>
       {/* Counter — near entrance left side, facing right (+x) */}
-      <mesh position={[0, 0.5, -0.55]}>
-        <boxGeometry args={[6, 1.0, 0.08]} />
+      <mesh position={[0, 0.425, -0.55]}>
+        <boxGeometry args={[6, 0.85, 0.08]} />
         <Mat color="#5a3820" roughness={0.8} />
       </mesh>
       {/* Counter body — sides */}
-      <mesh position={[-3, 0.5, 0]}>
-        <boxGeometry args={[0.08, 1.0, 1.2]} />
+      <mesh position={[-3, 0.425, 0]}>
+        <boxGeometry args={[0.08, 0.85, 1.2]} />
         <Mat color="#4a2818" roughness={0.8} />
       </mesh>
-      <mesh position={[3, 0.5, 0]}>
-        <boxGeometry args={[0.08, 1.0, 1.2]} />
+      <mesh position={[3, 0.425, 0]}>
+        <boxGeometry args={[0.08, 0.85, 1.2]} />
         <Mat color="#4a2818" roughness={0.8} />
       </mesh>
       {/* Counter top — polished wood */}
-      <mesh position={[0, 1.02, 0]}>
+      <mesh position={[0, 0.87, 0]}>
         <boxGeometry args={[6.15, 0.06, 1.3]} />
         <Mat color="#9a7850" roughness={0.35} metalness={0.08} />
       </mesh>
@@ -568,28 +568,28 @@ function Counter() {
         );
       })}
       {/* "CANDY & SNACKS" label */}
-      <Text position={[0, 0.88, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+      <Text position={[0, 0.73, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
         CANDY & SNACKS
       </Text>
 
       {/* Register */}
-      <mesh position={[-1.5, 1.25, 0]}>
+      <mesh position={[-1.5, 1.10, 0]}>
         <boxGeometry args={[0.65, 0.45, 0.5]} />
         <Mat color="#2a2a2a" roughness={0.4} />
       </mesh>
       {/* Register screen */}
-      <mesh position={[-1.5, 1.38, -0.26]}>
+      <mesh position={[-1.5, 1.23, -0.26]}>
         <boxGeometry args={[0.42, 0.22, 0.01]} />
         <Mat color="#0a3a0a" emissive="#0a4a0a" emissiveIntensity={0.5} />
       </mesh>
       {/* Register keypad */}
-      <mesh position={[-1.5, 1.06, -0.1]}>
+      <mesh position={[-1.5, 0.91, -0.1]}>
         <boxGeometry args={[0.4, 0.02, 0.3]} />
         <Mat color="#333" roughness={0.6} />
       </mesh>
 
       {/* "CHECKOUT" sign */}
-      <Text position={[0, 1.15, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
+      <Text position={[0, 1.00, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
         CHECKOUT
       </Text>
 
@@ -603,7 +603,7 @@ function Counter() {
         ];
         const snack = counterSnacks[i];
         return (
-        <group key={`snk${i}`} position={[dx, 1.15, 0.2]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
+        <group key={`snk${i}`} position={[dx, 1.00, 0.2]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
           <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
             <boxGeometry args={[0.12, 0.18, 0.06]} />
             <Mat color={["#ef4444", "#3b82f6", "#f59e0b", "#22c55e"][i]} roughness={0.5} />
@@ -618,16 +618,16 @@ function Counter() {
       })}
 
       {/* Return bin */}
-      <mesh position={[2.3, 1.15, -0.2]}>
+      <mesh position={[2.3, 1.00, -0.2]}>
         <boxGeometry args={[0.5, 0.25, 0.35]} />
         <Mat color="#2a2a3a" roughness={0.7} />
       </mesh>
-      <Text position={[2.3, 1.35, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>
+      <Text position={[2.3, 1.20, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>
         RETURNS
       </Text>
 
       {/* Computer monitor behind counter */}
-      <group position={[0.5, 1.5, 0.3]}>
+      <group position={[0.5, 1.35, 0.3]}>
         {/* Monitor body */}
         <mesh>
           <boxGeometry args={[0.4, 0.35, 0.05]} />
@@ -651,19 +651,19 @@ function Counter() {
       </group>
 
       {/* Barcode scanner */}
-      <mesh position={[1.0, 1.1, -0.2]}>
+      <mesh position={[1.0, 0.95, -0.2]}>
         <boxGeometry args={[0.15, 0.08, 0.2]} />
         <Mat color="#333333" roughness={0.5} />
       </mesh>
       {/* Scanner red line */}
-      <mesh position={[1.0, 1.145, -0.2]}>
+      <mesh position={[1.0, 0.995, -0.2]}>
         <boxGeometry args={[0.12, 0.005, 0.02]} />
         <Mat color="#ff0000" emissive="#ff0000" emissiveIntensity={0.8} />
       </mesh>
 
       {/* Stack of VHS cases on counter */}
       {[0, 1, 2, 3].map((i) => (
-        <mesh key={`vhs-stack-${i}`} position={[-0.5, 1.15 + i * 0.04, -0.2]} rotation={[0, (i * 0.15), 0]}>
+        <mesh key={`vhs-stack-${i}`} position={[-0.5, 1.00 + i * 0.04, -0.2]} rotation={[0, (i * 0.15), 0]}>
           <boxGeometry args={[0.2, 0.035, 0.12]} />
           <Mat
             color={["#1a3a6a", "#6a1a3a", "#3a6a1a", "#5a3a6a"][i]}
@@ -673,7 +673,7 @@ function Counter() {
       ))}
 
       {/* "MEMBERSHIP CARDS" sign — face customer side */}
-      <Text position={[2, 1.4, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+      <Text position={[2, 1.25, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
         MEMBERSHIP CARDS
       </Text>
     </group>
@@ -973,23 +973,23 @@ function VinnyCharacter() {
 
 // Aisle waypoints NPCs can walk between (x, z) — stays between shelf rows
 // NPC waypoints — must be in the AISLES between shelves, not through them
-// Shelf centers: x = -5, -1.7, 1.7, 5 (each 2.8 wide)
-// Aisle centers between shelves: x = -3.35, 0, 3.35
+// Shelf centers: x = -5, -1.5, 1.5, 5 (each 2.8 wide)
+// Aisle centers between shelves: x = -3.25, 0, 3.25
 // Shelf rows at z = -3, 0, 3 — cross aisles at z = -1.5, 1.5
 // Aisles between shifted shelf rows: z=-4, -1, 2
 // Between row1&2: z=-2.5, between row2&3: z=0.5, past row3: z=3.5
 const NPC_WAYPOINTS: [number, number][] = [
   [0, -6],      // center back (behind shelf row 1)
-  [-3.35, -5.5],// left back aisle
-  [-3.35, -2.5],// left aisle between row 1 & 2
+  [-3.25, -5.5],// left back aisle
+  [-3.25, -2.5],// left aisle between row 1 & 2
   [0, -2.5],    // center between row 1 & 2
-  [3.35, -2.5], // right aisle between row 1 & 2
-  [3.35, 0.5],  // right aisle between row 2 & 3
+  [3.25, -2.5], // right aisle between row 1 & 2
+  [3.25, 0.5],  // right aisle between row 2 & 3
   [0, 0.5],     // center between row 2 & 3
-  [-3.35, 0.5], // left aisle between row 2 & 3
-  [-3.35, 3.5], // left front (past shelves)
+  [-3.25, 0.5], // left aisle between row 2 & 3
+  [-3.25, 3.5], // left front (past shelves)
   [0, 3.5],     // center front
-  [3.35, 3.5],  // right front
+  [3.25, 3.5],  // right front
 ];
 
 // ── NPC collision helpers ─────────────────────────────────
@@ -1537,7 +1537,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
   const rightArmRef = useRef<THREE.Mesh>(null);
   const charlieId = "charlie";
   const speed = 0.8;
-  const startPos: [number, number, number] = [-2, 0, 1.5];
+  const startPos: [number, number, number] = [-2, -0.05, 1.5];
   const startIdx = useMemo(() => {
     let best = 0;
     let bestDist = Infinity;
@@ -2117,23 +2117,23 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
   return (
     <group position={[0, 0, z]}>
       {/* Hanging pole from ceiling */}
-      <mesh position={[0, ROOM_H - 0.35, 0]}>
-        <boxGeometry args={[0.02, 0.7, 0.02]} />
+      <mesh position={[0, ROOM_H - 0.45, 0]}>
+        <boxGeometry args={[0.02, 0.9, 0.02]} />
         <Mat color="#888888" metalness={0.5} roughness={0.3} />
       </mesh>
       {/* Dark border frame (behind yellow sign) */}
-      <mesh position={[0, 2.8, 0]}>
+      <mesh position={[0, 2.6, 0]}>
         <boxGeometry args={[2.3, 0.36, 0.02]} />
         <Mat color="#0a1830" roughness={0.6} />
       </mesh>
       {/* Sign body — Blockbuster yellow (in front of border) */}
-      <mesh position={[0, 2.8, 0]}>
+      <mesh position={[0, 2.6, 0]}>
         <boxGeometry args={[2.2, 0.3, 0.03]} />
         <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} />
       </mesh>
       {/* Text — front side (facing +z, toward entrance) */}
       <Text
-        position={[0, 2.8, 0.02]}
+        position={[0, 2.6, 0.02]}
         fontSize={0.08}
         color="#0a1830"
         anchorX="center"
@@ -2144,7 +2144,7 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
       </Text>
       {/* Text — back side (facing -z, toward back wall) */}
       <Text
-        position={[0, 2.8, -0.02]}
+        position={[0, 2.6, -0.02]}
         rotation={[0, Math.PI, 0]}
         fontSize={0.08}
         color="#0a1830"
@@ -2160,24 +2160,13 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
 
 // ── Aisle floor markings (dashed yellow lines between shelf rows) ──
 function AisleFloorMarkings() {
-  const dashCount = 14;
-  const dashWidth = 0.5;
-  const dashDepth = 0.06;
-  const gap = 0.3;
-  const totalWidth = dashCount * (dashWidth + gap) - gap;
-  const startX = -totalWidth / 2;
-
   return (
     <>
       {[-2.5, 0.5].map((z) => (
-        <group key={`floor-line-${z}`} position={[0, 0.005, z]}>
-          {Array.from({ length: dashCount }).map((_, i) => (
-            <mesh key={i} position={[startX + i * (dashWidth + gap) + dashWidth / 2, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[dashWidth, dashDepth]} />
-              <meshBasicMaterial color="#ffd700" transparent opacity={0.6} />
-            </mesh>
-          ))}
-        </group>
+        <mesh key={`floor-strip-${z}`} position={[0, 0.005, z]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[ROOM_W - 2, 0.08]} />
+          <meshBasicMaterial color="#0d1320" />
+        </mesh>
       ))}
     </>
   );
@@ -2314,7 +2303,7 @@ function FloorRug() {
         <Mat color="#0a1830" roughness={0.95} />
       </mesh>
       {/* Store name on rug */}
-      <Text rotation={[-Math.PI / 2, Math.PI, 0]} position={[0, 0.011, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
         FRIDAY NIGHT VIDEO
       </Text>
       {/* Carpet wear removed */}
@@ -2507,6 +2496,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <planeGeometry args={[ROOM_W, ROOM_D]} />
         <Mat color={CEILING_COLOR} roughness={0.9} />
       </mesh>
+      {/* Extra ceiling plane to close gap above storefront */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, ROOM_D / 2]}>
+        <planeGeometry args={[ROOM_W + 2, 2]} />
+        <Mat color={CEILING_COLOR} roughness={0.9} />
+      </mesh>
       {/* Ceiling drop-tile grid */}
       {Array.from({ length: Math.floor(18 / 1.2) + 1 }, (_, i) => -9 + i * 1.2).map(x => (
         <mesh key={`cgx${x}`} position={[x, ROOM_H - 0.01, 0]}>
@@ -2599,8 +2593,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </mesh>
 
       {/* Ambient lighting only — no dynamic pointLights/spotLights for performance */}
-      <ambientLight intensity={2.2} color="#e8e4d8" />
-      <hemisphereLight args={["#fff4e0", "#3a4060", 1.2]} />
+      <ambientLight intensity={2.8} color="#e8e4d8" />
+      <hemisphereLight args={["#fff4e0", "#3a4060", 1.6]} />
 
       {/* Fluorescent ceiling fixtures — visual only (emissive materials, no lights) */}
       {[-6, -2, 2, 6].map((fx) => (
@@ -2649,11 +2643,11 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       <VinnyCharacter />
 
       {/* NPCs + Charlie */}
-      <NPCCustomer id="npc-0" startPos={[-3.35, 0, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" hairStyle="flattop" />
-      <NPCCustomer id="npc-1" startPos={[3.35, 0, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" hairStyle="long" />
-      {!isMobile && <NPCCustomer id="npc-2" startPos={[-3.35, 0, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" hairStyle="cap" />}
-      {!isMobile && <NPCCustomer id="npc-3" startPos={[3.35, 0, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" hairStyle="ponytail" />}
-      <KidCustomer startPos={[0, 0, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
+      <NPCCustomer id="npc-0" startPos={[-3.25, -0.05, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" hairStyle="flattop" />
+      <NPCCustomer id="npc-1" startPos={[3.25, -0.05, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" hairStyle="long" />
+      {!isMobile && <NPCCustomer id="npc-2" startPos={[-3.25, -0.05, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" hairStyle="cap" />}
+      {!isMobile && <NPCCustomer id="npc-3" startPos={[3.25, -0.05, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" hairStyle="ponytail" />}
+      <KidCustomer startPos={[0, -0.05, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
       <CharlieCharacter isMobile={isMobile} />
 
       {/* New Releases wall display */}
@@ -2773,12 +2767,17 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       {/* Parking lot ground plane — extended for walking approach */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}>
         <planeGeometry args={[ROOM_W + 8, 14]} />
-        <meshBasicMaterial color="#1a1a20" />
+        <meshBasicMaterial color="#2a2a35" />
       </mesh>
       {/* Sidewalk in front of store */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, ROOM_D / 2 + 0.8]}>
         <planeGeometry args={[ROOM_W + 2, 1.5]} />
-        <meshBasicMaterial color="#3a3a3a" />
+        <meshBasicMaterial color="#4a4a4a" />
+      </mesh>
+      {/* Warm glow on sidewalk from store window light spill */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, ROOM_D / 2 + 0.5]}>
+        <planeGeometry args={[ROOM_W, 1.5]} />
+        <meshBasicMaterial color="#2a2520" />
       </mesh>
       {/* Parking lines */}
       {[-6, -3, 0, 3, 6].map((px, i) => (
@@ -3933,6 +3932,41 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <cylinderGeometry args={[0.16, 0.16, 0.02, 8]} />
           <Mat color="#444444" roughness={0.5} metalness={0.2} />
         </mesh>
+      </group>
+
+      {/* Standee removed — too big and obtrusive in entrance area */}
+
+      {/* ─── Glass-front cooler near counter ─── */}
+      <group position={[-3, 0, 5.8]}>
+        <mesh position={[0, 0.75, 0]}>
+          <boxGeometry args={[0.8, 1.5, 0.6]} />
+          <Mat color="#e8e8e8" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0.75, -0.31]}>
+          <planeGeometry args={[0.75, 1.2]} />
+          <Mat color="#aaddee" transparent opacity={0.15} side={THREE.DoubleSide} />
+        </mesh>
+        {[0.5, 1.0].map((sy, i) => (
+          <mesh key={`cooler-shelf-${i}`} position={[0, sy, 0]}>
+            <boxGeometry args={[0.7, 0.02, 0.5]} />
+            <Mat color="#cccccc" roughness={0.4} />
+          </mesh>
+        ))}
+        {[-0.15, 0, 0.15].map((dx, i) => (
+          <group key={`bottle-top-${i}`}>
+            <mesh position={[dx, 1.1, 0]} rotation={[0, 0, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, 0.18, 6]} />
+              <Mat color={["#cc0000", "#0044aa", "#00aa00"][i]} roughness={0.4} />
+            </mesh>
+            <mesh position={[dx, 0.6, 0]} rotation={[0, 0, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, 0.18, 6]} />
+              <Mat color={["#ffaa00", "#cc0000", "#0044aa"][i]} roughness={0.4} />
+            </mesh>
+          </group>
+        ))}
+        <Text position={[0, 1.55, -0.1]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#cc0000" anchorX="center" font={undefined}>
+          COLD DRINKS $1
+        </Text>
       </group>
 
       {/* ─── SPECIALS chalkboard on right wall near entrance ─── */}
