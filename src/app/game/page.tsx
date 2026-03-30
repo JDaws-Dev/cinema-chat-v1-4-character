@@ -1206,12 +1206,14 @@ export default function GamePage() {
             setStarted(true); setLoading(true);
             // Unlock audio immediately on this user gesture (critical for mobile Safari)
             unlockAudio();
-            // Request fullscreen on all devices
-            try {
-              const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
-              if (el.requestFullscreen) { el.requestFullscreen().catch(() => {}); }
-              else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
-            } catch {}
+            // Request fullscreen on mobile only (desktop fullscreen breaks aspect ratio)
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+              try {
+                const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
+                if (el.requestFullscreen) { el.requestFullscreen().catch(() => {}); }
+                else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+              } catch {}
+            }
           }}>ENTER THE STORE</button>
           <p className="g3-splash-hint">{isMobile ? 'Touch to move \u2022 Tap to interact' : 'WASD to move \u2022 Mouse to look \u2022 E to interact \u2022 J quests'}</p>
         </div>
