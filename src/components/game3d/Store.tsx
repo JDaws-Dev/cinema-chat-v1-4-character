@@ -255,7 +255,7 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
 const ROOM_W = 20;
 const ROOM_D = 14;
 const ROOM_H = 3.5;
-const WALL_COLOR = "#0E1730";     // Codex: lift from near-black to readable midnight blue
+const WALL_COLOR = "#1a2a50";     // Readable blue — not too dark, not too bright
 const FLOOR_COLOR = "#111522";    // Codex: slightly lighter blue-black
 const CEILING_COLOR = "#8a8478";  // Darker warm gray — ceiling recedes, floor/shelves dominate
 const COUNTER_COLOR = "#8a6830";  // warmer wood
@@ -2800,31 +2800,42 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* ── Storefront windows + night sky exterior ──────── */}
-      {/* Night sky backdrop — surrounds the scene so there's no black void */}
-      {/* Back sky */}
-      <mesh position={[0, 8, -25]}>
-        <planeGeometry args={[80, 30]} />
-        <meshBasicMaterial color="#050a18" />
-      </mesh>
-      {/* Front sky (behind parking lot, far away) */}
-      <mesh position={[0, 8, 30]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[80, 30]} />
-        <meshBasicMaterial color="#050a18" />
-      </mesh>
-      {/* Left sky */}
-      <mesh position={[-30, 8, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[80, 30]} />
-        <meshBasicMaterial color="#050a18" />
-      </mesh>
-      {/* Right sky */}
-      <mesh position={[30, 8, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[80, 30]} />
-        <meshBasicMaterial color="#050a18" />
-      </mesh>
-      {/* Sky ceiling */}
-      <mesh position={[0, 20, 0]} rotation={[Math.PI / 2, 0, 0]}>
+      {/* Night sky — dark blue with stars and moon */}
+      {/* Sky dome (4 walls + ceiling) */}
+      {[
+        { pos: [0, 10, -30] as [number,number,number], rot: [0, 0, 0] as [number,number,number] },
+        { pos: [0, 10, 35] as [number,number,number], rot: [0, Math.PI, 0] as [number,number,number] },
+        { pos: [-35, 10, 0] as [number,number,number], rot: [0, Math.PI / 2, 0] as [number,number,number] },
+        { pos: [35, 10, 0] as [number,number,number], rot: [0, -Math.PI / 2, 0] as [number,number,number] },
+      ].map((sky, i) => (
+        <mesh key={`sky-${i}`} position={sky.pos} rotation={sky.rot}>
+          <planeGeometry args={[80, 30]} />
+          <meshBasicMaterial color="#0a1428" />
+        </mesh>
+      ))}
+      <mesh position={[0, 22, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[80, 80]} />
-        <meshBasicMaterial color="#060c1a" />
+        <meshBasicMaterial color="#0a1428" />
+      </mesh>
+      {/* Stars scattered on the front sky wall (visible from parking lot) */}
+      {Array.from({ length: 40 }).map((_, i) => (
+        <mesh key={`star-${i}`} position={[
+          (Math.sin(i * 7.3) * 25),
+          5 + Math.abs(Math.sin(i * 3.7)) * 12,
+          34
+        ]} rotation={[0, Math.PI, 0]}>
+          <circleGeometry args={[i % 4 === 0 ? 0.08 : 0.04, 6]} />
+          <meshBasicMaterial color={i % 7 === 0 ? "#aabbff" : "#ffffff"} />
+        </mesh>
+      ))}
+      {/* Moon */}
+      <mesh position={[12, 14, 34]} rotation={[0, Math.PI, 0]}>
+        <circleGeometry args={[1.0, 16]} />
+        <meshBasicMaterial color="#d8dce8" />
+      </mesh>
+      <mesh position={[12.3, 14.2, 33.9]} rotation={[0, Math.PI, 0]}>
+        <circleGeometry args={[0.7, 16]} />
+        <meshBasicMaterial color="#c0c4d0" />
       </mesh>
       {/* Parking lot ground plane — extended for walking approach */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}>
