@@ -362,22 +362,25 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
         </mesh>
       ))}
 
-      {/* VHS Boxes — front side uses genre posters, back side uses backGenre posters */}
+      {/* VHS Boxes — only render as many as we have unique posters (no repeats) */}
       {positions.map((pos) => {
         const isBack = pos.side === "back";
         const sidePosters = isBack ? backPosters : frontPosters;
         const sideColor = isBack ? bColor : color;
-        const posterIdx = pos.idx % Math.max(sidePosters.length, 1);
-        const poster = sidePosters[posterIdx];
+        // Count positions per side (front or back)
+        const sidePositionCount = positions.filter(p => p.side === pos.side).length;
+        const sideIdx = positions.filter(p => p.side === pos.side).indexOf(pos);
+        // Skip if we'd repeat — only show as many tapes as unique posters
+        if (sidePosters.length > 0 && sideIdx >= sidePosters.length) return null;
+        const poster = sidePosters[sideIdx];
         const flipRot = isBack ? Math.PI : 0;
-        const tilt = isBack ? -0.15 : 0.15; // slight lean-back for face-out display
         return poster ? (
           <PosterBox key={`${pos.side}-${pos.idx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
         ) : (
           <mesh key={`${pos.side}-${pos.idx}`} position={[pos.x, pos.y, pos.z]}>
             <boxGeometry args={[0.15, 0.26, 0.025]} />
             <Mat
-              color={new THREE.Color(sideColor).offsetHSL(0, -(posterIdx % 4) * 0.05, -(posterIdx % 5) * 0.06)}
+              color={new THREE.Color(sideColor).offsetHSL(0, -(sideIdx % 4) * 0.05, -(sideIdx % 5) * 0.06)}
               roughness={0.6}
             />
           </mesh>
