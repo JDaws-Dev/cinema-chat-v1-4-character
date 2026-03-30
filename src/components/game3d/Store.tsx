@@ -2607,8 +2607,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </mesh>
 
       {/* Ambient lighting only — no dynamic pointLights/spotLights for performance */}
-      <ambientLight intensity={1.8} color="#e8e4d8" />
-      <hemisphereLight args={["#fff4e0", "#3a4060", 1.0]} />
+      <ambientLight intensity={2.3} color="#e8e4d8" />
+      <hemisphereLight args={["#fff4e0", "#3a4060", 1.3]} />
 
       {/* Fluorescent ceiling fixtures — visual only (emissive materials, no lights) */}
       {[-6, -2, 2, 6].map((fx) => (
