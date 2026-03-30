@@ -267,7 +267,7 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Poster plane — offset clearly in front, flipped to face camera */}
-      <mesh position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]}>
+      <mesh position={[0, 0, -0.014]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[0.14, 0.25]} />
         <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
@@ -3538,12 +3538,12 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         <meshBasicMaterial color="#555555" />
       </mesh>
 
-      {/* Parking lot cars — Kenney models */}
-      <KenneyCar model="sedan" position={[5, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
-      <KenneyCar model="van" position={[-4, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
-      <KenneyCar model="suv" position={[1, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
-      <KenneyCar model="hatchback-sports" position={[-7, 0, ROOM_D/2 + 5.5]} rotation={[0, -Math.PI/2, 0]} scale={0.7} />
-      <KenneyCar model="taxi" position={[8, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI/2, 0]} scale={0.7} />
+      {/* Parking lot cars — Kenney GLB models, scale 1.2 for person-sized */}
+      <KenneyCar model="sedan" position={[5, 0, ROOM_D/2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
+      <KenneyCar model="van" position={[-4, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <KenneyCar model="suv" position={[1, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
+      <KenneyCar model="hatchback-sports" position={[-7, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <KenneyCar model="taxi" position={[8, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
 
       {/* ── Handicap parking sign ──────── */}
       <group position={[-1.5, 0, ROOM_D / 2 + 3.5]}>
