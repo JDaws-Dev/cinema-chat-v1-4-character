@@ -1042,7 +1042,7 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
         waitTimer.current = 5 + Math.random() * 5;
         waitDuration.current = waitTimer.current;
         const npcZ = ref.current.position.z;
-        const shelfZs = [-3, 0, 3];
+        const shelfZs = [-4, -1, 2];
         let nearestZ = shelfZs[0];
         let nearestDist = Math.abs(npcZ - shelfZs[0]);
         for (const sz of shelfZs) {
@@ -1305,7 +1305,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         waitTimer.current = 5 + Math.random() * 5;
         waitDuration.current = waitTimer.current;
         const npcZ = ref.current.position.z;
-        const shelfZs = [-3, 0, 3];
+        const shelfZs = [-4, -1, 2];
         let nearestZ = shelfZs[0];
         let nearestDist = Math.abs(npcZ - shelfZs[0]);
         for (const sz of shelfZs) {
@@ -1478,7 +1478,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
         isBrowsing.current = true;
         waitTimer.current = 5 + Math.random() * 5;
         const npcZ = ref.current.position.z;
-        const shelfZs = [-3, 0, 3];
+        const shelfZs = [-4, -1, 2];
         let nearestZ = shelfZs[0];
         let nearestDist = Math.abs(npcZ - shelfZs[0]);
         for (const sz of shelfZs) {
@@ -2642,72 +2642,44 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} />
         <meshBasicMaterial color="#1a1a28" />
       </mesh>
-      {/* ── Store front signage — "FRIDAY NIGHT VIDEO" ──────── */}
+      {/* ── Store front signage — dark background, gold text, thin gold trim ──── */}
       <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
-        {/* Sign backing */}
+        {/* Dark sign backing */}
         <mesh>
           <boxGeometry args={[8, 1.2, 0.2]} />
-          <meshBasicMaterial color="#0a0a2a" />
+          <meshBasicMaterial color="#0a0a1a" />
         </mesh>
-        {/* Sign border trim — double border */}
+        {/* Thin gold trim border — just a line, not a fill */}
         <mesh position={[0, 0, 0.11]}>
-          <boxGeometry args={[8.3, 1.35, 0.02]} />
-          <meshBasicMaterial color="#ffd700" />
+          <boxGeometry args={[8.1, 1.25, 0.01]} />
+          <meshBasicMaterial color="#b8960a" />
         </mesh>
         <mesh position={[0, 0, 0.115]}>
-          <boxGeometry args={[8.1, 1.15, 0.02]} />
-          <meshBasicMaterial color="#0a0a2a" />
+          <boxGeometry args={[7.9, 1.1, 0.01]} />
+          <meshBasicMaterial color="#0a0a1a" />
         </mesh>
-        <mesh position={[0, 0, 0.12]}>
-          <boxGeometry args={[7.9, 1.05, 0.02]} />
-          <meshBasicMaterial color="#ffd700" />
-        </mesh>
-        {/* Torn-ticket logo — matches landing page g3-logo style */}
-        <group position={[-3.5, 0, 0.13]}>
-          {/* Left ticket half — gold with torn right edge */}
-          <mesh position={[-0.2, 0, 0]}>
-            <boxGeometry args={[0.38, 0.5, 0.04]} />
+        {/* Torn-ticket logo — small, left of text */}
+        <group position={[-3.2, 0.05, 0.13]}>
+          <mesh position={[-0.15, 0, 0]}>
+            <boxGeometry args={[0.28, 0.4, 0.03]} />
             <meshBasicMaterial color="#ffd700" toneMapped={false} />
           </mesh>
-          {/* Right ticket half — dark blue with gold border */}
-          <mesh position={[0.2, 0, 0]}>
-            <boxGeometry args={[0.38, 0.5, 0.04]} />
+          <mesh position={[0.15, 0, 0]}>
+            <boxGeometry args={[0.28, 0.4, 0.03]} />
             <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
           </mesh>
-          {/* Gold border on right half */}
-          <mesh position={[0.2, 0, 0.021]}>
-            <boxGeometry args={[0.42, 0.54, 0.005]} />
+          <mesh position={[0.15, 0, 0.016]}>
+            <boxGeometry args={[0.32, 0.44, 0.003]} />
             <meshBasicMaterial color="#ffd700" toneMapped={false} />
           </mesh>
-          <mesh position={[0.2, 0, 0.023]}>
-            <boxGeometry args={[0.38, 0.5, 0.005]} />
+          <mesh position={[0.15, 0, 0.019]}>
+            <boxGeometry args={[0.28, 0.4, 0.003]} />
             <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
-          </mesh>
-          {/* Torn/ragged edge — jagged pieces along the center seam */}
-          <mesh position={[0.02, 0.18, 0.01]}>
-            <boxGeometry args={[0.06, 0.06, 0.04]} />
-            <meshBasicMaterial color="#ffd700" toneMapped={false} />
-          </mesh>
-          <mesh position={[-0.03, 0.08, 0.01]}>
-            <boxGeometry args={[0.05, 0.07, 0.04]} />
-            <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
-          </mesh>
-          <mesh position={[0.02, -0.02, 0.01]}>
-            <boxGeometry args={[0.06, 0.05, 0.04]} />
-            <meshBasicMaterial color="#ffd700" toneMapped={false} />
-          </mesh>
-          <mesh position={[-0.02, -0.12, 0.01]}>
-            <boxGeometry args={[0.05, 0.06, 0.04]} />
-            <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
-          </mesh>
-          <mesh position={[0.03, -0.2, 0.01]}>
-            <boxGeometry args={[0.04, 0.05, 0.04]} />
-            <meshBasicMaterial color="#ffd700" toneMapped={false} />
           </mesh>
         </group>
         <Text
-          position={[0, 0.05, 0.14]}
-          fontSize={0.55}
+          position={[0.2, 0.1, 0.13]}
+          fontSize={0.5}
           color="#ffd700"
           anchorX="center"
           anchorY="middle"
@@ -2716,19 +2688,17 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           FRIDAY NIGHT VIDEO
           <meshBasicMaterial color="#ffd700" toneMapped={false} />
         </Text>
-        {/* Tagline below main text */}
         <Text
-          position={[0, -0.3, 0.14]}
-          fontSize={0.12}
-          color="#ffffff"
+          position={[0.2, -0.3, 0.13]}
+          fontSize={0.1}
+          color="#cccccc"
           anchorX="center"
           anchorY="middle"
           font={undefined}
         >
           YOUR NEIGHBORHOOD VIDEO STORE
-          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+          <meshBasicMaterial color="#cccccc" toneMapped={false} />
         </Text>
-        {/* Sign illumination — gooseneck lights */}
       </group>
 
       {/* ── Strip mall walls extending left and right ──────── */}
@@ -3313,13 +3283,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Mat color={WALL_COLOR} roughness={0.85} />
       </mesh>
 
-      {/* Left storefront window (x = -5) — real stores have windows from ~0.3 to ~2.5m */}
+      {/* Left storefront window — warm interior glow visible from outside */}
       <mesh position={[-5, 1.4, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, 2.2]} />
         <Mat
-          color="#aaccdd"
+          color="#d4c8a0"
           transparent
-          opacity={0.08}
+          opacity={0.15}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
@@ -3343,13 +3313,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
         <Mat color="#1a1a2a" roughness={0.5} metalness={0.4} />
       </mesh>
 
-      {/* Right storefront window (x = 5) */}
+      {/* Right storefront window — warm interior glow */}
       <mesh position={[5, 1.4, ROOM_D / 2 + 0.01]}>
         <planeGeometry args={[5.5, 2.2]} />
         <Mat
-          color="#aaccdd"
+          color="#d4c8a0"
           transparent
-          opacity={0.08}
+          opacity={0.15}
           roughness={0.02}
           metalness={0.4}
           side={THREE.DoubleSide}
