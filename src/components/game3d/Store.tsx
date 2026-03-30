@@ -2871,8 +2871,10 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </mesh>
 
       {/* Ambient lighting only — no dynamic pointLights/spotLights for performance */}
-      <ambientLight intensity={2.3} color="#e8e4d8" />
-      <hemisphereLight args={["#fff4e0", "#3a4060", 1.3]} />
+      <ambientLight intensity={1.5} color="#e8e4d8" />
+      <hemisphereLight args={["#fff4e0", "#3a4060", 0.8]} />
+      {/* Single directional light — required for toon shading to create visible shade steps */}
+      <directionalLight position={[5, 8, 3]} intensity={2.0} color="#fff4e0" />
 
       {/* Fluorescent ceiling fixtures — visual only (emissive materials, no lights) */}
       {[-6, -2, 2, 6].map((fx) => (
