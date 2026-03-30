@@ -99,29 +99,57 @@ console.log("Phase 1: Launching browser and capturing security cameras...");
 let browser;
 let devServer;
 let startedServer = false;
+let exitCode = 1;
 
 try {
-  // Check if dev server is running
+  // Check if dev server is running and responsive
+  let needServer = false;
   try {
-    await fetch(URL, { signal: AbortSignal.timeout(2000) });
+    const check = await fetch(URL, { signal: AbortSignal.timeout(5000) });
+    if (!check.ok) needServer = true;
   } catch {
-    console.log("  Dev server not detected, starting one...");
-    const { spawn } = await import("child_process");
+    needServer = true;
+  }
+  if (needServer) {
+    console.log("  Dev server not detected or unresponsive, starting one...");
+    const { spawn, execSync: execSyncFn } = await import("child_process");
+
+    // Kill any zombie dev server for this project
+    const lockPath = resolve(ROOT, ".next/dev/lock");
+    if (existsSync(lockPath)) {
+      try {
+        const lockData = JSON.parse(readFileSync(lockPath, "utf-8"));
+        if (lockData.pid) {
+          console.log(`  Killing stale dev server (PID ${lockData.pid})...`);
+          try { process.kill(lockData.pid, "SIGKILL"); } catch {}
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      } catch {}
+      try { writeFileSync(lockPath, ""); } catch {} // Clear lock
+    }
+
     devServer = spawn("npx", ["next", "dev", "-p", PORT], {
       cwd: ROOT,
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env },
+      detached: true,
     });
     startedServer = true;
 
-    // Log server output for debugging
+    // Log server output selectively (suppress image-proxy/search noise)
+    const logServer = process.env.VISUAL_QA_VERBOSE === "1";
     devServer.stdout.on("data", (d) => {
       const msg = d.toString().trim();
-      if (msg) console.log(`    [next] ${msg}`);
+      if (!msg) return;
+      if (logServer || msg.includes("Ready") || msg.includes("Error") || msg.includes("error")) {
+        console.log(`    [next] ${msg}`);
+      }
     });
     devServer.stderr.on("data", (d) => {
       const msg = d.toString().trim();
-      if (msg) console.log(`    [next:err] ${msg}`);
+      if (msg && (logServer || msg.includes("Error") || msg.includes("error") || msg.includes("EADDR"))) {
+        console.log(`    [next:err] ${msg}`);
+      }
     });
 
     // Wait for server to be ready — dev mode compiles on first request
@@ -318,18 +346,28 @@ ${jsErrors.length > 0 ? `## JS Errors During Capture\n\n${jsErrors.map((e) => `-
   console.log(`\nFull report saved to: ${REPORT_PATH}`);
   console.log(`Camera images in: ${CAM_DIR}/`);
 
-  // Exit code
+  // Determine exit code
   if (fails.length > 0) {
-    console.log(`\nExiting with code 1 (${fails.length} failures found)`);
-    process.exit(1);
+    console.log(`\nResult: ${fails.length} failures found`);
+    exitCode = 1;
   } else {
     console.log("\nAll cameras passed visual QA.");
-    process.exit(0);
+    exitCode = 0;
   }
 } catch (err) {
   console.error("\nFATAL:", err.message || err);
-  process.exit(1);
+  exitCode = 1;
 } finally {
   if (browser) await browser.close().catch(() => {});
-  if (devServer) devServer.kill();
+  if (devServer) {
+    // Kill the entire process group to avoid zombie dev servers
+    try { process.kill(-devServer.pid, "SIGKILL"); } catch {}
+    try { devServer.kill("SIGKILL"); } catch {}
+  }
+  // Clean the lock file so next run doesn't get blocked
+  const lockPath = resolve(ROOT, ".next/dev/lock");
+  if (startedServer) {
+    try { writeFileSync(lockPath, ""); } catch {}
+  }
+  process.exit(exitCode);
 }

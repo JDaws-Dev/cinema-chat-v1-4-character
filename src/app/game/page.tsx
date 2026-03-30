@@ -15,8 +15,9 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, getMembershipTier, getNextTier } from "@/lib/game-state";
+import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNextTier } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
+import { generateRequest, type ProceduralRequest } from "@/lib/procedural-quests";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
@@ -40,6 +41,14 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   const avail = arr.filter(x => !seen.has(getId(x)));
   const pool = avail.length > 0 ? avail : arr;
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function formatGameTime(hours: number): string {
+  const h = Math.floor(hours);
+  const m = Math.floor((hours - h) * 60);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h > 12 ? h - 12 : h;
+  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
 type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout";
@@ -138,6 +147,9 @@ export default function GamePage() {
 
   // Side quest state (uses existing showQuestNotif for notifications)
 
+  // Procedural customer request state
+  const [activeRequest, setActiveRequest] = useState<ProceduralRequest | null>(null);
+
   // Quest system state
   const [questNotification, setQuestNotification] = useState<string | null>(null);
   const questNotifTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -147,6 +159,11 @@ export default function GamePage() {
   const [currentTier, setCurrentTier] = useState(MEMBERSHIP_TIERS[0]);
   const [tierUpNotification, setTierUpNotification] = useState<string | null>(null);
   const tierUpTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Game clock state — 7:30 PM = 19.5 hours, closes at 11 PM = 23
+  const [gameTime, setGameTime] = useState(19.5);
+  const gameClockRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const closingAnnouncedRef = useRef<Set<string>>(new Set());
 
   // Load props count + tier on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
@@ -233,6 +250,47 @@ export default function GamePage() {
     window.addEventListener("keydown", handler);
     return () => { window.removeEventListener("click", handler); window.removeEventListener("keydown", handler); };
   }, []);
+
+  // ── Game Clock — starts ticking after splash + loading ─────
+  useEffect(() => {
+    if (!started || loading) return;
+    gameClockRef.current = setInterval(() => {
+      setGameTime(prev => {
+        const next = prev + (3.5 / (15 * 60)); // 3.5 game hours per 15 real minutes
+        if (next >= 23) return 23; // cap at 11 PM
+        return next;
+      });
+    }, 1000);
+    return () => { if (gameClockRef.current) clearInterval(gameClockRef.current); };
+  }, [started, loading]);
+
+  // ── Vinny closing time announcements ─────────────────────
+  useEffect(() => {
+    if (gameTime >= 23) {
+      if (!closingAnnouncedRef.current.has("closed") && overlay === "none") {
+        closingAnnouncedRef.current.add("closed");
+        playVinnyLine("That's it, folks! We're closed! Time to check out!");
+        setOverlay("checkout");
+      }
+      return;
+    }
+    const announcements: { threshold: number; key: string; line: string }[] = [
+      { threshold: 21, key: "9pm", line: "We close in two hours, folks! Make your selections!" },
+      { threshold: 22, key: "10pm", line: "One hour to close! If you haven't picked a movie yet, now's the time!" },
+      { threshold: 22.5, key: "1030pm", line: "Half hour to close! Last call for rentals!" },
+      { threshold: 22.75, key: "1045pm", line: "Fifteen minutes! I'm starting to shut down the registers!" },
+    ];
+    for (const a of announcements) {
+      if (gameTime >= a.threshold && !closingAnnouncedRef.current.has(a.key)) {
+        closingAnnouncedRef.current.add(a.key);
+        playVinnyLine(a.line);
+        break; // one announcement per tick
+      }
+    }
+  }, [gameTime, overlay]);
+
+  // ── NPC count based on closing time ──────────────────────
+  const maxNpcs = gameTime >= 22.75 ? 0 : gameTime >= 22.5 ? 2 : gameTime >= 22 ? 3 : 5;
 
   // ── Quest System ──────────────────────────────────────
   const showQuestNotif = useCallback((msg: string) => {
@@ -349,6 +407,18 @@ export default function GamePage() {
 
   // Handle RPG dialogue response selection (quest triggers + node navigation)
   const handleDialogueResponse = useCallback((resp: { text: string; next: DialogueNode; questStart?: string; questComplete?: string }) => {
+    // Check for procedural request accept/decline
+    const pending = (window as unknown as Record<string, unknown>).__pendingProceduralRequest as ProceduralRequest | undefined;
+    if (pending && rpgDialogue?.id?.startsWith("proc_dlg_")) {
+      if (resp.text.startsWith("Sure")) {
+        // Player accepted the procedural request
+        setActiveRequest(pending);
+        showQuestNotif(`Customer Request: Find ${pending.targetMovie.title}`);
+        playSFX("challenge_start");
+      }
+      delete (window as unknown as Record<string, unknown>).__pendingProceduralRequest;
+    }
+
     if (resp.questStart) {
       const questId = resp.questStart;
       const state = getQuestState();
@@ -387,7 +457,7 @@ export default function GamePage() {
       { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
     ]);
     setRpgNode(resp.next);
-  }, [showQuestNotif, handleTierUp]);
+  }, [showQuestNotif, handleTierUp, rpgDialogue, activeRequest]);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
@@ -422,6 +492,25 @@ export default function GamePage() {
       score += 50; breakdown.push({ label: "Feast Mode!", points: 50 });
     }
 
+    // Snack pairing bonuses
+    const snackNames = snacks.map(s => s.name.toLowerCase());
+    const movieGenres = movies.map(m => m.genre.toLowerCase());
+    const candyNames = ["m&ms", "skittles", "junior mints", "twizzlers", "gummy bears", "milk duds", "nerds", "hot tamales", "swedish fish", "reese's pieces", "raisinets", "sour patch kids", "red vines", "butterfinger", "cookie"];
+    const sodaNames = ["soda"];
+    const hasPopcorn = snackNames.some(s => s.includes("popcorn"));
+    const hasCandy = snackNames.some(s => candyNames.some(c => s.includes(c)));
+    const hasSoda = snackNames.some(s => sodaNames.some(c => s.includes(c)));
+
+    if (movieGenres.includes("horror") && hasPopcorn) {
+      score += 30; breakdown.push({ label: "Scream & Munch", points: 30 });
+    }
+    if (movieGenres.includes("comedy") && hasCandy) {
+      score += 20; breakdown.push({ label: "Sugar Rush", points: 20 });
+    }
+    if (movieGenres.includes("action") && hasSoda) {
+      score += 25; breakdown.push({ label: "Adrenaline Fuel", points: 25 });
+    }
+
     return { score, breakdown };
   }
 
@@ -435,6 +524,7 @@ export default function GamePage() {
         const snack = JSON.parse(data);
         setHeldSnacks(prev => {
           if (prev.some(s => s.name === snack.name)) return prev;
+          if (prev.length >= 5) return prev; // Max 5 snacks
           return [...prev, { name: snack.name, emoji: snack.emoji }];
         });
         setPickupFlash(true);
@@ -461,6 +551,18 @@ export default function GamePage() {
         playSFX("vhs_pickup");
         // Track movie pickup for quest objectives
         trackQuestMoviePickup(movie.title, movie.genre || "");
+        // Check if this completes an active procedural customer request
+        if (activeRequest && movie.title === activeRequest.targetMovie.title) {
+          const xpResult = addXP(activeRequest.reward);
+          showQuestNotif(`Customer Request Complete! +${activeRequest.reward} XP`);
+          playSFX("challenge_complete");
+          setActiveRequest(null);
+          setTotalXP(xpResult.newTotal);
+          if (xpResult.tierUp) {
+            handleTierUp({ tierUp: true, newTier: xpResult.newTier });
+          }
+          setCurrentTier(getMembershipTier(xpResult.newTotal));
+        }
         // Vinny quip on pickup (30% chance to avoid spam)
         if (Math.random() < 0.3) playRandomLine("pickup");
         // Check if this movie wins the race
@@ -633,7 +735,35 @@ export default function GamePage() {
           }
         }
       }
-      // Offer a new side quest (50% chance) or normal customer dialogue
+      // Offer a procedural request (40% if none active), side quest (30%), or normal dialogue
+      if (!activeRequest && Math.random() < 0.4) {
+        const req = generateRequest();
+        if (req) {
+          // Show procedural request as RPG dialogue with accept/decline
+          const declineNode: DialogueNode = { speaker: "Customer", text: "Oh well, maybe next time.", responses: [] };
+          const acceptNode: DialogueNode = { speaker: "Customer", text: `Great! I'll wait here while you look for ${req.targetMovie.title}.`, responses: [] };
+          const opener: DialogueNode = {
+            speaker: "Customer",
+            portrait: undefined,
+            text: req.customerLine,
+            responses: [
+              { text: `Sure, I'll find ${req.targetMovie.title} for you!`, next: acceptNode, questStart: undefined, questComplete: undefined },
+              { text: "Sorry, I'm busy right now.", next: declineNode, questStart: undefined, questComplete: undefined },
+            ],
+          };
+          // Hijack dialogue response to set activeRequest on accept
+          const originalHandler = handleDialogueResponse;
+          const wrappedTree: DialogueTree = { id: `proc_dlg_${req.id}`, opener, npc: "customer" };
+          setRpgDialogue(wrappedTree);
+          setRpgNode(opener);
+          setRpgHistory([{ speaker: opener.speaker, portrait: opener.portrait, text: opener.text }]);
+          setOverlay("rpg_dialogue");
+          // Store pending request to be accepted when player picks the accept response
+          (window as unknown as Record<string, unknown>).__pendingProceduralRequest = req;
+          return;
+        }
+      }
+      // Fall through: side quest (50% of remaining) or normal dialogue
       const completedIds = getQuestState().completedQuests;
       const questTree = Math.random() < 0.5 ? getRandomQuestDialogue(completedIds) : null;
       if (questTree) {
@@ -688,7 +818,7 @@ export default function GamePage() {
     } else if (type === "tv") {
       startPuzzle();
     }
-  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit]);
+  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit, activeRequest]);
 
   // ── Start a challenge (movie_night or speed_run) ──────
   const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
@@ -970,7 +1100,7 @@ export default function GamePage() {
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
-          <Store isMobile={isMobile} eraYears={selectedEra.years} />
+          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} />
           <FirstPersonControls disabled={hasOverlay} />
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
@@ -1268,6 +1398,15 @@ export default function GamePage() {
            "WASD move · E interact · J quests"}
         </span>
         <div className="g3-hud-right">
+          <span className="g3-game-clock" style={{
+            fontFamily: "'Courier New', monospace",
+            color: gameTime >= 22.5 ? '#ff4444' : gameTime >= 22 ? '#ffa500' : '#ffd700',
+            fontSize: '0.8rem',
+            fontWeight: 'bold',
+            textShadow: gameTime >= 22.5 ? '0 0 8px rgba(255, 68, 68, 0.6)' : 'none',
+          }}>
+            {formatGameTime(gameTime)}
+          </span>
           {(() => {
             const next = getNextTier();
             const progress = next ? ((totalXP - currentTier.minXP) / (next.minXP - currentTier.minXP)) * 100 : 100;

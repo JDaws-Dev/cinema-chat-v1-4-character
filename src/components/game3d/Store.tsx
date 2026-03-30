@@ -2842,7 +2842,7 @@ function KenneyModel({ model, position, rotation = [0, 0, 0], scale = 1 }: {
   return <primitive object={cloned} position={position} rotation={rotation} scale={scale} />;
 }
 
-export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: string }) {
+export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number }) {
   // Sync era into module-level variable so usePosterUrls picks it up
   useEffect(() => {
     if (eraYears) setEraYears(eraYears);
@@ -3070,12 +3070,12 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       <Counter />
       <VinnyCharacter />
 
-      {/* NPCs + Charlie */}
-      <NPCCustomer id="npc-0" startPos={[-3.25, -0.05, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" hairStyle="flattop" />
-      <NPCCustomer id="npc-1" startPos={[3.25, -0.05, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" hairStyle="long" />
-      {!isMobile && <NPCCustomer id="npc-2" startPos={[-3.25, -0.05, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" hairStyle="cap" />}
-      {!isMobile && <NPCCustomer id="npc-3" startPos={[3.25, -0.05, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" hairStyle="ponytail" />}
-      <KidCustomer startPos={[0, -0.05, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />
+      {/* NPCs + Charlie — NPCs leave as closing time approaches */}
+      {maxNpcs >= 1 && <NPCCustomer id="npc-0" startPos={[-3.25, -0.05, -5.5]} shirtColor="#3498db" hairColor="#2a1a0a" skinTone="#d4a574" hairStyle="flattop" />}
+      {maxNpcs >= 2 && <NPCCustomer id="npc-1" startPos={[3.25, -0.05, 0.5]} shirtColor="#e74c3c" hairColor="#4a3020" skinTone="#c49a6c" hairStyle="long" />}
+      {maxNpcs >= 3 && !isMobile && <NPCCustomer id="npc-2" startPos={[-3.25, -0.05, 3.5]} shirtColor="#27ae60" hairColor="#1a1a1a" skinTone="#e8c4a0" hairStyle="cap" />}
+      {maxNpcs >= 4 && !isMobile && <NPCCustomer id="npc-3" startPos={[3.25, -0.05, -2.5]} shirtColor="#9b59b6" hairColor="#8b6914" skinTone="#d4a574" hairStyle="ponytail" />}
+      {maxNpcs >= 1 && <KidCustomer startPos={[0, -0.05, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
       <CharlieCharacter isMobile={isMobile} />
       {showTarantino && <TarantinoNPC />}
 
