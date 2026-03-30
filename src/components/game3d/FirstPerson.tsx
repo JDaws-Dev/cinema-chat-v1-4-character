@@ -32,8 +32,8 @@ const COLLIDERS = [
   { x: -6, z: 5.5, hw: 3.2, hd: 0.8 },
   // New Releases back wall shelf
   { x: 0, z: -6.8, hw: 9.5, hd: 0.4 },
-  // Candy rack (near counter)
-  { x: -5, z: 5, hw: 0.6, hd: 0.4 },
+  // Cooler (moved to left wall area)
+  { x: -8.63, z: 4.53, hw: 0.5, hd: 0.4 },
 ];
 
 function collidesWithAny(px: number, pz: number): boolean {

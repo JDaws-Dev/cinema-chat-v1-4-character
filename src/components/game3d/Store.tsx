@@ -544,7 +544,7 @@ function Counter() {
           <Mat color="#5a3820" roughness={0.7} />
         </mesh>
       ))}
-      {/* Candy boxes — rows of colorful packages */}
+      {/* Candy boxes — Kenney food models */}
       {[-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5].map((dx, i) => {
         const topSnacks = [
           { name: "Red Vines", emoji: "\ud83c\udf6c" },
@@ -570,27 +570,11 @@ function Counter() {
         <group key={`candy-row-${i}`}>
           {/* Top shelf candy */}
           <group position={[dx, 0.72, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
-            <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
-              <boxGeometry args={[0.15, 0.18, 0.08]} />
-              <Mat color={["#ef4444","#f59e0b","#3b82f6","#22c55e","#ec4899","#a855f7","#f97316"][i]} roughness={0.5} />
-            </mesh>
-            {/* Label stripe */}
-            <mesh position={[0, 0, -0.041]}>
-              <planeGeometry args={[0.12, 0.06]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
+            <KenneyModel model={i % 2 === 0 ? "candy-bar" : "chocolate"} position={[0, 0, 0]} scale={0.3} />
           </group>
           {/* Bottom shelf candy */}
           <group position={[dx, 0.42, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
-            <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
-              <boxGeometry args={[0.15, 0.15, 0.09]} />
-              <Mat color={["#f97316","#ec4899","#22c55e","#ef4444","#3b82f6","#f59e0b","#a855f7"][i]} roughness={0.5} />
-            </mesh>
-            {/* Label stripe */}
-            <mesh position={[0, 0, -0.046]}>
-              <planeGeometry args={[0.12, 0.05]} />
-              <meshBasicMaterial color="#eeeecc" />
-            </mesh>
+            <KenneyModel model={i % 2 === 0 ? "candy-bar-wrapper" : "cookie-chocolate"} position={[0, 0, 0]} scale={0.3} />
           </group>
         </group>
         );
@@ -630,7 +614,7 @@ function Counter() {
         CHECKOUT
       </Text>
 
-      {/* Snack display on counter */}
+      {/* Snack display on counter — Kenney food models */}
       {[1.0, 1.3, 1.6, 1.9].map((dx, i) => {
         const counterSnacks = [
           { name: "Popcorn", emoji: "\ud83c\udf7f" },
@@ -638,18 +622,19 @@ function Counter() {
           { name: "Nachos", emoji: "\ud83e\uddc0" },
           { name: "Cookie", emoji: "\ud83c\udf6a" },
         ];
+        const counterModels = [null, "soda-can", "chocolate", "cookie-chocolate"] as const;
         const snack = counterSnacks[i];
+        const model = counterModels[i];
         return (
         <group key={`snk${i}`} position={[dx, 1.00, 0.2]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
-          <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
-            <boxGeometry args={[0.12, 0.18, 0.06]} />
-            <Mat color={["#ef4444", "#3b82f6", "#f59e0b", "#22c55e"][i]} roughness={0.5} />
-          </mesh>
-          {/* Front label */}
-          <mesh position={[0, -0.02, -0.031]}>
-            <planeGeometry args={[0.09, 0.06]} />
-            <meshBasicMaterial color="#ffffff" />
-          </mesh>
+          {model ? (
+            <KenneyModel model={model} position={[0, 0, 0]} scale={0.3} />
+          ) : (
+            <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}>
+              <boxGeometry args={[0.12, 0.18, 0.06]} />
+              <Mat color="#ef4444" roughness={0.5} />
+            </mesh>
+          )}
         </group>
         );
       })}
@@ -2493,7 +2478,7 @@ const STAFF_PICK_MOVIES = [
 
 function StaffPicksShelf() {
   return (
-    <group position={[ROOM_W / 2 - 0.2, 1.2, -1]} rotation={[0, -Math.PI / 2, 0]}>
+    <group position={[ROOM_W / 2 - 0.3, 1.2, -0.1]} rotation={[0, -Math.PI / 2, 0]}>
       {/* Shelf board */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[1.2, 0.04, 0.22]} />
@@ -3038,10 +3023,10 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       <WallPoster x={9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#059669" title="RAIDERS" />
 
       {/* Wall posters — side walls */}
-      <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={-3} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
-      <WallPoster x={-ROOM_W / 2 + 0.05} y={2.0} z={2} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={0} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
-      <WallPoster x={ROOM_W / 2 - 0.05} y={2.0} z={5} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
+      <WallPoster x={-ROOM_W / 2 + 0.1} y={2.0} z={-2.78} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
+      <WallPoster x={-ROOM_W / 2 + 0.04} y={2.0} z={1.32} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
+      <WallPoster x={ROOM_W / 2 - 0.16} y={2.0} z={2.95} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
+      <WallPoster x={ROOM_W / 2 - 0.13} y={2.0} z={5.19} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
 
       {/* "BE KIND REWIND" sign on left wall — clear of Star Wars poster at z=1 */}
       <group position={[-ROOM_W / 2 + 0.12, 2.0, 3.5]} rotation={[0, Math.PI / 2, 0]}>
@@ -3997,7 +3982,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       </group>
 
       {/* ── Recent Returns display on counter top ──────── */}
-      <group position={[-4, 1.08, 5.2]}>
+      <group position={[-3.88, 1.08, 5.77]}>
         {/* Small sign */}
         <mesh position={[0, 0.2, 0]}>
           <boxGeometry args={[1.6, 0.25, 0.03]} />
@@ -4152,7 +4137,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       ))}
 
       {/* "EMPLOYEES ONLY" door on left wall */}
-      <group position={[-ROOM_W / 2 + 0.06, 0, -4]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.07, 0, -5.19]} rotation={[0, Math.PI / 2, 0]}>
         {/* Door */}
         <mesh position={[0, 1.15, 0]}>
           <boxGeometry args={[0.9, 2.3, 0.04]} />
@@ -4266,7 +4251,7 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
       {/* Standee removed — too big and obtrusive in entrance area */}
 
       {/* ─── Glass-front cooler near counter ─── */}
-      <group position={[-3, 0, 5.8]}>
+      <group position={[-8.63, 0, 4.53]}>
         <mesh position={[0, 0.75, 0]}>
           <boxGeometry args={[0.8, 1.5, 0.6]} />
           <Mat color="#e8e8e8" roughness={0.5} />
@@ -4283,14 +4268,8 @@ export function Store({ isMobile, eraYears }: { isMobile?: boolean; eraYears?: s
         ))}
         {[-0.15, 0, 0.15].map((dx, i) => (
           <group key={`bottle-top-${i}`}>
-            <mesh position={[dx, 1.1, 0]} rotation={[0, 0, 0]}>
-              <cylinderGeometry args={[0.03, 0.03, 0.18, 6]} />
-              <Mat color={["#cc0000", "#0044aa", "#00aa00"][i]} roughness={0.4} />
-            </mesh>
-            <mesh position={[dx, 0.6, 0]} rotation={[0, 0, 0]}>
-              <cylinderGeometry args={[0.03, 0.03, 0.18, 6]} />
-              <Mat color={["#ffaa00", "#cc0000", "#0044aa"][i]} roughness={0.4} />
-            </mesh>
+            <KenneyModel model={i % 2 === 0 ? "soda-can" : "soda-bottle"} position={[dx, 1.1, 0]} scale={0.25} />
+            <KenneyModel model={i % 2 === 0 ? "soda-bottle" : "soda-can"} position={[dx, 0.6, 0]} scale={0.25} />
           </group>
         ))}
         <Text position={[0, 1.55, -0.1]} fontSize={0.04} color="#cc0000" anchorX="center" font={undefined}>
@@ -4479,3 +4458,9 @@ useGLTF.preload('/models/taxi.glb');
 useGLTF.preload('/models/trashcan.glb');
 useGLTF.preload('/models/pottedPlant.glb');
 useGLTF.preload('/models/televisionVintage.glb');
+useGLTF.preload('/models/candy-bar.glb');
+useGLTF.preload('/models/candy-bar-wrapper.glb');
+useGLTF.preload('/models/chocolate.glb');
+useGLTF.preload('/models/soda-can.glb');
+useGLTF.preload('/models/soda-bottle.glb');
+useGLTF.preload('/models/cookie-chocolate.glb');
