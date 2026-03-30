@@ -23,6 +23,7 @@ import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, i
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, generateVinnyRepDialogue, getVinnyRecommendation, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
+import { mobileInput } from "@/components/game3d/MobileControls";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -1171,7 +1172,7 @@ export default function GamePage() {
               else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
             } catch {}
           }}>ENTER THE STORE</button>
-          <p className="g3-splash-hint">WASD to move &bull; Mouse to look &bull; E to interact &bull; J quests</p>
+          <p className="g3-splash-hint">{isMobile ? 'Touch to move \u2022 Tap to interact' : 'WASD to move \u2022 Mouse to look \u2022 E to interact \u2022 J quests'}</p>
         </div>
       </div>
     );
@@ -1183,6 +1184,8 @@ export default function GamePage() {
   return (
     <div className="g3-container">
       {/* 3D Canvas */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div onClick={() => { if (isMobile && hoverLabel && !hasOverlay) { mobileInput.interact = true; } }}>
       <Canvas
         shadows={false}
         gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: false }}
@@ -1200,6 +1203,7 @@ export default function GamePage() {
           <SecurityCameras />
         </Suspense>
       </Canvas>
+      </div>
 
       {/* Loading overlay */}
       <div className={`g3-loading-overlay${!loading ? " g3-loaded" : ""}`}>
@@ -1218,7 +1222,7 @@ export default function GamePage() {
 
       {/* Hover label near crosshair */}
       {!hasOverlay && hoverLabel && (
-        <div className="g3-hover-label"><span className="g3-hover-key">E</span> {hoverLabel}</div>
+        <div className="g3-hover-label">{isMobile ? <span className="g3-hover-tap">TAP</span> : <span className="g3-hover-key">E</span>} {hoverLabel?.replace(/^\[E\] /, '').replace(/^\[F\] /, '')}</div>
       )}
 
       {/* Subtitle display — Vinny's voice lines */}
@@ -1461,17 +1465,28 @@ export default function GamePage() {
       )}
 
       {/* Mobile touch controls */}
-      {!hasOverlay && <MobileControls />}
+      {!hasOverlay && <MobileControls hoverLabel={hoverLabel} />}
+
+      {/* Mobile quest log button */}
+      {isMobile && !hasOverlay && (
+        <button
+          className="g3-mobile-quest-btn"
+          onClick={() => { document.exitPointerLock(); setOverlay("quest_log"); }}
+          aria-label="Quest Log"
+        >
+          📜
+        </button>
+      )}
 
       {/* HUD */}
       <div className="g3-hud">
         <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
         <span className="g3-hud-hint">
-          {overlay === "rpg_dialogue" ? "1-4 to respond · Q to leave" :
-           hasOverlay ? "Press Q or click ✕ to close" :
+          {overlay === "rpg_dialogue" ? (isMobile ? "Tap a response · Tap ✕ to leave" : "1-4 to respond · Q to leave") :
+           hasOverlay ? (isMobile ? "Tap ✕ to close" : "Press Q or click ✕ to close") :
            heldMovies.length > 0 ? `Take your ${heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny!` :
            challenge ? "" :
-           "WASD move · E interact · J quests"}
+           isMobile ? "Touch to move · Tap to interact" : "WASD move · E interact · J quests"}
         </span>
         <div className="g3-hud-right">
           <span className="g3-game-clock" style={{

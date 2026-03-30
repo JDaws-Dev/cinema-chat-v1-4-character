@@ -1141,29 +1141,16 @@
 }
 
 .mobile-interact-btn {
-  position: fixed;
-  bottom: 40px;
-  right: 32px;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(212, 168, 83, 0.25);
-  border: 2px solid rgba(212, 168, 83, 0.5);
-  color: rgba(232, 226, 214, 0.8);
-  font-size: 0.75rem;
-  font-weight: 700;
-  font-family: inherit;
-  letter-spacing: 0.05em;
-  z-index: 21;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.1s;
 }
 
 .mobile-interact-btn:active {
-  background: rgba(212, 168, 83, 0.5);
+  background: rgba(255, 215, 0, 1) !important;
+  transform: translateX(-50%) scale(0.95) !important;
 }
 
 /* ── Hover key badge ───────────────────────────────────────── */
@@ -1179,6 +1166,39 @@
   margin-right: 6px;
   vertical-align: middle;
   line-height: 1.6;
+}
+
+.g3-hover-tap {
+  display: inline-block;
+  background: rgba(255, 215, 0, 0.35);
+  border: 1px solid rgba(255, 215, 0, 0.6);
+  border-radius: 3px;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  margin-right: 6px;
+  vertical-align: middle;
+  line-height: 1.6;
+  color: #ffd700;
+}
+
+/* ── Mobile quest log button ───────────────────────────────── */
+.g3-mobile-quest-btn {
+  position: fixed;
+  left: 12px;
+  bottom: 100px;
+  z-index: 11;
+  padding: 10px 14px;
+  font-size: 1.3rem;
+  background: rgba(255, 215, 0, 0.15);
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  border-radius: 10px;
+  color: #ffd700;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+  line-height: 1;
 }
 
 /* ── RPG Dialogue — classic bottom text box ────────────────── */

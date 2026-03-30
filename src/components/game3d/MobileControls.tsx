@@ -18,8 +18,10 @@ const LOOK_SENSITIVITY = 2.5;
 
 export function MobileControls({
   onInteract,
+  hoverLabel,
 }: {
   onInteract?: () => void;
+  hoverLabel?: string | null;
 }) {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
@@ -179,13 +181,31 @@ export function MobileControls({
         </div>
       )}
 
-      {/* Interact button — center bottom */}
+      {/* Interact button — center bottom, only visible when something is interactable */}
       <button
         className="mobile-interact-btn"
-        style={{ position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 11 }}
+        style={{
+          position: 'fixed',
+          bottom: 100,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 11,
+          padding: '14px 28px',
+          fontSize: '1rem',
+          fontWeight: 'bold',
+          fontFamily: "'Courier New', monospace",
+          background: 'rgba(255, 215, 0, 0.9)',
+          color: '#0a1830',
+          border: '2px solid #ffd700',
+          borderRadius: 8,
+          display: hoverLabel ? 'block' : 'none',
+          boxShadow: '0 0 16px rgba(255, 215, 0, 0.4)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}
         onTouchStart={handleInteract}
       >
-        Interact
+        TAP: {hoverLabel?.replace(/^\[E\] /, '').replace(/^\[F\] /, '') || 'Interact'}
       </button>
     </>
   );
