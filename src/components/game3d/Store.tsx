@@ -239,12 +239,12 @@ function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColo
       userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}
     >
       <mesh userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}>
-        <boxGeometry args={[0.14, 0.20, 0.03]} />
+        <boxGeometry args={[0.10, 0.18, 0.025]} />
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Poster plane — offset clearly in front, flipped to face camera */}
       <mesh position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[0.13, 0.19]} />
+        <planeGeometry args={[0.09, 0.17]} />
         <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -290,8 +290,8 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
   // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = isMobile ? 8 : 14; // more tapes, thinner now
-    const spacing = 0.17; // small gaps between tapes
+    const count = isMobile ? 6 : 10;
+    const spacing = 0.22; // clear gaps between each VHS case
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
     for (const side of ["front", "back"] as const) {
@@ -421,7 +421,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {vhsColors.map((color, i) => (
         <group key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
           <mesh>
-            <boxGeometry args={[0.14, 0.20, 0.03]} />
+            <boxGeometry args={[0.10, 0.18, 0.025]} />
             <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
@@ -434,7 +434,7 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
       {vhsColors.map((color, i) => (
         <group key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
           <mesh>
-            <boxGeometry args={[0.14, 0.20, 0.03]} />
+            <boxGeometry args={[0.10, 0.18, 0.025]} />
             <Mat color={color} roughness={0.6} />
           </mesh>
           {/* White label strip on face */}
@@ -2089,12 +2089,12 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
     <group position={position}>
       {/* VHS box */}
       <mesh>
-        <boxGeometry args={[0.14, 0.20, 0.03]} />
+        <boxGeometry args={[0.10, 0.18, 0.025]} />
         <meshBasicMaterial color="#1a1a2a" />
       </mesh>
       {/* Cover art facing into the room (+z) */}
       <mesh position={[0, 0, 0.06]}>
-        <planeGeometry args={[0.13, 0.19]} />
+        <planeGeometry args={[0.09, 0.17]} />
         <meshBasicMaterial ref={matRef} color="#333" side={THREE.DoubleSide} />
       </mesh>
     </group>
