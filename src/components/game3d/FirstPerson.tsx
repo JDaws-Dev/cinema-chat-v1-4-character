@@ -14,28 +14,24 @@ const BACK_ROOM_BOUNDS = { minX: -13.5, maxX: -10.0, minZ: -6.0, maxZ: -4.0 };
 const PLAYER_RADIUS = 0.4;
 
 // Collision boxes: { x, z, halfW, halfD } — rectangular obstacles
+// Shelves are now angled — using slightly larger AABB to account for rotation
 const COLLIDERS = [
-  // Shelf Row 1 (z = -4)
-  { x: -5, z: -4, hw: 1.6, hd: 0.3 },
-  { x: -1.5, z: -4, hw: 1.6, hd: 0.3 },
-  { x: 1.5,  z: -4, hw: 1.6, hd: 0.3 },
-  { x: 5,    z: -4, hw: 1.6, hd: 0.3 },
-  // Shelf Row 2 (z = -1)
-  { x: -5, z: -1, hw: 1.6, hd: 0.3 },
-  { x: -1.5, z: -1, hw: 1.6, hd: 0.3 },
-  { x: 1.5,  z: -1, hw: 1.6, hd: 0.3 },
-  { x: 5,    z: -1, hw: 1.6, hd: 0.3 },
-  // Shelf Row 3 (z = 2)
-  { x: -5, z: 2, hw: 1.6, hd: 0.3 },
-  { x: -1.5, z: 2, hw: 1.6, hd: 0.3 },
-  { x: 1.5,  z: 2, hw: 1.6, hd: 0.3 },
-  { x: 5,    z: 2, hw: 1.6, hd: 0.3 },
-  // Counter (left side near entrance)
-  { x: -6, z: 5.5, hw: 3.2, hd: 0.8 },
+  // Shelf Row 1 (z = -4) — angled ~0.25 rad
+  { x: -5, z: -4, hw: 1.7, hd: 0.55 },
+  { x: -1, z: -4, hw: 1.7, hd: 0.55 },
+  { x: 3,  z: -4, hw: 1.7, hd: 0.55 },
+  // Shelf Row 2 (z = -1) — angled ~-0.15 rad
+  { x: -5, z: -1, hw: 1.7, hd: 0.45 },
+  { x: 0,  z: -1, hw: 1.7, hd: 0.45 },
+  // Shelf Row 3 (z = 2) — angled ~0.2 rad
+  { x: -4, z: 2, hw: 1.7, hd: 0.5 },
+  { x: 1,  z: 2, hw: 1.7, hd: 0.5 },
+  // Counter (front-right near entrance)
+  { x: 7, z: 5, hw: 3.2, hd: 0.8 },
   // New Releases back wall shelf
   { x: 0, z: -6.8, hw: 9.5, hd: 0.4 },
-  // Cooler (moved to left wall area)
-  { x: -8.63, z: 4.53, hw: 0.5, hd: 0.4 },
+  // Cooler (near checkout, right wall)
+  { x: 8.63, z: 3.5, hw: 0.5, hd: 0.4 },
 ];
 
 // Employees Only door collider — blocks doorway when closed

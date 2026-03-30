@@ -288,24 +288,17 @@ const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't
 
 // ── Shelf layout ─────────────────────────────────────────
 const SHELF_ROWS = [
-  // 12 fronts: all unique. 12 backs: all unique. No genre appears on both a front AND a back.
-  // Fronts (customer-facing, +z side): HORROR, SCI-FI, COMEDY, DRAMA, ACTION, FAMILY, ROMANCE, WESTERN, THRILLER, ANIMATED, DOCS, CLASSICS
-  // Backs (-z side): CULT, FOREIGN, INDIE, HORROR, SCI-FI, COMEDY, DRAMA, ACTION, FAMILY, ROMANCE, WESTERN, THRILLER
-  // Row 1 — back of store (z = -4)
-  { x: -5, z: -4, genre: "HORROR", color: "#dc2626", backGenre: "CULT", backColor: "#991b1b" },
-  { x: -1.5, z: -4, genre: "SCI-FI", color: "#3b82f6", backGenre: "FOREIGN", backColor: "#6366f1" },
-  { x: 1.5, z: -4, genre: "COMEDY", color: "#f97316", backGenre: "INDIE", backColor: "#a855f7" },
-  { x: 5, z: -4, genre: "DRAMA", color: "#6366f1", backGenre: "DOCS", backColor: "#65a30d" },
-  // Row 2 — middle (z = -1)
-  { x: -5, z: -1, genre: "ACTION", color: "#ef4444", backGenre: "HORROR", backColor: "#dc2626" },
-  { x: -1.5, z: -1, genre: "FAMILY", color: "#22c55e", backGenre: "SCI-FI", backColor: "#3b82f6" },
-  { x: 1.5, z: -1, genre: "ROMANCE", color: "#f43f5e", backGenre: "COMEDY", backColor: "#f97316" },
-  { x: 5, z: -1, genre: "WESTERN", color: "#92400e", backGenre: "DRAMA", backColor: "#6366f1" },
-  // Row 3 — mid-front (z = 2)
-  { x: -5, z: 2, genre: "THRILLER", color: "#7c3aed", backGenre: "ACTION", backColor: "#ef4444" },
-  { x: -1.5, z: 2, genre: "ANIMATED", color: "#06b6d4", backGenre: "FAMILY", backColor: "#22c55e" },
-  { x: 1.5, z: 2, genre: "DOCS", color: "#65a30d", backGenre: "ROMANCE", backColor: "#f43f5e" },
-  { x: 5, z: 2, genre: "CLASSICS", color: "#ca8a04", backGenre: "WESTERN", backColor: "#92400e" },
+  // 7 angled gondolas in 3 staggered rows — based on real Blockbuster floor plan
+  // Row 1 — back area, angled right (~15°)
+  { x: -5, z: -4, genre: "HORROR", color: "#dc2626", backGenre: "CULT", backColor: "#991b1b", rotY: 0.25 },
+  { x: -1, z: -4, genre: "SCI-FI", color: "#3b82f6", backGenre: "FOREIGN", backColor: "#6366f1", rotY: 0.25 },
+  { x: 3, z: -4, genre: "COMEDY", color: "#f97316", backGenre: "INDIE", backColor: "#a855f7", rotY: 0.25 },
+  // Row 2 — middle, angled left
+  { x: -5, z: -1, genre: "ACTION", color: "#ef4444", backGenre: "THRILLER", backColor: "#7c3aed", rotY: -0.15 },
+  { x: 0, z: -1, genre: "CLASSICS", color: "#ca8a04", backGenre: "DOCS", backColor: "#65a30d", rotY: -0.15 },
+  // Row 3 — front area, angled right
+  { x: -4, z: 2, genre: "FAMILY", color: "#22c55e", backGenre: "ANIMATED", backColor: "#06b6d4", rotY: 0.2 },
+  { x: 1, z: 2, genre: "WESTERN", color: "#92400e", backGenre: "ROMANCE", backColor: "#f43f5e", rotY: 0.2 },
 ];
 
 /** Instanced fallback VHS boxes — one draw call for all solid-colored boxes on a side */
@@ -337,7 +330,7 @@ function InstancedVHSBoxes({ positions, color }: { positions: [number, number, n
   );
 }
 
-function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; isMobile?: boolean }) {
+function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile, rotY = 0 }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; isMobile?: boolean; rotY?: number }) {
   const frontPosters = usePosterUrls(genre, 30); // 10 tapes × 3 tiers = 30, no repeats
   const backPosters = usePosterUrls(backGenre || genre, 30);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
@@ -363,7 +356,7 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
   }, [isMobile]);
 
   return (
-    <group position={[x, 0, z]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
+    <group position={[x, 0, z]} rotation={[0, rotY, 0]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
       {/* Gondola shelf — open frame with visible shelf boards, narrower (0.35 deep) */}
       {/* Back panel — thin vertical board running the length */}
       <mesh position={[0, 0.75, 0]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
@@ -428,9 +421,69 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
   );
 }
 
+function WallShelf({
+  position, rotation, width, genre, color, isMobile
+}: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  width: number;
+  genre: string;
+  color: string;
+  isMobile?: boolean;
+}) {
+  const posters = usePosterUrls(genre, 20);
+  const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
+
+  // Wall shelves have 3 tiers, single-sided (face one direction)
+  const tapeCount = isMobile ? 6 : Math.floor(width / 0.22);
+
+  return (
+    <group position={position} rotation={rotation}
+      userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
+
+      {/* Back panel (against wall) */}
+      <mesh position={[0, 0.9, 0]}>
+        <boxGeometry args={[width, 1.8, 0.03]} />
+        <Mat color={SHELF_COLOR} roughness={0.8} />
+      </mesh>
+
+      {/* 3 shelf boards */}
+      {[0.15, 0.65, 1.15].map((y, i) => (
+        <mesh key={`ws-board-${i}`} position={[0, y, 0.1]}>
+          <boxGeometry args={[width - 0.1, 0.04, 0.2]} />
+          <Mat color="#6a4226" roughness={0.7} />
+        </mesh>
+      ))}
+
+      {/* Genre sign at top */}
+      <mesh position={[0, 1.85, 0.05]}>
+        <boxGeometry args={[Math.min(width, 2), 0.2, 0.03]} />
+        <Mat color="#0a1830" roughness={0.6} />
+      </mesh>
+      <Text position={[0, 1.85, 0.08]} fontSize={0.12} color={color} anchorX="center" font={undefined}>
+        {genre}
+      </Text>
+
+      {/* VHS tapes on each tier */}
+      {[0.32, 0.82, 1.32].map((ty, tier) => {
+        const startX = -(tapeCount - 1) * 0.22 * 0.5;
+        return Array.from({ length: tapeCount }).map((_, i) => {
+          const poster = posters[tier * tapeCount + i];
+          return poster ? (
+            <PosterBox key={`wt-${tier}-${i}`}
+              url={poster.url}
+              position={[startX + i * 0.22, ty, 0.12]}
+              movieTitle={poster.title} movieId={poster.id} genreColor={color} />
+          ) : null;
+        });
+      })}
+    </group>
+  );
+}
+
 const ENDCAP_CONFIGS: { x: number; z: number; rotY: number; label: string; vhsColors: string[] }[] = [
   { x: -7.5, z: -1.5, rotY: 0, label: "STAFF PICKS", vhsColors: ["#dc2626", "#3b82f6", "#f59e0b"] },
-  { x: 7.5, z: 1.5, rotY: Math.PI, label: "JUST ADDED", vhsColors: ["#7c3aed", "#22c55e", "#ec4899"] },
+  { x: 5, z: -1.5, rotY: Math.PI, label: "JUST ADDED", vhsColors: ["#7c3aed", "#22c55e", "#ec4899"] },
 ];
 
 function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number; rotY: number; label: string; vhsColors: string[] }) {
@@ -490,8 +543,8 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
 
 function Counter() {
   return (
-    <group position={[-6, 0, 5.5]} rotation={[0, 0, 0]}>
-      {/* Counter — near entrance left side, facing right (+x) */}
+    <group position={[7, 0, 5]} rotation={[0, 0, 0]}>
+      {/* Counter — front-right near entrance, based on real Blockbuster layout */}
       <RoundedBox args={[6, 0.85, 1.2]} radius={0.03} smoothness={3} position={[0, 0.425, 0]}>
         <Mat color="#5a3820" roughness={0.8} />
       </RoundedBox>
@@ -748,7 +801,7 @@ function VinnyCharacter() {
   });
 
   return (
-    <group ref={ref} position={[-6, 0, 6.2]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
+    <group ref={ref} position={[7, 0, 5.8]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
       {/* Legs — Khaki pants */}
       <mesh position={[-0.09, 0.35, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
         <boxGeometry args={[0.13, 0.7, 0.15]} />
@@ -1017,25 +1070,32 @@ function VinnyCharacter() {
 // Aisles between shifted shelf rows: z=-4, -1, 2
 // Between row1&2: z=-2.5, between row2&3: z=0.5, past row3: z=3.5
 const NPC_WAYPOINTS: [number, number][] = [
-  [0, -6],      // center back (behind shelf row 1)
-  [-3.25, -5.5],// left back aisle
-  [-3.25, -2.5],// left aisle between row 1 & 2
-  [0, -2.5],    // center between row 1 & 2
-  [3.25, -2.5], // right aisle between row 1 & 2
-  [3.25, 0.5],  // right aisle between row 2 & 3
-  [0, 0.5],     // center between row 2 & 3
-  [-3.25, 0.5], // left aisle between row 2 & 3
-  [-3.25, 3.5], // left front (past shelves)
-  [0, 3.5],     // center front
-  [3.25, 3.5],  // right front
+  [0, -6],      // back center
+  [-3, -5],     // back-left aisle
+  [2, -5],      // back-right aisle
+  [-3, -2.5],   // between row 1 & 2
+  [2, -2.5],    // between row 1 & 2 right
+  [-2, 0.5],    // between row 2 & 3
+  [3, 0.5],     // between row 2 & 3 right
+  [-2, 3.5],    // front-left (past shelves)
+  [3, 3.5],     // front-right (near checkout)
+  [0, 4],       // center front
 ];
 
 // ── NPC collision helpers ─────────────────────────────────
 // Shelf AABB bounds with padding for NPC radius
-const SHELF_BOUNDS = SHELF_ROWS.map(s => ({
-  minX: s.x - 1.7, maxX: s.x + 1.7,
-  minZ: s.z - 0.35, maxZ: s.z + 0.35, // narrower shelves
-}));
+// AABB bounds expanded for rotated gondolas — sin(0.25)*1.4 ~ 0.35 extra on each axis
+const SHELF_BOUNDS = SHELF_ROWS.map(s => {
+  const rot = Math.abs(s.rotY || 0);
+  const hw = 1.4; // half-width of shelf
+  const hd = 0.18; // half-depth of shelf
+  const expandedHW = hw * Math.cos(rot) + hd * Math.sin(rot);
+  const expandedHD = hw * Math.sin(rot) + hd * Math.cos(rot);
+  return {
+    minX: s.x - expandedHW - 0.3, maxX: s.x + expandedHW + 0.3,
+    minZ: s.z - expandedHD - 0.15, maxZ: s.z + expandedHD + 0.15,
+  };
+});
 
 function npcCollidesShelf(px: number, pz: number): boolean {
   for (const b of SHELF_BOUNDS) {
@@ -2499,9 +2559,9 @@ function NewReleaseVHS({ url, position }: { url: string; position: [number, numb
 
 // ── Aisle sign config per shelf row ──────────────────────
 const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
-  { z: -4, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 DRAMA", colors: ["#dc2626", "#3b82f6", "#f97316", "#6366f1"] },
-  { z: -1, label: "ACTION \u2022 CLASSICS \u2022 FAMILY \u2022 ROMANCE", colors: ["#ef4444", "#ca8a04", "#22c55e", "#f43f5e"] },
-  { z: 2, label: "THRILLER \u2022 ANIMATED \u2022 DOCS \u2022 WESTERN", colors: ["#7c3aed", "#06b6d4", "#65a30d", "#92400e"] },
+  { z: -4, label: "HORROR \u2022 SCI-FI \u2022 COMEDY", colors: ["#dc2626", "#3b82f6", "#f97316"] },
+  { z: -1, label: "ACTION \u2022 CLASSICS", colors: ["#ef4444", "#ca8a04"] },
+  { z: 2, label: "FAMILY \u2022 WESTERN", colors: ["#22c55e", "#92400e"] },
 ];
 
 function AisleSign({ z, label, colors }: { z: number; label: string; colors: string[] }) {
@@ -2553,7 +2613,7 @@ function AisleSign({ z, label, colors }: { z: number; label: string; colors: str
 function AisleFloorMarkings() {
   return (
     <>
-      {[-2.5, 0.5].map((z) => (
+      {[-2.5, 0.5, 3.5].map((z) => (
         <mesh key={`floor-strip-${z}`} position={[0, 0.005, z]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[ROOM_W - 2, 0.08]} />
           <meshBasicMaterial color="#0d1320" />
@@ -3271,8 +3331,25 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
-        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} isMobile={isMobile} />
+        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} isMobile={isMobile} rotY={s.rotY} />
       ))}
+
+      {/* ── PERIMETER WALL SHELVING ─── */}
+      {/* Back wall — DRAMA (left half) */}
+      <WallShelf position={[-5, 0, -ROOM_D/2 + 0.15]} rotation={[0, 0, 0]}
+        width={6} genre="DRAMA" color="#6366f1" isMobile={isMobile} />
+
+      {/* Left wall — upper section */}
+      <WallShelf position={[-ROOM_W/2 + 0.15, 0, -3]} rotation={[0, Math.PI/2, 0]}
+        width={4} genre="FOREIGN" color="#6366f1" isMobile={isMobile} />
+
+      {/* Left wall — lower section */}
+      <WallShelf position={[-ROOM_W/2 + 0.15, 0, 1]} rotation={[0, Math.PI/2, 0]}
+        width={4} genre="DOCS" color="#65a30d" isMobile={isMobile} />
+
+      {/* Right wall — NEW RELEASES (main section) */}
+      <WallShelf position={[ROOM_W/2 - 0.15, 0, -2]} rotation={[0, -Math.PI/2, 0]}
+        width={8} genre="NEW" color="#ec4899" isMobile={isMobile} />
 
       {/* Hanging aisle signs */}
       {AISLE_SIGNS.map((sign, i) => (
@@ -4187,7 +4264,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </mesh>
 
       {/* Featured new releases standee just inside the entrance */}
-      <group position={[-6.05, 0, 5.66]} rotation={[0, -0.02, 0]}>
+      <group position={[5.5, 0, 5.66]} rotation={[0, -0.02, 0]}>
         <mesh position={[0, 0.72, 0]}>
           <boxGeometry args={[0.56, 1.24, 0.035]} />
           <Mat color="#f0e5b8" roughness={0.82} />
@@ -4328,7 +4405,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Return chute (interior, behind counter — wall-mounted) ──────── */}
-      <group position={[-8, 0, 6.5]}>
+      <group position={[9, 0, 5.5]}>
         {/* Chute trough — angled ramp from wall slot down to bin */}
         <mesh position={[0, 0.7, 0]} rotation={[0.35, 0, 0]}>
           <boxGeometry args={[0.9, 0.04, 0.6]} />
@@ -4689,7 +4766,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* "LATE FEES" warning sign near checkout */}
-      <group position={[-ROOM_W / 2 + 0.1, 1.5, 5.2]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[ROOM_W / 2 - 0.1, 1.5, 5.2]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.0, 0.6, 0.02]} />
           <Mat color="#0a1a3a" roughness={0.6} />
@@ -4708,8 +4785,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* "2-DAY RENTAL" / "NEW RELEASE" sticker signs on shelf ends */}
       {[
         { pos: [-5.5, 1.7, -3.3] as [number, number, number], label: "2-DAY RENTAL", bg: "#1a6abb" },
-        { pos: [5, 1.7, -3.3] as [number, number, number], label: "5-DAY RENTAL", bg: "#059669" },
-        { pos: [-5.5, 1.7, 2.7] as [number, number, number], label: "NEW!", bg: "#ef4444" },
+        { pos: [3.5, 1.7, -3.3] as [number, number, number], label: "5-DAY RENTAL", bg: "#059669" },
+        { pos: [-4.5, 1.7, 2.7] as [number, number, number], label: "NEW!", bg: "#ef4444" },
       ].map((sign, i) => (
         <group key={`rental-${i}`} position={sign.pos}>
           <mesh>
@@ -4723,7 +4800,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       ))}
 
       {/* VHS rewinder on counter */}
-      <group position={[-8, 1.08, 5.5]}>
+      <group position={[9, 1.08, 5]}>
         {/* Rewinder body */}
         <mesh>
           <boxGeometry args={[0.25, 0.08, 0.18]} />
@@ -4749,7 +4826,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
 
       {/* "REWARDS MEMBER?" sign above counter */}
-      <group position={[-6, 2.8, 5.5]} rotation={[0, Math.PI, 0]}>
+      <group position={[7, 2.8, 5]} rotation={[0, Math.PI, 0]}>
         <mesh>
           <boxGeometry args={[2.5, 0.4, 0.03]} />
           <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} />
@@ -4768,7 +4845,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* Standee removed — too big and obtrusive in entrance area */}
 
       {/* ─── Glass-front cooler near counter ─── */}
-      <group position={[-8.63, 0, 4.53]}>
+      <group position={[8.63, 0, 3.5]}>
         <mesh position={[0, 0.75, 0]}>
           <boxGeometry args={[0.8, 1.5, 0.6]} />
           <Mat color="#d6d8dd" roughness={0.55} />
@@ -4844,7 +4921,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ─── Stack of returned VHS tapes behind counter ─── */}
-      <group position={[-6, 1.08, 6]}>
+      <group position={[7, 1.08, 5.5]}>
         {/* Tape 1 — bottom, blue */}
         <mesh position={[0, 0, 0]} rotation={[0, 0.05, 0]}>
           <boxGeometry args={[0.2, 0.04, 0.12]} />
@@ -4877,7 +4954,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ─── Membership application forms on counter ─── */}
-      <group position={[-5, 1.06, 5.3]}>
+      <group position={[8, 1.06, 4.8]}>
         {/* Paper stack */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[0.18, 0.015, 0.25]} />
@@ -4909,7 +4986,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* Coming attractions, lost & found, gumball machines all removed */}
 
       {/* ─── Phone on wall behind counter ─── */}
-      <group position={[-9.8, 2.2, 6.3]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[9.8, 2.2, 5.3]} rotation={[0, -Math.PI / 2, 0]}>
         {/* Wall mount plate */}
         <mesh position={[0, 0.1, 0]}>
           <boxGeometry args={[0.15, 0.25, 0.02]} />
@@ -4954,6 +5031,164 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* Right wall CRT monitor */}
       <WallCrtTv position={[ROOM_W / 2 - 0.72, 2.26, -3.9]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
+
+      {/* ── KIDS CORNER ────────────────── */}
+      <group position={[8, 0, -5]}>
+        {/* Floor mat — bright colored */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+          <planeGeometry args={[3, 2.5]} />
+          <meshBasicMaterial color="#2a1a4a" />
+        </mesh>
+
+        {/* "KIDS CORNER" sign */}
+        <mesh position={[0, 2.2, -1]}>
+          <boxGeometry args={[2, 0.3, 0.03]} />
+          <Mat color="#22c55e" roughness={0.5} />
+        </mesh>
+        <Text position={[0, 2.2, -0.97]} fontSize={0.12} color="#ffffff" anchorX="center" font={undefined}>
+          KIDS CORNER
+        </Text>
+
+        {/* Small TV playing cartoons */}
+        <group position={[1, 1.2, -1]} rotation={[0, -Math.PI / 4, 0]}>
+          <mesh>
+            <boxGeometry args={[0.5, 0.4, 0.3]} />
+            <Mat color="#2a2a2a" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0, 0.16]}>
+            <planeGeometry args={[0.4, 0.3]} />
+            <meshBasicMaterial color="#4a8aff" />
+          </mesh>
+          <mesh position={[0, -0.25, 0]}>
+            <boxGeometry args={[0.3, 0.1, 0.2]} />
+            <Mat color="#333" roughness={0.5} />
+          </mesh>
+        </group>
+
+        {/* Two low shelves (kid height ~1.0m) */}
+        <group position={[-0.5, 0, 0]}>
+          <mesh position={[0, 0.5, 0]}>
+            <boxGeometry args={[2, 1.0, 0.3]} />
+            <Mat color={SHELF_COLOR} roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 1.02, 0]}>
+            <boxGeometry args={[2.1, 0.04, 0.35]} />
+            <Mat color="#8a6838" roughness={0.5} />
+          </mesh>
+          {/* Shelf board */}
+          <mesh position={[0, 0.5, 0.05]}>
+            <boxGeometry args={[1.9, 0.04, 0.25]} />
+            <Mat color="#6a4226" roughness={0.7} />
+          </mesh>
+          {/* "FAMILY" sign */}
+          <Text position={[0, 1.1, 0.15]} fontSize={0.08} color="#22c55e" anchorX="center" font={undefined}>
+            FAMILY FAVORITES
+          </Text>
+        </group>
+
+        {/* Small bean bag chairs (spheres on floor) */}
+        <mesh position={[0.5, 0.15, 0.5]}>
+          <sphereGeometry args={[0.2, 8, 8]} />
+          <Mat color="#ef4444" roughness={0.8} />
+        </mesh>
+        <mesh position={[-0.3, 0.15, 0.8]}>
+          <sphereGeometry args={[0.2, 8, 8]} />
+          <Mat color="#3b82f6" roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* ── VIDEO GAMES SECTION ────────── */}
+      <group position={[-8, 0, 4]}>
+        {/* "VIDEO GAMES" sign */}
+        <mesh position={[0, 2.0, -0.5]}>
+          <boxGeometry args={[2.5, 0.3, 0.03]} />
+          <Mat color="#8b5cf6" roughness={0.5} />
+        </mesh>
+        <Text position={[0, 2.0, -0.47]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
+          VIDEO GAMES
+        </Text>
+
+        {/* Game console demo unit */}
+        <group position={[0, 0, 0]}>
+          <mesh position={[0, 0.5, 0]}>
+            <boxGeometry args={[0.8, 1.0, 0.6]} />
+            <Mat color="#1a1a2a" roughness={0.5} />
+          </mesh>
+          {/* TV on top */}
+          <mesh position={[0, 1.2, 0]}>
+            <boxGeometry args={[0.6, 0.45, 0.35]} />
+            <Mat color="#2a2a2a" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 1.2, 0.18]}>
+            <planeGeometry args={[0.5, 0.35]} />
+            <meshBasicMaterial color="#2a6a2a" />
+          </mesh>
+          {/* "TRY ME!" sign */}
+          <Text position={[0, 0.5, -0.32]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+            TRY ME!
+          </Text>
+        </group>
+
+        {/* Game shelves (smaller) */}
+        <mesh position={[-0.8, 0.5, -0.5]}>
+          <boxGeometry args={[0.8, 1.0, 0.25]} />
+          <Mat color={SHELF_COLOR} roughness={0.8} />
+        </mesh>
+        <mesh position={[0.8, 0.5, -0.5]}>
+          <boxGeometry args={[0.8, 1.0, 0.25]} />
+          <Mat color={SHELF_COLOR} roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* ── PREVIOUSLY VIEWED BARGAIN BIN ──── */}
+      <group position={[-4, 0, 4]}>
+        {/* Low table/bin */}
+        <mesh position={[0, 0.4, 0]}>
+          <boxGeometry args={[2.5, 0.8, 1.2]} />
+          <Mat color="#5a3820" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 0.82, 0]}>
+          <boxGeometry args={[2.6, 0.04, 1.25]} />
+          <Mat color="#8a6838" roughness={0.5} />
+        </mesh>
+
+        {/* Scattered VHS tapes on top (messy pile) */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <mesh key={`bargain-${i}`} position={[
+            -0.8 + Math.random() * 1.6,
+            0.87 + i * 0.03,
+            -0.4 + Math.random() * 0.8,
+          ]} rotation={[0, Math.random() * Math.PI, 0]}>
+            <boxGeometry args={[0.15, 0.26, 0.025]} />
+            <Mat color={["#dc2626", "#3b82f6", "#f97316", "#22c55e", "#7c3aed", "#ca8a04", "#ef4444", "#06b6d4"][i]} roughness={0.6} />
+          </mesh>
+        ))}
+
+        {/* "PREVIOUSLY VIEWED — $4.99" sign */}
+        <mesh position={[0, 1.3, -0.4]}>
+          <boxGeometry args={[2, 0.3, 0.03]} />
+          <Mat color="#ef4444" roughness={0.5} />
+        </mesh>
+        <Text position={[0, 1.3, -0.37]} fontSize={0.08} color="#ffffff" anchorX="center" font={undefined}>
+          PREVIOUSLY VIEWED — $4.99
+        </Text>
+      </group>
+
+      {/* ── INTERIOR RETURN BIN ──── */}
+      <group position={[5, 0, 5]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
+        <mesh position={[0, 0.5, 0]}>
+          <boxGeometry args={[0.8, 1.0, 0.6]} />
+          <Mat color="#1a3a6a" roughness={0.7} />
+        </mesh>
+        {/* Slot opening */}
+        <mesh position={[0, 0.8, -0.28]}>
+          <boxGeometry args={[0.5, 0.1, 0.06]} />
+          <meshBasicMaterial color="#0a0a1a" />
+        </mesh>
+        <Text position={[0, 1.1, -0.31]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>
+          DROP RETURNS HERE
+        </Text>
+      </group>
 
     </group>
     </MobileCtx.Provider>
