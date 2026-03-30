@@ -2036,3 +2036,52 @@
     width: 40px !important;
   }
 }
+
+/* ── iOS "Add to Home Screen" prompt ── */
+.g3-homescreen-prompt {
+  position: fixed;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 14, 24, 0.95);
+  border: 1px solid var(--fnv-gold, #ffd700);
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+  font-family: var(--fnv-font-game, monospace);
+  font-size: 0.75rem;
+  color: var(--fnv-gold, #ffd700);
+  animation: slideDownHomescreen 0.3s ease;
+  white-space: nowrap;
+}
+.g3-homescreen-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.g3-homescreen-dismiss {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.g3-share-icon {
+  display: inline-block;
+  background: #007aff;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  text-align: center;
+  line-height: 20px;
+  font-size: 0.7rem;
+}
+@keyframes slideDownHomescreen {
+  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

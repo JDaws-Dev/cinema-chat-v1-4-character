@@ -308,6 +308,35 @@ const SHELF_ROWS = [
   { x: 5, z: 2, genre: "CLASSICS", color: "#ca8a04", backGenre: "WESTERN", backColor: "#92400e" },
 ];
 
+/** Instanced fallback VHS boxes — one draw call for all solid-colored boxes on a side */
+function InstancedVHSBoxes({ positions, color }: { positions: [number, number, number][]; color: string }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const mob = useContext(MobileCtx);
+  const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
+
+  useEffect(() => {
+    if (!meshRef.current || positions.length === 0) return;
+    positions.forEach((pos, i) => {
+      tempMatrix.setPosition(pos[0], pos[1], pos[2]);
+      meshRef.current!.setMatrixAt(i, tempMatrix);
+    });
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  }, [positions, tempMatrix]);
+
+  if (positions.length === 0) return null;
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, positions.length]}>
+      <boxGeometry args={[0.15, 0.26, 0.025]} />
+      {mob ? (
+        <meshBasicMaterial color={color} />
+      ) : (
+        <meshToonMaterial color={color} gradientMap={toonGradientTexture} />
+      )}
+    </instancedMesh>
+  );
+}
+
 function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; isMobile?: boolean }) {
   const frontPosters = usePosterUrls(genre, 30); // 10 tapes × 3 tiers = 30, no repeats
   const backPosters = usePosterUrls(backGenre || genre, 30);
@@ -361,30 +390,39 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile }: { x: 
         </RoundedBox>
       ))}
 
-      {/* VHS Boxes — only render as many as we have unique posters (no repeats) */}
-      {positions.map((pos) => {
-        const isBack = pos.side === "back";
-        const sidePosters = isBack ? backPosters : frontPosters;
-        const sideColor = isBack ? bColor : color;
-        // Count positions per side (front or back)
-        const sidePositionCount = positions.filter(p => p.side === pos.side).length;
-        const sideIdx = positions.filter(p => p.side === pos.side).indexOf(pos);
-        // Skip if we'd repeat — only show as many tapes as unique posters
-        if (sidePosters.length > 0 && sideIdx >= sidePosters.length) return null;
-        const poster = sidePosters[sideIdx];
-        const flipRot = isBack ? Math.PI : 0;
-        return poster ? (
-          <PosterBox key={`${pos.side}-${pos.idx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
-        ) : (
-          <mesh key={`${pos.side}-${pos.idx}`} position={[pos.x, pos.y, pos.z]}>
-            <boxGeometry args={[0.15, 0.26, 0.025]} />
-            <Mat
-              color={new THREE.Color(sideColor).offsetHSL(0, -(sideIdx % 4) * 0.05, -(sideIdx % 5) * 0.06)}
-              roughness={0.6}
-            />
-          </mesh>
+      {/* VHS Boxes — PosterBoxes rendered individually, fallbacks instanced for perf */}
+      {(() => {
+        const frontFallbacks: [number, number, number][] = [];
+        const backFallbacks: [number, number, number][] = [];
+        const posterElements: React.ReactNode[] = [];
+
+        positions.forEach((pos) => {
+          const isBack = pos.side === "back";
+          const sidePosters = isBack ? backPosters : frontPosters;
+          const sideColor = isBack ? bColor : color;
+          const sideIdx = positions.filter(p => p.side === pos.side).indexOf(pos);
+          // Skip if we'd repeat — only show as many tapes as unique posters
+          if (sidePosters.length > 0 && sideIdx >= sidePosters.length) return;
+          const poster = sidePosters[sideIdx];
+          const flipRot = isBack ? Math.PI : 0;
+          if (poster) {
+            posterElements.push(
+              <PosterBox key={`${pos.side}-${pos.idx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
+            );
+          } else {
+            if (isBack) backFallbacks.push([pos.x, pos.y, pos.z]);
+            else frontFallbacks.push([pos.x, pos.y, pos.z]);
+          }
+        });
+
+        return (
+          <>
+            {posterElements}
+            <InstancedVHSBoxes positions={frontFallbacks} color={color} />
+            <InstancedVHSBoxes positions={backFallbacks} color={bColor} />
+          </>
         );
-      })}
+      })()}
 
     </group>
   );

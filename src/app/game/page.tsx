@@ -204,6 +204,23 @@ export default function GamePage() {
   const gameClockRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const closingAnnouncedRef = useRef<Set<string>>(new Set());
 
+  // iOS "Add to Home Screen" prompt
+  const [showHomeScreenPrompt, setShowHomeScreenPrompt] = useState(false);
+
+  useEffect(() => {
+    if (!started) return;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+    const dismissed = localStorage.getItem('fnv_homescreen_dismissed');
+
+    if (isIOS && isSafari && !isStandalone && !dismissed) {
+      const timer = setTimeout(() => setShowHomeScreenPrompt(true), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [started]);
+
   // Load props count + tier on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
     setPropsCount(getPropsCount());
@@ -1955,6 +1972,17 @@ export default function GamePage() {
               ) : null}
             </div>
           </div>
+        </div>
+      )}
+      {/* iOS "Add to Home Screen" prompt */}
+      {showHomeScreenPrompt && (
+        <div className="g3-homescreen-prompt">
+          <div className="g3-homescreen-content">
+            <span>{"\ud83d\udcf1"} For fullscreen + audio: Tap</span>
+            <span className="g3-share-icon">{"\u2b06"}</span>
+            <span>then &quot;Add to Home Screen&quot;</span>
+          </div>
+          <button onClick={() => { setShowHomeScreenPrompt(false); localStorage.setItem('fnv_homescreen_dismissed', '1'); }} className="g3-homescreen-dismiss">{"\u2715"}</button>
         </div>
       )}
     </div>

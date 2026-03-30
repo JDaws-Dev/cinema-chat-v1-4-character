@@ -14,6 +14,7 @@ const pressStart = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://fridaynightvideo.app"),
   title: "Friday Night Video",
   description:
     "A 3D Blockbuster-style video store experience. Browse shelves, grab movies, complete challenges, and earn movie prop collectibles.",
@@ -21,8 +22,24 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Friday Night Video",
     description:
-      "A 3D Blockbuster-style video store experience.",
+      "Browse the shelves. Pick a movie. Chat with Vinny. It's Friday night, 1992.",
     type: "website",
+    url: "https://fridaynightvideo.app",
+    images: [
+      {
+        url: "/images/og-share.png",
+        width: 1200,
+        height: 630,
+        alt: "Friday Night Video - Your Neighborhood Video Store",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Friday Night Video",
+    description:
+      "Browse the shelves. Pick a movie. Chat with Vinny. It's Friday night, 1992.",
+    images: ["/images/og-share.png"],
   },
   other: {
     "apple-mobile-web-app-capable": "yes",
