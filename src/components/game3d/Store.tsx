@@ -7,19 +7,38 @@ import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
 
-// Mobile context — meshBasicMaterial on mobile, meshStandardMaterial on desktop
+// Mobile context — meshBasicMaterial on mobile, meshToonMaterial on desktop
 const MobileCtx = createContext(false);
 
-/** Drop-in replacement for meshStandardMaterial that uses meshBasicMaterial on mobile */
+// Toon shading gradient — 3-step (shadow, mid, highlight) for cel-shaded look
+const toonGradientTexture = (() => {
+  if (typeof document === "undefined") return null; // SSR guard
+  const canvas = document.createElement("canvas");
+  canvas.width = 4;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d")!;
+  // 3 steps: dark shadow, mid tone, bright highlight
+  ctx.fillStyle = "#555555"; ctx.fillRect(0, 0, 1, 1);
+  ctx.fillStyle = "#999999"; ctx.fillRect(1, 0, 1, 1);
+  ctx.fillStyle = "#cccccc"; ctx.fillRect(2, 0, 1, 1);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(3, 0, 1, 1);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  return tex;
+})();
+
+/** Drop-in material — meshToonMaterial on desktop (cel-shaded), meshBasicMaterial on mobile */
 function Mat(props: Record<string, unknown>) {
   const mob = useContext(MobileCtx);
   if (mob) {
-    // On mobile: use unlit material. Use emissive color if it was the dominant visual.
     const { roughness, metalness, emissiveIntensity, emissive, ...rest } = props;
     const color = (emissive && (emissiveIntensity as number) > 0.5) ? emissive : rest.color;
     return <meshBasicMaterial {...rest} color={color as string} />;
   }
-  return <meshStandardMaterial {...(props as Record<string, unknown>)} />;
+  // Desktop: toon material for stylized cel-shaded look
+  const { roughness, metalness, ...toonProps } = props;
+  return <meshToonMaterial {...(toonProps as Record<string, unknown>)} gradientMap={toonGradientTexture} />;
 }
 
 // ── Poster texture cache + throttled loader ─────────────────
