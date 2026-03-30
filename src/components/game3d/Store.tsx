@@ -2558,7 +2558,8 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
       </group>
 
       {/* "OPEN" neon sign near entrance — classic hanging sign */}
-      <group position={[-4, 2.3, ROOM_D / 2 + 0.05]} rotation={[0, 0, 0]}>
+      {/* OPEN sign in the window — visible from both inside and outside */}
+      <group position={[-4, 2.3, ROOM_D / 2]} rotation={[0, 0, 0]}>
         {/* Sign backing — dark */}
         <mesh>
           <boxGeometry args={[1.0, 0.45, 0.03]} />
@@ -2569,7 +2570,13 @@ export function Store({ isMobile }: { isMobile?: boolean }) {
           <boxGeometry args={[1.1, 0.55, 0.01]} />
           <Mat color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.2} transparent opacity={0.5} />
         </mesh>
+        {/* Text facing outside (+z) */}
         <Text position={[0, 0, 0.02]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>
+          OPEN
+          <meshBasicMaterial color="#ff3e7a" toneMapped={false} />
+        </Text>
+        {/* Text facing inside (-z) */}
+        <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>
           OPEN
           <meshBasicMaterial color="#ff3e7a" toneMapped={false} />
         </Text>
