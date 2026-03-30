@@ -1235,7 +1235,7 @@ export default function GamePage() {
         camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.6, 5] }}
         dpr={isMobile ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
-        style={{ background: "#1a2a48" }}
+        style={{ background: "#1a2a48", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
         onCreated={({ gl }) => { gl.setClearColor("#1a2a48"); setTimeout(() => setLoading(false), 500); }}
       >
         <Suspense fallback={null}>
