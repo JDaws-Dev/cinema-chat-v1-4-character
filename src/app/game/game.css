@@ -1410,6 +1410,33 @@
   to { opacity: 0; }
 }
 
+/* Active procedural request tracker */
+.g3-active-request {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  background: rgba(10, 24, 48, 0.92);
+  border: 1px solid rgba(0, 200, 255, 0.5);
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: #00c8ff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: monospace;
+  letter-spacing: 0.03em;
+  z-index: 900;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 200, 255, 0.15);
+  animation: requestPulse 2s ease-in-out infinite;
+}
+.g3-active-request-icon {
+  margin-right: 4px;
+}
+@keyframes requestPulse {
+  0%, 100% { border-color: rgba(0, 200, 255, 0.5); }
+  50% { border-color: rgba(0, 200, 255, 0.9); }
+}
+
 /* Quest log overlay */
 .g3-quest-log {
   max-height: 70vh;

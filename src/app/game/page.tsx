@@ -751,9 +751,7 @@ export default function GamePage() {
               { text: "Sorry, I'm busy right now.", next: declineNode, questStart: undefined, questComplete: undefined },
             ],
           };
-          // Hijack dialogue response to set activeRequest on accept
-          const originalHandler = handleDialogueResponse;
-          const wrappedTree: DialogueTree = { id: `proc_dlg_${req.id}`, opener, npc: "customer" };
+          const wrappedTree: DialogueTree = { id: `proc_dlg_${req.id}`, opener, npc: "customer", portrait: "" };
           setRpgDialogue(wrappedTree);
           setRpgNode(opener);
           setRpgHistory([{ speaker: opener.speaker, portrait: opener.portrait, text: opener.text }]);
@@ -1601,6 +1599,12 @@ export default function GamePage() {
               </>
             )}
           </div>
+        </div>
+      )}
+      {/* Active procedural request tracker */}
+      {activeRequest && (
+        <div className="g3-active-request">
+          <span className="g3-active-request-icon">&#128203;</span> Find: {activeRequest.targetMovie.title}
         </div>
       )}
       {/* Quest notification toast */}
