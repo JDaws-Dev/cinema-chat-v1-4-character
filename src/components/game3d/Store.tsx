@@ -3466,7 +3466,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Store hours sign near door — white with blue border */}
-      <group position={[4, 1.8, ROOM_D / 2 + 0.05]} rotation={[0, 0, 0]}>
+      <group position={[getObjectById("store-hours")?.x ?? 4, getObjectById("store-hours")?.y ?? 1.8, getObjectById("store-hours")?.z ?? ROOM_D / 2 + 0.05]} rotation={[0, 0, 0]}>
         {/* Blue border */}
         <mesh position={[0, 0, -0.005]}>
           <boxGeometry args={[1.3, 0.9, 0.03]} />
@@ -3552,8 +3552,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </mesh>
       ))}
       {/* Parking lot lamp posts */}
-      {[-6, 0, 6].map((lx, i) => (
-        <group key={`lamp-${i}`} position={[lx, 0, ROOM_D / 2 + 7]}>
+      {[getObjectById("lamp-1")?.x ?? -6, getObjectById("lamp-2")?.x ?? 0, getObjectById("lamp-3")?.x ?? 6].map((lx, i) => (
+        <group key={`lamp-${i}`} position={[lx, 0, [getObjectById("lamp-1")?.z, getObjectById("lamp-2")?.z, getObjectById("lamp-3")?.z][i] ?? ROOM_D / 2 + 7]}>
           <mesh position={[0, 1.5, 0]}>
             <cylinderGeometry args={[0.03, 0.04, 3, 8]} />
             <meshBasicMaterial color="#444" />
@@ -4017,7 +4017,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Shopping cart return area ──────── */}
-      <group position={[2, 0, ROOM_D / 2 + 7]}>
+      <group position={[getObjectById("cart-return")?.x ?? 2, 0, getObjectById("cart-return")?.z ?? ROOM_D / 2 + 7]}>
         {/* Painted border on ground */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
           <planeGeometry args={[1.8, 1.2]} />
@@ -4128,7 +4128,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </mesh>
 
       {/* ── Cigarette butt receptacle near store entrance ──── */}
-      <group position={[-3, 0, ROOM_D / 2 + 0.6]}>
+      <group position={[getObjectById("cig-receptacle")?.x ?? -3, 0, getObjectById("cig-receptacle")?.z ?? ROOM_D / 2 + 0.6]}>
         <mesh position={[0, 0.5, 0]}>
           <cylinderGeometry args={[0.06, 0.08, 1.0, 8]} />
           <meshBasicMaterial color="#444444" />
@@ -4843,7 +4843,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Kids and family destination banner near the front-right aisle */}
-      <group position={[7.6, 2.4, 2.35]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[getObjectById("kids-banner")?.x ?? 7.6, getObjectById("kids-banner")?.y ?? 2.4, getObjectById("kids-banner")?.z ?? 2.35]} rotation={[0, getObjectById("kids-banner")?.rotY ?? -Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.4, 0.3, 0.04]} />
           <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.12} roughness={0.5} />
@@ -4941,7 +4941,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Return chute (interior, behind counter — wall-mounted) ──────── */}
-      <group position={[9, 0, 5.5]}>
+      <group position={[getObjectById("return-chute")?.x ?? 9, getObjectById("return-chute")?.y ?? 0, getObjectById("return-chute")?.z ?? 5.5]}>
         {/* Chute trough — angled ramp from wall slot down to bin */}
         <mesh position={[0, 0.7, 0]} rotation={[0.35, 0, 0]}>
           <boxGeometry args={[0.9, 0.04, 0.6]} />
@@ -5014,7 +5014,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </mesh>
 
       {/* Wall clock near counter */}
-      <group position={[ROOM_W / 2 - 0.1, 2.8, 6.2]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[getObjectById("clock-counter")?.x ?? ROOM_W / 2 - 0.1, getObjectById("clock-counter")?.y ?? 2.8, getObjectById("clock-counter")?.z ?? 6.2]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh>
           <circleGeometry args={[0.25, 24]} />
           <Mat color="#ffffff" roughness={0.4} />
@@ -5336,7 +5336,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       ))}
 
       {/* VHS rewinder on counter */}
-      <group position={[9, 1.08, 5]}>
+      <group position={[getObjectById("vhs-rewinder")?.x ?? 9, getObjectById("vhs-rewinder")?.y ?? 1.08, getObjectById("vhs-rewinder")?.z ?? 5]}>
         {/* Rewinder body */}
         <mesh>
           <boxGeometry args={[0.25, 0.08, 0.18]} />
@@ -5425,7 +5425,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ─── Promo board on right wall near entrance ─── */}
-      <group position={[9.84, 1.72, 3.05]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[getObjectById("promo-board")?.x ?? 9.84, getObjectById("promo-board")?.y ?? 1.72, getObjectById("promo-board")?.z ?? 3.05]} rotation={[0, getObjectById("promo-board")?.rotY ?? -Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.02, 0.78, 0.04]} />
           <Mat color="#1a2f58" roughness={0.7} />
@@ -5457,7 +5457,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ─── Stack of returned VHS tapes behind counter ─── */}
-      <group position={[7, 1.08, 5.5]}>
+      <group position={[getObjectById("tape-stack")?.x ?? 7, getObjectById("tape-stack")?.y ?? 1.08, getObjectById("tape-stack")?.z ?? 5.5]}>
         {/* Tape 1 — bottom, blue */}
         <mesh position={[0, 0, 0]} rotation={[0, 0.05, 0]}>
           <boxGeometry args={[0.2, 0.04, 0.12]} />
@@ -5490,7 +5490,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ─── Membership application forms on counter ─── */}
-      <group position={[8, 1.06, 4.8]}>
+      <group position={[getObjectById("membership-forms")?.x ?? 8, getObjectById("membership-forms")?.y ?? 1.06, getObjectById("membership-forms")?.z ?? 4.8]}>
         {/* Paper stack */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[0.18, 0.015, 0.25]} />
@@ -5522,7 +5522,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* Coming attractions, lost & found, gumball machines all removed */}
 
       {/* ─── Phone on wall behind counter ─── */}
-      <group position={[9.8, 2.2, 5.3]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[getObjectById("wall-phone")?.x ?? 9.8, getObjectById("wall-phone")?.y ?? 2.2, getObjectById("wall-phone")?.z ?? 5.3]} rotation={[0, getObjectById("wall-phone")?.rotY ?? -Math.PI / 2, 0]}>
         {/* Wall mount plate */}
         <mesh position={[0, 0.1, 0]}>
           <boxGeometry args={[0.15, 0.25, 0.02]} />
@@ -5761,7 +5761,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </Text>
 
       {/* 3. Membership card holder on counter */}
-      <group position={[5.8, 0.88, 5.2]}>
+      <group position={[getObjectById("card-holder")?.x ?? 5.8, getObjectById("card-holder")?.y ?? 0.88, getObjectById("card-holder")?.z ?? 5.2]}>
         <mesh position={[0, 0.08, 0]}>
           <boxGeometry args={[0.35, 0.16, 0.2]} />
           <Mat color="#2255aa" roughness={0.8} />
@@ -5799,7 +5799,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* 6. "PLEASE REWIND YOUR TAPES" sign near return bin */}
-      <group position={[5, 1.6, 4.4]}>
+      <group position={[getObjectById("rewind-sign")?.x ?? 5, getObjectById("rewind-sign")?.y ?? 1.6, getObjectById("rewind-sign")?.z ?? 4.4]}>
         {/* Sign board */}
         <mesh>
           <boxGeometry args={[0.9, 0.35, 0.03]} />
@@ -5819,7 +5819,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* 7. Stack of returned VHS tapes near return bin */}
-      <group position={[5.6, 0, 4.6]}>
+      <group position={[getObjectById("tape-stack-floor")?.x ?? 5.6, getObjectById("tape-stack-floor")?.y ?? 0, getObjectById("tape-stack-floor")?.z ?? 4.6]}>
         {/* Messy stack of 4 tapes */}
         <mesh position={[0, 0.06, 0]} rotation={[0, 0.1, 0]}>
           <boxGeometry args={[0.19, 0.12, 0.1]} />
@@ -5869,7 +5869,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* 9. Price list sign near counter */}
-      <group position={[8.5, 1.8, 4.2]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[getObjectById("price-list")?.x ?? 8.5, getObjectById("price-list")?.y ?? 1.8, getObjectById("price-list")?.z ?? 4.2]} rotation={[0, getObjectById("price-list")?.rotY ?? -Math.PI / 2, 0]}>
         {/* Sign board */}
         <mesh>
           <boxGeometry args={[0.8, 0.6, 0.03]} />
@@ -5896,7 +5896,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* ── COUNTER AREA ──────────────────────────────────────── */}
 
       {/* "PLEASE HAVE YOUR MEMBERSHIP CARD READY" sign hanging above counter */}
-      <group position={[7, 2.4, 5.5]}>
+      <group position={[getObjectById("membership-sign")?.x ?? 7, getObjectById("membership-sign")?.y ?? 2.4, getObjectById("membership-sign")?.z ?? 5.5]}>
         <mesh>
           <boxGeometry args={[2.4, 0.28, 0.03]} />
           <Mat color="#ffd700" roughness={0.5} />
@@ -5913,7 +5913,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Pen on a chain on counter surface */}
-      <group position={[6.2, 0.92, 5.2]}>
+      <group position={[getObjectById("pen-chain")?.x ?? 6.2, getObjectById("pen-chain")?.y ?? 0.92, getObjectById("pen-chain")?.z ?? 5.2]}>
         <mesh rotation={[0, 0.4, Math.PI / 2]}>
           <cylinderGeometry args={[0.006, 0.006, 0.16, 6]} />
           <Mat color="#111111" roughness={0.5} />
@@ -5935,7 +5935,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Bell on counter — "Ring for service" */}
-      <group position={[5.2, 0.90, 5.0]}>
+      <group position={[getObjectById("bell")?.x ?? 5.2, getObjectById("bell")?.y ?? 0.90, getObjectById("bell")?.z ?? 5.0]}>
         <mesh position={[0, 0.04, 0]}>
           <sphereGeometry args={[0.04, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <Mat color="#b8960a" roughness={0.25} metalness={0.7} />
@@ -6026,7 +6026,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* ── WALL DETAIL ───────────────────────────────────────── */}
 
       {/* Fire extinguisher on right wall */}
-      <group position={[ROOM_W / 2 - 0.12, 1.2, 0.5]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[getObjectById("fire-extinguisher")?.x ?? ROOM_W / 2 - 0.12, getObjectById("fire-extinguisher")?.y ?? 1.2, getObjectById("fire-extinguisher")?.z ?? 0.5]} rotation={[0, getObjectById("fire-extinguisher")?.rotY ?? -Math.PI / 2, 0]}>
         <mesh position={[0, 0.15, 0]}>
           <boxGeometry args={[0.12, 0.35, 0.04]} />
           <Mat color="#333333" roughness={0.5} />
@@ -6080,7 +6080,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       ))}
 
       {/* "NO FOOD OR DRINKS IN THE STORE" sign on back wall */}
-      <group position={[3, 2.4, -ROOM_D / 2 + 0.06]}>
+      <group position={[getObjectById("no-food-sign")?.x ?? 3, getObjectById("no-food-sign")?.y ?? 2.4, getObjectById("no-food-sign")?.z ?? -ROOM_D / 2 + 0.06]}>
         <mesh>
           <boxGeometry args={[1.6, 0.25, 0.02]} />
           <Mat color="#ffffff" roughness={0.8} />
@@ -6091,7 +6091,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* "MOVIE OF THE WEEK" spotlight display on back wall */}
-      <group position={[0, 1.6, -ROOM_D / 2 + 0.12]}>
+      <group position={[getObjectById("movie-of-week")?.x ?? 0, getObjectById("movie-of-week")?.y ?? 1.6, getObjectById("movie-of-week")?.z ?? -ROOM_D / 2 + 0.12]}>
         <mesh>
           <boxGeometry args={[0.35, 0.04, 0.12]} />
           <Mat color="#8a6838" roughness={0.6} />
@@ -6144,7 +6144,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* ── ENTRANCE AREA ─────────────────────────────────────── */}
 
       {/* Umbrella stand near the door */}
-      <group position={[1.8, 0, 6.2]}>
+      <group position={[getObjectById("umbrella-stand")?.x ?? 1.8, getObjectById("umbrella-stand")?.y ?? 0, getObjectById("umbrella-stand")?.z ?? 6.2]}>
         <mesh position={[0, 0.25, 0]}>
           <cylinderGeometry args={[0.12, 0.14, 0.5, 10]} />
           <Mat color="#3a3a3a" roughness={0.6} />
@@ -6164,7 +6164,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* "WE BUY USED TAPES" sign in the window */}
-      <group position={[-3.5, 1.0, ROOM_D / 2 + 0.02]}>
+      <group position={[getObjectById("we-buy-tapes")?.x ?? -3.5, getObjectById("we-buy-tapes")?.y ?? 1.0, getObjectById("we-buy-tapes")?.z ?? ROOM_D / 2 + 0.02]}>
         <mesh>
           <boxGeometry args={[1.2, 0.3, 0.005]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
@@ -6181,7 +6181,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Stack of free local newspapers/flyers near the door */}
-      <group position={[-2.5, 0, 6.0]}>
+      <group position={[getObjectById("newspaper-stand")?.x ?? -2.5, getObjectById("newspaper-stand")?.y ?? 0, getObjectById("newspaper-stand")?.z ?? 6.0]}>
         <mesh position={[0, 0.3, 0]}>
           <boxGeometry args={[0.4, 0.04, 0.3]} />
           <Mat color="#777777" roughness={0.5} />
@@ -6202,7 +6202,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* "COMING SOON" poster board near entrance */}
-      <group position={[7.5, 1.8, 6.2]} rotation={[0, -0.4, 0]}>
+      <group position={[getObjectById("coming-soon-board")?.x ?? 7.5, getObjectById("coming-soon-board")?.y ?? 1.8, getObjectById("coming-soon-board")?.z ?? 6.2]} rotation={[0, getObjectById("coming-soon-board")?.rotY ?? -0.4, 0]}>
         <mesh>
           <boxGeometry args={[1.0, 1.2, 0.04]} />
           <Mat color="#0a1830" roughness={0.6} />
@@ -6230,7 +6230,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* 10. Clock on the back wall */}
-      <group position={[6, 2.8, -6.95]}>
+      <group position={[getObjectById("clock-back")?.x ?? 6, getObjectById("clock-back")?.y ?? 2.8, getObjectById("clock-back")?.z ?? -6.95]}>
         {/* Clock face */}
         <mesh>
           <circleGeometry args={[0.35, 32]} />
