@@ -3535,7 +3535,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <meshBasicMaterial color="#2a2a40" />
       </mesh>
       {/* Sidewalk in front of store */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, ROOM_D / 2 + 0.8]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[getObjectById("sidewalk")?.x ?? 0, -0.04, getObjectById("sidewalk")?.z ?? ROOM_D / 2 + 0.8]}>
         <planeGeometry args={[ROOM_W + 2, 1.5]} />
         <meshBasicMaterial color="#4a4a4a" />
       </mesh>
@@ -3669,12 +3669,12 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
            PIZZA PALACE — left neighbor (centered x=-13, z=7)
          ══════════════════════════════════════════════════════════ */}
       {/* Left neighbor wall */}
-      <mesh position={[-ROOM_W / 2 - 3, ROOM_H / 2, ROOM_D / 2]}>
+      <mesh position={[getObjectById("pizza-building")?.x ?? -ROOM_W / 2 - 3, ROOM_H / 2, getObjectById("pizza-building")?.z ?? ROOM_D / 2]}>
         <boxGeometry args={[6, ROOM_H, 0.3]} />
         <meshBasicMaterial color="#2a2a30" />
       </mesh>
       {/* Left neighbor door */}
-      <mesh position={[-ROOM_W / 2 - 2.5, 1.1, ROOM_D / 2 + 0.16]}>
+      <mesh position={[getObjectById("pizza-door")?.x ?? -ROOM_W / 2 - 2.5, 1.1, getObjectById("pizza-door")?.z ?? ROOM_D / 2 + 0.16]}>
         <planeGeometry args={[1.0, 2.2]} />
         <meshBasicMaterial color="#111115" />
       </mesh>
@@ -3721,7 +3721,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Neon pizza slice sign — triangle */}
-      <group position={[-ROOM_W / 2 - 4.5, ROOM_H - 0.3, ROOM_D / 2 + 0.2]}>
+      <group position={[getObjectById("pizza-slice-sign")?.x ?? -ROOM_W / 2 - 4.5, ROOM_H - 0.3, getObjectById("pizza-slice-sign")?.z ?? ROOM_D / 2 + 0.2]}>
         <mesh rotation={[0, 0, 0.1]}>
           <coneGeometry args={[0.35, 0.6, 3]} />
           <meshBasicMaterial color="#ff6622" toneMapped={false} />
@@ -3750,7 +3750,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       ))}
 
       {/* Pizza Palace window — warm glow */}
-      <mesh position={[-ROOM_W / 2 - 3.8, 1.4, ROOM_D / 2 + 0.17]}>
+      <mesh position={[getObjectById("pizza-window")?.x ?? -ROOM_W / 2 - 3.8, 1.4, getObjectById("pizza-window")?.z ?? ROOM_D / 2 + 0.17]}>
         <planeGeometry args={[1.8, 1.6]} />
         <meshBasicMaterial color="#443311" transparent opacity={0.6} />
       </mesh>
@@ -3784,7 +3784,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Menu board outside door */}
-      <group position={[-ROOM_W / 2 - 1.6, 1.2, ROOM_D / 2 + 0.4]}>
+      <group position={[getObjectById("pizza-menu")?.x ?? -ROOM_W / 2 - 1.6, 1.2, getObjectById("pizza-menu")?.z ?? ROOM_D / 2 + 0.4]}>
         {/* A-frame board */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[0.6, 0.9, 0.05]} />
@@ -3840,12 +3840,12 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
            LAUNDROMAT — right neighbor
          ══════════════════════════════════════════════════════════ */}
       {/* Right neighbor wall */}
-      <mesh position={[ROOM_W / 2 + 3, ROOM_H / 2, ROOM_D / 2]}>
+      <mesh position={[getObjectById("laundro-building")?.x ?? ROOM_W / 2 + 3, ROOM_H / 2, getObjectById("laundro-building")?.z ?? ROOM_D / 2]}>
         <boxGeometry args={[6, ROOM_H, 0.3]} />
         <meshBasicMaterial color="#2a2a30" />
       </mesh>
       {/* Right neighbor door */}
-      <mesh position={[ROOM_W / 2 + 3.5, 1.1, ROOM_D / 2 + 0.16]}>
+      <mesh position={[getObjectById("laundro-door")?.x ?? ROOM_W / 2 + 3.5, 1.1, getObjectById("laundro-door")?.z ?? ROOM_D / 2 + 0.16]}>
         <planeGeometry args={[1.0, 2.2]} />
         <meshBasicMaterial color="#111115" />
       </mesh>
@@ -3878,7 +3878,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </mesh>
 
       {/* Laundromat large window */}
-      <mesh position={[ROOM_W / 2 + 2, 1.4, ROOM_D / 2 + 0.17]}>
+      <mesh position={[getObjectById("laundro-window")?.x ?? ROOM_W / 2 + 2, 1.4, getObjectById("laundro-window")?.z ?? ROOM_D / 2 + 0.17]}>
         <planeGeometry args={[2.2, 1.8]} />
         <meshBasicMaterial color="#223344" transparent opacity={0.5} />
       </mesh>
@@ -3914,7 +3914,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* Fluorescent blue-white light from laundromat */}
 
       {/* Spinning "OPEN" sign */}
-      <group position={[ROOM_W / 2 + 1.2, 2.0, ROOM_D / 2 + 0.25]}>
+      <group position={[getObjectById("laundro-open")?.x ?? ROOM_W / 2 + 1.2, 2.0, getObjectById("laundro-open")?.z ?? ROOM_D / 2 + 0.25]}>
         <mesh>
           <boxGeometry args={[0.7, 0.35, 0.04]} />
           <meshBasicMaterial color="#111111" />
@@ -4072,7 +4072,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Storm drain grate ──────── */}
-      <group position={[-7, -0.045, ROOM_D / 2 + 6]} rotation={[-Math.PI / 2, 0, 0]}>
+      <group position={[getObjectById("storm-drain")?.x ?? -7, -0.045, getObjectById("storm-drain")?.z ?? ROOM_D / 2 + 6]} rotation={[-Math.PI / 2, 0, 0]}>
         {/* Grate border */}
         <mesh>
           <planeGeometry args={[0.6, 0.4]} />
@@ -4100,7 +4100,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </mesh>
       ))}
       {/* ── Stray shopping cart in parking lot (away from cart return) ──── */}
-      <group position={[-5, 0, ROOM_D / 2 + 6]} rotation={[0, 0.4, 0]}>
+      <group position={[getObjectById("stray-cart")?.x ?? -5, 0, getObjectById("stray-cart")?.z ?? ROOM_D / 2 + 6]} rotation={[0, getObjectById("stray-cart")?.rotY ?? 0.4, 0]}>
         <mesh position={[0, 0.45, 0]}>
           <boxGeometry args={[0.45, 0.3, 0.3]} />
           <meshBasicMaterial color="#888888" wireframe />
@@ -4118,11 +4118,11 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Puddle on asphalt ──── */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[3, -0.042, ROOM_D / 2 + 5]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[getObjectById("puddle")?.x ?? 3, -0.042, getObjectById("puddle")?.z ?? ROOM_D / 2 + 5]}>
         <circleGeometry args={[0.8, 16]} />
         <meshBasicMaterial color="#0a0a14" transparent opacity={0.7} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[3, -0.041, ROOM_D / 2 + 5]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[getObjectById("puddle")?.x ?? 3, -0.041, getObjectById("puddle")?.z ?? ROOM_D / 2 + 5]}>
         <circleGeometry args={[0.5, 12]} />
         <meshBasicMaterial color="#181830" transparent opacity={0.4} />
       </mesh>
@@ -4145,20 +4145,20 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Parking lot speed bump ──── */}
-      <mesh position={[0, 0.03, ROOM_D / 2 + 3]}>
+      <mesh position={[getObjectById("speed-bump")?.x ?? 0, 0.03, getObjectById("speed-bump")?.z ?? ROOM_D / 2 + 3]}>
         <boxGeometry args={[12, 0.06, 0.4]} />
         <meshBasicMaterial color="#333338" />
       </mesh>
       {/* Yellow stripes on speed bump */}
       {[-5, -3, -1, 1, 3, 5].map((sx, i) => (
-        <mesh key={`bump-stripe-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[sx, 0.065, ROOM_D / 2 + 3]}>
+        <mesh key={`bump-stripe-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[sx, 0.065, getObjectById("speed-bump")?.z ?? ROOM_D / 2 + 3]}>
           <planeGeometry args={[0.3, 0.35]} />
           <meshBasicMaterial color="#ccaa22" />
         </mesh>
       ))}
 
       {/* ── CUSTOMER PARKING ONLY sign on a post ──── */}
-      <group position={[-9, 0, ROOM_D / 2 + 4]}>
+      <group position={[getObjectById("customer-parking-sign")?.x ?? -9, 0, getObjectById("customer-parking-sign")?.z ?? ROOM_D / 2 + 4]}>
         <mesh position={[0, 0.8, 0]}>
           <cylinderGeometry args={[0.025, 0.03, 1.6, 6]} />
           <meshBasicMaterial color="#666666" />
@@ -4350,7 +4350,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Pizza box trash can near Pizza Palace door ──── */}
-      <group position={[-ROOM_W / 2 - 1.8, 0, ROOM_D / 2 + 0.6]}>
+      <group position={[getObjectById("pizza-trash")?.x ?? -ROOM_W / 2 - 1.8, 0, getObjectById("pizza-trash")?.z ?? ROOM_D / 2 + 0.6]}>
         <mesh position={[0, 0.3, 0]}>
           <boxGeometry args={[0.35, 0.6, 0.35]} />
           <meshBasicMaterial color="#555555" />
@@ -4371,7 +4371,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── "24 HOUR" sign on Laundromat ──── */}
-      <group position={[ROOM_W / 2 + 4.2, 1.8, ROOM_D / 2 + 0.19]}>
+      <group position={[getObjectById("laundro-24hr")?.x ?? ROOM_W / 2 + 4.2, getObjectById("laundro-24hr")?.y ?? 1.8, getObjectById("laundro-24hr")?.z ?? ROOM_D / 2 + 0.19]}>
         <mesh>
           <boxGeometry args={[0.9, 0.28, 0.02]} />
           <meshBasicMaterial color="#0a0a1a" />
@@ -4389,7 +4389,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Vending machine near laundromat ──── */}
-      <group position={[ROOM_W / 2 + 4.8, 0, ROOM_D / 2 + 0.2]}>
+      <group position={[getObjectById("vending-machine")?.x ?? ROOM_W / 2 + 4.8, 0, getObjectById("vending-machine")?.z ?? ROOM_D / 2 + 0.2]}>
         <mesh position={[0, 0.9, 0]}>
           <boxGeometry args={[0.6, 1.8, 0.5]} />
           <meshBasicMaterial color="#2244aa" />
@@ -4445,7 +4445,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Street lamp further out ──── */}
-      <group position={[-12, 0, ROOM_D / 2 + 12]}>
+      <group position={[getObjectById("street-lamp-left")?.x ?? -12, 0, getObjectById("street-lamp-left")?.z ?? ROOM_D / 2 + 12]}>
         {/* Pole */}
         <mesh position={[0, 3, 0]}>
           <cylinderGeometry args={[0.05, 0.08, 6, 8]} />
@@ -4470,7 +4470,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Second street lamp on other side ──── */}
-      <group position={[12, 0, ROOM_D / 2 + 12]}>
+      <group position={[getObjectById("street-lamp-right")?.x ?? 12, 0, getObjectById("street-lamp-right")?.z ?? ROOM_D / 2 + 12]}>
         <mesh position={[0, 3, 0]}>
           <cylinderGeometry args={[0.05, 0.08, 6, 8]} />
           <meshBasicMaterial color="#555555" />
@@ -4566,7 +4566,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* ── Power line poles and wires ──── */}
       {/* Left pole */}
-      <group position={[-14, 0, ROOM_D / 2 + 10]}>
+      <group position={[getObjectById("power-pole-left")?.x ?? -14, 0, getObjectById("power-pole-left")?.z ?? ROOM_D / 2 + 10]}>
         <mesh position={[0, 4, 0]}>
           <cylinderGeometry args={[0.06, 0.1, 8, 6]} />
           <meshBasicMaterial color="#554433" />
@@ -4585,7 +4585,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         ))}
       </group>
       {/* Right pole */}
-      <group position={[14, 0, ROOM_D / 2 + 10]}>
+      <group position={[getObjectById("power-pole-right")?.x ?? 14, 0, getObjectById("power-pole-right")?.z ?? ROOM_D / 2 + 10]}>
         <mesh position={[0, 4, 0]}>
           <cylinderGeometry args={[0.06, 0.1, 8, 6]} />
           <meshBasicMaterial color="#554433" />
@@ -5979,7 +5979,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Bargain bin — open crate near the front with "2 FOR $1" sign */}
-      <group position={[-1.5, 0, 4.5]}>
+      <group position={[getObjectById("bargain-crate")?.x ?? -1.5, getObjectById("bargain-crate")?.y ?? 0, getObjectById("bargain-crate")?.z ?? 4.5]}>
         <mesh position={[0, 0.25, 0]}>
           <boxGeometry args={[0.9, 0.5, 0.7]} />
           <Mat color="#6a4a20" roughness={0.9} />
