@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { registerNPCPosition, unregisterNPCPosition, playSFX } from "@/lib/audio";
 import { type NpcPersonality, type PersonalityType, PERSONALITIES, getRandomAdultPersonality, getPersonalityLabel } from "@/lib/npc-personalities";
+import { getShelfRows, getObjectById } from "@/lib/store-layout";
 
 // Mobile context — meshBasicMaterial on mobile, meshToonMaterial on desktop
 const MobileCtx = createContext(false);
@@ -312,20 +313,8 @@ const CEILING_COLOR = "#969081";  // Warm retail drop ceiling
 const COUNTER_COLOR = "#8a6830";  // warmer wood
 const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't disappear
 
-// ── Shelf layout ─────────────────────────────────────────
-const SHELF_ROWS = [
-  // 7 angled gondolas in 3 staggered rows — based on real Blockbuster floor plan
-  // Row 1 — back area, angled right (~15°)
-  { x: -5, z: -4, genre: "HORROR", color: "#dc2626", backGenre: "CULT", backColor: "#991b1b", rotY: 0.25 },
-  { x: -1, z: -4, genre: "SCI-FI", color: "#3b82f6", backGenre: "FOREIGN", backColor: "#6366f1", rotY: 0.25 },
-  { x: 3, z: -4, genre: "COMEDY", color: "#f97316", backGenre: "INDIE", backColor: "#a855f7", rotY: 0.25 },
-  // Row 2 — middle, angled left
-  { x: -5, z: -1, genre: "ACTION", color: "#ef4444", backGenre: "THRILLER", backColor: "#7c3aed", rotY: -0.15 },
-  { x: 0, z: -1, genre: "CLASSICS", color: "#ca8a04", backGenre: "DOCS", backColor: "#65a30d", rotY: -0.15 },
-  // Row 3 — front area, angled right
-  { x: -4, z: 2, genre: "FAMILY", color: "#22c55e", backGenre: "ANIMATED", backColor: "#06b6d4", rotY: 0.2 },
-  { x: 1, z: 2, genre: "WESTERN", color: "#92400e", backGenre: "ROMANCE", backColor: "#f43f5e", rotY: 0.2 },
-];
+// ── Shelf layout — driven by store-layout.ts ─────────────
+const SHELF_ROWS = getShelfRows();
 
 /** Instanced fallback VHS boxes — one draw call for all solid-colored boxes on a side */
 function InstancedVHSBoxes({ positions, color }: { positions: [number, number, number][]; color: string }) {
@@ -567,8 +556,9 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
 }
 
 function Counter() {
+  const pos = getObjectById("counter");
   return (
-    <group position={[7, 0, 5]} rotation={[0, 0, 0]}>
+    <group position={[pos?.x ?? 7, pos?.y ?? 0, pos?.z ?? 5]} rotation={[0, 0, 0]}>
       {/* Counter — front-right near entrance, based on real Blockbuster layout */}
       <RoundedBox args={[6, 0.85, 1.2]} radius={0.03} smoothness={3} position={[0, 0.425, 0]}>
         <Mat color="#5a3820" roughness={0.8} />
@@ -826,7 +816,7 @@ function VinnyCharacter() {
   });
 
   return (
-    <group ref={ref} position={[7, 0, 5.8]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
+    <group ref={ref} position={[getObjectById("vinny")?.x ?? 7, 0, getObjectById("vinny")?.z ?? 5.8]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
       {/* Legs — Khaki pants */}
       <mesh position={[-0.09, 0.35, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
         <boxGeometry args={[0.13, 0.7, 0.15]} />
@@ -1451,7 +1441,8 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
 // Rare NPC (30% spawn) — walks fast, wears Hawaiian shirt, rants about movies
 function TarantinoNPC() {
   const id = "npc-tarantino";
-  const startPos: [number, number, number] = [0, -0.05, -2.5];
+  const _tPos = getObjectById("tarantino");
+  const startPos: [number, number, number] = [_tPos?.x ?? 0, _tPos?.y ?? -0.05, _tPos?.z ?? -2.5];
   const ref = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Mesh>(null);
   const rightLegRef = useRef<THREE.Mesh>(null);
@@ -1895,7 +1886,8 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
   const rightArmRef = useRef<THREE.Mesh>(null);
   const charlieId = "charlie";
   const speed = 0.8;
-  const startPos: [number, number, number] = [-2, -0.05, 1.5];
+  const _cPos = getObjectById("charlie");
+  const startPos: [number, number, number] = [_cPos?.x ?? -2, _cPos?.y ?? -0.05, _cPos?.z ?? 1.5];
   const startIdx = useMemo(() => {
     let best = 0;
     let bestDist = Infinity;
@@ -2352,8 +2344,9 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
 }
 
 function NeonSign() {
+  const pos = getObjectById("neon-sign");
   return (
-    <group position={[0, 3.1, -ROOM_D / 2 + 0.15]}>
+    <group position={[pos?.x ?? 0, pos?.y ?? 3.1, pos?.z ?? (-ROOM_D / 2 + 0.15)]}>
       {/* Simple dark backing with gold text — clean, no haze */}
       <mesh position={[0, 0, -0.01]}>
         <boxGeometry args={[5.8, 0.4, 0.03]} />
@@ -2660,8 +2653,9 @@ const STAFF_PICK_MOVIES = [
 ];
 
 function StaffPicksShelf() {
+  const pos = getObjectById("staff-picks");
   return (
-    <group position={[ROOM_W / 2 - 0.3, 1.2, -0.1]} rotation={[0, -Math.PI / 2, 0]}>
+    <group position={[pos?.x ?? (ROOM_W / 2 - 0.3), pos?.y ?? 1.2, pos?.z ?? -0.1]} rotation={[0, -Math.PI / 2, 0]}>
       {/* Shelf board */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[1.2, 0.04, 0.22]} />
@@ -2826,7 +2820,7 @@ function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
   const TIER_YS = [0.3, 0.8, 1.3];
 
   return (
-    <group position={[ROOM_W / 2 - 0.3, 0, -4]} rotation={[0, -Math.PI / 2, 0]} userData={{ interactType: "trophy", label: "View Collection" }}>
+    <group position={[getObjectById("trophy-shelf")?.x ?? (ROOM_W / 2 - 0.3), 0, getObjectById("trophy-shelf")?.z ?? -4]} rotation={[0, -Math.PI / 2, 0]} userData={{ interactType: "trophy", label: "View Collection" }}>
       {/* Shelf unit — back panel */}
       <mesh position={[0, 0.85, -0.06]}>
         <boxGeometry args={[2.5, 1.7, 0.04]} />
@@ -3364,19 +3358,19 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* ── PERIMETER WALL SHELVING ─── */}
       {/* Back wall — DRAMA (left half) */}
-      <WallShelf position={[-5, 0, -ROOM_D/2 + 0.15]} rotation={[0, 0, 0]}
+      <WallShelf position={[getObjectById("wallshelf-back-drama")?.x ?? -5, 0, -ROOM_D/2 + 0.15]} rotation={[0, 0, 0]}
         width={6} genre="DRAMA" color="#6366f1" isMobile={isMobile} />
 
       {/* Left wall — upper section */}
-      <WallShelf position={[-ROOM_W/2 + 0.15, 0, -3]} rotation={[0, Math.PI/2, 0]}
+      <WallShelf position={[-ROOM_W/2 + 0.15, 0, getObjectById("wallshelf-left-foreign")?.z ?? -3]} rotation={[0, Math.PI/2, 0]}
         width={4} genre="FOREIGN" color="#6366f1" isMobile={isMobile} />
 
       {/* Left wall — lower section */}
-      <WallShelf position={[-ROOM_W/2 + 0.15, 0, 1]} rotation={[0, Math.PI/2, 0]}
+      <WallShelf position={[-ROOM_W/2 + 0.15, 0, getObjectById("wallshelf-left-docs")?.z ?? 1]} rotation={[0, Math.PI/2, 0]}
         width={4} genre="DOCS" color="#65a30d" isMobile={isMobile} />
 
       {/* Right wall — NEW RELEASES (main section) */}
-      <WallShelf position={[ROOM_W/2 - 0.15, 0, -2]} rotation={[0, -Math.PI/2, 0]}
+      <WallShelf position={[ROOM_W/2 - 0.15, 0, getObjectById("wallshelf-right-new")?.z ?? -2]} rotation={[0, -Math.PI/2, 0]}
         width={8} genre="NEW" color="#ec4899" isMobile={isMobile} />
 
       {/* Hanging aisle signs */}
@@ -3407,7 +3401,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
           personality={npc.personality}
         />
       ))}
-      {maxNpcs >= 1 && <KidCustomer startPos={[0, -0.05, 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
+      {maxNpcs >= 1 && <KidCustomer startPos={[getObjectById("kid")?.x ?? 0, -0.05, getObjectById("kid")?.z ?? 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
       <CharlieCharacter isMobile={isMobile} />
       {showTarantino && <TarantinoNPC />}
 
@@ -3418,23 +3412,22 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       <NeonSign />
 
       {/* Left wall CRT monitor */}
-      <WallCrtTv position={[-9.05, 2.2, -2.8]} yaw={Math.PI / 2 - 0.18} tilt={0.12} scale={0.84} pipeDrop={0.96} />
+      <WallCrtTv position={[getObjectById("tv-left")?.x ?? -9.05, getObjectById("tv-left")?.y ?? 2.2, getObjectById("tv-left")?.z ?? -2.8]} yaw={Math.PI / 2 - 0.18} tilt={0.12} scale={0.84} pipeDrop={0.96} />
 
       {/* Wall posters — back wall */}
-      {/* Back wall posters — flanking the new releases rack */}
-      <WallPoster x={-7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#b91c1c" title="JAWS" />
-      <WallPoster x={-9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#1d4ed8" title="ALIEN" />
-      <WallPoster x={7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#7c3aed" title="BLADE RUNNER" />
-      <WallPoster x={9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#059669" title="RAIDERS" />
+      <WallPoster x={getObjectById("poster-jaws")?.x ?? -7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#b91c1c" title="JAWS" />
+      <WallPoster x={getObjectById("poster-alien")?.x ?? -9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#1d4ed8" title="ALIEN" />
+      <WallPoster x={getObjectById("poster-blade")?.x ?? 7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#7c3aed" title="BLADE RUNNER" />
+      <WallPoster x={getObjectById("poster-raiders")?.x ?? 9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#059669" title="RAIDERS" />
 
       {/* Wall posters — side walls */}
-      <WallPoster x={-ROOM_W / 2 + 0.1} y={2.0} z={-2.78} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
-      <WallPoster x={-ROOM_W / 2 + 0.04} y={2.0} z={1.32} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
-      <WallPoster x={ROOM_W / 2 - 0.16} y={2.0} z={2.95} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
-      <WallPoster x={ROOM_W / 2 - 0.13} y={2.0} z={5.19} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
+      <WallPoster x={-ROOM_W / 2 + 0.1} y={2.0} z={getObjectById("poster-shining")?.z ?? -2.78} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
+      <WallPoster x={-ROOM_W / 2 + 0.04} y={2.0} z={getObjectById("poster-starwars")?.z ?? 1.32} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
+      <WallPoster x={ROOM_W / 2 - 0.16} y={2.0} z={getObjectById("poster-bttf")?.z ?? 2.95} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
+      <WallPoster x={ROOM_W / 2 - 0.13} y={2.0} z={getObjectById("poster-et")?.z ?? 5.19} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
 
       {/* "BE KIND REWIND" sign on left wall — clear of Star Wars poster at z=1 */}
-      <group position={[-ROOM_W / 2 + 0.12, 2.0, 3.5]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.12, 2.0, getObjectById("be-kind-sign")?.z ?? 3.5]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.5, 0.35, 0.03]} />
           <Mat color="#0a1a3a" roughness={0.6} />
@@ -3449,7 +3442,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* "OPEN" neon sign near entrance — classic hanging sign */}
       {/* OPEN sign in the window — visible from both inside and outside */}
-      <group position={[-4, 2.3, ROOM_D / 2]} rotation={[0, 0, 0]}>
+      <group position={[getObjectById("open-sign")?.x ?? -4, getObjectById("open-sign")?.y ?? 2.3, ROOM_D / 2]} rotation={[0, 0, 0]}>
         {/* Sign backing — dark */}
         <mesh>
           <boxGeometry args={[1.0, 0.45, 0.03]} />
@@ -3945,14 +3938,14 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </mesh>
 
       {/* Parking lot cars — Kenney GLB models, scale 1.2 for person-sized */}
-      <KenneyCar model="sedan" position={[5, 0, ROOM_D/2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
-      <KenneyCar model="van" position={[-4, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
-      <KenneyCar model="suv" position={[1, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
-      <KenneyCar model="hatchback-sports" position={[-7, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
-      <KenneyCar model="taxi" position={[8, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
+      <KenneyCar model="sedan" position={[getObjectById("car-sedan")?.x ?? 5, 0, ROOM_D/2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
+      <KenneyCar model="van" position={[getObjectById("car-van")?.x ?? -4, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <KenneyCar model="suv" position={[getObjectById("car-suv")?.x ?? 1, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
+      <KenneyCar model="hatchback-sports" position={[getObjectById("car-hatchback")?.x ?? -7, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <KenneyCar model="taxi" position={[getObjectById("car-taxi")?.x ?? 8, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
 
       {/* ── Handicap parking sign ──────── */}
-      <group position={[-1.5, 0, ROOM_D / 2 + 3.5]}>
+      <group position={[getObjectById("handicap-sign")?.x ?? -1.5, 0, ROOM_D / 2 + 3.5]}>
         {/* Post */}
         <mesh position={[0, 0.8, 0]}>
           <cylinderGeometry args={[0.025, 0.03, 1.6, 6]} />
@@ -3976,7 +3969,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Bike rack with kid's bike ──────── */}
-      <group position={[8, 0, ROOM_D / 2 + 1]}>
+      <group position={[getObjectById("bike-rack")?.x ?? 8, 0, ROOM_D / 2 + 1]}>
         {/* Rack — inverted U shape */}
         <mesh position={[0, 0.5, 0]}>
           <torusGeometry args={[0.25, 0.02, 8, 12, Math.PI]} />
@@ -4233,7 +4226,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Newspaper box / vending machine near sidewalk ──── */}
-      <group position={[-6, 0, ROOM_D / 2 + 1.2]}>
+      <group position={[getObjectById("newspaper-box")?.x ?? -6, 0, ROOM_D / 2 + 1.2]}>
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[0.5, 1.0, 0.4]} />
           <meshBasicMaterial color="#cc3333" />
@@ -4270,7 +4263,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Fire hydrant on sidewalk ──── */}
-      <group position={[6, 0, ROOM_D / 2 + 1.2]}>
+      <group position={[getObjectById("fire-hydrant")?.x ?? 6, 0, ROOM_D / 2 + 1.2]}>
         {/* Main body */}
         <mesh position={[0, 0.25, 0]}>
           <cylinderGeometry args={[0.1, 0.12, 0.5, 8]} />
@@ -4303,7 +4296,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Bench on sidewalk ──── */}
-      <group position={[3, 0, ROOM_D / 2 + 1.1]}>
+      <group position={[getObjectById("bench")?.x ?? 3, 0, ROOM_D / 2 + 1.1]}>
         {/* Seat */}
         <mesh position={[0, 0.4, 0]}>
           <boxGeometry args={[1.0, 0.05, 0.35]} />
@@ -4339,7 +4332,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Trash can on sidewalk ──── */}
-      <group position={[-4, 0, ROOM_D / 2 + 1.1]}>
+      <group position={[getObjectById("trash-can-ext")?.x ?? -4, 0, ROOM_D / 2 + 1.1]}>
         <mesh position={[0, 0.35, 0]}>
           <cylinderGeometry args={[0.18, 0.2, 0.7, 10]} />
           <meshBasicMaterial color="#336633" />
@@ -4535,12 +4528,12 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       ))}
 
       {/* ── Additional parked cars ──── */}
-      <KenneyCar model="sedan" position={[-10, 0, ROOM_D / 2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
-      <KenneyCar model="police" position={[10, 0, ROOM_D / 2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
-      <KenneyCar model="delivery" position={[-2, 0, ROOM_D / 2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <KenneyCar model="sedan" position={[getObjectById("car-sedan2")?.x ?? -10, 0, ROOM_D / 2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <KenneyCar model="police" position={[getObjectById("car-police")?.x ?? 10, 0, ROOM_D / 2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
+      <KenneyCar model="delivery" position={[getObjectById("car-delivery")?.x ?? -2, 0, ROOM_D / 2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
 
       {/* ── Dumpster behind the strip mall ──── */}
-      <group position={[-8, 0, -ROOM_D / 2 - 0.5]}>
+      <group position={[getObjectById("dumpster")?.x ?? -8, 0, -ROOM_D / 2 - 0.5]}>
         {/* Dumpster body */}
         <mesh position={[0, 0.6, 0]}>
           <boxGeometry args={[1.8, 1.2, 1.2]} />
@@ -4802,7 +4795,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </mesh>
 
       {/* Featured new releases standee just inside the entrance */}
-      <group position={[5.5, 0, 5.66]} rotation={[0, -0.02, 0]}>
+      <group position={[getObjectById("featured-standee")?.x ?? 5.5, 0, getObjectById("featured-standee")?.z ?? 5.66]} rotation={[0, getObjectById("featured-standee")?.rotY ?? -0.02, 0]}>
         <mesh position={[0, 0.72, 0]}>
           <boxGeometry args={[0.56, 1.24, 0.035]} />
           <Mat color="#f0e5b8" roughness={0.82} />
@@ -4914,7 +4907,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </mesh>
 
       {/* ── Return window (outside, left of entrance — behind counter) ──────── */}
-      <group position={[-8, 0, ROOM_D / 2 + 0.1]} userData={{ interactType: "return_slot", label: "Video Return Slot" }}>
+      <group position={[getObjectById("return-slot")?.x ?? -8, 0, ROOM_D / 2 + 0.1]} userData={{ interactType: "return_slot", label: "Video Return Slot" }}>
         {/* Return counter structure */}
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[1.5, 1.0, 0.6]} />
@@ -4976,7 +4969,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── Recent Returns display on counter top ──────── */}
-      <group position={[-3.88, 1.08, 5.77]}>
+      <group position={[getObjectById("recent-returns")?.x ?? -3.88, getObjectById("recent-returns")?.y ?? 1.08, getObjectById("recent-returns")?.z ?? 5.77]}>
         {/* Small sign */}
         <mesh position={[0, 0.2, 0]}>
           <boxGeometry args={[1.6, 0.25, 0.03]} />
@@ -5047,7 +5040,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* Old drop box removed — return window is now outside */}
 
       {/* Bulletin board on left wall */}
-      <group position={[-ROOM_W / 2 + 0.08, 1.6, 4.8]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.08, getObjectById("bulletin-board")?.y ?? 1.6, getObjectById("bulletin-board")?.z ?? 4.8]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.2, 0.8, 0.05]} />
           <Mat color="#7a5a30" roughness={0.85} />
@@ -5062,7 +5055,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── MOVIE NIGHT CHALLENGE BOARD ─────────────────────── */}
-      <group position={[ROOM_W / 2 - 0.08, 1.62, 2.65]} rotation={[0, -Math.PI / 2, 0]}
+      <group position={[ROOM_W / 2 - 0.08, getObjectById("challenge-board")?.y ?? 1.62, getObjectById("challenge-board")?.z ?? 2.65]} rotation={[0, -Math.PI / 2, 0]}
         userData={{ interactType: "challenge", label: "Challenge Board" }}
       >
         {/* Board backing */}
@@ -5130,7 +5123,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       ))}
 
       {/* "EMPLOYEES ONLY" door on left wall */}
-      <group position={[-ROOM_W / 2 + 0.07, 0, -5.19]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.07, 0, getObjectById("employees-door")?.z ?? -5.19]} rotation={[0, Math.PI / 2, 0]}>
         {/* Door — swings open when backRoomOpen */}
         <AnimatedEmployeeDoor open={backRoomOpen}>
           <group userData={{ interactType: "employees_door", label: "Employees Only" }}>
@@ -5309,7 +5302,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* "LATE FEES" warning sign near checkout */}
-      <group position={[ROOM_W / 2 - 0.1, 1.5, 5.2]} rotation={[0, -Math.PI / 2, 0]}>
+      <group position={[ROOM_W / 2 - 0.1, getObjectById("late-fees-sign")?.y ?? 1.5, getObjectById("late-fees-sign")?.z ?? 5.2]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[1.0, 0.6, 0.02]} />
           <Mat color="#0a1a3a" roughness={0.6} />
@@ -5369,7 +5362,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
 
       {/* "REWARDS MEMBER?" sign above counter */}
-      <group position={[7, 2.8, 5]} rotation={[0, Math.PI, 0]}>
+      <group position={[getObjectById("rewards-sign")?.x ?? 7, getObjectById("rewards-sign")?.y ?? 2.8, getObjectById("rewards-sign")?.z ?? 5]} rotation={[0, Math.PI, 0]}>
         <mesh>
           <boxGeometry args={[2.5, 0.4, 0.03]} />
           <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} />
@@ -5380,15 +5373,15 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Potted plant in corner */}
-      <KenneyModel model="pottedPlant" position={[ROOM_W / 2 - 0.5, 0, -ROOM_D / 2 + 0.5]} scale={0.5} />
+      <KenneyModel model="pottedPlant" position={[getObjectById("plant")?.x ?? (ROOM_W / 2 - 0.5), 0, getObjectById("plant")?.z ?? (-ROOM_D / 2 + 0.5)]} scale={0.5} />
 
       {/* Trash can near entrance */}
-      <KenneyModel model="trashcan" position={[-1.5, 0, ROOM_D / 2 - 1]} scale={0.5} />
+      <KenneyModel model="trashcan" position={[getObjectById("trash-can")?.x ?? -1.5, 0, getObjectById("trash-can")?.z ?? (ROOM_D / 2 - 1)]} scale={0.5} />
 
       {/* Standee removed — too big and obtrusive in entrance area */}
 
       {/* ─── Glass-front cooler near counter ─── */}
-      <group position={[8.63, 0, 3.5]}>
+      <group position={[getObjectById("cooler")?.x ?? 8.63, 0, getObjectById("cooler")?.z ?? 3.5]}>
         <mesh position={[0, 0.75, 0]}>
           <boxGeometry args={[0.8, 1.5, 0.6]} />
           <Mat color="#d6d8dd" roughness={0.55} />
@@ -5573,10 +5566,10 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Right wall CRT monitor */}
-      <WallCrtTv position={[ROOM_W / 2 - 0.72, 2.26, -3.9]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
+      <WallCrtTv position={[getObjectById("tv-right")?.x ?? (ROOM_W / 2 - 0.72), getObjectById("tv-right")?.y ?? 2.26, getObjectById("tv-right")?.z ?? -3.9]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
 
       {/* ── KIDS CORNER ────────────────── */}
-      <group position={[8, 0, -5]}>
+      <group position={[getObjectById("kids-corner")?.x ?? 8, 0, getObjectById("kids-corner")?.z ?? -5]}>
         {/* Floor mat — bright colored */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
           <planeGeometry args={[3, 2.5]} />
@@ -5641,7 +5634,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── VIDEO GAMES SECTION ────────── */}
-      <group position={[-8, 0, 4]}>
+      <group position={[getObjectById("video-games")?.x ?? -8, 0, getObjectById("video-games")?.z ?? 4]}>
         {/* "VIDEO GAMES" sign */}
         <mesh position={[0, 2.0, -0.5]}>
           <boxGeometry args={[2.5, 0.3, 0.03]} />
@@ -5684,7 +5677,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── PREVIOUSLY VIEWED BARGAIN BIN ──── */}
-      <group position={[-4, 0, 4]}>
+      <group position={[getObjectById("bargain-bin")?.x ?? -4, 0, getObjectById("bargain-bin")?.z ?? 4]}>
         {/* Low table/bin */}
         <mesh position={[0, 0.4, 0]}>
           <boxGeometry args={[2.5, 0.8, 1.2]} />
@@ -5718,7 +5711,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── INTERIOR RETURN BIN ──── */}
-      <group position={[5, 0, 5]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
+      <group position={[getObjectById("return-bin")?.x ?? 5, 0, getObjectById("return-bin")?.z ?? 5]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[0.8, 1.0, 0.6]} />
           <Mat color="#1a3a6a" roughness={0.7} />
@@ -5738,7 +5731,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* ══════════════════════════════════════════════════════════ */}
 
       {/* 1. Cardboard movie standee near entrance */}
-      <group position={[3.2, 0, 5.2]} rotation={[0, -0.3, 0]}>
+      <group position={[getObjectById("standee")?.x ?? 3.2, 0, getObjectById("standee")?.z ?? 5.2]} rotation={[0, getObjectById("standee")?.rotY ?? -0.3, 0]}>
         {/* Flat cardboard cutout — tilted slightly back */}
         <mesh position={[0, 0.9, 0]} rotation={[0.06, 0, 0]}>
           <boxGeometry args={[0.6, 1.8, 0.04]} />
@@ -5847,7 +5840,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* 8. Shopping basket holder near entrance */}
-      <group position={[-3.5, 0, 5.8]}>
+      <group position={[getObjectById("basket-holder")?.x ?? -3.5, 0, getObjectById("basket-holder")?.z ?? 5.8]}>
         {/* Rack frame */}
         <mesh position={[0, 0.45, 0]}>
           <boxGeometry args={[0.7, 0.04, 0.5]} />
@@ -6011,7 +6004,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* Step stool in one aisle (for reaching top shelf) */}
-      <group position={[-3.2, 0, -2.5]}>
+      <group position={[getObjectById("step-stool")?.x ?? -3.2, 0, getObjectById("step-stool")?.z ?? -2.5]}>
         <mesh position={[0, 0.08, 0]}>
           <boxGeometry args={[0.35, 0.16, 0.3]} />
           <Mat color="#888888" roughness={0.7} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import type { StoreLayout, LayoutObject, ObjCategory } from "@/lib/store-layout";
 
 // ── Store dimensions (from Store.tsx) ──
 // Interior: 20x14. Exterior extends to ~z=14 (parking lot) and x=-16..+16 (neighbors)
@@ -37,117 +38,73 @@ function svgToStore(sx: number, sy: number): { x: number; z: number } {
 // Min clickable size for thin objects (pixels)
 const MIN_HIT_SIZE = 20;
 
-// ── Object types ──
-type ObjCategory = "shelf" | "counter" | "npc" | "prop" | "wall" | "door" | "exterior";
-
+// ── Object types for the SVG editor ──
 interface StoreObject {
   id: string;
   label: string;
   category: ObjCategory;
   x: number;
   z: number;
-  w: number; // width in store units
-  d: number; // depth in store units
+  w: number;
+  d: number;
   color: string;
   shape: "rect" | "circle";
   genre?: string;
+  /** Original y from layout (preserved for save-back) */
+  _y?: number;
+  /** Original rotY from layout */
+  _rotY?: number;
+  /** Original meta from layout */
+  _meta?: Record<string, unknown>;
 }
 
-// ── Initial object data extracted from Store.tsx and FirstPerson.tsx ──
-// Positions updated from editor export (2026-03-30)
-const INITIAL_OBJECTS: StoreObject[] = [
-  // ── INTERIOR ─────────────────────────────────────────────
-  // Shelf Row 1 (z = -4)
-  { id: "shelf-r1-1", label: "HORROR", category: "shelf", x: -5, z: -4, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "HORROR / CULT", shape: "rect" },
-  { id: "shelf-r1-2", label: "SCI-FI", category: "shelf", x: -1.5, z: -4, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "SCI-FI / FOREIGN", shape: "rect" },
-  { id: "shelf-r1-3", label: "COMEDY", category: "shelf", x: 1.5, z: -4, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "COMEDY / INDIE", shape: "rect" },
-  { id: "shelf-r1-4", label: "DRAMA", category: "shelf", x: 5, z: -4, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "DRAMA / DOCS", shape: "rect" },
-  // Shelf Row 2 (z = -1)
-  { id: "shelf-r2-1", label: "ACTION", category: "shelf", x: -5, z: -1, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "ACTION / HORROR", shape: "rect" },
-  { id: "shelf-r2-2", label: "FAMILY", category: "shelf", x: -1.5, z: -1, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "FAMILY / SCI-FI", shape: "rect" },
-  { id: "shelf-r2-3", label: "ROMANCE", category: "shelf", x: 1.5, z: -1, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "ROMANCE / COMEDY", shape: "rect" },
-  { id: "shelf-r2-4", label: "WESTERN", category: "shelf", x: 5, z: -1, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "WESTERN / DRAMA", shape: "rect" },
-  // Shelf Row 3 (z = 2)
-  { id: "shelf-r3-1", label: "THRILLER", category: "shelf", x: -5, z: 2, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "THRILLER / ACTION", shape: "rect" },
-  { id: "shelf-r3-2", label: "ANIMATED", category: "shelf", x: -1.5, z: 2, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "ANIMATED / FAMILY", shape: "rect" },
-  { id: "shelf-r3-3", label: "DOCS", category: "shelf", x: 1.5, z: 2, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "DOCS / ROMANCE", shape: "rect" },
-  { id: "shelf-r3-4", label: "CLASSICS", category: "shelf", x: 5, z: 2, w: 3.2, d: 0.6, color: "#8B5E3C", genre: "CLASSICS / WESTERN", shape: "rect" },
-  // New Releases back wall
-  { id: "new-releases", label: "NEW RELEASES", category: "shelf", x: 0, z: -6.8, w: 19, d: 0.8, color: "#5a3820", shape: "rect" },
-  // Counter
-  { id: "counter", label: "COUNTER", category: "counter", x: -6, z: 5.5, w: 6, d: 1.2, color: "#D2B48C", shape: "rect" },
-  { id: "candy-rack", label: "Candy", category: "prop", x: -3.6, z: 4.39, w: 1.2, d: 0.8, color: "#e74c3c", shape: "rect" },
-  // NPCs
-  { id: "vinny", label: "Vinny", category: "npc", x: -6, z: 6.2, w: 0.6, d: 0.6, color: "#3b82f6", shape: "circle" },
-  { id: "charlie", label: "Charlie", category: "npc", x: -2, z: 1.5, w: 0.6, d: 0.6, color: "#3b82f6", shape: "circle" },
-  { id: "npc-0", label: "Customer 1", category: "npc", x: -3.25, z: -5.5, w: 0.5, d: 0.5, color: "#3498db", shape: "circle" },
-  { id: "npc-1", label: "Customer 2", category: "npc", x: 3.25, z: 0.5, w: 0.5, d: 0.5, color: "#e74c3c", shape: "circle" },
-  { id: "npc-2", label: "Customer 3", category: "npc", x: -3.25, z: 3.5, w: 0.5, d: 0.5, color: "#27ae60", shape: "circle" },
-  { id: "npc-3", label: "Customer 4", category: "npc", x: 3.25, z: -2.5, w: 0.5, d: 0.5, color: "#9b59b6", shape: "circle" },
-  { id: "kid", label: "Kid", category: "npc", x: 0, z: 0.5, w: 0.4, d: 0.4, color: "#f0e020", shape: "circle" },
-  { id: "tarantino", label: "Tarantino", category: "npc", x: 0, z: -2.5, w: 0.5, d: 0.5, color: "#1a1a1a", shape: "circle" },
-  // Props
-  { id: "cooler", label: "Cooler", category: "prop", x: -8.63, z: 4.53, w: 0.8, d: 0.6, color: "#aaddee", shape: "rect" },
-  { id: "trophy-shelf", label: "Trophy Shelf", category: "prop", x: 9.7, z: -4, w: 0.6, d: 2.5, color: "#ffd700", shape: "rect" },
-  { id: "staff-picks", label: "Staff Picks", category: "prop", x: 9.7, z: -0.1, w: 0.4, d: 1.2, color: "#ffd700", shape: "rect" },
-  { id: "plant", label: "Plant", category: "prop", x: 9.5, z: -6.5, w: 0.4, d: 0.4, color: "#1a5a1a", shape: "circle" },
-  { id: "trash-can", label: "Trash Can", category: "prop", x: -1.5, z: 6, w: 0.35, d: 0.35, color: "#555555", shape: "circle" },
-  { id: "recent-returns", label: "Returns Pile", category: "prop", x: -3.88, z: 5.77, w: 1.6, d: 0.4, color: "#ca8a04", shape: "rect" },
-  { id: "membership-forms", label: "Forms", category: "prop", x: -5, z: 5.3, w: 0.3, d: 0.3, color: "#f5f5f0", shape: "rect" },
-  // Wall features — posters (updated positions)
-  { id: "poster-jaws", label: "JAWS", category: "wall", x: -7, z: -6.95, w: 0.8, d: 0.2, color: "#b91c1c", shape: "rect" },
-  { id: "poster-alien", label: "ALIEN", category: "wall", x: -9, z: -6.95, w: 0.8, d: 0.2, color: "#1d4ed8", shape: "rect" },
-  { id: "poster-blade", label: "BLADE RUNNER", category: "wall", x: 7, z: -6.95, w: 0.8, d: 0.2, color: "#7c3aed", shape: "rect" },
-  { id: "poster-raiders", label: "RAIDERS", category: "wall", x: 9, z: -6.95, w: 0.8, d: 0.2, color: "#059669", shape: "rect" },
-  { id: "poster-shining", label: "THE SHINING", category: "wall", x: -9.9, z: -2.78, w: 0.2, d: 0.8, color: "#dc2626", shape: "rect" },
-  { id: "poster-starwars", label: "STAR WARS", category: "wall", x: -9.96, z: 1.32, w: 0.2, d: 0.8, color: "#f59e0b", shape: "rect" },
-  { id: "poster-bttf", label: "BACK TO FUTURE", category: "wall", x: 9.84, z: 2.95, w: 0.2, d: 0.8, color: "#ec4899", shape: "rect" },
-  { id: "poster-et", label: "E.T.", category: "wall", x: 9.87, z: 5.19, w: 0.2, d: 0.8, color: "#14b8a6", shape: "rect" },
-  // Signs (updated positions)
-  { id: "neon-sign", label: "FRIDAY NIGHT VIDEO", category: "wall", x: 0, z: -6.85, w: 5.8, d: 0.15, color: "#ffd700", shape: "rect" },
-  { id: "be-kind-sign", label: "BE KIND REWIND", category: "wall", x: -9.88, z: 3.18, w: 0.2, d: 1.5, color: "#ffd700", shape: "rect" },
-  { id: "late-fees-sign", label: "LATE FEES", category: "wall", x: -9.9, z: 5.2, w: 0.2, d: 1.0, color: "#ef4444", shape: "rect" },
-  { id: "employees-door", label: "EMPLOYEES ONLY", category: "door", x: -9.93, z: -5.19, w: 0.2, d: 0.9, color: "#4a3020", shape: "rect" },
-  { id: "rewards-sign", label: "REWARDS MEMBER?", category: "wall", x: -6, z: 6.5, w: 2.0, d: 0.15, color: "#ffd700", shape: "rect" },
-  { id: "tv", label: "CRT TV", category: "wall", x: -9.9, z: 0, w: 0.3, d: 1.2, color: "#222222", shape: "rect" },
-  { id: "entrance", label: "ENTRANCE", category: "door", x: 0, z: 6.95, w: 2.2, d: 0.2, color: "#a0c0e0", shape: "rect" },
-  { id: "return-slot", label: "Video Return", category: "prop", x: -8, z: 7.1, w: 1.5, d: 0.6, color: "#1a3a6a", shape: "rect" },
-  { id: "open-sign", label: "OPEN", category: "wall", x: -4, z: 7, w: 1.0, d: 0.15, color: "#ff0040", shape: "rect" },
+// ── Color mapping for categories ──
+const CATEGORY_COLORS: Record<ObjCategory, string> = {
+  shelf: "#8B5E3C",
+  counter: "#D2B48C",
+  npc: "#3b82f6",
+  prop: "#22c55e",
+  wall: "#ffd700",
+  door: "#a0c0e0",
+  exterior: "#ff6b6b",
+};
 
-  // ── EXTERIOR ─────────────────────────────────────────────
-  // Pizza Palace (left neighbor, centered x=-13, z=7)
-  { id: "pizza-building", label: "PIZZA PALACE", category: "exterior", x: -13, z: 7, w: 6, d: 0.3, color: "#cc3333", shape: "rect" },
-  { id: "pizza-door", label: "Pizza Door", category: "exterior", x: -12.5, z: 7.16, w: 1.0, d: 0.2, color: "#4a3020", shape: "rect" },
-  { id: "pizza-window", label: "Pizza Window", category: "exterior", x: -14, z: 7.17, w: 2.0, d: 0.2, color: "#553311", shape: "rect" },
-  { id: "pizza-slice-sign", label: "Pizza Slice", category: "exterior", x: -14.5, z: 7.2, w: 0.7, d: 0.7, color: "#ff6622", shape: "circle" },
+/** Convert a LayoutObject from the API into the editor's StoreObject format */
+function layoutToEditor(obj: LayoutObject): StoreObject {
+  const isCircle = obj.category === "npc" || obj.id.includes("lamp") || obj.id === "plant" || obj.id === "pizza-slice-sign" || obj.id.includes("hydrant") || obj.id.includes("puddle");
+  return {
+    id: obj.id,
+    label: obj.label,
+    category: obj.category,
+    x: obj.x,
+    z: obj.z,
+    w: obj.w ?? 0.5,
+    d: obj.d ?? 0.5,
+    color: (obj.meta?.color as string) || CATEGORY_COLORS[obj.category] || "#888",
+    shape: isCircle ? "circle" : "rect",
+    genre: obj.meta ? `${obj.meta.genre || ""}${obj.meta.backGenre ? " / " + obj.meta.backGenre : ""}`.trim() || undefined : undefined,
+    _y: obj.y,
+    _rotY: obj.rotY,
+    _meta: obj.meta,
+  };
+}
 
-  // Laundromat (right neighbor, centered x=13, z=7)
-  { id: "laundro-building", label: "LAUNDROMAT", category: "exterior", x: 13, z: 7, w: 6, d: 0.3, color: "#113355", shape: "rect" },
-  { id: "laundro-door", label: "Laundro Door", category: "exterior", x: 13.5, z: 7.16, w: 1.0, d: 0.2, color: "#4a3020", shape: "rect" },
-  { id: "laundro-window", label: "Laundro Window", category: "exterior", x: 12, z: 7.17, w: 2.2, d: 0.2, color: "#223344", shape: "rect" },
-  { id: "laundro-open", label: "Laundro OPEN", category: "exterior", x: 11.2, z: 7.25, w: 0.7, d: 0.35, color: "#33ff66", shape: "rect" },
-
-  // Sidewalk
-  { id: "sidewalk", label: "Sidewalk", category: "exterior", x: 0, z: 7.8, w: 22, d: 1.5, color: "#4a4a4a", shape: "rect" },
-
-  // Parking lot cars
-  { id: "car-sedan", label: "Sedan", category: "exterior", x: 5, z: 11, w: 2.0, d: 1.0, color: "#445566", shape: "rect" },
-  { id: "car-van", label: "Van", category: "exterior", x: -4, z: 11, w: 2.0, d: 1.0, color: "#664433", shape: "rect" },
-  { id: "car-suv", label: "SUV", category: "exterior", x: 1, z: 12.5, w: 2.0, d: 1.0, color: "#336644", shape: "rect" },
-  { id: "car-hatchback", label: "Hatchback", category: "exterior", x: -7, z: 12.5, w: 2.0, d: 1.0, color: "#993333", shape: "rect" },
-  { id: "car-taxi", label: "Taxi", category: "exterior", x: 8, z: 12.5, w: 2.0, d: 1.0, color: "#ccaa22", shape: "rect" },
-
-  // Parking lot lamp posts
-  { id: "lamp-1", label: "Lamp Post", category: "exterior", x: -6, z: 14, w: 0.3, d: 0.3, color: "#cccc88", shape: "circle" },
-  { id: "lamp-2", label: "Lamp Post", category: "exterior", x: 0, z: 14, w: 0.3, d: 0.3, color: "#cccc88", shape: "circle" },
-  { id: "lamp-3", label: "Lamp Post", category: "exterior", x: 6, z: 14, w: 0.3, d: 0.3, color: "#cccc88", shape: "circle" },
-
-  // Handicap sign
-  { id: "handicap-sign", label: "Handicap Sign", category: "exterior", x: -1.5, z: 10.5, w: 0.4, d: 0.4, color: "#2255bb", shape: "rect" },
-
-  // Bike rack
-  { id: "bike-rack", label: "Bike Rack", category: "exterior", x: 8, z: 8, w: 0.8, d: 0.5, color: "#888888", shape: "rect" },
-];
+/** Convert editor StoreObject back to LayoutObject for saving */
+function editorToLayout(obj: StoreObject): LayoutObject {
+  const lo: LayoutObject = {
+    id: obj.id,
+    label: obj.label,
+    category: obj.category,
+    x: obj.x,
+    y: obj._y ?? 0,
+    z: obj.z,
+  };
+  if (obj._rotY !== undefined && obj._rotY !== 0) lo.rotY = obj._rotY;
+  if (obj.w !== undefined) lo.w = obj.w;
+  if (obj.d !== undefined) lo.d = obj.d;
+  if (obj._meta && Object.keys(obj._meta).length > 0) lo.meta = obj._meta;
+  return lo;
+}
 
 // ── Category colors for legend ──
 const CATEGORY_META: Record<ObjCategory, { label: string; color: string }> = {
@@ -161,15 +118,34 @@ const CATEGORY_META: Record<ObjCategory, { label: string; color: string }> = {
 };
 
 export default function EditorPage() {
-  const [objects, setObjects] = useState<StoreObject[]>(() =>
-    INITIAL_OBJECTS.map((o) => ({ ...o }))
-  );
+  const [objects, setObjects] = useState<StoreObject[]>([]);
+  const [layoutVersion, setLayoutVersion] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [dragId, setDragId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [filterCategory, setFilterCategory] = useState<ObjCategory | "all">("all");
   const svgRef = useRef<SVGSVGElement>(null);
+  const originalObjectsRef = useRef<StoreObject[]>([]);
+
+  // Fetch layout from API on mount
+  useEffect(() => {
+    fetch("/api/layout")
+      .then((r) => r.json())
+      .then((layout: StoreLayout) => {
+        const editorObjs = layout.objects.map(layoutToEditor);
+        setObjects(editorObjs);
+        originalObjectsRef.current = editorObjs.map((o) => ({ ...o }));
+        setLayoutVersion(layout.version);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load layout:", err);
+        setLoading(false);
+      });
+  }, []);
 
   // Track SVG client rect for accurate mouse position
   const getSvgPoint = useCallback(
@@ -229,8 +205,31 @@ export default function EditorPage() {
     setTimeout(() => setCopied(false), 2000);
   }, [objects]);
 
+  const saveLayout = useCallback(async () => {
+    setSaveStatus("saving");
+    try {
+      const layout: StoreLayout = {
+        version: layoutVersion,
+        objects: objects.map(editorToLayout),
+      };
+      const res = await fetch("/api/layout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(layout),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setSaveStatus("saved");
+      originalObjectsRef.current = objects.map((o) => ({ ...o }));
+      setTimeout(() => setSaveStatus("idle"), 2500);
+    } catch (err) {
+      console.error("Save failed:", err);
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    }
+  }, [objects, layoutVersion]);
+
   const resetPositions = useCallback(() => {
-    setObjects(INITIAL_OBJECTS.map((o) => ({ ...o })));
+    setObjects(originalObjectsRef.current.map((o) => ({ ...o })));
     setSelectedId(null);
   }, []);
 
@@ -240,6 +239,14 @@ export default function EditorPage() {
       : objects.filter((o) => o.category === filterCategory);
 
   const selectedObj = objects.find((o) => o.id === selectedId);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", height: "100vh", background: "#111118", color: "#ffd700", fontFamily: "monospace", justifyContent: "center", alignItems: "center", fontSize: 18 }}>
+        Loading layout from store-layout.ts...
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#111118", color: "#e0e0e0", fontFamily: "monospace" }}>
@@ -262,7 +269,7 @@ export default function EditorPage() {
             {ROOM_W}x{ROOM_D} units | Click + drag objects | Coordinates shown in real-time
           </span>
           <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-            {(["all", "shelf", "counter", "npc", "prop", "wall", "door"] as const).map((cat) => (
+            {(["all", "shelf", "counter", "npc", "prop", "wall", "door", "exterior"] as const).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setFilterCategory(cat)}
@@ -576,9 +583,56 @@ export default function EditorPage() {
                 <span style={{ color: "#888" }}>({selectedObj.category})</span>
               </div>
               <div>
-                Position: <span style={{ color: "#0f0" }}>x={selectedObj.x}, z={selectedObj.z}</span>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <span>X:</span>
+                  <input type="number" step={0.1} value={selectedObj.x}
+                    onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, x: Math.round(v * 100) / 100 } : o)); }}
+                    style={{ width: 60, background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                  />
+                  <span>Z:</span>
+                  <input type="number" step={0.1} value={selectedObj.z}
+                    onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, z: Math.round(v * 100) / 100 } : o)); }}
+                    style={{ width: 60, background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                  />
+                </div>
               </div>
-              <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                <span>Height (Y):</span>
+                <button
+                  onClick={() => setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _y: Math.round(((o._y ?? 0) - 0.1) * 100) / 100 } : o))}
+                  style={{ width: 24, height: 24, background: "#333", color: "#fff", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 14, lineHeight: 1 }}
+                >-</button>
+                <span style={{ color: "#0f0", minWidth: 40, textAlign: "center" }}>{selectedObj._y ?? 0}</span>
+                <button
+                  onClick={() => setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _y: Math.round(((o._y ?? 0) + 0.1) * 100) / 100 } : o))}
+                  style={{ width: 24, height: 24, background: "#333", color: "#fff", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 14, lineHeight: 1 }}
+                >+</button>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={4}
+                step={0.05}
+                value={selectedObj._y ?? 0}
+                onChange={(e) => {
+                  const y = Math.round(parseFloat(e.target.value) * 100) / 100;
+                  setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _y: y } : o));
+                }}
+                style={{ width: "100%", marginTop: 4, accentColor: "#ffd700" }}
+              />
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                <span>Rotation:</span>
+                <button
+                  onClick={() => setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _rotY: Math.round(((o._rotY ?? 0) - 0.1) * 100) / 100 } : o))}
+                  style={{ width: 24, height: 24, background: "#333", color: "#fff", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 14, lineHeight: 1 }}
+                >-</button>
+                <span style={{ color: "#0f0", minWidth: 50, textAlign: "center" }}>{((selectedObj._rotY ?? 0) * 180 / Math.PI).toFixed(1)}°</span>
+                <button
+                  onClick={() => setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _rotY: Math.round(((o._rotY ?? 0) + 0.1) * 100) / 100 } : o))}
+                  style={{ width: 24, height: 24, background: "#333", color: "#fff", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 14, lineHeight: 1 }}
+                >+</button>
+              </div>
+              <div style={{ marginTop: 4 }}>
                 Size: {selectedObj.w} x {selectedObj.d}
               </div>
               {selectedObj.genre && (
@@ -613,37 +667,55 @@ export default function EditorPage() {
         </div>
 
         {/* Buttons */}
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid #333", display: "flex", gap: 8 }}>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #333", display: "flex", flexDirection: "column", gap: 8 }}>
           <button
-            onClick={exportPositions}
+            onClick={saveLayout}
+            disabled={saveStatus === "saving"}
             style={{
-              flex: 1,
-              padding: "8px 12px",
-              background: copied ? "#166534" : "#1d4ed8",
+              padding: "10px 12px",
+              background: saveStatus === "saved" ? "#166534" : saveStatus === "error" ? "#991b1b" : "#b8960a",
               color: "#fff",
               border: "none",
               borderRadius: 6,
-              cursor: "pointer",
-              fontSize: 12,
+              cursor: saveStatus === "saving" ? "wait" : "pointer",
+              fontSize: 13,
               fontWeight: "bold",
             }}
           >
-            {copied ? "Copied!" : "Export Positions"}
+            {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved to store-layout.ts!" : saveStatus === "error" ? "Save Failed" : "Save Layout"}
           </button>
-          <button
-            onClick={resetPositions}
-            style={{
-              padding: "8px 12px",
-              background: "#333",
-              color: "#ccc",
-              border: "1px solid #555",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontSize: 12,
-            }}
-          >
-            Reset
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={exportPositions}
+              style={{
+                flex: 1,
+                padding: "8px 12px",
+                background: copied ? "#166534" : "#1d4ed8",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: "bold",
+              }}
+            >
+              {copied ? "Copied!" : "Export JSON"}
+            </button>
+            <button
+              onClick={resetPositions}
+              style={{
+                padding: "8px 12px",
+                background: "#333",
+                color: "#ccc",
+                border: "1px solid #555",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: 12,
+              }}
+            >
+              Reset
+            </button>
+          </div>
         </div>
 
         {/* All positions JSON */}
