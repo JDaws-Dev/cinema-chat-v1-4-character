@@ -1179,34 +1179,13 @@ export default function GamePage() {
     return (
       <div className="g3-splash">
         <div className="g3-splash-content">
-          {/* Blockbuster-style torn ticket logo */}
-          <div className="g3-logo">
-            <div className="g3-logo-ticket">
-              <div className="g3-logo-left" />
-              <div className="g3-logo-right" />
-            </div>
-          </div>
+          {/* Mascot logo */}
+          <img src="/images/fnv-mascot.png" alt="Friday Night Video" style={{ width: 160, height: 160, marginBottom: 12 }} />
           <h1 className="g3-splash-title">FRIDAY NIGHT<br/>VIDEO</h1>
-          <p className="g3-splash-tagline">Your neighborhood video store</p>
-          <p className="g3-splash-tagline" style={{ fontSize: "0.8em", opacity: 0.7, marginTop: 8 }}>Browse the shelves. Pick a movie. Chat with Vinny.<br/>It&apos;s Friday night, {selectedEra.displayYear}.</p>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0", flexWrap: "wrap" }}>
-            {ERA_OPTIONS.map(opt => (
-              <button key={opt.id} onClick={() => setEra(opt.id)}
-                style={{
-                  padding: "6px 12px", fontSize: "0.7em", border: "1px solid #ffd700",
-                  background: era === opt.id ? "#ffd700" : "transparent",
-                  color: era === opt.id ? "#0a1830" : "#ffd700",
-                  borderRadius: 4, cursor: "pointer", fontFamily: "inherit"
-                }}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          <p className="g3-splash-tagline">It&apos;s Friday night. Pick a movie.</p>
           <button className="g3-splash-btn" onClick={() => {
             setStarted(true); setLoading(true);
-            // Unlock audio immediately on this user gesture (critical for mobile Safari)
             unlockAudio();
-            // Request fullscreen on mobile only (desktop fullscreen breaks aspect ratio)
             if (/Mobi|Android/i.test(navigator.userAgent)) {
               try {
                 const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
@@ -1214,8 +1193,8 @@ export default function GamePage() {
                 else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
               } catch {}
             }
-          }}>ENTER THE STORE</button>
-          <p className="g3-splash-hint">{isMobile ? 'Touch to move \u2022 Tap to interact' : 'WASD to move \u2022 Mouse to look \u2022 E to interact \u2022 J quests'}</p>
+          }}>PLAY FREE</button>
+          <p className="g3-splash-hint" style={{ opacity: 0.4, marginTop: 16 }}>{isMobile ? 'Touch to move \u2022 Tap to interact' : 'WASD \u2022 Mouse \u2022 E to interact'}</p>
         </div>
       </div>
     );

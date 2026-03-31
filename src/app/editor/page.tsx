@@ -473,6 +473,10 @@ export default function EditorPage() {
               const isDragging = dragId === obj.id;
               const opacity = isDragging ? 0.9 : isHovered ? 0.85 : 0.7;
               const strokeColor = isSelected ? "#ffd700" : isHovered ? "#fff" : "transparent";
+              // Y-axis rotation in 3D = rotation around center in 2D top-down view
+              // Convert radians to degrees, negate because SVG Y is flipped
+              const rotDeg = (obj._rotY ?? 0) !== 0 ? -(obj._rotY! * 180 / Math.PI) : 0;
+              const rotTransform = rotDeg !== 0 ? `rotate(${rotDeg}, ${sx}, ${sy})` : undefined;
 
               return (
                 <g
@@ -481,6 +485,7 @@ export default function EditorPage() {
                   onMouseEnter={() => setHoverId(obj.id)}
                   onMouseLeave={() => setHoverId(null)}
                   style={{ cursor: isDragging ? "grabbing" : "grab" }}
+                  transform={rotTransform}
                 >
                   {obj.shape === "circle" ? (
                     <>
