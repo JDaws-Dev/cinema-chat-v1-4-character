@@ -631,7 +631,20 @@ export default function EditorPage() {
                   onClick={() => setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _rotY: Math.round(((o._rotY ?? 0) - 0.1) * 100) / 100 } : o))}
                   style={{ width: 24, height: 24, background: "#333", color: "#fff", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 14, lineHeight: 1 }}
                 >-</button>
-                <span style={{ color: "#0f0", minWidth: 50, textAlign: "center" }}>{((selectedObj._rotY ?? 0) * 180 / Math.PI).toFixed(1)}°</span>
+                <input
+                  type="number"
+                  step={1}
+                  value={Math.round((selectedObj._rotY ?? 0) * 180 / Math.PI * 10) / 10}
+                  onChange={(e) => {
+                    const deg = parseFloat(e.target.value);
+                    if (!isNaN(deg)) {
+                      const rad = Math.round(deg * Math.PI / 180 * 1000) / 1000;
+                      setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _rotY: rad } : o));
+                    }
+                  }}
+                  style={{ width: 55, background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace", textAlign: "center" }}
+                />
+                <span style={{ color: "#888", fontSize: 11 }}>°</span>
                 <button
                   onClick={() => setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _rotY: Math.round(((o._rotY ?? 0) + 0.1) * 100) / 100 } : o))}
                   style={{ width: 24, height: 24, background: "#333", color: "#fff", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 14, lineHeight: 1 }}

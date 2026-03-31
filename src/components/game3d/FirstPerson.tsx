@@ -13,29 +13,46 @@ const ROOM_BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -6.5, maxZ: 14 }; // extended
 const BACK_ROOM_BOUNDS = { minX: -13.5, maxX: -10.0, minZ: -6.0, maxZ: -4.0 };
 const PLAYER_RADIUS = 0.4;
 
-// Collision boxes: { x, z, halfW, halfD } — rectangular obstacles
-// Shelves are now angled — using slightly larger AABB to account for rotation
-const COLLIDERS = [
-  // Shelf Row 1 (z = -4) — angled ~0.25 rad
-  { x: -5, z: -4, hw: 1.7, hd: 0.55 },
-  { x: -1, z: -4, hw: 1.7, hd: 0.55 },
-  { x: 3,  z: -4, hw: 1.7, hd: 0.55 },
-  // Shelf Row 2 (z = -1) — angled ~-0.15 rad
-  { x: -5, z: -1, hw: 1.7, hd: 0.45 },
-  { x: 0,  z: -1, hw: 1.7, hd: 0.45 },
-  // Shelf Row 3 (z = 2) — angled ~0.2 rad
-  { x: -4, z: 2, hw: 1.7, hd: 0.5 },
-  { x: 1,  z: 2, hw: 1.7, hd: 0.5 },
-  // Counter (front-right near entrance)
-  { x: 7, z: 5, hw: 3.2, hd: 0.8 },
-  // New Releases back wall shelf
-  { x: 0, z: -6.8, hw: 9.5, hd: 0.4 },
-  // Cooler (near checkout, right wall)
-  { x: 8.63, z: 3.5, hw: 0.5, hd: 0.4 },
-];
+// Collision boxes derived from layout data — positions stay in sync with editor
+import { getObjectById, getShelfRows } from "@/lib/store-layout";
 
-// Employees Only door collider — blocks doorway when closed
-const DOOR_COLLIDER = { x: -9.8, z: -5.19, hw: 0.3, hd: 0.55 };
+function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
+  const colliders: { x: number; z: number; hw: number; hd: number }[] = [];
+
+  // Shelves — use layout positions, inflate AABB slightly for rotation
+  for (const row of getShelfRows()) {
+    const absRot = Math.abs(row.rotY || 0);
+    colliders.push({ x: row.x, z: row.z, hw: 1.7, hd: 0.4 + absRot * 0.5 });
+  }
+
+  // Counter
+  const counter = getObjectById("counter");
+  if (counter) colliders.push({ x: counter.x, z: counter.z, hw: 3.2, hd: 0.8 });
+
+  // New Releases back wall
+  const nr = getObjectById("new-releases-wall");
+  if (nr) colliders.push({ x: nr.x, z: nr.z, hw: 9.5, hd: 0.4 });
+
+  // Cooler
+  const cooler = getObjectById("cooler");
+  if (cooler) colliders.push({ x: cooler.x, z: cooler.z, hw: 0.5, hd: 0.4 });
+
+  // Trophy shelf
+  const trophy = getObjectById("trophy-shelf");
+  if (trophy) colliders.push({ x: trophy.x, z: trophy.z, hw: 0.4, hd: 1.3 });
+
+  // Bargain bin
+  const bargain = getObjectById("bargain-bin");
+  if (bargain) colliders.push({ x: bargain.x, z: bargain.z, hw: 0.5, hd: 0.4 });
+
+  return colliders;
+}
+
+const COLLIDERS = buildColliders();
+
+// Employees Only door collider — reads from layout
+const doorPos = getObjectById("employees-door");
+const DOOR_COLLIDER = { x: doorPos?.x ?? -9.8, z: doorPos?.z ?? -5.19, hw: 0.3, hd: 0.55 };
 
 // Back room desk collider
 const BACK_ROOM_COLLIDERS = [
