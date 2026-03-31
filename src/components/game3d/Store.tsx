@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo, useState, useEffect, useContext, createContext } from "react";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
-import { Text, useTexture, RoundedBox, useGLTF } from "@react-three/drei";
+import { Text, useTexture, RoundedBox, useGLTF, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { registerNPCPosition, unregisterNPCPosition, playSFX } from "@/lib/audio";
@@ -163,21 +163,30 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
     const [startYear, endYear] = currentEraYears.split("-");
 
     if (!genreId) {
-      // "New Releases" wall — popular movies from the selected era
+      // "New Releases" wall — popular movies from the selected era (3 pages for more variety)
       Promise.all([
         fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=1`).then(r => r.json()),
         fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=2`).then(r => r.json()),
-      ]).then(([p1, p2]) => {
-        const all = [...(p1.results || []), ...(p2.results || [])];
+        fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=3`).then(r => r.json()),
+      ]).then(([p1, p2, p3]) => {
+        const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
         const seen = new Set<number>();
         const unique = all.filter((m: Record<string, unknown>) => {
           if (seen.has(m.id as number)) return false;
           seen.add(m.id as number);
           return true;
         });
-        setPosters(unique.slice(0, count).map((m: Record<string, unknown>) => ({
+        const uniquePosters = unique.slice(0, count).map((m: Record<string, unknown>) => ({
           url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url));
+        })).filter((p: PosterData) => p.url);
+        // Cycle/repeat to fill all slots if not enough unique results
+        if (uniquePosters.length > 0 && uniquePosters.length < count) {
+          const filled: PosterData[] = [];
+          for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
+          setPosters(filled);
+        } else {
+          setPosters(uniquePosters);
+        }
       }).catch(() => {});
     } else if (genreId === "classics") {
       // Classics: pre-1980 highly-rated films (TCM style)
@@ -187,20 +196,37 @@ function usePosterUrls(genre: string, count: number): PosterData[] {
         fetch(`/api/search?decade=1970&ratingMin=7&page=1`).then(r => r.json()),
       ]).then(([s60, s50, s70]) => {
         const all = [...(s60.results || []), ...(s50.results || []), ...(s70.results || [])];
-        setPosters(all.slice(0, count).map((m: Record<string, unknown>) => ({
+        const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
           url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url));
+        })).filter((p: PosterData) => p.url);
+        // Cycle/repeat to fill all slots if not enough unique results
+        if (uniquePosters.length > 0 && uniquePosters.length < count) {
+          const filled: PosterData[] = [];
+          for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
+          setPosters(filled);
+        } else {
+          setPosters(uniquePosters);
+        }
       }).catch(() => {});
     } else {
-      // Genre — fetch 2 pages for more variety, filtered by era
+      // Genre — fetch 3 pages for more variety, filtered by era
       Promise.all([
         fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=1`).then(r => r.json()),
         fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=2`).then(r => r.json()),
-      ]).then(([p1, p2]) => {
-        const all = [...(p1.results || []), ...(p2.results || [])];
-        setPosters(all.slice(0, count).map((m: Record<string, unknown>) => ({
+        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=3`).then(r => r.json()),
+      ]).then(([p1, p2, p3]) => {
+        const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
+        const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
           url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url));
+        })).filter((p: PosterData) => p.url);
+        // Cycle/repeat to fill all slots if not enough unique results
+        if (uniquePosters.length > 0 && uniquePosters.length < count) {
+          const filled: PosterData[] = [];
+          for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
+          setPosters(filled);
+        } else {
+          setPosters(uniquePosters);
+        }
       }).catch(() => {});
     }
   }, [genre, count]);
@@ -394,9 +420,8 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile, rotY = 
           const sidePosters = isBack ? backPosters : frontPosters;
           const sideColor = isBack ? bColor : color;
           const sideIdx = positions.filter(p => p.side === pos.side).indexOf(pos);
-          // Skip if we'd repeat — only show as many tapes as unique posters
-          if (sidePosters.length > 0 && sideIdx >= sidePosters.length) return;
-          const poster = sidePosters[sideIdx];
+          // Cycle posters to fill all slots — wrap around if fewer posters than slots
+          const poster = sidePosters.length > 0 ? sidePosters[sideIdx % sidePosters.length] : null;
           const flipRot = isBack ? Math.PI : 0;
           if (poster) {
             posterElements.push(
@@ -1048,10 +1073,12 @@ function VinnyCharacter() {
         </mesh>
       </group>
 
-      {/* Floating name */}
-      <Text position={[0, 1.95, 0]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
-        VINNY
-      </Text>
+      {/* Floating name — Billboard so it always faces the camera */}
+      <Billboard position={[0, 1.95, 0]}>
+        <Text fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
+          VINNY
+        </Text>
+      </Billboard>
 
       {/* Shadow on floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
@@ -2209,10 +2236,12 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
         </mesh>
       </group>
 
-      {/* Floating name */}
-      <Text position={[0, 1.75, 0]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>
-        CHARLIE
-      </Text>
+      {/* Floating name — Billboard so it always faces the camera */}
+      <Billboard position={[0, 1.75, 0]}>
+        <Text fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>
+          CHARLIE
+        </Text>
+      </Billboard>
 
       {/* Point light for visibility (desktop only) */}
 
@@ -2226,7 +2255,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
 }
 
 function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
-  const posters = usePosterUrls("NEW", 10); // fewer unique posters, repeat across wall
+  const posters = usePosterUrls("NEW", 30); // fetch more unique posters to fill wall
   // Only trending — these are actual new releases
   const allPosters = posters;
 
@@ -2306,8 +2335,7 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
 
       {/* VHS boxes — uses same PosterBox as shelves for consistent look */}
       {positions.map((pos) => {
-        const movieIdx = allPosters.length > 0 ? Math.floor(pos.idx / 10) % allPosters.length : -1;
-        const poster = movieIdx >= 0 ? allPosters[movieIdx] : null;
+        const poster = allPosters.length > 0 ? allPosters[pos.idx % allPosters.length] : null;
         return poster ? (
           <PosterBox key={pos.idx} url={poster.url} position={[pos.x, pos.y, 0.15]} rotation={Math.PI} movieTitle={poster.title} movieId={poster.id} genreColor="#ec4899" />
         ) : (
@@ -4078,6 +4106,516 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
           <meshBasicMaterial color="#555533" />
         </mesh>
       ))}
+      {/* ── Stray shopping cart in parking lot (away from cart return) ──── */}
+      <group position={[-5, 0, ROOM_D / 2 + 6]} rotation={[0, 0.4, 0]}>
+        <mesh position={[0, 0.45, 0]}>
+          <boxGeometry args={[0.45, 0.3, 0.3]} />
+          <meshBasicMaterial color="#888888" wireframe />
+        </mesh>
+        <mesh position={[0.25, 0.62, 0]}>
+          <boxGeometry args={[0.03, 0.12, 0.25]} />
+          <meshBasicMaterial color="#666666" />
+        </mesh>
+        {[[-0.18, 0.1, 0.12], [-0.18, 0.1, -0.12], [0.18, 0.1, 0.12], [0.18, 0.1, -0.12]].map(([cx, cy, cz], i) => (
+          <mesh key={`stray-whl-${i}`} position={[cx, cy, cz]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 0.02, 6]} />
+            <meshBasicMaterial color="#333333" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ── Puddle on asphalt ──── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[3, -0.042, ROOM_D / 2 + 5]}>
+        <circleGeometry args={[0.8, 16]} />
+        <meshBasicMaterial color="#0a0a14" transparent opacity={0.7} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[3, -0.041, ROOM_D / 2 + 5]}>
+        <circleGeometry args={[0.5, 12]} />
+        <meshBasicMaterial color="#181830" transparent opacity={0.4} />
+      </mesh>
+
+      {/* ── Cigarette butt receptacle near store entrance ──── */}
+      <group position={[-3, 0, ROOM_D / 2 + 0.6]}>
+        <mesh position={[0, 0.5, 0]}>
+          <cylinderGeometry args={[0.06, 0.08, 1.0, 8]} />
+          <meshBasicMaterial color="#444444" />
+        </mesh>
+        <mesh position={[0, 1.02, 0]}>
+          <cylinderGeometry args={[0.09, 0.06, 0.04, 8]} />
+          <meshBasicMaterial color="#333333" />
+        </mesh>
+        {/* Sand top */}
+        <mesh position={[0, 1.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.065, 8]} />
+          <meshBasicMaterial color="#998866" />
+        </mesh>
+      </group>
+
+      {/* ── Parking lot speed bump ──── */}
+      <mesh position={[0, 0.03, ROOM_D / 2 + 3]}>
+        <boxGeometry args={[12, 0.06, 0.4]} />
+        <meshBasicMaterial color="#333338" />
+      </mesh>
+      {/* Yellow stripes on speed bump */}
+      {[-5, -3, -1, 1, 3, 5].map((sx, i) => (
+        <mesh key={`bump-stripe-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[sx, 0.065, ROOM_D / 2 + 3]}>
+          <planeGeometry args={[0.3, 0.35]} />
+          <meshBasicMaterial color="#ccaa22" />
+        </mesh>
+      ))}
+
+      {/* ── CUSTOMER PARKING ONLY sign on a post ──── */}
+      <group position={[-9, 0, ROOM_D / 2 + 4]}>
+        <mesh position={[0, 0.8, 0]}>
+          <cylinderGeometry args={[0.025, 0.03, 1.6, 6]} />
+          <meshBasicMaterial color="#666666" />
+        </mesh>
+        <mesh position={[0, 1.65, 0]}>
+          <boxGeometry args={[0.8, 0.35, 0.03]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+        <Text
+          position={[0, 1.7, 0.02]}
+          fontSize={0.06}
+          color="#cc0000"
+          anchorX="center"
+          anchorY="middle"
+        >
+          CUSTOMER PARKING
+          <meshBasicMaterial color="#cc0000" toneMapped={false} />
+        </Text>
+        <Text
+          position={[0, 1.6, 0.02]}
+          fontSize={0.06}
+          color="#cc0000"
+          anchorX="center"
+          anchorY="middle"
+        >
+          ONLY
+          <meshBasicMaterial color="#cc0000" toneMapped={false} />
+        </Text>
+      </group>
+
+      {/* ── Painted directional arrows on parking lot ground ──── */}
+      {/* Arrow 1 — pointing toward store */}
+      <group position={[-3, -0.038, ROOM_D / 2 + 4.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh>
+          <planeGeometry args={[0.15, 1.2]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+        <mesh position={[0, 0.7, 0]}>
+          <planeGeometry args={[0.5, 0.5]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+        <mesh position={[-0.18, 0.45, 0]} rotation={[0, 0, 0.5]}>
+          <planeGeometry args={[0.15, 0.55]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+        <mesh position={[0.18, 0.45, 0]} rotation={[0, 0, -0.5]}>
+          <planeGeometry args={[0.15, 0.55]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+      </group>
+      {/* Arrow 2 — pointing right toward exit */}
+      <group position={[6, -0.038, ROOM_D / 2 + 8]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
+        <mesh>
+          <planeGeometry args={[0.15, 1.0]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+        <mesh position={[0.18, 0.35, 0]} rotation={[0, 0, -0.5]}>
+          <planeGeometry args={[0.15, 0.5]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+        <mesh position={[-0.18, 0.35, 0]} rotation={[0, 0, 0.5]}>
+          <planeGeometry args={[0.15, 0.5]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+      </group>
+
+      {/* ── Newspaper box / vending machine near sidewalk ──── */}
+      <group position={[-6, 0, ROOM_D / 2 + 1.2]}>
+        <mesh position={[0, 0.5, 0]}>
+          <boxGeometry args={[0.5, 1.0, 0.4]} />
+          <meshBasicMaterial color="#cc3333" />
+        </mesh>
+        <mesh position={[0, 0.75, 0.21]}>
+          <planeGeometry args={[0.4, 0.35]} />
+          <meshBasicMaterial color="#ddddcc" />
+        </mesh>
+        <Text
+          position={[0, 0.85, 0.22]}
+          fontSize={0.06}
+          color="#111111"
+          anchorX="center"
+          anchorY="middle"
+        >
+          DAILY NEWS
+          <meshBasicMaterial color="#111111" toneMapped={false} />
+        </Text>
+        <Text
+          position={[0, 0.72, 0.22]}
+          fontSize={0.04}
+          color="#333333"
+          anchorX="center"
+          anchorY="middle"
+        >
+          25 CENTS
+          <meshBasicMaterial color="#333333" toneMapped={false} />
+        </Text>
+        {/* Coin slot */}
+        <mesh position={[0.15, 0.6, 0.21]}>
+          <boxGeometry args={[0.04, 0.015, 0.01]} />
+          <meshBasicMaterial color="#222222" />
+        </mesh>
+      </group>
+
+      {/* ── Fire hydrant on sidewalk ──── */}
+      <group position={[6, 0, ROOM_D / 2 + 1.2]}>
+        {/* Main body */}
+        <mesh position={[0, 0.25, 0]}>
+          <cylinderGeometry args={[0.1, 0.12, 0.5, 8]} />
+          <meshBasicMaterial color="#cc2222" />
+        </mesh>
+        {/* Top cap */}
+        <mesh position={[0, 0.52, 0]}>
+          <cylinderGeometry args={[0.06, 0.08, 0.06, 8]} />
+          <meshBasicMaterial color="#ffcc00" />
+        </mesh>
+        {/* Top nub */}
+        <mesh position={[0, 0.58, 0]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.08, 6]} />
+          <meshBasicMaterial color="#ffcc00" />
+        </mesh>
+        {/* Side nozzles */}
+        <mesh position={[0.12, 0.3, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.035, 0.035, 0.08, 6]} />
+          <meshBasicMaterial color="#ffcc00" />
+        </mesh>
+        <mesh position={[-0.12, 0.3, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.035, 0.035, 0.08, 6]} />
+          <meshBasicMaterial color="#ffcc00" />
+        </mesh>
+        {/* Base */}
+        <mesh position={[0, 0.02, 0]}>
+          <cylinderGeometry args={[0.14, 0.14, 0.04, 8]} />
+          <meshBasicMaterial color="#cc2222" />
+        </mesh>
+      </group>
+
+      {/* ── Bench on sidewalk ──── */}
+      <group position={[3, 0, ROOM_D / 2 + 1.1]}>
+        {/* Seat */}
+        <mesh position={[0, 0.4, 0]}>
+          <boxGeometry args={[1.0, 0.05, 0.35]} />
+          <meshBasicMaterial color="#664422" />
+        </mesh>
+        {/* Back rest */}
+        <mesh position={[0, 0.65, -0.15]}>
+          <boxGeometry args={[1.0, 0.45, 0.04]} />
+          <meshBasicMaterial color="#664422" />
+        </mesh>
+        {/* Legs */}
+        {[[-0.4, 0], [0.4, 0]].map(([lx], i) => (
+          <group key={`bench-leg-${i}`}>
+            <mesh position={[lx as number, 0.2, 0.12]}>
+              <boxGeometry args={[0.04, 0.4, 0.04]} />
+              <meshBasicMaterial color="#444444" />
+            </mesh>
+            <mesh position={[lx as number, 0.2, -0.12]}>
+              <boxGeometry args={[0.04, 0.4, 0.04]} />
+              <meshBasicMaterial color="#444444" />
+            </mesh>
+          </group>
+        ))}
+        {/* Armrests */}
+        <mesh position={[-0.45, 0.55, 0]}>
+          <boxGeometry args={[0.05, 0.04, 0.35]} />
+          <meshBasicMaterial color="#444444" />
+        </mesh>
+        <mesh position={[0.45, 0.55, 0]}>
+          <boxGeometry args={[0.05, 0.04, 0.35]} />
+          <meshBasicMaterial color="#444444" />
+        </mesh>
+      </group>
+
+      {/* ── Trash can on sidewalk ──── */}
+      <group position={[-4, 0, ROOM_D / 2 + 1.1]}>
+        <mesh position={[0, 0.35, 0]}>
+          <cylinderGeometry args={[0.18, 0.2, 0.7, 10]} />
+          <meshBasicMaterial color="#336633" />
+        </mesh>
+        {/* Lid */}
+        <mesh position={[0, 0.72, 0]}>
+          <cylinderGeometry args={[0.2, 0.18, 0.05, 10]} />
+          <meshBasicMaterial color="#225522" />
+        </mesh>
+        {/* Dome top */}
+        <mesh position={[0, 0.77, 0]}>
+          <sphereGeometry args={[0.12, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshBasicMaterial color="#225522" />
+        </mesh>
+      </group>
+
+      {/* ── Pizza box trash can near Pizza Palace door ──── */}
+      <group position={[-ROOM_W / 2 - 1.8, 0, ROOM_D / 2 + 0.6]}>
+        <mesh position={[0, 0.3, 0]}>
+          <boxGeometry args={[0.35, 0.6, 0.35]} />
+          <meshBasicMaterial color="#555555" />
+        </mesh>
+        {/* Stacked pizza boxes on top */}
+        <mesh position={[0, 0.65, 0]}>
+          <boxGeometry args={[0.3, 0.04, 0.3]} />
+          <meshBasicMaterial color="#ddccaa" />
+        </mesh>
+        <mesh position={[0.02, 0.69, -0.01]}>
+          <boxGeometry args={[0.3, 0.04, 0.3]} />
+          <meshBasicMaterial color="#ccbb99" />
+        </mesh>
+        <mesh position={[-0.01, 0.73, 0.02]}>
+          <boxGeometry args={[0.3, 0.04, 0.3]} />
+          <meshBasicMaterial color="#ddccaa" />
+        </mesh>
+      </group>
+
+      {/* ── "24 HOUR" sign on Laundromat ──── */}
+      <group position={[ROOM_W / 2 + 4.2, 1.8, ROOM_D / 2 + 0.19]}>
+        <mesh>
+          <boxGeometry args={[0.9, 0.28, 0.02]} />
+          <meshBasicMaterial color="#0a0a1a" />
+        </mesh>
+        <Text
+          position={[0, 0, 0.02]}
+          fontSize={0.13}
+          color="#ff66aa"
+          anchorX="center"
+          anchorY="middle"
+        >
+          24 HOUR
+          <meshBasicMaterial color="#ff66aa" toneMapped={false} />
+        </Text>
+      </group>
+
+      {/* ── Vending machine near laundromat ──── */}
+      <group position={[ROOM_W / 2 + 4.8, 0, ROOM_D / 2 + 0.2]}>
+        <mesh position={[0, 0.9, 0]}>
+          <boxGeometry args={[0.6, 1.8, 0.5]} />
+          <meshBasicMaterial color="#2244aa" />
+        </mesh>
+        {/* Display window */}
+        <mesh position={[0, 1.2, 0.26]}>
+          <planeGeometry args={[0.45, 0.8]} />
+          <meshBasicMaterial color="#334466" transparent opacity={0.6} />
+        </mesh>
+        {/* Product rows */}
+        {[0.9, 1.1, 1.3].map((vy, i) => (
+          <mesh key={`vend-row-${i}`} position={[0, vy, 0.27]}>
+            <planeGeometry args={[0.4, 0.04]} />
+            <meshBasicMaterial color="#cccccc" />
+          </mesh>
+        ))}
+        {/* Coin slot area */}
+        <mesh position={[0.18, 0.6, 0.26]}>
+          <boxGeometry args={[0.1, 0.15, 0.02]} />
+          <meshBasicMaterial color="#222222" />
+        </mesh>
+        <Text
+          position={[0, 1.65, 0.26]}
+          fontSize={0.06}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+        >
+          DRINKS
+          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+        </Text>
+      </group>
+
+      {/* ── Folding table visible through laundromat window ──── */}
+      <group position={[ROOM_W / 2 + 2.5, 0, ROOM_D / 2 - 0.3]}>
+        {/* Table top */}
+        <mesh position={[0, 0.75, 0]}>
+          <boxGeometry args={[0.8, 0.04, 0.5]} />
+          <meshBasicMaterial color="#bbbbbb" />
+        </mesh>
+        {/* Table legs */}
+        {[[-0.35, -0.2], [-0.35, 0.2], [0.35, -0.2], [0.35, 0.2]].map(([tx, tz], i) => (
+          <mesh key={`ftable-leg-${i}`} position={[tx, 0.37, tz]}>
+            <cylinderGeometry args={[0.015, 0.015, 0.75, 4]} />
+            <meshBasicMaterial color="#999999" />
+          </mesh>
+        ))}
+        {/* Folded laundry stack on table */}
+        <mesh position={[0.1, 0.84, 0]}>
+          <boxGeometry args={[0.25, 0.14, 0.2]} />
+          <meshBasicMaterial color="#88aacc" />
+        </mesh>
+      </group>
+
+      {/* ── Street lamp further out ──── */}
+      <group position={[-12, 0, ROOM_D / 2 + 12]}>
+        {/* Pole */}
+        <mesh position={[0, 3, 0]}>
+          <cylinderGeometry args={[0.05, 0.08, 6, 8]} />
+          <meshBasicMaterial color="#555555" />
+        </mesh>
+        {/* Arm */}
+        <mesh position={[0.4, 5.8, 0]} rotation={[0, 0, -0.4]}>
+          <cylinderGeometry args={[0.03, 0.04, 1.2, 6]} />
+          <meshBasicMaterial color="#555555" />
+        </mesh>
+        {/* Lamp head */}
+        <mesh position={[0.7, 5.9, 0]}>
+          <boxGeometry args={[0.4, 0.1, 0.2]} />
+          <meshBasicMaterial color="#444444" />
+        </mesh>
+        {/* Light glow */}
+        <mesh position={[0.7, 5.83, 0]}>
+          <planeGeometry args={[0.35, 0.15]} />
+          <meshBasicMaterial color="#ffeecc" transparent opacity={0.6} />
+        </mesh>
+        <pointLight position={[0.7, 5.5, 0]} intensity={0.5} distance={8} color="#ffe8b0" />
+      </group>
+
+      {/* ── Second street lamp on other side ──── */}
+      <group position={[12, 0, ROOM_D / 2 + 12]}>
+        <mesh position={[0, 3, 0]}>
+          <cylinderGeometry args={[0.05, 0.08, 6, 8]} />
+          <meshBasicMaterial color="#555555" />
+        </mesh>
+        <mesh position={[-0.4, 5.8, 0]} rotation={[0, 0, 0.4]}>
+          <cylinderGeometry args={[0.03, 0.04, 1.2, 6]} />
+          <meshBasicMaterial color="#555555" />
+        </mesh>
+        <mesh position={[-0.7, 5.9, 0]}>
+          <boxGeometry args={[0.4, 0.1, 0.2]} />
+          <meshBasicMaterial color="#444444" />
+        </mesh>
+        <mesh position={[-0.7, 5.83, 0]}>
+          <planeGeometry args={[0.35, 0.15]} />
+          <meshBasicMaterial color="#ffeecc" transparent opacity={0.6} />
+        </mesh>
+        <pointLight position={[-0.7, 5.5, 0]} intensity={0.5} distance={8} color="#ffe8b0" />
+      </group>
+
+      {/* ── Manhole cover on road ──── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[4, -0.054, ROOM_D / 2 + 13]}>
+        <circleGeometry args={[0.35, 16]} />
+        <meshBasicMaterial color="#222228" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[4, -0.053, ROOM_D / 2 + 13]}>
+        <circleGeometry args={[0.3, 16]} />
+        <meshBasicMaterial color="#2a2a30" />
+      </mesh>
+      {/* Manhole cross pattern */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[4, -0.052, ROOM_D / 2 + 13]}>
+        <planeGeometry args={[0.5, 0.04]} />
+        <meshBasicMaterial color="#333338" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[4, -0.052, ROOM_D / 2 + 13]}>
+        <planeGeometry args={[0.04, 0.5]} />
+        <meshBasicMaterial color="#333338" />
+      </mesh>
+
+      {/* ── Yellow center line on road (solid double yellow) ──── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 13.05]}>
+        <planeGeometry args={[30, 0.06]} />
+        <meshBasicMaterial color="#ccaa22" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 12.9]}>
+        <planeGeometry args={[30, 0.06]} />
+        <meshBasicMaterial color="#ccaa22" />
+      </mesh>
+
+      {/* ── Crosswalk markings ──── */}
+      {[-2.5, -2.0, -1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5, 2.0, 2.5].map((cz, i) => (
+        <mesh key={`crosswalk-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[15, -0.054, ROOM_D / 2 + 11 + cz]}>
+          <planeGeometry args={[2, 0.3]} />
+          <meshBasicMaterial color="#dddddd" />
+        </mesh>
+      ))}
+
+      {/* ── Additional parked cars ──── */}
+      <KenneyCar model="sedan" position={[-10, 0, ROOM_D / 2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <KenneyCar model="police" position={[10, 0, ROOM_D / 2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
+      <KenneyCar model="delivery" position={[-2, 0, ROOM_D / 2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
+
+      {/* ── Dumpster behind the strip mall ──── */}
+      <group position={[-8, 0, -ROOM_D / 2 - 0.5]}>
+        {/* Dumpster body */}
+        <mesh position={[0, 0.6, 0]}>
+          <boxGeometry args={[1.8, 1.2, 1.2]} />
+          <meshBasicMaterial color="#2a5530" />
+        </mesh>
+        {/* Lid (slightly open) */}
+        <mesh position={[0, 1.22, -0.5]} rotation={[-0.3, 0, 0]}>
+          <boxGeometry args={[1.8, 0.06, 0.6]} />
+          <meshBasicMaterial color="#1a4420" />
+        </mesh>
+        <mesh position={[0, 1.22, 0.5]} rotation={[0.1, 0, 0]}>
+          <boxGeometry args={[1.8, 0.06, 0.6]} />
+          <meshBasicMaterial color="#1a4420" />
+        </mesh>
+        {/* Side ridges */}
+        {[-0.7, 0, 0.7].map((rx, i) => (
+          <mesh key={`dump-ridge-${i}`} position={[rx, 0.6, 0.61]}>
+            <boxGeometry args={[0.08, 0.9, 0.02]} />
+            <meshBasicMaterial color="#1a4420" />
+          </mesh>
+        ))}
+        {/* Wheels */}
+        {[[-0.7, 0.08, 0.5], [0.7, 0.08, 0.5]].map(([wx, wy, wz], i) => (
+          <mesh key={`dump-whl-${i}`} position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.1, 0.06, 8]} />
+            <meshBasicMaterial color="#222222" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ── Power line poles and wires ──── */}
+      {/* Left pole */}
+      <group position={[-14, 0, ROOM_D / 2 + 10]}>
+        <mesh position={[0, 4, 0]}>
+          <cylinderGeometry args={[0.06, 0.1, 8, 6]} />
+          <meshBasicMaterial color="#554433" />
+        </mesh>
+        {/* Cross arm */}
+        <mesh position={[0, 7.8, 0]}>
+          <boxGeometry args={[1.5, 0.08, 0.08]} />
+          <meshBasicMaterial color="#554433" />
+        </mesh>
+        {/* Insulators */}
+        {[-0.6, 0, 0.6].map((ix, i) => (
+          <mesh key={`insul-l-${i}`} position={[ix, 7.9, 0]}>
+            <cylinderGeometry args={[0.02, 0.03, 0.1, 6]} />
+            <meshBasicMaterial color="#556677" />
+          </mesh>
+        ))}
+      </group>
+      {/* Right pole */}
+      <group position={[14, 0, ROOM_D / 2 + 10]}>
+        <mesh position={[0, 4, 0]}>
+          <cylinderGeometry args={[0.06, 0.1, 8, 6]} />
+          <meshBasicMaterial color="#554433" />
+        </mesh>
+        <mesh position={[0, 7.8, 0]}>
+          <boxGeometry args={[1.5, 0.08, 0.08]} />
+          <meshBasicMaterial color="#554433" />
+        </mesh>
+        {[-0.6, 0, 0.6].map((ix, i) => (
+          <mesh key={`insul-r-${i}`} position={[ix, 7.9, 0]}>
+            <cylinderGeometry args={[0.02, 0.03, 0.1, 6]} />
+            <meshBasicMaterial color="#556677" />
+          </mesh>
+        ))}
+      </group>
+      {/* Power lines (3 wires between poles) */}
+      {[-0.6, 0, 0.6].map((offset, i) => (
+        <mesh key={`pwr-line-${i}`} position={[0, 7.7, ROOM_D / 2 + 10]}>
+          <boxGeometry args={[28, 0.012, 0.012]} />
+          <meshBasicMaterial color="#111111" />
+        </mesh>
+      ))}
+
       {/* ── End exterior ──── */}
 
       {/* Transom wall above doors — fills the gap between door top and ceiling */}
@@ -5190,6 +5728,538 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </Text>
       </group>
 
+      {/* ══════════════════════════════════════════════════════════ */}
+      {/* ── LIVED-IN DETAIL PROPS (1992 video store clutter) ──── */}
+      {/* ══════════════════════════════════════════════════════════ */}
+
+      {/* 1. Cardboard movie standee near entrance */}
+      <group position={[3.2, 0, 5.2]} rotation={[0, -0.3, 0]}>
+        {/* Flat cardboard cutout — tilted slightly back */}
+        <mesh position={[0, 0.9, 0]} rotation={[0.06, 0, 0]}>
+          <boxGeometry args={[0.6, 1.8, 0.04]} />
+          <Mat color="#c4903a" roughness={0.8} />
+        </mesh>
+        {/* Kickstand on back */}
+        <mesh position={[0, 0.4, 0.15]} rotation={[0.4, 0, 0]}>
+          <boxGeometry args={[0.25, 0.8, 0.03]} />
+          <Mat color="#a07030" roughness={0.8} />
+        </mesh>
+        {/* "Coming Soon" text on standee */}
+        <Text position={[0, 1.55, -0.025]} fontSize={0.07} color="#ffffff" anchorX="center" font={undefined}>
+          COMING SOON
+        </Text>
+        <Text position={[0, 0.5, -0.025]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+          ON VIDEO
+        </Text>
+      </group>
+
+      {/* 2. "Be Kind Rewind" sticker on counter */}
+      <mesh position={[8.2, 0.91, 5.15]} rotation={[-Math.PI / 2, 0, 0.12]}>
+        <planeGeometry args={[0.35, 0.18]} />
+        <Mat color="#e63946" roughness={0.8} />
+      </mesh>
+      <Text position={[8.2, 0.915, 5.15]} rotation={[-Math.PI / 2, 0, 0.12]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
+        BE KIND REWIND
+      </Text>
+
+      {/* 3. Membership card holder on counter */}
+      <group position={[5.8, 0.88, 5.2]}>
+        <mesh position={[0, 0.08, 0]}>
+          <boxGeometry args={[0.35, 0.16, 0.2]} />
+          <Mat color="#2255aa" roughness={0.8} />
+        </mesh>
+        {/* Small cards fanned out */}
+        <mesh position={[0.04, 0.12, -0.05]} rotation={[0.3, 0, 0.05]}>
+          <boxGeometry args={[0.22, 0.01, 0.14]} />
+          <Mat color="#ffeedd" roughness={0.8} />
+        </mesh>
+        <Text position={[0, 0.22, -0.02]} fontSize={0.03} color="#ffd700" anchorX="center" font={undefined}>
+          FREE MEMBERSHIP
+        </Text>
+      </group>
+
+      {/* 4. Floor mat at entrance */}
+      <mesh position={[0, 0.005, 6.8]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[3.5, 1.2]} />
+        <Mat color="#1a1a1a" roughness={0.8} />
+      </mesh>
+      <Text position={[0, 0.008, 6.8]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>
+        WELCOME
+      </Text>
+
+      {/* 5. Ceiling-mounted security mirror in back corner */}
+      <group position={[-9.2, 3.3, -6.2]}>
+        <mesh rotation={[Math.PI / 4, 0, 0]}>
+          <circleGeometry args={[0.45, 24]} />
+          <Mat color="#c0c8d0" roughness={0.8} metalness={0.3} />
+        </mesh>
+        {/* Mirror bracket */}
+        <mesh position={[0, 0.15, 0.05]}>
+          <cylinderGeometry args={[0.06, 0.06, 0.15, 8]} />
+          <Mat color="#444444" roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* 6. "PLEASE REWIND YOUR TAPES" sign near return bin */}
+      <group position={[5, 1.6, 4.4]}>
+        {/* Sign board */}
+        <mesh>
+          <boxGeometry args={[0.9, 0.35, 0.03]} />
+          <Mat color="#ffffff" roughness={0.8} />
+        </mesh>
+        <Text position={[0, 0.04, -0.02]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
+          PLEASE REWIND
+        </Text>
+        <Text position={[0, -0.07, -0.02]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
+          YOUR TAPES!
+        </Text>
+        {/* Sad VHS icon — tiny box */}
+        <mesh position={[0.32, 0, -0.02]}>
+          <boxGeometry args={[0.12, 0.08, 0.02]} />
+          <Mat color="#111111" roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* 7. Stack of returned VHS tapes near return bin */}
+      <group position={[5.6, 0, 4.6]}>
+        {/* Messy stack of 4 tapes */}
+        <mesh position={[0, 0.06, 0]} rotation={[0, 0.1, 0]}>
+          <boxGeometry args={[0.19, 0.12, 0.1]} />
+          <Mat color="#1a1a3a" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.03, 0.17, 0.02]} rotation={[0, -0.15, 0.04]}>
+          <boxGeometry args={[0.19, 0.12, 0.1]} />
+          <Mat color="#3a1a1a" roughness={0.8} />
+        </mesh>
+        <mesh position={[-0.02, 0.28, -0.01]} rotation={[0, 0.25, -0.03]}>
+          <boxGeometry args={[0.19, 0.12, 0.1]} />
+          <Mat color="#1a3a1a" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.05, 0.38, 0.03]} rotation={[0.05, -0.1, 0.08]}>
+          <boxGeometry args={[0.19, 0.12, 0.1]} />
+          <Mat color="#2a2a4a" roughness={0.8} />
+        </mesh>
+      </group>
+
+      {/* 8. Shopping basket holder near entrance */}
+      <group position={[-3.5, 0, 5.8]}>
+        {/* Rack frame */}
+        <mesh position={[0, 0.45, 0]}>
+          <boxGeometry args={[0.7, 0.04, 0.5]} />
+          <Mat color="#777777" roughness={0.8} />
+        </mesh>
+        {/* Rack legs */}
+        {[-0.3, 0.3].map((lx) => (
+          <mesh key={`bl${lx}`} position={[lx, 0.22, 0]}>
+            <boxGeometry args={[0.04, 0.44, 0.04]} />
+            <Mat color="#777777" roughness={0.8} />
+          </mesh>
+        ))}
+        {/* Two baskets stacked */}
+        <mesh position={[0, 0.52, 0]}>
+          <boxGeometry args={[0.5, 0.15, 0.35]} />
+          <Mat color="#2255cc" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.03, 0.65, 0.02]}>
+          <boxGeometry args={[0.5, 0.15, 0.35]} />
+          <Mat color="#2255cc" roughness={0.8} />
+        </mesh>
+        {/* "TAKE A BASKET" sign */}
+        <Text position={[0, 0.82, -0.18]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>
+          TAKE A BASKET
+        </Text>
+      </group>
+
+      {/* 9. Price list sign near counter */}
+      <group position={[8.5, 1.8, 4.2]} rotation={[0, -Math.PI / 2, 0]}>
+        {/* Sign board */}
+        <mesh>
+          <boxGeometry args={[0.8, 0.6, 0.03]} />
+          <Mat color="#1c3f73" roughness={0.8} />
+        </mesh>
+        <Text position={[0, 0.2, -0.02]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+          RENTAL PRICES
+        </Text>
+        <Text position={[0, 0.07, -0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
+          NEW RELEASES $3.99/night
+        </Text>
+        <Text position={[0, -0.04, -0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
+          CATALOG $1.99 / 2 nights
+        </Text>
+        <Text position={[0, -0.18, -0.02]} fontSize={0.035} color="#ffcc00" anchorX="center" font={undefined}>
+          LATE FEES: $1.50/day
+        </Text>
+      </group>
+
+      {/* ══════════════════════════════════════════════════════════ */}
+      {/* ── SECOND-PASS DETAIL PROPS ─────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════ */}
+
+      {/* ── COUNTER AREA ──────────────────────────────────────── */}
+
+      {/* "PLEASE HAVE YOUR MEMBERSHIP CARD READY" sign hanging above counter */}
+      <group position={[7, 2.4, 5.5]}>
+        <mesh>
+          <boxGeometry args={[2.4, 0.28, 0.03]} />
+          <Mat color="#ffd700" roughness={0.5} />
+        </mesh>
+        <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.065} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          PLEASE HAVE YOUR MEMBERSHIP CARD READY
+        </Text>
+        {[-1.0, 1.0].map((dx, i) => (
+          <mesh key={`chain-${i}`} position={[dx, 0.3, 0]}>
+            <cylinderGeometry args={[0.008, 0.008, 0.45, 4]} />
+            <Mat color="#888888" roughness={0.3} metalness={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Pen on a chain on counter surface */}
+      <group position={[6.2, 0.92, 5.2]}>
+        <mesh rotation={[0, 0.4, Math.PI / 2]}>
+          <cylinderGeometry args={[0.006, 0.006, 0.16, 6]} />
+          <Mat color="#111111" roughness={0.5} />
+        </mesh>
+        <mesh position={[0.07, 0, -0.03]} rotation={[0, 0.4, Math.PI / 2]}>
+          <coneGeometry args={[0.006, 0.02, 6]} />
+          <Mat color="#b8960a" roughness={0.3} metalness={0.6} />
+        </mesh>
+        <mesh position={[-0.12, 0.01, 0.05]}>
+          <cylinderGeometry args={[0.012, 0.012, 0.02, 6]} />
+          <Mat color="#888888" roughness={0.4} metalness={0.5} />
+        </mesh>
+        {[0, 1, 2, 3].map((ci) => (
+          <mesh key={`pchain-${ci}`} position={[-0.12 + ci * 0.04, 0.01, 0.05 - ci * 0.015]}>
+            <cylinderGeometry args={[0.003, 0.003, 0.03, 4]} />
+            <Mat color="#888888" roughness={0.3} metalness={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Bell on counter — "Ring for service" */}
+      <group position={[5.2, 0.90, 5.0]}>
+        <mesh position={[0, 0.04, 0]}>
+          <sphereGeometry args={[0.04, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <Mat color="#b8960a" roughness={0.25} metalness={0.7} />
+        </mesh>
+        <mesh>
+          <cylinderGeometry args={[0.05, 0.055, 0.015, 12]} />
+          <Mat color="#b8960a" roughness={0.3} metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.055, 0]}>
+          <sphereGeometry args={[0.01, 8, 8]} />
+          <Mat color="#222222" roughness={0.4} />
+        </mesh>
+        <Text position={[0, -0.02, -0.07]} fontSize={0.018} color="#888888" anchorX="center" font={undefined}>
+          RING FOR SERVICE
+        </Text>
+      </group>
+
+      {/* ── AISLE DETAIL ──────────────────────────────────────── */}
+
+      {/* Genre endcap displays at shelf row ends */}
+      {[
+        { x: -5 + 1.6, z: -4 - 0.9, rotY: 0.25, label: "HORROR", colors: ["#dc2626", "#991b1b", "#7c2d12"] },
+        { x: 3 + 1.6, z: -4 - 0.9, rotY: 0.25, label: "COMEDY", colors: ["#f97316", "#ca8a04", "#ea580c"] },
+        { x: -5 + 1.6, z: -1 + 0.9, rotY: -0.15, label: "ACTION", colors: ["#ef4444", "#b91c1c", "#dc2626"] },
+      ].map((ec, i) => (
+        <EndcapDisplay key={`endcap2-${i}`} x={ec.x} z={ec.z} rotY={ec.rotY} label={ec.label} vhsColors={ec.colors} />
+      ))}
+
+      {/* "STAFF FAVORITES" handwritten card on a shelf */}
+      <group position={[1.8, 1.35, 2.3]} rotation={[0, 0.2, 0]}>
+        <mesh rotation={[-0.25, 0, 0]}>
+          <boxGeometry args={[0.3, 0.18, 0.005]} />
+          <Mat color="#fffde0" roughness={0.9} />
+        </mesh>
+        <Text position={[0, 0.01, -0.006]} rotation={[-0.25, 0, 0]} fontSize={0.03} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>
+          STAFF FAVORITES
+        </Text>
+        <Text position={[0, -0.04, -0.006]} rotation={[-0.25, 0, 0]} fontSize={0.018} color="#333333" anchorX="center" anchorY="middle" font={undefined}>
+          - Vinny
+        </Text>
+      </group>
+
+      {/* Bargain bin — open crate near the front with "2 FOR $1" sign */}
+      <group position={[-1.5, 0, 4.5]}>
+        <mesh position={[0, 0.25, 0]}>
+          <boxGeometry args={[0.9, 0.5, 0.7]} />
+          <Mat color="#6a4a20" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.35, 0]}>
+          <boxGeometry args={[0.8, 0.35, 0.6]} />
+          <Mat color="#3a2a10" roughness={0.9} />
+        </mesh>
+        {[[-0.2, 0.45, 0.1], [0.1, 0.47, -0.05], [0.0, 0.44, 0.15], [-0.1, 0.48, -0.1]].map(([bx, by, bz], i) => (
+          <mesh key={`bargain2-${i}`} position={[bx, by, bz]} rotation={[0.3 * (i - 1.5), 0.5 * i, 0.2 * i]}>
+            <boxGeometry args={[0.15, 0.24, 0.025]} />
+            <Mat color={["#dc2626", "#3b82f6", "#22c55e", "#ca8a04"][i]} roughness={0.6} />
+          </mesh>
+        ))}
+        <mesh position={[0, 0.6, -0.36]}>
+          <boxGeometry args={[0.6, 0.22, 0.02]} />
+          <Mat color="#ef4444" roughness={0.5} />
+        </mesh>
+        <Text position={[0, 0.6, -0.375]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+          2 FOR $1
+        </Text>
+      </group>
+
+      {/* Step stool in one aisle (for reaching top shelf) */}
+      <group position={[-3.2, 0, -2.5]}>
+        <mesh position={[0, 0.08, 0]}>
+          <boxGeometry args={[0.35, 0.16, 0.3]} />
+          <Mat color="#888888" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 0.22, -0.1]}>
+          <boxGeometry args={[0.35, 0.12, 0.2]} />
+          <Mat color="#888888" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 0.165, 0.01]}>
+          <boxGeometry args={[0.33, 0.005, 0.28]} />
+          <Mat color="#444444" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.285, -0.09]}>
+          <boxGeometry args={[0.33, 0.005, 0.18]} />
+          <Mat color="#444444" roughness={0.9} />
+        </mesh>
+      </group>
+
+      {/* ── WALL DETAIL ───────────────────────────────────────── */}
+
+      {/* Fire extinguisher on right wall */}
+      <group position={[ROOM_W / 2 - 0.12, 1.2, 0.5]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh position={[0, 0.15, 0]}>
+          <boxGeometry args={[0.12, 0.35, 0.04]} />
+          <Mat color="#333333" roughness={0.5} />
+        </mesh>
+        <mesh>
+          <cylinderGeometry args={[0.05, 0.05, 0.35, 10]} />
+          <Mat color="#cc0000" roughness={0.4} />
+        </mesh>
+        <mesh position={[0, 0.2, 0]}>
+          <boxGeometry args={[0.06, 0.06, 0.04]} />
+          <Mat color="#111111" roughness={0.4} />
+        </mesh>
+        <mesh position={[0.04, 0.14, 0]} rotation={[0, 0, 0.4]}>
+          <cylinderGeometry args={[0.008, 0.008, 0.12, 4]} />
+          <Mat color="#111111" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0.22, -0.03]}>
+          <circleGeometry args={[0.015, 8]} />
+          <Mat color="#ffffff" roughness={0.3} />
+        </mesh>
+      </group>
+
+      {/* Thermostat on left wall */}
+      <group position={[-ROOM_W / 2 + 0.06, 1.5, -1.5]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh>
+          <boxGeometry args={[0.08, 0.1, 0.02]} />
+          <Mat color="#e8e4d8" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 0.01, -0.011]}>
+          <boxGeometry args={[0.04, 0.02, 0.005]} />
+          <Mat color="#6a8a6a" roughness={0.3} />
+        </mesh>
+      </group>
+
+      {/* Light switch plates near entrance and employees door */}
+      {[
+        { pos: [-ROOM_W / 2 + 0.06, 1.2, 5.5] as [number, number, number], rotY: Math.PI / 2 },
+        { pos: [-ROOM_W / 2 + 0.06, 1.2, -4.5] as [number, number, number], rotY: Math.PI / 2 },
+        { pos: [ROOM_W / 2 - 0.06, 1.2, 6.0] as [number, number, number], rotY: -Math.PI / 2 },
+      ].map((sw, i) => (
+        <group key={`switch-${i}`} position={sw.pos} rotation={[0, sw.rotY, 0]}>
+          <mesh>
+            <boxGeometry args={[0.06, 0.1, 0.01]} />
+            <Mat color="#e8e4d8" roughness={0.7} />
+          </mesh>
+          <mesh position={[0, 0.01, -0.006]}>
+            <boxGeometry args={[0.015, 0.025, 0.008]} />
+            <Mat color="#d0c8b8" roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* "NO FOOD OR DRINKS IN THE STORE" sign on back wall */}
+      <group position={[3, 2.4, -ROOM_D / 2 + 0.06]}>
+        <mesh>
+          <boxGeometry args={[1.6, 0.25, 0.02]} />
+          <Mat color="#ffffff" roughness={0.8} />
+        </mesh>
+        <Text position={[0, 0, 0.015]} fontSize={0.055} color="#cc0000" anchorX="center" anchorY="middle" font={undefined}>
+          NO FOOD OR DRINKS IN THE STORE
+        </Text>
+      </group>
+
+      {/* "MOVIE OF THE WEEK" spotlight display on back wall */}
+      <group position={[0, 1.6, -ROOM_D / 2 + 0.12]}>
+        <mesh>
+          <boxGeometry args={[0.35, 0.04, 0.12]} />
+          <Mat color="#8a6838" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.15, -0.02]}>
+          <boxGeometry args={[0.15, 0.26, 0.025]} />
+          <Mat color="#7c3aed" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0.12, -0.035]}>
+          <planeGeometry args={[0.12, 0.06]} />
+          <meshBasicMaterial color="#f0e8d0" />
+        </mesh>
+        <mesh position={[0, 0.38, 0]}>
+          <boxGeometry args={[0.8, 0.18, 0.02]} />
+          <Mat color="#ffd700" roughness={0.5} />
+        </mesh>
+        <Text position={[0, 0.38, 0.015]} fontSize={0.045} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          MOVIE OF THE WEEK
+        </Text>
+      </group>
+
+      {/* ── CEILING DETAIL ────────────────────────────────────── */}
+
+      {/* Ceiling speaker — small box for store music */}
+      <group position={[-3, ROOM_H - 0.02, 3]}>
+        <mesh>
+          <boxGeometry args={[0.35, 0.08, 0.35]} />
+          <Mat color="#2a2a2a" roughness={0.6} />
+        </mesh>
+        {[[-0.06, -0.04, -0.06], [0, -0.04, 0], [0.06, -0.04, 0.06], [-0.06, -0.04, 0.06], [0.06, -0.04, -0.06]].map(([sx, sy, sz], i) => (
+          <mesh key={`spkr-${i}`} position={[sx, sy, sz]}>
+            <circleGeometry args={[0.02, 6]} />
+            <Mat color="#1a1a1a" roughness={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Second AC vent on ceiling — near entrance */}
+      <mesh position={[-4, ROOM_H - 0.015, 4]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.5, 0.5]} />
+        <Mat color="#c8c0b0" roughness={0.6} />
+      </mesh>
+      {[-0.15, -0.05, 0.05, 0.15].map((dy, i) => (
+        <mesh key={`vent2-${i}`} position={[-4, ROOM_H - 0.014, 4 + dy]}>
+          <boxGeometry args={[0.4, 0.003, 0.015]} />
+          <Mat color="#aaa89a" roughness={0.5} />
+        </mesh>
+      ))}
+
+      {/* ── ENTRANCE AREA ─────────────────────────────────────── */}
+
+      {/* Umbrella stand near the door */}
+      <group position={[1.8, 0, 6.2]}>
+        <mesh position={[0, 0.25, 0]}>
+          <cylinderGeometry args={[0.12, 0.14, 0.5, 10]} />
+          <Mat color="#3a3a3a" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.5, 0]}>
+          <cylinderGeometry args={[0.13, 0.12, 0.02, 10]} />
+          <Mat color="#555555" roughness={0.4} metalness={0.3} />
+        </mesh>
+        <mesh position={[0.03, 0.55, 0]} rotation={[0, 0, 0.15]}>
+          <cylinderGeometry args={[0.008, 0.008, 0.45, 4]} />
+          <Mat color="#1a3a8a" roughness={0.5} />
+        </mesh>
+        <mesh position={[0.06, 0.78, 0]} rotation={[Math.PI / 2, 0, 0.15]}>
+          <torusGeometry args={[0.025, 0.005, 6, 8, Math.PI]} />
+          <Mat color="#1a3a8a" roughness={0.5} />
+        </mesh>
+      </group>
+
+      {/* "WE BUY USED TAPES" sign in the window */}
+      <group position={[-3.5, 1.0, ROOM_D / 2 + 0.02]}>
+        <mesh>
+          <boxGeometry args={[1.2, 0.3, 0.005]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+        </mesh>
+        <Text position={[0, 0.04, 0.004]} fontSize={0.065} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>
+          WE BUY USED TAPES!
+        </Text>
+        <Text position={[0, -0.07, 0.004]} fontSize={0.035} color="#333333" anchorX="center" anchorY="middle" font={undefined}>
+          ASK INSIDE FOR DETAILS
+        </Text>
+        <Text position={[0, 0.04, -0.004]} rotation={[0, Math.PI, 0]} fontSize={0.065} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>
+          WE BUY USED TAPES!
+        </Text>
+      </group>
+
+      {/* Stack of free local newspapers/flyers near the door */}
+      <group position={[-2.5, 0, 6.0]}>
+        <mesh position={[0, 0.3, 0]}>
+          <boxGeometry args={[0.4, 0.04, 0.3]} />
+          <Mat color="#777777" roughness={0.5} />
+        </mesh>
+        {[[-0.17, 0.14, -0.12], [0.17, 0.14, -0.12], [-0.17, 0.14, 0.12], [0.17, 0.14, 0.12]].map(([lx, ly, lz], i) => (
+          <mesh key={`news-leg-${i}`} position={[lx, ly, lz]}>
+            <cylinderGeometry args={[0.008, 0.008, 0.28, 4]} />
+            <Mat color="#777777" roughness={0.5} />
+          </mesh>
+        ))}
+        <mesh position={[0, 0.34, 0]}>
+          <boxGeometry args={[0.35, 0.06, 0.25]} />
+          <Mat color="#f0eee0" roughness={0.9} />
+        </mesh>
+        <Text position={[0, 0.45, -0.13]} fontSize={0.04} color="#333333" anchorX="center" font={undefined}>
+          FREE — TAKE ONE
+        </Text>
+      </group>
+
+      {/* "COMING SOON" poster board near entrance */}
+      <group position={[7.5, 1.8, 6.2]} rotation={[0, -0.4, 0]}>
+        <mesh>
+          <boxGeometry args={[1.0, 1.2, 0.04]} />
+          <Mat color="#0a1830" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0, 0.01]}>
+          <boxGeometry args={[1.1, 1.3, 0.02]} />
+          <Mat color="#ffd700" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 0, 0.02]}>
+          <boxGeometry args={[0.95, 1.15, 0.01]} />
+          <Mat color="#0a1830" roughness={0.6} />
+        </mesh>
+        <Text position={[0, 0.42, 0.03]} fontSize={0.075} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+          COMING SOON
+        </Text>
+        {[[-0.22, 0.05, "#b91c1c"], [0.22, 0.05, "#1d4ed8"], [-0.22, -0.3, "#7c3aed"], [0.22, -0.3, "#059669"]].map(([px, py, c], i) => (
+          <mesh key={`coming-${i}`} position={[px as number, py as number, 0.03]}>
+            <boxGeometry args={[0.3, 0.28, 0.01]} />
+            <Mat color={c as string} roughness={0.6} />
+          </mesh>
+        ))}
+        <Text position={[0, -0.52, 0.03]} fontSize={0.035} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+          UPCOMING RELEASES
+        </Text>
+      </group>
+
+      {/* 10. Clock on the back wall */}
+      <group position={[6, 2.8, -6.95]}>
+        {/* Clock face */}
+        <mesh>
+          <circleGeometry args={[0.35, 32]} />
+          <Mat color="#f5f0e8" roughness={0.8} />
+        </mesh>
+        {/* Clock rim */}
+        <mesh>
+          <ringGeometry args={[0.33, 0.38, 32]} />
+          <Mat color="#3a2010" roughness={0.8} />
+        </mesh>
+        {/* Hour hand */}
+        <mesh position={[0.04, 0.08, 0.01]} rotation={[0, 0, -0.7]}>
+          <boxGeometry args={[0.025, 0.18, 0.01]} />
+          <Mat color="#111111" roughness={0.8} />
+        </mesh>
+        {/* Minute hand */}
+        <mesh position={[-0.02, 0.1, 0.01]} rotation={[0, 0, 0.3]}>
+          <boxGeometry args={[0.018, 0.25, 0.01]} />
+          <Mat color="#111111" roughness={0.8} />
+        </mesh>
+        {/* Center dot */}
+        <mesh position={[0, 0, 0.015]}>
+          <circleGeometry args={[0.025, 12]} />
+          <Mat color="#222222" roughness={0.8} />
+        </mesh>
+      </group>
+
     </group>
     </MobileCtx.Provider>
   );
@@ -5200,6 +6270,8 @@ useGLTF.preload('/models/van.glb');
 useGLTF.preload('/models/suv.glb');
 useGLTF.preload('/models/hatchback-sports.glb');
 useGLTF.preload('/models/taxi.glb');
+useGLTF.preload('/models/police.glb');
+useGLTF.preload('/models/delivery.glb');
 useGLTF.preload('/models/trashcan.glb');
 useGLTF.preload('/models/pottedPlant.glb');
 useGLTF.preload('/models/televisionVintage.glb');
