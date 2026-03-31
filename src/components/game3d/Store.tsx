@@ -3154,20 +3154,20 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <planeGeometry args={[ROOM_W, ROOM_D]} />
         <Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
-      {/* Extra ceiling plane to close gap above storefront */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, ROOM_D / 2]}>
+      {/* Extra ceiling plane to close gap above storefront — offset slightly below main ceiling to prevent z-fighting */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H - 0.02, ROOM_D / 2]}>
         <planeGeometry args={[ROOM_W + 2, 2]} />
         <Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} />
       </mesh>
-      {/* Ceiling drop-tile grid */}
+      {/* Ceiling drop-tile grid — offset below ceiling plane to prevent z-fighting shimmer */}
       {Array.from({ length: Math.floor(18 / 1.2) + 1 }, (_, i) => -9 + i * 1.2).map(x => (
-        <mesh key={`cgx${x}`} position={[x, ROOM_H - 0.01, 0]}>
+        <mesh key={`cgx${x}`} position={[x, ROOM_H - 0.03, 0]}>
           <boxGeometry args={[0.02, 0.01, ROOM_D]} />
           <Mat color="#8f897d" transparent opacity={0.45} />
         </mesh>
       ))}
       {Array.from({ length: Math.floor(12 / 1.2) + 1 }, (_, i) => -6 + i * 1.2).map(z => (
-        <mesh key={`cgz${z}`} position={[0, ROOM_H - 0.01, z]}>
+        <mesh key={`cgz${z}`} position={[0, ROOM_H - 0.03, z]}>
           <boxGeometry args={[ROOM_W, 0.01, 0.02]} />
           <Mat color="#8f897d" transparent opacity={0.45} />
         </mesh>
@@ -4874,15 +4874,17 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        {/* Push bar */}
+        {/* Push bar — inside face (facing into store, -z in local space) */}
         <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
-        {/* Mounting brackets */}
         <mesh position={[-0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
         <mesh position={[0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
-        {/* PUSH text plate */}
+        {/* PUSH text plate — inside face, text faces into store (-z) */}
         <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
-        <Text position={[0, 1.15, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
-        <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        <Text position={[0, 1.15, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        {/* PUSH text — outside face (facing parking lot, +z in local space) */}
+        <mesh position={[0, 1.15, 0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
+        <Text position={[0, 1.15, 0.03]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </AnimatedEntranceDoor>
       {/* Right door */}
       <AnimatedEntranceDoor side="right" doorOpen={entranceDoorOpen}>
@@ -4893,14 +4895,17 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
         <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
+        {/* Push bar — inside face */}
         <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
-        {/* Mounting brackets */}
         <mesh position={[-0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
         <mesh position={[0.35, 1.0, -0.02]}><boxGeometry args={[0.06, 0.1, 0.06]} /><Mat color="#666" roughness={0.3} metalness={0.6} /></mesh>
-        {/* PUSH text plate */}
+        {/* PUSH text plate — inside face, text faces into store (-z) */}
         <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
-        <Text position={[0, 1.15, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
-        <Text position={[0, 1.8, -0.01]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        <Text position={[0, 1.15, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        {/* PUSH text — outside face (facing parking lot, +z in local space) */}
+        <mesh position={[0, 1.15, 0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
+        <Text position={[0, 1.15, 0.03]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </AnimatedEntranceDoor>
       {/* Center divider between doors */}
       <mesh position={[0, 1.4, ROOM_D / 2 - 0.05]}>
@@ -5100,21 +5105,21 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       <SecurityDome position={[-ROOM_W / 2 + 0.5, ROOM_H - 0.05, -ROOM_D / 2 + 0.5]} />
       <SecurityDome position={[ROOM_W / 2 - 0.5, ROOM_H - 0.05, ROOM_D / 2 - 0.5]} />
 
-      {/* AC vent on ceiling */}
-      <mesh position={[3, ROOM_H - 0.015, -2]} rotation={[Math.PI / 2, 0, 0]}>
+      {/* AC vent on ceiling — offset below grid to prevent z-fighting */}
+      <mesh position={[3, ROOM_H - 0.05, -2]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[0.52, 0.52]} />
         <Mat color="#c8c0b0" roughness={0.6} />
       </mesh>
       {/* Vent slats */}
       {[-0.16, -0.06, 0.04, 0.14].map((dy, i) => (
-        <mesh key={`vent-${i}`} position={[3, ROOM_H - 0.014, -2 + dy]}>
+        <mesh key={`vent-${i}`} position={[3, ROOM_H - 0.05, -2 + dy]}>
           <boxGeometry args={[0.42, 0.003, 0.015]} />
           <Mat color="#aaa89a" roughness={0.5} />
         </mesh>
       ))}
 
       {/* Water stain on ceiling tile — adds character */}
-      <mesh position={[-6, ROOM_H - 0.015, 2]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[-6, ROOM_H - 0.05, 2]} rotation={[Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.4, 12]} />
         <Mat color="#c0b090" roughness={0.95} transparent opacity={0.4} />
       </mesh>
@@ -6117,8 +6122,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* ── CEILING DETAIL ────────────────────────────────────── */}
 
-      {/* Ceiling speaker — small box for store music */}
-      <group position={[-3, ROOM_H - 0.02, 3]}>
+      {/* Ceiling speaker — small box for store music — offset below grid */}
+      <group position={[-3, ROOM_H - 0.05, 3]}>
         <mesh>
           <boxGeometry args={[0.35, 0.08, 0.35]} />
           <Mat color="#2a2a2a" roughness={0.6} />
@@ -6131,13 +6136,13 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         ))}
       </group>
 
-      {/* Second AC vent on ceiling — near entrance */}
-      <mesh position={[-4, ROOM_H - 0.015, 4]} rotation={[Math.PI / 2, 0, 0]}>
+      {/* Second AC vent on ceiling — near entrance, offset below grid */}
+      <mesh position={[-4, ROOM_H - 0.05, 4]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[0.5, 0.5]} />
         <Mat color="#c8c0b0" roughness={0.6} />
       </mesh>
       {[-0.15, -0.05, 0.05, 0.15].map((dy, i) => (
-        <mesh key={`vent2-${i}`} position={[-4, ROOM_H - 0.014, 4 + dy]}>
+        <mesh key={`vent2-${i}`} position={[-4, ROOM_H - 0.05, 4 + dy]}>
           <boxGeometry args={[0.4, 0.003, 0.015]} />
           <Mat color="#aaa89a" roughness={0.5} />
         </mesh>

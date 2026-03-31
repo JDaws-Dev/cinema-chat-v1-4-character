@@ -5,6 +5,7 @@
 :root {
   /* Friday Night Video Design Tokens */
   --fnv-gold: #ffd700;
+  --fnv-navy: #0a1a3a;
   --fnv-blue: #1a2a50;
   --fnv-dark: #0a0e18;
   --fnv-text: #e0e0e0;
@@ -169,11 +170,12 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 215, 0, 0.5);
+  border: 1.5px solid rgba(255, 215, 0, 0.35);
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
   pointer-events: none;
   z-index: 20;
   transition: all 0.15s ease;
@@ -195,7 +197,7 @@
   transform: translateX(-50%);
   font-size: 0.85rem;
   color: #ffd700;
-  background: rgba(6, 8, 16, 0.85);
+  background: rgba(10, 26, 58, 0.88);
   padding: 8px 20px;
   border-radius: 8px;
   border: 1px solid rgba(255, 215, 0, 0.2);
@@ -220,10 +222,10 @@
   transform: translateX(-50%);
   font-size: 0.8rem;
   color: rgba(232, 226, 214, 0.75);
-  background: rgba(6, 8, 16, 0.75);
+  background: rgba(10, 26, 58, 0.8);
   padding: 8px 18px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.1);
   z-index: 12;
   pointer-events: none;
   max-width: 80%;
@@ -259,7 +261,7 @@
   font-size: 0.9rem;
   font-weight: 700;
   color: #ffd700;
-  background: rgba(6, 8, 16, 0.9);
+  background: rgba(10, 26, 58, 0.92);
   padding: 10px 20px;
   border-radius: 8px;
   border: 2px solid rgba(255, 215, 0, 0.5);
@@ -308,20 +310,21 @@
 .g3-inv-slot {
   width: 52px;
   height: 52px;
-  background: var(--fnv-hud-bg);
-  border: 1px solid var(--fnv-hud-border);
+  background: linear-gradient(180deg, rgba(10, 26, 58, 0.9) 0%, rgba(6, 12, 28, 0.9) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.2);
   border-radius: var(--fnv-hud-radius);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: 0.6rem;
-  color: var(--fnv-text);
+  color: var(--fnv-gold);
   cursor: pointer;
   font-family: var(--fnv-font-game);
+  backdrop-filter: blur(4px);
 }
-.g3-inv-movie { border-color: var(--fnv-gold); }
-.g3-inv-snack { border-color: var(--fnv-success); }
+.g3-inv-movie { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 8px rgba(255, 215, 0, 0.1); }
+.g3-inv-snack { border-color: rgba(34, 197, 94, 0.5); box-shadow: 0 0 8px rgba(34, 197, 94, 0.1); }
 .g3-inv-empty { opacity: 0.3; cursor: default; }
 
 /* ── Controls hint ────────────────────────────────────────── */
@@ -331,11 +334,11 @@
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.8rem;
-  color: rgba(232, 226, 214, 0.5);
-  background: rgba(6, 8, 16, 0.8);
+  color: rgba(255, 215, 0, 0.45);
+  background: rgba(10, 26, 58, 0.85);
   padding: 10px 20px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.1);
   z-index: 10;
   pointer-events: none;
   animation: hint-fade 5s ease-out forwards;
@@ -360,7 +363,8 @@
   padding: 0 16px;
   z-index: 10;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--fnv-hud-bg) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--fnv-navy) 0%, rgba(10, 26, 58, 0.85) 70%, transparent 100%);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.12);
   font-family: var(--fnv-font-game);
 }
 
@@ -368,14 +372,15 @@
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--fnv-gold);
-  opacity: 0.6;
+  opacity: 0.75;
   letter-spacing: 0.15em;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
   flex-shrink: 0;
 }
 
 .g3-hud-hint {
   font-size: 0.65rem;
-  color: var(--fnv-text-dim);
+  color: rgba(255, 215, 0, 0.35);
   text-align: center;
   flex: 1;
 }
@@ -392,8 +397,8 @@
   font-size: 0.65rem;
   font-weight: 600;
   color: #ffd700;
-  background: rgba(6, 8, 16, 0.8);
-  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: rgba(10, 26, 58, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.35);
   border-radius: 20px;
   padding: 3px 10px;
   white-space: nowrap;
@@ -408,8 +413,8 @@
 }
 
 .g3-screenshot-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(10, 26, 58, 0.8);
+  border: 1px solid rgba(255, 215, 0, 0.25);
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 1rem;
@@ -420,7 +425,8 @@
 }
 
 .g3-screenshot-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 215, 0, 0.12);
+  border-color: rgba(255, 215, 0, 0.5);
 }
 
 /* ── 3D Overlays ──────────────────────────────────────────── */
@@ -669,7 +675,7 @@
 
 /* ── Movie Night Challenge ────────────────────────────────── */
 .g3-challenge-btn {
-  background: rgba(255, 215, 0, 0.15);
+  background: rgba(10, 26, 58, 0.8);
   border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 6px;
   padding: 4px 10px;
@@ -683,19 +689,22 @@
 }
 
 .g3-challenge-btn:hover {
-  background: rgba(255, 215, 0, 0.25);
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.5);
 }
 
 .g3-challenge-list {
   position: fixed;
   top: 60px;
   left: 20px;
-  background: rgba(6, 8, 16, 0.9);
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  background: linear-gradient(180deg, rgba(10, 26, 58, 0.92) 0%, rgba(6, 12, 28, 0.92) 100%);
+  border: 1.5px solid rgba(255, 215, 0, 0.25);
   border-radius: 10px;
   padding: 12px 16px;
   z-index: 12;
   min-width: 180px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
 }
 
 .g3-challenge-header {
@@ -726,17 +735,17 @@
 
 .g3-challenge-hint {
   font-size: 0.6rem;
-  color: #ff3e7a;
+  color: rgba(255, 215, 0, 0.6);
   font-style: italic;
 }
 
 .g3-challenge-hint-btn {
   width: 18px;
   height: 18px;
-  background: rgba(255, 62, 122, 0.2);
-  border: 1px solid rgba(255, 62, 122, 0.4);
+  background: rgba(255, 215, 0, 0.12);
+  border: 1px solid rgba(255, 215, 0, 0.3);
   border-radius: 50%;
-  color: #ff3e7a;
+  color: var(--fnv-gold);
   font-size: 0.6rem;
   font-weight: 700;
   cursor: pointer;
@@ -750,7 +759,7 @@
 }
 
 .g3-challenge-hint-btn:hover {
-  background: rgba(255, 62, 122, 0.4);
+  background: rgba(255, 215, 0, 0.25);
 }
 
 .g3-mystery-clue {
