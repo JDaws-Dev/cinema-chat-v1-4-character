@@ -60,6 +60,7 @@ export default function GamePage() {
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [era, setEra] = useState<string>("early90s");
+  const [eraChosen, setEraChosen] = useState(false);
   const ERA_OPTIONS = [
     { id: "late80s", label: "Late 80s", years: "1987-1989", displayYear: "1989" },
     { id: "early90s", label: "Early 90s", years: "1990-1993", displayYear: "1992" },
@@ -1177,12 +1178,10 @@ export default function GamePage() {
   // ── Splash ─────────────────────────────────────────────
   if (!started) {
     return (
-      <div className="g3-splash">
-        <div className="g3-splash-content">
-          {/* Mascot logo */}
-          <img src="/images/fnv-mascot.png" alt="Friday Night Video" style={{ width: 160, height: 160, marginBottom: 12 }} />
-          <h1 className="g3-splash-title">FRIDAY NIGHT<br/>VIDEO</h1>
-          <p className="g3-splash-tagline">It&apos;s Friday night. Pick a movie.</p>
+      <div className="g3-splash" style={{ backgroundImage: 'url(/images/fnv-splash.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="g3-splash-content" style={{ background: 'rgba(10, 14, 24, 0.7)', padding: isMobile ? '24px 20px' : '40px 48px', borderRadius: 16, backdropFilter: 'blur(8px)' }}>
+          <h1 className="g3-splash-title" style={{ fontSize: isMobile ? '2rem' : '3.2rem' }}>FRIDAY NIGHT<br/>VIDEO</h1>
+          <p className="g3-splash-tagline" style={{ marginBottom: 20 }}>It&apos;s Friday night. Pick a movie.</p>
           <button className="g3-splash-btn" onClick={() => {
             setStarted(true); setLoading(true);
             unlockAudio();
@@ -1194,7 +1193,6 @@ export default function GamePage() {
               } catch {}
             }
           }}>PLAY FREE</button>
-          <p className="g3-splash-hint" style={{ opacity: 0.4, marginTop: 16 }}>{isMobile ? 'Touch to move \u2022 Tap to interact' : 'WASD \u2022 Mouse \u2022 E to interact'}</p>
         </div>
       </div>
     );
@@ -1240,6 +1238,28 @@ export default function GamePage() {
       </div>
 
       {/* Crosshair */}
+      {/* Era selector — shows after loading, before gameplay */}
+      {!loading && !eraChosen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 14, 24, 0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, backdropFilter: 'blur(4px)' }}>
+          <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 20px' }}>
+            <h2 style={{ color: '#ffd700', fontFamily: "'Courier New', monospace", fontSize: '1.4rem', marginBottom: 8 }}>CHOOSE YOUR ERA</h2>
+            <p style={{ color: '#888', fontSize: '0.8rem', marginBottom: 20 }}>What year is it tonight?</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {ERA_OPTIONS.map(opt => (
+                <button key={opt.id} onClick={() => { setEra(opt.id); setEraChosen(true); }}
+                  style={{
+                    padding: '12px 20px', fontSize: '1rem', fontFamily: "'Courier New', monospace",
+                    border: '1px solid #ffd700', background: 'transparent', color: '#ffd700',
+                    borderRadius: 6, cursor: 'pointer', textAlign: 'left',
+                  }}>
+                  <strong>{opt.label}</strong> <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({opt.years})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {!hasOverlay && <div className={`g3-crosshair ${hoverLabel ? 'g3-crosshair-active' : ''}`} />}
 
       {/* Hover label near crosshair */}
