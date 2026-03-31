@@ -55,7 +55,7 @@ await page.goto(URL, { waitUntil: 'networkidle' });
 await snap(page, '01_landing', 1000);
 
 // Enter the store
-const enterBtn = page.locator('button:has-text("ENTER THE STORE")');
+const enterBtn = page.locator('button:has-text("PLAY FREE"), button:has-text("ENTER THE STORE")').first();
 if (await enterBtn.isVisible()) {
   await enterBtn.click();
   await page.waitForTimeout(5000); // wait for 3D to load
