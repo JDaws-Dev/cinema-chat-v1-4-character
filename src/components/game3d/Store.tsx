@@ -16,14 +16,16 @@ const MobileCtx = createContext(false);
 const toonGradientTexture = (() => {
   if (typeof document === "undefined") return null; // SSR guard
   const canvas = document.createElement("canvas");
-  canvas.width = 4;
+  canvas.width = 6;
   canvas.height = 1;
   const ctx = canvas.getContext("2d")!;
-  // 3 steps: dark shadow, mid tone, bright highlight
-  ctx.fillStyle = "#555555"; ctx.fillRect(0, 0, 1, 1);
-  ctx.fillStyle = "#999999"; ctx.fillRect(1, 0, 1, 1);
-  ctx.fillStyle = "#cccccc"; ctx.fillRect(2, 0, 1, 1);
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(3, 0, 1, 1);
+  // 6 steps: smoother cel-shaded transitions (per INTERIOR-DESIGN-GUIDE.md)
+  const values = [40, 80, 120, 160, 200, 255];
+  values.forEach((v, i) => {
+    const hex = v.toString(16).padStart(2, "0");
+    ctx.fillStyle = `#${hex}${hex}${hex}`;
+    ctx.fillRect(i, 0, 1, 1);
+  });
   const tex = new THREE.CanvasTexture(canvas);
   tex.minFilter = THREE.NearestFilter;
   tex.magFilter = THREE.NearestFilter;
@@ -308,7 +310,7 @@ const ROOM_W = 20;
 const ROOM_D = 14;
 const ROOM_H = 3.5;
 const WALL_COLOR = "#223663";     // Brighter Blockbuster blue so shelves/signs read from a distance
-const FLOOR_COLOR = "#202a4f";    // Slightly lighter carpet so aisles do not fall into black
+const FLOOR_COLOR = "#2a3660";    // Blue-grey carpet — lighter, authentic to real Blockbusters
 const CEILING_COLOR = "#969081";  // Warm retail drop ceiling
 const COUNTER_COLOR = "#8a6830";  // warmer wood
 const SHELF_COLOR = "#7a5a30";    // Codex: warmer walnut/honey so posters don't disappear
@@ -3256,27 +3258,29 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
       </mesh>
 
-      {/* ── 3-Light Recipe (per 3D-DESIGN-GUIDE.md) ───────────────────────── */}
-      {/* Layer 1: Warm ambient base — simulates light bouncing off walls/floor */}
-      <ambientLight intensity={1.85} color="#f0eadc" />
+      {/* ── Lighting (per INTERIOR-DESIGN-GUIDE.md) ─────────────────────── */}
+      {/* Layer 1: Warm ambient base — lowered from 1.85 to 0.9 to restore directionality */}
+      <ambientLight intensity={0.9} color="#f0eadc" />
 
-      {/* Layer 2a: Primary hemisphere — warm ceiling / cool floor bounce */}
-      <hemisphereLight args={["#fff6e4", "#44507a", 1.05]} />
-      {/* Layer 2b: Secondary hemisphere — slightly warmer balance for counter/entrance warmth */}
-      <hemisphereLight args={["#ffe8c8", "#3d4a6a", 0.35]} />
+      {/* Layer 2a: Primary hemisphere — warmer ground for carpet bounce */}
+      <hemisphereLight args={["#fff6e4", "#4a5070", 0.8]} />
+      {/* Layer 2b: Secondary hemisphere — subtle warm balance */}
+      <hemisphereLight args={["#ffe8c8", "#3d4a6a", 0.3]} />
 
       {/* Layer 3: Key light — main overhead directional, warm white */}
-      <directionalLight position={[5, 8, 3]} intensity={2.0} color="#fff1dc" />
-      {/* Rim / back light — subtle silhouette definition on shelves when looking toward back wall */}
-      <directionalLight position={[-3, 6, -8]} intensity={0.5} color="#c8d4e8" />
+      <directionalLight position={[5, 8, 3]} intensity={1.5} color="#fff1dc" />
+      {/* Fill / back light — subtle silhouette definition on shelves */}
+      <directionalLight position={[-3, 6, -8]} intensity={0.4} color="#c8d4e8" />
 
-      {/* Overhead fluorescent simulation — 2 main ceiling pools */}
-      <pointLight position={[0, ROOM_H - 0.5, -1.2]} intensity={1.8} distance={15} color="#fff6e8" />
-      <pointLight position={[0, ROOM_H - 0.45, 2.2]} intensity={1.8} distance={15} color="#fff6e8" />
-      {/* Counter / entrance warm zone */}
-      <pointLight position={[-5.5, 2.5, 5.2]} intensity={2.2} distance={8} color="#ffd9a0" />
-      {/* Mid-store fill */}
-      <pointLight position={[0, 2.6, ROOM_D / 2 - 1.2]} intensity={1.6} distance={7} color="#ffe3b3" />
+      {/* Fluorescent fixture pointLights — 8 key positions under ceiling fixtures (max 10 budget) */}
+      <pointLight position={[-6, ROOM_H - 0.34, -1.5]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      <pointLight position={[2, ROOM_H - 0.34, -1.5]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      <pointLight position={[-2, ROOM_H - 0.34, 2]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      <pointLight position={[6, ROOM_H - 0.34, 2]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      <pointLight position={[-4, ROOM_H - 0.34, 0]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      <pointLight position={[4, ROOM_H - 0.34, 0]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      <pointLight position={[-4.5, ROOM_H - 0.34, 4.9]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      <pointLight position={[3.5, ROOM_H - 0.34, 4.9]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
 
       {/* Fluorescent ceiling fixtures — visual only (emissive materials, no lights) */}
       {[-6, -2, 2, 6].map((fx) => (
