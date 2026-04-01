@@ -12,7 +12,28 @@ import { getObjectById } from "@/lib/store-layout";
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
 import { Mat, setEraYears, getShelfMovies } from "./store-materials";
 import { ShelfUnit, WallShelf, NewReleasesWall } from "./store-shelves";
-import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyCar, KenneyModel, getRandomAdultPersonality } from "./store-characters";
+import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyModel, getRandomAdultPersonality } from "./store-characters";
+
+// ── Simple box-geometry car ──
+function BoxCar({ position, rotation = [0, 0, 0], color, cabinColor }: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  color: string;
+  cabinColor?: string;
+}) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Body */}
+      <mesh position={[0, 0.35, 0]}><boxGeometry args={[1.8, 0.5, 0.9]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      {/* Cabin */}
+      <mesh position={[0, 0.7, 0]}><boxGeometry args={[1.0, 0.35, 0.8]} /><meshStandardMaterial color={cabinColor ?? "#222233"} roughness={0.4} metalness={0.1} /></mesh>
+      {/* Wheels */}
+      {[[-0.55, 0.12, 0.45], [-0.55, 0.12, -0.45], [0.55, 0.12, 0.45], [0.55, 0.12, -0.45]].map(([wx, wy, wz], i) => (
+        <mesh key={i} position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.12, 0.12, 0.08, 8]} /><meshStandardMaterial color="#111111" /></mesh>
+      ))}
+    </group>
+  );
+}
 import { Counter } from "./store-counter";
 import { WallPoster, WallCrtTv, AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
 
@@ -354,14 +375,14 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       {/* Curb + Cars */}
       <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}><boxGeometry args={[ROOM_W + 4, 0.1, 0.15]} /><meshBasicMaterial color="#555555" /></mesh>
-      <KenneyCar model="sedan" position={[getObjectById("car-sedan")?.x ?? 5, 0, ROOM_D/2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
-      <KenneyCar model="van" position={[getObjectById("car-van")?.x ?? -4, 0, ROOM_D/2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
-      <KenneyCar model="suv" position={[getObjectById("car-suv")?.x ?? 1, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
-      <KenneyCar model="hatchback-sports" position={[getObjectById("car-hatchback")?.x ?? -7, 0, ROOM_D/2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
-      <KenneyCar model="taxi" position={[getObjectById("car-taxi")?.x ?? 8, 0, ROOM_D/2 + 5.5]} rotation={[0, 0, 0]} scale={1.2} />
-      <KenneyCar model="sedan" position={[getObjectById("car-sedan2")?.x ?? -10, 0, ROOM_D / 2 + 4]} rotation={[0, Math.PI, 0]} scale={1.2} />
-      <KenneyCar model="police" position={[getObjectById("car-police")?.x ?? 10, 0, ROOM_D / 2 + 4]} rotation={[0, 0, 0]} scale={1.2} />
-      <KenneyCar model="delivery" position={[getObjectById("car-delivery")?.x ?? -2, 0, ROOM_D / 2 + 5.5]} rotation={[0, Math.PI, 0]} scale={1.2} />
+      <BoxCar color="#4466aa" cabinColor="#223355" position={[getObjectById("car-sedan")?.x ?? 5, 0, getObjectById("car-sedan")?.z ?? ROOM_D/2 + 4]} />
+      <BoxCar color="#cc4444" cabinColor="#222233" position={[getObjectById("car-van")?.x ?? -4, 0, getObjectById("car-van")?.z ?? ROOM_D/2 + 4]} rotation={[0, Math.PI, 0]} />
+      <BoxCar color="#338833" cabinColor="#1a331a" position={[getObjectById("car-suv")?.x ?? 1, 0, getObjectById("car-suv")?.z ?? ROOM_D/2 + 5.5]} />
+      <BoxCar color="#ddaa22" cabinColor="#222233" position={[getObjectById("car-hatchback")?.x ?? -7, 0, getObjectById("car-hatchback")?.z ?? ROOM_D/2 + 5.5]} rotation={[0, Math.PI, 0]} />
+      <BoxCar color="#eecc33" cabinColor="#222233" position={[getObjectById("car-taxi")?.x ?? 8, 0, getObjectById("car-taxi")?.z ?? ROOM_D/2 + 5.5]} />
+      <BoxCar color="#777777" cabinColor="#333333" position={[getObjectById("car-sedan2")?.x ?? -10, 0, getObjectById("car-sedan2")?.z ?? ROOM_D / 2 + 4]} rotation={[0, Math.PI, 0]} />
+      <BoxCar color="#222244" cabinColor="#111122" position={[getObjectById("car-police")?.x ?? 10, 0, getObjectById("car-police")?.z ?? ROOM_D / 2 + 4]} />
+      <BoxCar color="#aa6633" cabinColor="#663311" position={[getObjectById("car-delivery")?.x ?? -2, 0, getObjectById("car-delivery")?.z ?? ROOM_D / 2 + 5.5]} rotation={[0, Math.PI, 0]} />
 
       {/* Road */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, ROOM_D / 2 + 13]}><planeGeometry args={[ROOM_W + 20, 6]} /><meshBasicMaterial color="#111116" /></mesh>

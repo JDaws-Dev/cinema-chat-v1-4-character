@@ -841,17 +841,6 @@ export const NPC_POOL = [
   { id: 'npc-l', shirtColor: '#f39c12', hairColor: '#1a1a1a', skinTone: '#e8c4a0', hairStyle: 'ponytail' as const },
 ];
 
-export function KenneyCar({ model, position, rotation = [0, 0, 0], scale = 1 }: {
-  model: string;
-  position: [number, number, number];
-  rotation?: [number, number, number];
-  scale?: number;
-}) {
-  const { scene } = useGLTF(`/models/${model}.glb`);
-  const cloned = useMemo(() => scene.clone(), [scene]);
-  return <primitive object={cloned} position={position} rotation={rotation} scale={scale} />;
-}
-
 export function KenneyModel({ model, position, rotation = [0, 0, 0], scale = 1 }: {
   model: string;
   position: [number, number, number];
