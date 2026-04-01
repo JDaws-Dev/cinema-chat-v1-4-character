@@ -30,14 +30,11 @@ function NeonSign() {
   );
 }
 
-// ── Aisle signs — derived from store-layout shelf rows ──
+// ── Aisle signs — show all genres in each row (front + back of all 4 racks) ──
 const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
-  // Row 1 (z≈-4.2): Horror, Sci-Fi, Comedy, Drama
-  { z: -4.2, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 DRAMA", colors: ["#dc2626", "#3b82f6", "#f97316", "#6366f1"] },
-  // Row 2 (z≈-1.5): Action, Western, Romance, Family
-  { z: -1.5, label: "ACTION \u2022 WESTERN \u2022 ROMANCE \u2022 FAMILY", colors: ["#ef4444", "#92400e", "#f43f5e", "#22c55e"] },
-  // Row 3 (z≈1): Horror, Sci-Fi, Comedy, Action
-  { z: 1, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 ACTION", colors: ["#dc2626", "#3b82f6", "#f97316", "#ef4444"] },
+  { z: -4.2, label: "HORROR \u2022 THRILLER \u2022 SCI-FI \u2022 FANTASY \u2022 COMEDY \u2022 ROMANCE \u2022 DRAMA \u2022 CLASSICS", colors: [] },
+  { z: -1.5, label: "ACTION \u2022 ADVENTURE \u2022 CRIME \u2022 MYSTERY \u2022 FAMILY \u2022 ANIMATED \u2022 WESTERN \u2022 WAR", colors: [] },
+  { z: 1, label: "MUSICAL \u2022 FOREIGN \u2022 CULT \u2022 INDIE \u2022 KIDS \u2022 SPORTS \u2022 SUSPENSE \u2022 NOIR", colors: [] },
 ];
 
 function AisleSign({ z, label }: { z: number; label: string; colors: string[] }) {
@@ -45,10 +42,10 @@ function AisleSign({ z, label }: { z: number; label: string; colors: string[] })
     <group position={[0, 0, z]}>
       <mesh position={[0, ROOM_H - 0.45, 0]}><boxGeometry args={[0.02, 0.9, 0.02]} /><Mat color="#888888" metalness={0.5} roughness={0.3} /></mesh>
       {/* Blockbuster blue background with yellow border */}
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[3.6, 0.36, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[3.5, 0.3, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
-      <Text position={[0, 2.6, 0.02]} fontSize={0.07} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
-      <Text position={[0, 2.6, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.07} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.2, 0.36, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
+      <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.1, 0.3, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
+      <Text position={[0, 2.6, 0.02]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      <Text position={[0, 2.6, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
     </group>
   );
 }
