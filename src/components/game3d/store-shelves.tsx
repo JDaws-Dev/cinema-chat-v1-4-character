@@ -34,16 +34,16 @@ export function InstancedVHSBoxes({ positions, color }: { positions: [number, nu
 }
 
 export function ShelfUnit({ x, z, genre, color, backGenre, backColor, rotY = 0 }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; rotY?: number }) {
-  const frontPosters = usePosterUrls(genre, 30); // 10 tapes x 3 tiers = 30, no repeats
-  const backPosters = usePosterUrls(backGenre || genre, 30);
+  const frontPosters = usePosterUrls(genre, 18); // 6 tapes x 3 tiers = 18
+  const backPosters = usePosterUrls(backGenre || genre, 18);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const backGenreKey = (backGenre || genre).toLowerCase().replace(/[- ]/g, "");
   const bColor = backColor || color;
 
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = 10;
-    const spacing = 0.22; // clear gaps between each VHS case
+    const count = 6;
+    const spacing = 0.35; // wider gaps, fewer tapes for perf
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
     for (const side of ["front", "back"] as const) {
@@ -78,6 +78,23 @@ export function ShelfUnit({ x, z, genre, color, backGenre, backColor, rotY = 0 }
       <RoundedBox args={[2.85, 0.04, 0.38]} radius={0.01} smoothness={2} position={[0, 1.52, 0]}>
         <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </RoundedBox>
+      {/* Genre sign on top — Blockbuster blue with yellow text */}
+      {/* Front side (faces -z in local space) */}
+      <mesh position={[0, 1.62, -0.12]}>
+        <boxGeometry args={[1.2, 0.16, 0.02]} />
+        <Mat color="#00006e" roughness={0.5} />
+      </mesh>
+      <Text position={[0, 1.62, -0.14]} rotation={[0, Math.PI, 0]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{genre}</Text>
+      {/* Back side (faces +z in local space) */}
+      {backGenre && (
+        <>
+          <mesh position={[0, 1.62, 0.12]}>
+            <boxGeometry args={[1.2, 0.16, 0.02]} />
+            <Mat color="#00006e" roughness={0.5} />
+          </mesh>
+          <Text position={[0, 1.62, 0.14]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{backGenre}</Text>
+        </>
+      )}
       {/* 3 visible shelf boards — these are what the VHS tapes sit on */}
       {[0.02, 0.50, 1.0].map((sy, i) => (
         <RoundedBox key={`board-${i}`} args={[2.76, 0.04, 0.35]} radius={0.01} smoothness={2} position={[0, sy, 0]}>

@@ -14,50 +14,40 @@ const PLAYER_RADIUS = 0.4;
 // Collision boxes derived from layout data — positions stay in sync with editor
 import { getObjectById, getShelfRows } from "@/lib/store-layout";
 
+// COLLISION AUDIT (2026-03-29): Every collider below maps to a rendered object in Store.tsx.
+// Removed objects (return-chute, cooler, side wall shelves, kids-corner, video-games) have NO colliders.
+// Verified: 12 gondolas + counter + new-releases-wall + wallshelf-back + trophy + return-bin + bargain-crate = all rendered.
 function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   const colliders: { x: number; z: number; hw: number; hd: number }[] = [];
 
-  // ── Gondola shelves ──
-  // Each is 3.2w x 0.6d rotated ~0.6 rad. Use tight AABB (no padding)
-  // so players can walk between adjacent shelves.
+  // ── 12 Gondola shelves (from store-layout.ts) ──
+  // Use un-rotated dimensions so collision boxes stay tight axis-aligned rectangles.
+  // Slightly undersized vs visual (2.8w) for walkability between angled shelves.
   for (const row of getShelfRows()) {
-    const absRot = Math.abs(row.rotY || 0);
-    const cosR = Math.cos(absRot);
-    const sinR = Math.sin(absRot);
-    const shelfW = 2.8; // slightly smaller than visual (3.2) for walkability
-    const shelfD = 0.35; // actual narrow depth of gondola
-    // Tight AABB — no padding multiplier
-    const hw = (shelfW * cosR + shelfD * sinR) / 2;
-    const hd = (shelfW * sinR + shelfD * cosR) / 2;
-    colliders.push({ x: row.x, z: row.z, hw, hd });
+    colliders.push({ x: row.x, z: row.z, hw: 1.3, hd: 0.2 });
   }
 
-  // ── Counter (x=7, z=5, 6w x 1.2d) ──
+  // ── Counter (rendered in store-counter.tsx) ──
   const counter = getObjectById("counter");
   if (counter) colliders.push({ x: counter.x, z: counter.z, hw: 3.2, hd: 0.8 });
 
-  // ── New Releases back wall display (x=0, z=-6.85, full width) ──
+  // ── New Releases back wall display (rendered in store-shelves.tsx) ──
   const nr = getObjectById("new-releases-wall");
   if (nr) colliders.push({ x: nr.x, z: nr.z, hw: 9.5, hd: 0.4 });
 
-  // ── Wall shelf: DRAMA on back wall (x=-5, z=-6.85, 6w) ──
+  // ── Wall shelf on back wall (rendered in Store.tsx <WallShelf>) ──
   const dramWall = getObjectById("wallshelf-back-drama");
-  if (dramWall) colliders.push({ x: dramWall.x, z: dramWall.z, hw: 3.2, hd: 0.4 });
+  if (dramWall) colliders.push({ x: dramWall.x, z: dramWall.z, hw: 9, hd: 0.3 });
 
-
-  // ── Trophy shelf (x=9.7, z=-4, rotated 90deg so 0.6w x 2.5d) ──
+  // ── Trophy shelf (rendered in Store.tsx <TrophyShelf>) ──
   const trophy = getObjectById("trophy-shelf");
   if (trophy) colliders.push({ x: trophy.x, z: trophy.z, hw: 0.4, hd: 1.4 });
 
-  // ── Return bin (x=3.5, z=5.2, 0.8w x 0.6d) ──
+  // ── Return bin (rendered in Store.tsx) ──
   const returnBin = getObjectById("return-bin");
   if (returnBin) colliders.push({ x: returnBin.x, z: returnBin.z, hw: 0.5, hd: 0.4 });
 
-  // ── Return chute near right wall (x=9, z=5.5, 0.9w x 0.6d) ──
-  const returnChute = getObjectById("return-chute");
-  if (returnChute) colliders.push({ x: returnChute.x, z: returnChute.z, hw: 0.55, hd: 0.4 });
-
-  // ── Bargain crate (x=-1.5, z=4.5, 0.9w x 0.7d) — small floor bin ──
+  // ── Bargain crate (rendered in Store.tsx) ──
   const bargainCrate = getObjectById("bargain-crate");
   if (bargainCrate) colliders.push({ x: bargainCrate.x, z: bargainCrate.z, hw: 0.55, hd: 0.45 });
 

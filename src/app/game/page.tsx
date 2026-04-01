@@ -25,6 +25,7 @@ import { mobileInput } from "@/components/game3d/MobileControls";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
+const TopDownCamera = dynamic(() => import("@/components/game3d/TopDownCamera").then(m => ({ default: m.TopDownCamera })), { ssr: false });
 
 const Canvas = dynamic(() => import("@react-three/fiber").then(m => ({ default: m.Canvas })), { ssr: false });
 const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ default: m.Store })), { ssr: false });
@@ -84,6 +85,7 @@ export default function GamePage() {
     }
   }, []);
   const [overlay, setOverlay] = useState<Overlay>("none");
+  const [topDown, setTopDown] = useState(false);
   const [shelfGenre, setShelfGenre] = useState("");
   const [filmId, setFilmId] = useState<number | null>(null);
 
@@ -955,6 +957,18 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay, closeOverlay, rpgNode, handleDialogueResponse]);
 
+  // T to toggle top-down view
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
+      if ((e.key === "t" || e.key === "T") && overlay === "none") {
+        setTopDown(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [overlay]);
+
   // J to open quest log
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1010,9 +1024,10 @@ export default function GamePage() {
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
-          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} />
-          <FirstPersonControls disabled={hasOverlay} />
-          {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
+          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} topDown={topDown} />
+          <FirstPersonControls disabled={hasOverlay || topDown} />
+          {topDown && <TopDownCamera />}
+          {!hasOverlay && !topDown && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
         </Suspense>
       </Canvas>
@@ -1053,7 +1068,41 @@ export default function GamePage() {
         </div>
       )}
 
-      {!hasOverlay && <div className={`g3-crosshair ${hoverLabel ? 'g3-crosshair-active' : ''}`} />}
+      {!hasOverlay && !topDown && <div className={`g3-crosshair ${hoverLabel ? 'g3-crosshair-active' : ''}`} />}
+
+      {/* Top-down view indicator + exit button */}
+      {topDown && (
+        <div style={{
+          position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 40,
+          background: 'rgba(10, 14, 24, 0.9)', border: '1px solid #ffd700', borderRadius: 8,
+          padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 12,
+          fontFamily: "'Courier New', monospace", color: '#ffd700', fontSize: '0.85rem',
+        }}>
+          <span>TOP-DOWN VIEW</span>
+          <button onClick={() => setTopDown(false)} style={{
+            background: '#ffd700', color: '#0a0e18', border: 'none', borderRadius: 4,
+            padding: '4px 12px', fontFamily: 'inherit', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem',
+          }}>
+            {isMobile ? 'EXIT' : 'T to exit'}
+          </button>
+        </div>
+      )}
+
+      {/* Top-down toggle button (always visible when no overlay) */}
+      {!hasOverlay && !topDown && (
+        <button
+          onClick={() => setTopDown(true)}
+          style={{
+            position: 'fixed', top: 16, right: 16, zIndex: 40,
+            background: 'rgba(10, 14, 24, 0.85)', border: '1px solid rgba(255, 215, 0, 0.3)',
+            borderRadius: 6, padding: '6px 12px', cursor: 'pointer',
+            fontFamily: "'Courier New', monospace", color: '#ffd700', fontSize: '0.7rem',
+          }}
+          title="Toggle top-down view (T)"
+        >
+          MAP
+        </button>
+      )}
 
       {/* Hover label near crosshair */}
       {!hasOverlay && hoverLabel && (

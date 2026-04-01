@@ -30,21 +30,25 @@ function NeonSign() {
   );
 }
 
-// ── Aisle signs ──
+// ── Aisle signs — derived from store-layout shelf rows ──
 const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
-  { z: -4, label: "HORROR \u2022 SCI-FI \u2022 COMEDY", colors: ["#dc2626", "#3b82f6", "#f97316"] },
-  { z: -1, label: "ACTION \u2022 CLASSICS", colors: ["#ef4444", "#ca8a04"] },
-  { z: 2, label: "FAMILY \u2022 WESTERN", colors: ["#22c55e", "#92400e"] },
+  // Row 1 (z≈-4.2): Horror, Sci-Fi, Comedy, Drama
+  { z: -4.2, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 DRAMA", colors: ["#dc2626", "#3b82f6", "#f97316", "#6366f1"] },
+  // Row 2 (z≈-1.5): Action, Western, Romance, Family
+  { z: -1.5, label: "ACTION \u2022 WESTERN \u2022 ROMANCE \u2022 FAMILY", colors: ["#ef4444", "#92400e", "#f43f5e", "#22c55e"] },
+  // Row 3 (z≈1): Horror, Sci-Fi, Comedy, Action
+  { z: 1, label: "HORROR \u2022 SCI-FI \u2022 COMEDY \u2022 ACTION", colors: ["#dc2626", "#3b82f6", "#f97316", "#ef4444"] },
 ];
 
 function AisleSign({ z, label }: { z: number; label: string; colors: string[] }) {
   return (
     <group position={[0, 0, z]}>
       <mesh position={[0, ROOM_H - 0.45, 0]}><boxGeometry args={[0.02, 0.9, 0.02]} /><Mat color="#888888" metalness={0.5} roughness={0.3} /></mesh>
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[2.3, 0.36, 0.02]} /><Mat color="#0a1830" roughness={0.6} /></mesh>
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[2.2, 0.3, 0.03]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} /></mesh>
-      <Text position={[0, 2.6, 0.02]} fontSize={0.08} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
-      <Text position={[0, 2.6, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      {/* Blockbuster blue background with yellow border */}
+      <mesh position={[0, 2.6, 0]}><boxGeometry args={[3.6, 0.36, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
+      <mesh position={[0, 2.6, 0]}><boxGeometry args={[3.5, 0.3, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
+      <Text position={[0, 2.6, 0.02]} fontSize={0.07} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      <Text position={[0, 2.6, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.07} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
     </group>
   );
 }
@@ -53,11 +57,6 @@ function AisleFloorMarkings() {
   return (<>{[-2.5, 0.5, 3.5].map((z) => (<mesh key={`floor-strip-${z}`} position={[0, 0.005, z]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[ROOM_W - 2, 0.08]} /><meshBasicMaterial color="#0d1320" /></mesh>))}</>);
 }
 
-function FlickeringLight({ position }: { position: [number, number, number] }) {
-  const lightRef = useRef<THREE.SpotLight>(null);
-  useFrame((state) => { if (lightRef.current) lightRef.current.intensity = 4.0 + Math.sin(state.clock.elapsedTime * 3.7) * 0.5; });
-  return (<spotLight ref={lightRef} position={position} angle={0.6} penumbra={0.5} intensity={4} distance={6} color="#fff4d0" target-position={[position[0], 0, position[2]]} />);
-}
 
 function FloorRug() {
   return (
@@ -101,7 +100,7 @@ function TrophyShelf() {
   );
 }
 
-export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number }) {
+export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number; topDown?: boolean }) {
   useEffect(() => { if (eraYears) setEraYears(eraYears); }, [eraYears]);
 
   const spawnedNpcs = useMemo(() => {
@@ -131,11 +130,14 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, ROOM_D / 2 - 1]}><planeGeometry args={[6, 2]} /><Mat color="#3a3a3a" roughness={0.8} /></mesh>
       {[-4, 0, 4].map((x, i) => (<mesh key={`fl${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.002, 0]}><circleGeometry args={[3, 24]} /><Mat color="#1e2850" roughness={0.9} transparent opacity={0.3} /></mesh>))}
 
-      {/* ── CEILING ── */}
+      {/* ── CEILING (hidden in top-down view) ── */}
+      {!topDown && <>
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}><planeGeometry args={[ROOM_W, ROOM_D]} /><Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} /></mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H - 0.02, ROOM_D / 2]}><planeGeometry args={[ROOM_W + 2, 2]} /><Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} /></mesh>
-      {Array.from({ length: Math.floor(18 / 1.2) + 1 }, (_, i) => -9 + i * 1.2).map(x => (<mesh key={`cgx${x}`} position={[x, ROOM_H - 0.03, 0]}><boxGeometry args={[0.02, 0.01, ROOM_D]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
-      {Array.from({ length: Math.floor(12 / 1.2) + 1 }, (_, i) => -6 + i * 1.2).map(z => (<mesh key={`cgz${z}`} position={[0, ROOM_H - 0.03, z]}><boxGeometry args={[ROOM_W, 0.01, 0.02]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
+      {/* Ceiling grid — sparse for perf */}
+      {[-6, -2, 2, 6].map(x => (<mesh key={`cgx${x}`} position={[x, ROOM_H - 0.03, 0]}><boxGeometry args={[0.02, 0.01, ROOM_D]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
+      {[-4, 0, 4].map(z => (<mesh key={`cgz${z}`} position={[0, ROOM_H - 0.03, z]}><boxGeometry args={[ROOM_W, 0.01, 0.02]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
+      </>}
 
       {/* ── WALLS ── */}
       <mesh position={[0, ROOM_H / 2, -ROOM_D / 2]}><planeGeometry args={[ROOM_W, ROOM_H]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
@@ -161,25 +163,18 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       <mesh position={[-ROOM_W / 2 + 0.02, 2.8, 0]} rotation={[0, Math.PI / 2, 0]}><boxGeometry args={[ROOM_D, 0.06, 0.02]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>
       <mesh position={[ROOM_W / 2 - 0.02, 2.8, 0]} rotation={[0, Math.PI / 2, 0]}><boxGeometry args={[ROOM_D, 0.06, 0.02]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>
 
-      {/* ── LIGHTING ── */}
-      <ambientLight intensity={0.9} color="#f0eadc" />
-      <hemisphereLight args={["#fff6e4", "#4a5070", 0.8]} />
-      <hemisphereLight args={["#ffe8c8", "#3d4a6a", 0.3]} />
-      <directionalLight position={[5, 8, 3]} intensity={1.5} color="#fff1dc" />
-      <directionalLight position={[-3, 6, -8]} intensity={0.4} color="#c8d4e8" />
-      <pointLight position={[-6, ROOM_H - 0.34, -1.5]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
-      <pointLight position={[2, ROOM_H - 0.34, -1.5]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
-      <pointLight position={[-2, ROOM_H - 0.34, 2]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
-      <pointLight position={[6, ROOM_H - 0.34, 2]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
-      <pointLight position={[-4, ROOM_H - 0.34, 0]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
-      <pointLight position={[4, ROOM_H - 0.34, 0]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
-      <pointLight position={[-4.5, ROOM_H - 0.34, 4.9]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
-      <pointLight position={[3.5, ROOM_H - 0.34, 4.9]} intensity={0.6} distance={6} color="#fff6e8" castShadow={false} />
+      {/* ── LIGHTING (minimal for performance) ── */}
+      <ambientLight intensity={1.1} color="#f0eadc" />
+      <hemisphereLight args={["#fff6e4", "#4a5070", 0.6]} />
+      <directionalLight position={[5, 8, 3]} intensity={1.2} color="#fff1dc" />
+      <directionalLight position={[-3, 6, -8]} intensity={0.3} color="#c8d4e8" />
 
-      {/* Fluorescent ceiling fixtures */}
+      {/* Fluorescent ceiling fixtures (hidden in top-down) */}
+      {!topDown && <>
       {[-6, -2, 2, 6].map((fx) => (<group key={fx}><group position={[fx, ROOM_H - 0.04, -1.5]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group><group position={[fx, ROOM_H - 0.04, 2]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group></group>))}
       {[-4, 0, 4].map((fx) => (<group key={`mid-${fx}`} position={[fx, ROOM_H - 0.04, 0]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group>))}
       {[-4.5, -0.5, 3.5].map((fx) => (<group key={`front-${fx}`} position={[fx, ROOM_H - 0.04, 4.9]}><mesh><boxGeometry args={[1.65, 0.05, 0.28]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.45, 0.03, 0.08]} /><meshBasicMaterial color="#fff6dd" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.55, 0.01, 0.22]} /><Mat color="#ece8da" roughness={0.22} /></mesh></group>))}
+      </>}
 
       {/* ── SHELVES ── */}
       {SHELF_ROWS.map((s, i) => (<ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} rotY={s.rotY} />))}
@@ -197,8 +192,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       <NeonSign />
 
       {/* ── CRT TVs ── */}
-      <WallCrtTv position={[getObjectById("tv-left")?.x ?? -9.05, getObjectById("tv-left")?.y ?? 2.2, getObjectById("tv-left")?.z ?? -2.8]} yaw={Math.PI / 2 - 0.18} tilt={0.12} scale={0.84} pipeDrop={0.96} />
-      <WallCrtTv position={[getObjectById("tv-right")?.x ?? (ROOM_W / 2 - 0.72), getObjectById("tv-right")?.y ?? 2.26, getObjectById("tv-right")?.z ?? -3.9]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
+      <WallCrtTv position={[getObjectById("tv-left")?.x ?? -9.05, getObjectById("tv-left")?.y ?? 2.2, getObjectById("tv-left")?.z ?? 0]} yaw={Math.PI / 2 - 0.18} tilt={0.12} scale={0.84} pipeDrop={0.96} />
+      <WallCrtTv position={[getObjectById("tv-right")?.x ?? (ROOM_W / 2 - 0.72), getObjectById("tv-right")?.y ?? 2.26, getObjectById("tv-right")?.z ?? 0]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
 
       {/* ── WALL POSTERS ── */}
       <WallPoster x={getObjectById("poster-jaws")?.x ?? -7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#b91c1c" title="JAWS" />
@@ -207,12 +202,12 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       <WallPoster x={getObjectById("poster-raiders")?.x ?? 9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#059669" title="RAIDERS" />
       <WallPoster x={-ROOM_W / 2 + 0.1} y={2.0} z={getObjectById("poster-shining")?.z ?? -2.78} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
       <WallPoster x={-ROOM_W / 2 + 0.04} y={2.0} z={getObjectById("poster-starwars")?.z ?? 1.32} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
-      <WallPoster x={ROOM_W / 2 - 0.16} y={2.0} z={getObjectById("poster-bttf")?.z ?? 2.95} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
-      <WallPoster x={ROOM_W / 2 - 0.13} y={2.0} z={getObjectById("poster-et")?.z ?? 5.19} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
+      <WallPoster x={ROOM_W / 2 - 0.16} y={2.0} z={getObjectById("poster-bttf")?.z ?? 1.5} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
+      <WallPoster x={ROOM_W / 2 - 0.13} y={2.0} z={getObjectById("poster-et")?.z ?? 6.0} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
 
       {/* ── WALL-MOUNTED ITEMS ── */}
       {/* BE KIND REWIND */}
-      <group position={[-ROOM_W / 2 + 0.12, 2.0, getObjectById("be-kind-sign")?.z ?? 3.5]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[-ROOM_W / 2 + 0.12, 2.0, getObjectById("be-kind-sign")?.z ?? 2.5]} rotation={[0, Math.PI / 2, 0]}>
         <mesh><boxGeometry args={[1.5, 0.35, 0.03]} /><Mat color="#0a1a3a" roughness={0.6} /></mesh>
         <Text position={[0, 0, 0.02]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
         <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
@@ -314,12 +309,14 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       {/* Neon accent strips (removed — looked like weird colored bars) */}
 
       {/* ── EXTERIOR ── */}
-      {/* Sky dome */}
+      {/* Sky dome (hidden in top-down) */}
+      {!topDown && <>
       {[{ pos: [0, 10, -30] as [number,number,number], rot: [0, 0, 0] as [number,number,number] },{ pos: [0, 10, 35] as [number,number,number], rot: [0, Math.PI, 0] as [number,number,number] },{ pos: [-35, 10, 0] as [number,number,number], rot: [0, Math.PI / 2, 0] as [number,number,number] },{ pos: [35, 10, 0] as [number,number,number], rot: [0, -Math.PI / 2, 0] as [number,number,number] }].map((sky, i) => (<mesh key={`sky-${i}`} position={sky.pos} rotation={sky.rot}><planeGeometry args={[80, 30]} /><meshBasicMaterial color="#1a2a48" /></mesh>))}
       <mesh position={[0, 22, 0]} rotation={[Math.PI / 2, 0, 0]}><planeGeometry args={[80, 80]} /><meshBasicMaterial color="#1a2a48" /></mesh>
-      {Array.from({ length: 40 }).map((_, i) => (<mesh key={`star-${i}`} position={[(Math.sin(i * 7.3) * 25), 5 + Math.abs(Math.sin(i * 3.7)) * 12, 34]} rotation={[0, Math.PI, 0]}><circleGeometry args={[i % 4 === 0 ? 0.08 : 0.04, 6]} /><meshBasicMaterial color={i % 7 === 0 ? "#aabbff" : "#ffffff"} /></mesh>))}
+      {Array.from({ length: 15 }).map((_, i) => (<mesh key={`star-${i}`} position={[(Math.sin(i * 7.3) * 25), 5 + Math.abs(Math.sin(i * 3.7)) * 12, 34]} rotation={[0, Math.PI, 0]}><circleGeometry args={[0.06, 4]} /><meshBasicMaterial color="#ffffff" /></mesh>))}
       <mesh position={[12, 14, 34]} rotation={[0, Math.PI, 0]}><circleGeometry args={[1.0, 16]} /><meshBasicMaterial color="#d8dce8" /></mesh>
       <mesh position={[12.3, 14.2, 33.9]} rotation={[0, Math.PI, 0]}><circleGeometry args={[0.7, 16]} /><meshBasicMaterial color="#c0c4d0" /></mesh>
+      </>}
 
       {/* Parking lot */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}><planeGeometry args={[ROOM_W + 8, 14]} /><meshBasicMaterial color="#2a2a40" /></mesh>
@@ -330,7 +327,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       {/* Parking lot lamps */}
       {[getObjectById("lamp-1")?.x ?? -6, getObjectById("lamp-2")?.x ?? 0, getObjectById("lamp-3")?.x ?? 6].map((lx, i) => (<group key={`lamp-${i}`} position={[lx, 0, [getObjectById("lamp-1")?.z, getObjectById("lamp-2")?.z, getObjectById("lamp-3")?.z][i] ?? ROOM_D / 2 + 7]}><mesh position={[0, 1.5, 0]}><cylinderGeometry args={[0.03, 0.04, 3, 8]} /><meshBasicMaterial color="#444" /></mesh><mesh position={[0, 3.1, 0]}><boxGeometry args={[0.3, 0.08, 0.15]} /><meshBasicMaterial color="#555" /></mesh><mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}><circleGeometry args={[1.5, 12]} /><meshBasicMaterial color="#332a15" transparent opacity={0.3} /></mesh></group>))}
 
-      {/* Fascia + signage */}
+      {/* Fascia + signage (hidden in top-down) */}
+      {!topDown && <>
       <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.2]}><boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
       <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
         <mesh><boxGeometry args={[8, 1.2, 0.2]} /><meshBasicMaterial color="#0a0a1a" /></mesh>
@@ -345,6 +343,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       <mesh position={[0, ROOM_H + 1.2, ROOM_D / 2 - 0.1]}><boxGeometry args={[ROOM_W + 12, 0.15, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>
       <mesh position={[0, ROOM_H + 1.1, ROOM_D / 2 + 0.25]}><boxGeometry args={[ROOM_W + 12.2, 0.08, 0.05]} /><meshBasicMaterial color="#444450" /></mesh>
       <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.03]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
+      </>}
 
       {/* Pizza Palace */}
       <mesh position={[getObjectById("pizza-building")?.x ?? -ROOM_W / 2 - 3, ROOM_H / 2, getObjectById("pizza-building")?.z ?? ROOM_D / 2]}><boxGeometry args={[6, ROOM_H, 0.3]} /><meshBasicMaterial color="#2a2a30" /></mesh>

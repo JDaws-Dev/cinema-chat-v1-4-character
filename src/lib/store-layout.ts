@@ -40,22 +40,24 @@ export interface StoreLayout {
 export const STORE_LAYOUT: StoreLayout = {
   version: 1,
   objects: [
-    // 12 gondolas in 3 rows of 4 (2 chevron pairs per row) — matches Fusion 360 model
-    // Row 1 (back, z≈-4) — left pair angles right, right pair angles left
-    { id: "shelf-row1-horror", label: "HORROR / CULT", category: "shelf", x: -6, y: 0, z: -4.2, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#dc2626","backGenre":"CULT","backColor":"#991b1b"} },
-    { id: "shelf-row1-scifi", label: "SCI-FI / FOREIGN", category: "shelf", x: -2, y: 0, z: -4.2, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#3b82f6","backGenre":"FOREIGN","backColor":"#6366f1"} },
-    { id: "shelf-row1-comedy", label: "COMEDY / INDIE", category: "shelf", x: 2, y: 0, z: -4.2, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#f97316","backGenre":"INDIE","backColor":"#a855f7"} },
-    { id: "shelf-row1-drama", label: "DRAMA / CLASSICS", category: "shelf", x: 6, y: 0, z: -4.2, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"DRAMA","color":"#6366f1","backGenre":"CLASSICS","backColor":"#ca8a04"} },
+    // 12 gondolas in 3 rows of 4 — tight chevron pairs (V-shape)
+    // Each pair: 3m apart center-to-center, opposing rotations → / \ from above
+    // 6m wide center aisle between left pair and right pair
+    // Row 1 (back, z≈-4.2)
+    { id: "shelf-row1-horror", label: "HORROR / CULT", category: "shelf", x: -6, y: 0, z: -4.2, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#00006e","backGenre":"CULT","backColor":"#00006e"} },
+    { id: "shelf-row1-scifi", label: "SCI-FI / FOREIGN", category: "shelf", x: -3, y: 0, z: -4.2, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#00006e","backGenre":"FOREIGN","backColor":"#00006e"} },
+    { id: "shelf-row1-comedy", label: "COMEDY / INDIE", category: "shelf", x: 3, y: 0, z: -4.2, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#00006e","backGenre":"INDIE","backColor":"#00006e"} },
+    { id: "shelf-row1-drama", label: "DRAMA / CLASSICS", category: "shelf", x: 6, y: 0, z: -4.2, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"DRAMA","color":"#00006e","backGenre":"CLASSICS","backColor":"#00006e"} },
     // Row 2 (middle, z≈-1.5)
-    { id: "shelf-row2-action", label: "ACTION / THRILLER", category: "shelf", x: -6, y: 0, z: -1.5, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#ef4444","backGenre":"THRILLER","backColor":"#7c3aed"} },
-    { id: "shelf-row2-western", label: "WESTERN / DOCS", category: "shelf", x: -2, y: 0, z: -1.5, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"WESTERN","color":"#92400e","backGenre":"DOCS","backColor":"#65a30d"} },
-    { id: "shelf-row2-romance", label: "ROMANCE / ANIMATED", category: "shelf", x: 2, y: 0, z: -1.5, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"ROMANCE","color":"#f43f5e","backGenre":"ANIMATED","backColor":"#06b6d4"} },
-    { id: "shelf-row2-family", label: "FAMILY / CLASSICS", category: "shelf", x: 6, y: 0, z: -1.5, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"FAMILY","color":"#22c55e","backGenre":"CLASSICS","backColor":"#ca8a04"} },
-    // Row 3 (front, z≈1) — closest to entrance, still leaves open space
-    { id: "shelf-row3-horror2", label: "HORROR / MYSTERY", category: "shelf", x: -6, y: 0, z: 1, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#dc2626","backGenre":"CULT","backColor":"#991b1b"} },
-    { id: "shelf-row3-scifi2", label: "SCI-FI / FANTASY", category: "shelf", x: -2, y: 0, z: 1, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#3b82f6","backGenre":"FOREIGN","backColor":"#6366f1"} },
-    { id: "shelf-row3-comedy2", label: "COMEDY / KIDS", category: "shelf", x: 2, y: 0, z: 1, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#f97316","backGenre":"FAMILY","backColor":"#22c55e"} },
-    { id: "shelf-row3-action2", label: "ACTION / ADVENTURE", category: "shelf", x: 6, y: 0, z: 1, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#ef4444","backGenre":"WESTERN","backColor":"#92400e"} },
+    { id: "shelf-row2-action", label: "ACTION / THRILLER", category: "shelf", x: -6, y: 0, z: -1.5, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#00006e","backGenre":"THRILLER","backColor":"#00006e"} },
+    { id: "shelf-row2-western", label: "WESTERN / DOCS", category: "shelf", x: -3, y: 0, z: -1.5, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"WESTERN","color":"#00006e","backGenre":"DOCS","backColor":"#00006e"} },
+    { id: "shelf-row2-romance", label: "ROMANCE / ANIMATED", category: "shelf", x: 3, y: 0, z: -1.5, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"ROMANCE","color":"#00006e","backGenre":"ANIMATED","backColor":"#00006e"} },
+    { id: "shelf-row2-family", label: "FAMILY / CLASSICS", category: "shelf", x: 6, y: 0, z: -1.5, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"FAMILY","color":"#00006e","backGenre":"CLASSICS","backColor":"#00006e"} },
+    // Row 3 (front, z≈1) — closest to entrance
+    { id: "shelf-row3-horror2", label: "HORROR / MYSTERY", category: "shelf", x: -6, y: 0, z: 1, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#00006e","backGenre":"MYSTERY","backColor":"#00006e"} },
+    { id: "shelf-row3-scifi2", label: "SCI-FI / FANTASY", category: "shelf", x: -3, y: 0, z: 1, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#00006e","backGenre":"FANTASY","backColor":"#00006e"} },
+    { id: "shelf-row3-comedy2", label: "COMEDY / KIDS", category: "shelf", x: 3, y: 0, z: 1, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#00006e","backGenre":"KIDS","backColor":"#00006e"} },
+    { id: "shelf-row3-action2", label: "ACTION / ADVENTURE", category: "shelf", x: 6, y: 0, z: 1, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#00006e","backGenre":"ADVENTURE","backColor":"#00006e"} },
     { id: "wallshelf-back-drama", label: "Wall: NEW RELEASES", category: "shelf", x: 0, y: 0, z: -6.85, w: 18, d: 0.3, meta: {"genre":"NEW","color":"#ec4899","rotation":[0,0,0],"width":18} },
     { id: "new-releases-wall", label: "NEW RELEASES (wall)", category: "shelf", x: 0, y: 0, z: -6.85, w: 19, d: 0.3, meta: {"type":"new-releases-display"} },
     { id: "staff-picks", label: "Staff Picks", category: "prop", x: 9.7, y: 1.2, z: -0.1, w: 0.4, d: 1.2, meta: {"rotation":[0,-1.5707963267948966,0]} },
@@ -93,10 +95,10 @@ export const STORE_LAYOUT: StoreLayout = {
     { id: "poster-raiders", label: "RAIDERS", category: "wall", x: 9, y: 1.8, z: -6.95, w: 0.8, d: 0.2 },
     { id: "poster-shining", label: "THE SHINING", category: "wall", x: -9.9, y: 2, z: -2.78, rotY: 1.5707963267948966, w: 0.2, d: 0.8 },
     { id: "poster-starwars", label: "STAR WARS", category: "wall", x: -9.96, y: 2, z: 1.32, rotY: 1.5707963267948966, w: 0.2, d: 0.8 },
-    { id: "poster-bttf", label: "BACK TO FUTURE", category: "wall", x: 9.84, y: 2, z: 2.95, rotY: -1.5707963267948966, w: 0.2, d: 0.8 },
-    { id: "poster-et", label: "E.T.", category: "wall", x: 9.87, y: 2, z: 5.19, rotY: -1.5707963267948966, w: 0.2, d: 0.8 },
+    { id: "poster-bttf", label: "BACK TO FUTURE", category: "wall", x: 9.84, y: 2, z: 1.5, rotY: -1.5707963267948966, w: 0.2, d: 0.8 },
+    { id: "poster-et", label: "E.T.", category: "wall", x: 9.87, y: 2, z: 6.0, rotY: -1.5707963267948966, w: 0.2, d: 0.8 },
     { id: "neon-sign", label: "FRIDAY NIGHT VIDEO", category: "wall", x: 0, y: 3.1, z: -6.85, w: 5.8, d: 0.15 },
-    { id: "be-kind-sign", label: "BE KIND REWIND", category: "wall", x: -9.88, y: 2, z: 3.5, rotY: 1.5707963267948966, w: 0.2, d: 1.5 },
+    { id: "be-kind-sign", label: "BE KIND REWIND", category: "wall", x: -9.88, y: 2, z: 2.5, rotY: 1.5707963267948966, w: 0.2, d: 1.5 },
     { id: "late-fees-sign", label: "LATE FEES", category: "wall", x: 9.9, y: 1.5, z: 5.2, rotY: -1.5707963267948966, w: 0.2, d: 1 },
     { id: "rewards-sign", label: "REWARDS MEMBER?", category: "wall", x: 7, y: 2.8, z: 5, rotY: 3.141592653589793, w: 2.5, d: 0.15 },
     { id: "open-sign", label: "OPEN", category: "wall", x: -4, y: 2.3, z: 7, w: 1, d: 0.15 },
@@ -109,8 +111,8 @@ export const STORE_LAYOUT: StoreLayout = {
     { id: "movie-of-week", label: "MOVIE OF THE WEEK", category: "wall", x: 0, y: 1.6, z: -6.88, w: 0.8, d: 0.4 },
     { id: "coming-soon-board", label: "COMING SOON", category: "wall", x: 7.5, y: 1.8, z: 6.2, rotY: -0.4, w: 1, d: 1.2 },
     { id: "clock-back", label: "Back Wall Clock", category: "wall", x: 6, y: 2.8, z: -6.95, w: 0.7, d: 0.7 },
-    { id: "tv-left", label: "CRT TV (left)", category: "wall", x: -9.05, y: 2.2, z: -2.8, w: 0.3, d: 1.2, meta: {"yaw":1.3907963267948966,"tilt":0.12,"scale":0.84} },
-    { id: "tv-right", label: "CRT TV (right)", category: "wall", x: 9.28, y: 2.26, z: -3.9, w: 0.3, d: 1, meta: {"yaw":-1.3907963267948966,"tilt":0.12,"scale":0.7} },
+    { id: "tv-left", label: "CRT TV (left)", category: "wall", x: -9.05, y: 2.2, z: 0, w: 0.3, d: 1.2, meta: {"yaw":1.3907963267948966,"tilt":0.12,"scale":0.84} },
+    { id: "tv-right", label: "CRT TV (right)", category: "wall", x: 9.28, y: 2.26, z: 0, w: 0.3, d: 1, meta: {"yaw":-1.3907963267948966,"tilt":0.12,"scale":0.7} },
     { id: "bulletin-board", label: "Bulletin Board", category: "wall", x: -9.92, y: 1.6, z: 4.8, rotY: 1.5707963267948966, w: 0.2, d: 1.2 },
     { id: "clock-counter", label: "Wall Clock", category: "wall", x: 9.9, y: 2.8, z: 6.2, rotY: -1.5707963267948966, w: 0.5, d: 0.5 },
     { id: "wall-phone", label: "Wall Phone", category: "wall", x: 9.8, y: 2.2, z: 5.3, rotY: -1.5707963267948966, w: 0.15, d: 0.25 },
