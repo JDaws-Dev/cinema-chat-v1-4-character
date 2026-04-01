@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import * as THREE from "three";
 
 // Toon shading gradient — 3-step (shadow, mid, highlight) for cel-shaded look
@@ -127,7 +127,7 @@ const GENRE_TMDB_IDS: Record<string, string> = {
   ACTION: "28", CLASSICS: "classics", FAMILY: "10751", NEW: "",
   THRILLER: "53", ROMANCE: "10749", ANIMATED: "16", WESTERN: "37",
   ADVENTURE: "12", FANTASY: "14", WAR: "10752", MUSICAL: "10402",
-  KIDS: "10751", CRIME: "80", MYSTERY: "9648",
+  KIDS: "16", CRIME: "80", MYSTERY: "9648",
 };
 
 export interface PosterData { url: string; title: string; id: number; }
@@ -143,8 +143,18 @@ export function getShelfMovies(): { title: string; genre: string; id: number }[]
   return Array.from(shelfMovieRegistry.values());
 }
 
+// Track which page each genre has used so duplicate shelves get different pages
+const genrePageTracker: Record<string, number> = {};
+
 export function usePosterUrls(genre: string, count: number): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
+  // Each shelf instance gets the next available page set for this genre
+  const pageOffset = useMemo(() => {
+    const key = genre;
+    const current = genrePageTracker[key] || 0;
+    genrePageTracker[key] = current + 3;
+    return current;
+  }, [genre]);
 
   useEffect(() => {
     const genreId = GENRE_TMDB_IDS[genre];
@@ -197,11 +207,11 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
         }
       }).catch(() => {});
     } else {
-      // Genre — fetch 3 pages for more variety, filtered by era (offset for P2 racks)
+      // Genre — fetch 3 pages, offset by shelf instance so duplicate genres get different movies
       Promise.all([
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=1`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=2`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=3`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${1 + pageOffset}`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${2 + pageOffset}`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${3 + pageOffset}`).then(r => r.json()),
       ]).then(([p1, p2, p3]) => {
         const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
         const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
