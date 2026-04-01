@@ -309,20 +309,21 @@
   z-index: 15;
 }
 .g3-inv-slot {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 72px;
   background: linear-gradient(180deg, rgba(10, 26, 58, 0.9) 0%, rgba(6, 12, 28, 0.9) 100%);
   border: 1px solid rgba(255, 215, 0, 0.2);
-  border-radius: var(--fnv-hud-radius);
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 0.6rem;
+  font-size: 0.5rem;
   color: var(--fnv-gold);
   cursor: pointer;
   font-family: var(--fnv-font-game);
   backdrop-filter: blur(4px);
+  overflow: hidden;
 }
 .g3-inv-movie { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 8px rgba(255, 215, 0, 0.1); }
 .g3-inv-snack { border-color: rgba(34, 197, 94, 0.5); box-shadow: 0 0 8px rgba(34, 197, 94, 0.1); }
@@ -1056,8 +1057,8 @@
 
   .g3-inv-slot {
     width: 44px;
-    height: 44px;
-    font-size: 0.5rem;
+    height: 60px;
+    font-size: 0.45rem;
   }
 
   /* Compact challenge list */

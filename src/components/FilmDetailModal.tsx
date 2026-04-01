@@ -217,10 +217,10 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                     className="vhs-rent-btn"
                     onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
                   >
-                    RENT THIS
+                    GRAB THIS
                   </button>
                   <button className="vhs-putback-btn" onClick={onClose}>
-                    PUT BACK
+                    PUT IT BACK
                   </button>
                 </>
               ) : (
@@ -236,28 +236,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
               )}
             </div>
 
-            {/* Similar films row */}
-            {film.similar.length > 0 && (
-              <div className="vhs-back-similar">
-                <p className="vhs-back-label" style={{ marginBottom: 6 }}>SEE ALSO:</p>
-                <div className="vhs-back-similar-row">
-                  {film.similar.slice(0, 5).map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => onSelectFilm?.(s.id)}
-                      className="vhs-back-similar-item"
-                      title={s.title}
-                    >
-                      {s.posterUrl ? (
-                        <img src={s.posterUrl} alt={s.title} loading="lazy" />
-                      ) : (
-                        <span className="vhs-back-similar-placeholder">{s.title}</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Similar films removed — keep it simple */}
 
             {/* Footer: barcode + year */}
             <div className="vhs-back-footer">
