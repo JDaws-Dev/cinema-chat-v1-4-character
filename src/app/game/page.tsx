@@ -20,6 +20,7 @@ import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
+import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { mobileInput } from "@/components/game3d/MobileControls";
 import "./game.css";
 
@@ -680,23 +681,64 @@ export default function GamePage() {
         setRpgHistory([{ speaker: questTree.opener.speaker, portrait: questTree.opener.portrait, text: questTree.opener.text }]);
         setOverlay("rpg_dialogue");
       } else {
-        const tree = getRandomDialogue("customer");
-        // Apply relationship-aware greeting if returning customer
+        // Use personality-driven dialogue — data contains the personalityType string from Store.tsx
+        const personalityType = data as PersonalityType | undefined;
+        const personality = (personalityType && PERSONALITIES[personalityType]) || getRandomPersonality();
+        const greeting = getPersonalityGreeting(personality);
+
+        // Apply relationship-aware prefix if returning customer
         const relLevel = getNpcRelationship("customer");
         const relGreeting = getRelationshipGreeting("customer", relLevel);
-        if (relGreeting) {
-          const enhancedOpener: DialogueNode = {
-            ...tree.opener,
-            text: `${relGreeting} ${tree.opener.text}`,
-          };
-          setRpgDialogue(tree);
-          setRpgNode(enhancedOpener);
-          setRpgHistory([{ speaker: enhancedOpener.speaker, portrait: enhancedOpener.portrait, text: enhancedOpener.text }]);
-        } else {
-          setRpgDialogue(tree);
-          setRpgNode(tree.opener);
-          setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
-        }
+        const fullGreeting = relGreeting ? `${relGreeting} ${greeting}` : greeting;
+
+        // Build personality-driven RPG dialogue node
+        const personalityOpener: DialogueNode = {
+          speaker: personality.name,
+          portrait: personality.type[0].toUpperCase(),
+          text: fullGreeting,
+          responses: [
+            {
+              text: "What are you looking for?",
+              next: {
+                speaker: personality.name,
+                portrait: personality.type[0].toUpperCase(),
+                text: personality.reactions.HORROR?.[0]
+                  || personality.reactions.COMEDY?.[0]
+                  || "Just browsing, really. There's so much to choose from.",
+              },
+            },
+            {
+              text: "Any recommendations?",
+              next: {
+                speaker: personality.name,
+                portrait: personality.type[0].toUpperCase(),
+                text: personality.reactions.ACTION?.[0]
+                  || personality.reactions.DRAMA?.[0]
+                  || "You should check out the new releases wall!",
+              },
+            },
+            {
+              text: "See you around.",
+              next: {
+                speaker: personality.name,
+                portrait: personality.type[0].toUpperCase(),
+                text: "Happy browsing!",
+              },
+            },
+          ],
+        };
+
+        // Wrap in a DialogueTree for consistency
+        const personalityTree: DialogueTree = {
+          id: `personality_${personality.type}_${Date.now()}`,
+          npc: personality.name,
+          portrait: personality.type[0].toUpperCase(),
+          opener: personalityOpener,
+        };
+
+        setRpgDialogue(personalityTree);
+        setRpgNode(personalityOpener);
+        setRpgHistory([{ speaker: personalityOpener.speaker, portrait: personalityOpener.portrait, text: personalityOpener.text }]);
         setOverlay("rpg_dialogue");
       }
     } else if (type === "return_slot") {
