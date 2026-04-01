@@ -317,11 +317,11 @@ export function StaffPicksShelf() {
 }
 
 export function NewReleasesWall() {
-  const posters = usePosterUrls("NEW", 30); // fetch more unique posters to fill wall
-  // Only trending — these are actual new releases
+  const posters = usePosterUrls("NEW", 10); // fewer unique movies, more copies of each
   const allPosters = posters;
 
-  // Same PosterBox format as the racks — small VHS boxes in a grid
+  // Blockbuster style: each movie gets 3-4 copies side by side, then next movie
+  // 20 cols x 3 rows = 60 slots. 10 unique movies = ~6 copies each across the wall.
   const positions = useMemo(() => {
     const result: { x: number; y: number; idx: number }[] = [];
     const cols = 20;
@@ -395,9 +395,17 @@ export function NewReleasesWall() {
         {"\u2605"} NEW RELEASES {"\u2605"}
       </Text>
 
-      {/* VHS boxes — uses same PosterBox as shelves for consistent look */}
+      {/* VHS boxes — Blockbuster style: multiple copies of each movie grouped together */}
       {positions.map((pos) => {
-        const poster = allPosters.length > 0 ? allPosters[pos.idx % allPosters.length] : null;
+        // Group copies: each row has 20 cols, divide into blocks per movie
+        const col = pos.idx % 20;
+        const row = Math.floor(pos.idx / 20);
+        const moviesPerRow = Math.min(allPosters.length, 5); // 5 movies per row max
+        const colsPerMovie = moviesPerRow > 0 ? Math.floor(20 / moviesPerRow) : 20;
+        const movieIdx = Math.floor(col / colsPerMovie);
+        // Each row shows different set of movies
+        const posterIdx = (row * moviesPerRow + movieIdx) % (allPosters.length || 1);
+        const poster = allPosters.length > 0 ? allPosters[posterIdx] : null;
         return poster ? (
           <PosterBox key={pos.idx} url={poster.url} position={[pos.x, pos.y, 0.15]} rotation={Math.PI} movieTitle={poster.title} movieId={poster.id} genreColor="#ec4899" />
         ) : (
