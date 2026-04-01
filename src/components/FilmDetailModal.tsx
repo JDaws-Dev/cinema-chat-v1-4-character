@@ -10,6 +10,7 @@ interface FilmDetailModalProps {
   filmId: number | null;
   onClose: () => void;
   onSelectFilm?: (id: number) => void;
+  onRent?: (movie: { id: number; title: string; posterUrl: string; genre: string }) => void;
 }
 
 /** Map genre names to VHS-stripe colors */
@@ -47,7 +48,7 @@ function barcodeWidths(seed: string): number[] {
   return widths;
 }
 
-export function FilmDetailModal({ filmId, onClose, onSelectFilm }: FilmDetailModalProps) {
+export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmDetailModalProps) {
   const [film, setFilm] = useState<FilmDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [onList, setOnList] = useState(false);
@@ -208,15 +209,31 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm }: FilmDetailMod
               </div>
             )}
 
-            {/* Actions */}
+            {/* Actions: Rent or Put Back */}
             <div className="vhs-back-actions">
-              <button
-                onClick={toggleWatchlist}
-                className={`vhs-back-pick-btn ${onList ? "vhs-back-pick-btn--active" : ""}`}
-              >
-                {onList ? "\u2605 On Watchlist" : "\u2606 Pick this movie"}
-              </button>
-              <StarRating rating={userRating} onRate={handleRate} size="sm" />
+              {onRent ? (
+                <>
+                  <button
+                    className="vhs-rent-btn"
+                    onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
+                  >
+                    RENT THIS
+                  </button>
+                  <button className="vhs-putback-btn" onClick={onClose}>
+                    PUT BACK
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={toggleWatchlist}
+                    className={`vhs-back-pick-btn ${onList ? "vhs-back-pick-btn--active" : ""}`}
+                  >
+                    {onList ? "\u2605 On Watchlist" : "\u2606 Pick this movie"}
+                  </button>
+                  <StarRating rating={userRating} onRate={handleRate} size="sm" />
+                </>
+              )}
             </div>
 
             {/* Similar films row */}

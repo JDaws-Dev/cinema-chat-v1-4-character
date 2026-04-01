@@ -503,23 +503,12 @@ export default function GamePage() {
     }
 
     if (type === "vhs" && data) {
-      // Pick up VHS tape — don't exit pointer lock, stay in game
+      // Pick up VHS tape — show back-of-box detail modal
       try {
         const movie = JSON.parse(data);
-        // Don't add duplicates
-        setHeldMovies(prev => {
-          if (prev.some(m => m.id === movie.id)) return prev;
-          return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl, genre: movie.genre || "" }];
-        });
-        setPickupFlash(true);
-        setPickupTitle(movie.title);
-        setTimeout(() => setPickupFlash(false), 800);
-        setTimeout(() => setPickupTitle(null), 1500);
-        playSFX("vhs_pickup");
-        // Track movie pickup for quest objectives
-        trackQuestMoviePickup(movie.title, movie.genre || "");
-        // Vinny quip on pickup (30% chance to avoid spam)
-        if (Math.random() < 0.3) playRandomLine("pickup");
+        document.exitPointerLock();
+        setFilmId(movie.id);
+        setOverlay("film_detail");
       } catch { /* ignore parse errors */ }
       return;
     }
@@ -864,6 +853,26 @@ export default function GamePage() {
     if (idx === correct) addCorrectAnswer(); else addWrongAnswer();
   }, []);
 
+  // Rent a movie from the film detail modal (back-of-box view)
+  const handleRentMovie = useCallback((movie: { id: number; title: string; posterUrl: string; genre: string }) => {
+    // Add to inventory (no duplicates, max 8 slots)
+    setHeldMovies(prev => {
+      if (prev.some(m => m.id === movie.id)) return prev;
+      if (prev.length + heldSnacks.length >= 8) return prev;
+      return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl, genre: movie.genre }];
+    });
+    setPickupFlash(true);
+    setPickupTitle(movie.title);
+    setTimeout(() => setPickupFlash(false), 800);
+    setTimeout(() => setPickupTitle(null), 1500);
+    playSFX("vhs_pickup");
+    trackQuestMoviePickup(movie.title, movie.genre);
+    if (Math.random() < 0.3) playRandomLine("pickup");
+    // Close modal and resume
+    setOverlay("none");
+    setFilmId(null);
+  }, [heldSnacks.length, trackQuestMoviePickup]);
+
   const closeOverlay = useCallback(() => {
     // Track NPC relationship when ending a dialogue
     if (overlay === "rpg_dialogue" && rpgDialogue) {
@@ -878,6 +887,7 @@ export default function GamePage() {
     setRpgDialogue(null);
     setRpgNode(null);
     setRpgHistory([]);
+    setFilmId(null);
   }, [overlay, rpgDialogue]);
 
   // Q or Backspace to close overlays (ESC exits pointer lock, so don't use it)
@@ -1241,10 +1251,7 @@ export default function GamePage() {
               </div>
             );
           })()}
-          <button className="g3-screenshot-btn" onClick={() => { document.exitPointerLock(); setOverlay("quest_log"); }} title="Quest Log (J)">📜</button>
-          <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
-          <button className="g3-screenshot-btn" onClick={() => { setMusicOff(m => { const next = !m; setMusicMuted(next); return next; }); }} title="Toggle Music">{musicOff ? "🎵" : "🎶"}</button>
-          <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); return next; }); }} title="Mute All">{audioMuted ? "🔇" : "🔊"}</button>
+          <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); setMusicMuted(next); return next; }); }} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
         </div>
       </div>
 
@@ -1283,9 +1290,9 @@ export default function GamePage() {
         <ShelfBrowser genre={shelfGenre} open onClose={closeOverlay} onFilmClick={(id) => { setFilmId(id); setOverlay("film_detail"); }} />
       )}
 
-      {/* Film Detail */}
+      {/* Film Detail (VHS back-of-box) */}
       {overlay === "film_detail" && (
-        <FilmDetailModal filmId={filmId} onClose={closeOverlay} onSelectFilm={(id) => setFilmId(id)} />
+        <FilmDetailModal filmId={filmId} onClose={closeOverlay} onSelectFilm={(id) => setFilmId(id)} onRent={handleRentMovie} />
       )}
 
       {/* Vinny's Five (Puzzle) */}

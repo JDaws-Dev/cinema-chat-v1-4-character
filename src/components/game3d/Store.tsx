@@ -508,6 +508,15 @@ function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: number;
         <Mat color="#4a2818" roughness={0.8} />
       </mesh>
 
+      {/* Endcap genre label — small sign on front face */}
+      <mesh position={[0, 1.42, -0.22]}>
+        <boxGeometry args={[0.8, 0.14, 0.02]} />
+        <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.1} roughness={0.5} />
+      </mesh>
+      <Text position={[0, 1.42, -0.24]} rotation={[0, Math.PI, 0]} fontSize={0.055} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+        {label}
+      </Text>
+
       {/* Face-out VHS boxes — 3 on top shelf, 3 on bottom */}
       {vhsColors.map((color, i) => (
         <group key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
@@ -2418,14 +2427,14 @@ function StaffPicksShelf() {
       >
         STAFF PICKS
       </Text>
-      {/* Movie poster boxes on the shelf */}
+      {/* Movie poster boxes on the shelf — sitting on the shelf board (local y=0 + VHS half-height) */}
       {STAFF_PICK_MOVIES.map((m, i) => {
         const dx = -0.36 + i * 0.24;
         return (
           <PosterBox
             key={`staff-pick-${m.id}`}
             url={m.url}
-            position={[dx, 1.25, 0.05]}
+            position={[dx, 0.15, 0.05]}
             movieTitle={m.title}
             movieId={m.id}
           />
@@ -3602,8 +3611,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
           <circleGeometry args={[0.1, 8]} />
           <meshBasicMaterial color="#ffffff" />
         </mesh>
-        {/* Parking spot marking on ground */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.5, -0.04, ROOM_D / 2 + 2.5]}>
+        {/* Parking spot marking on ground — relative to handicap sign group */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0.5]}>
           <planeGeometry args={[2.5, 0.06]} />
           <meshBasicMaterial color="#2255bb" />
         </mesh>
@@ -4242,9 +4251,9 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
           </mesh>
         ))}
       </group>
-      {/* Power lines (3 wires between poles) */}
+      {/* Power lines (3 wires between poles — spread vertically at insulator positions) */}
       {[-0.6, 0, 0.6].map((offset, i) => (
-        <mesh key={`pwr-line-${i}`} position={[0, 7.7, ROOM_D / 2 + 10]}>
+        <mesh key={`pwr-line-${i}`} position={[0, 7.85 + offset * 0.15, ROOM_D / 2 + 10]}>
           <boxGeometry args={[28, 0.012, 0.012]} />
           <meshBasicMaterial color="#111111" />
         </mesh>
@@ -4799,11 +4808,11 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
         </Text>
       </group>
 
-      {/* "2-DAY RENTAL" / "NEW RELEASE" sticker signs on shelf ends */}
+      {/* "2-DAY RENTAL" / "NEW RELEASE" sticker signs on shelf ends — aligned to actual shelf positions */}
       {[
-        { pos: [-5.5, 1.7, -3.3] as [number, number, number], label: "2-DAY RENTAL", bg: "#1a6abb" },
-        { pos: [3.5, 1.7, -3.3] as [number, number, number], label: "5-DAY RENTAL", bg: "#059669" },
-        { pos: [-4.5, 1.7, 2.7] as [number, number, number], label: "NEW!", bg: "#ef4444" },
+        { pos: [-6.35 - 1.2, 1.7, -2.89] as [number, number, number], label: "2-DAY RENTAL", bg: "#1a6abb" },
+        { pos: [2.94 + 1.2, 1.7, -1.28] as [number, number, number], label: "5-DAY RENTAL", bg: "#059669" },
+        { pos: [-2.26 - 1.2, 1.7, 1.3] as [number, number, number], label: "NEW!", bg: "#ef4444" },
       ].map((sign, i) => (
         <group key={`rental-${i}`} position={sign.pos}>
           <mesh>
@@ -4842,13 +4851,18 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       {/* Rental guide rack removed — was cluttering entrance */}
 
 
-      {/* "REWARDS MEMBER?" sign above counter */}
-      <group position={[getObjectById("rewards-sign")?.x ?? 7, getObjectById("rewards-sign")?.y ?? 2.8, getObjectById("rewards-sign")?.z ?? 5]} rotation={[0, Math.PI, 0]}>
+      {/* "REWARDS MEMBER?" sign above counter — faces customers approaching from entrance */}
+      <group position={[getObjectById("rewards-sign")?.x ?? 7, getObjectById("rewards-sign")?.y ?? 2.8, getObjectById("rewards-sign")?.z ?? 5]}>
         <mesh>
           <boxGeometry args={[2.5, 0.4, 0.03]} />
           <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} />
         </mesh>
+        {/* Front face — toward entrance (+z) */}
         <Text position={[0, 0, 0.02]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          REWARDS MEMBER? ASK!
+        </Text>
+        {/* Back face — toward counter (-z) */}
+        <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
           REWARDS MEMBER? ASK!
         </Text>
       </group>
@@ -5053,17 +5067,22 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
 
 
       {/* ── INTERIOR RETURN BIN ──── */}
-      <group position={[getObjectById("return-bin")?.x ?? 5, 0, getObjectById("return-bin")?.z ?? 5]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
+      <group position={[getObjectById("return-bin")?.x ?? 3.5, 0, getObjectById("return-bin")?.z ?? 5.2]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
         <mesh position={[0, 0.5, 0]}>
           <boxGeometry args={[0.8, 1.0, 0.6]} />
           <Mat color="#1a3a6a" roughness={0.7} />
         </mesh>
-        {/* Slot opening */}
-        <mesh position={[0, 0.8, -0.28]}>
+        {/* Slot opening — faces customers approaching from entrance (+z side) */}
+        <mesh position={[0, 0.8, 0.28]}>
           <boxGeometry args={[0.5, 0.1, 0.06]} />
           <meshBasicMaterial color="#0a0a1a" />
         </mesh>
-        <Text position={[0, 1.1, -0.31]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>
+        {/* Label on front (+z) facing customers */}
+        <Text position={[0, 1.1, 0.31]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>
+          DROP RETURNS HERE
+        </Text>
+        {/* Label on back (-z) visible from aisle side */}
+        <Text position={[0, 1.1, -0.31]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>
           DROP RETURNS HERE
         </Text>
       </group>
@@ -5094,12 +5113,12 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
         </Text>
       </group>
 
-      {/* 4. Floor mat at entrance */}
-      <mesh position={[0, 0.005, 6.8]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* 4. Floor mat at entrance — placed just outside the door on the entry tile area */}
+      <mesh position={[0, 0.005, 6.3]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[3.5, 1.2]} />
         <Mat color="#1a1a1a" roughness={0.8} />
       </mesh>
-      <Text position={[0, 0.008, 6.8]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>
+      <Text position={[0, 0.008, 6.3]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>
         WELCOME
       </Text>
 
@@ -5116,28 +5135,46 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
         </mesh>
       </group>
 
-      {/* 6. "PLEASE REWIND YOUR TAPES" sign near return bin */}
-      <group position={[getObjectById("rewind-sign")?.x ?? 5, getObjectById("rewind-sign")?.y ?? 1.6, getObjectById("rewind-sign")?.z ?? 4.4]}>
+      {/* 6. "PLEASE REWIND YOUR TAPES" sign near return bin — on a pole above the return bin */}
+      <group position={[getObjectById("rewind-sign")?.x ?? 3.5, getObjectById("rewind-sign")?.y ?? 1.6, getObjectById("rewind-sign")?.z ?? 4.8]}>
         {/* Sign board */}
         <mesh>
           <boxGeometry args={[0.9, 0.35, 0.03]} />
           <Mat color="#ffffff" roughness={0.8} />
         </mesh>
-        <Text position={[0, 0.04, -0.02]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
+        {/* Support pole from floor to sign */}
+        <mesh position={[0.35, -0.77, 0]}>
+          <cylinderGeometry args={[0.02, 0.025, 1.55, 6]} />
+          <Mat color="#888888" roughness={0.4} metalness={0.5} />
+        </mesh>
+        {/* Base plate on floor */}
+        <mesh position={[0.35, -1.55, 0]}>
+          <cylinderGeometry args={[0.12, 0.12, 0.03, 8]} />
+          <Mat color="#666666" roughness={0.5} metalness={0.4} />
+        </mesh>
+        {/* Front face — toward entrance (+z) */}
+        <Text position={[0, 0.04, 0.02]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
           PLEASE REWIND
         </Text>
-        <Text position={[0, -0.07, -0.02]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
+        <Text position={[0, -0.07, 0.02]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
+          YOUR TAPES!
+        </Text>
+        {/* Back face — toward back wall (-z) */}
+        <Text position={[0, 0.04, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
+          PLEASE REWIND
+        </Text>
+        <Text position={[0, -0.07, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#cc0000" anchorX="center" font={undefined}>
           YOUR TAPES!
         </Text>
         {/* Sad VHS icon — tiny box */}
-        <mesh position={[0.32, 0, -0.02]}>
+        <mesh position={[0.32, 0, 0.02]}>
           <boxGeometry args={[0.12, 0.08, 0.02]} />
           <Mat color="#111111" roughness={0.8} />
         </mesh>
       </group>
 
       {/* 7. Stack of returned VHS tapes near return bin */}
-      <group position={[getObjectById("tape-stack-floor")?.x ?? 5.6, getObjectById("tape-stack-floor")?.y ?? 0, getObjectById("tape-stack-floor")?.z ?? 4.6]}>
+      <group position={[getObjectById("tape-stack-floor")?.x ?? 3.0, getObjectById("tape-stack-floor")?.y ?? 0, getObjectById("tape-stack-floor")?.z ?? 5.5]}>
         {/* Messy stack of 4 tapes */}
         <mesh position={[0, 0.06, 0]} rotation={[0, 0.1, 0]}>
           <boxGeometry args={[0.19, 0.12, 0.1]} />
@@ -5186,23 +5223,23 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
         </Text>
       </group>
 
-      {/* 9. Price list sign near counter */}
+      {/* 9. Price list sign near counter — on right wall, text faces into store (-x direction after rotY) */}
       <group position={[getObjectById("price-list")?.x ?? 8.5, getObjectById("price-list")?.y ?? 1.8, getObjectById("price-list")?.z ?? 4.2]} rotation={[0, getObjectById("price-list")?.rotY ?? -Math.PI / 2, 0]}>
         {/* Sign board */}
         <mesh>
           <boxGeometry args={[0.8, 0.6, 0.03]} />
           <Mat color="#1c3f73" roughness={0.8} />
         </mesh>
-        <Text position={[0, 0.2, -0.02]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
+        <Text position={[0, 0.2, 0.02]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
           RENTAL PRICES
         </Text>
-        <Text position={[0, 0.07, -0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
+        <Text position={[0, 0.07, 0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
           NEW RELEASES $3.99/night
         </Text>
-        <Text position={[0, -0.04, -0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
+        <Text position={[0, -0.04, 0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>
           CATALOG $1.99 / 2 nights
         </Text>
-        <Text position={[0, -0.18, -0.02]} fontSize={0.035} color="#ffcc00" anchorX="center" font={undefined}>
+        <Text position={[0, -0.18, 0.02]} fontSize={0.035} color="#ffcc00" anchorX="center" font={undefined}>
           LATE FEES: $1.50/day
         </Text>
       </group>
@@ -5213,12 +5250,17 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
 
       {/* ── COUNTER AREA ──────────────────────────────────────── */}
 
-      {/* "PLEASE HAVE YOUR MEMBERSHIP CARD READY" sign hanging above counter */}
+      {/* "PLEASE HAVE YOUR MEMBERSHIP CARD READY" sign hanging above counter — double-sided */}
       <group position={[getObjectById("membership-sign")?.x ?? 7, getObjectById("membership-sign")?.y ?? 2.4, getObjectById("membership-sign")?.z ?? 5.5]}>
         <mesh>
           <boxGeometry args={[2.4, 0.28, 0.03]} />
           <Mat color="#ffd700" roughness={0.5} />
         </mesh>
+        {/* Front face — toward entrance (+z) */}
+        <Text position={[0, 0, 0.02]} fontSize={0.065} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+          PLEASE HAVE YOUR MEMBERSHIP CARD READY
+        </Text>
+        {/* Back face — toward counter (-z) */}
         <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.065} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
           PLEASE HAVE YOUR MEMBERSHIP CARD READY
         </Text>
@@ -5273,17 +5315,17 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
 
       {/* ── AISLE DETAIL ──────────────────────────────────────── */}
 
-      {/* Genre endcap displays at shelf row ends */}
+      {/* Genre endcap displays at shelf row ends — positioned at ends of actual rotated gondolas */}
       {[
-        { x: -5 + 1.6, z: -4 - 0.9, rotY: 0.25, label: "HORROR", colors: ["#dc2626", "#991b1b", "#7c2d12"] },
-        { x: 3 + 1.6, z: -4 - 0.9, rotY: 0.25, label: "COMEDY", colors: ["#f97316", "#ca8a04", "#ea580c"] },
-        { x: -5 + 1.6, z: -1 + 0.9, rotY: -0.15, label: "ACTION", colors: ["#ef4444", "#b91c1c", "#dc2626"] },
+        { x: -2.61 + 1.5, z: -4.19 - 0.6, rotY: 0.35, label: "HORROR", colors: ["#dc2626", "#991b1b", "#7c2d12"] },
+        { x: 2.67 + 1.5, z: -4.28 - 0.6, rotY: -0.35, label: "COMEDY", colors: ["#f97316", "#ca8a04", "#ea580c"] },
+        { x: -2.55 + 1.5, z: -1.58 + 0.8, rotY: 0.35, label: "ACTION", colors: ["#ef4444", "#b91c1c", "#dc2626"] },
       ].map((ec, i) => (
         <EndcapDisplay key={`endcap2-${i}`} x={ec.x} z={ec.z} rotY={ec.rotY} label={ec.label} vhsColors={ec.colors} />
       ))}
 
-      {/* "STAFF FAVORITES" handwritten card on a shelf */}
-      <group position={[1.8, 1.35, 2.3]} rotation={[0, 0.2, 0]}>
+      {/* "STAFF FAVORITES" handwritten card on a shelf — sits on top cap of western shelf row */}
+      <group position={[2.05, 1.55, 1.24]} rotation={[0, -0.4, 0]}>
         <mesh rotation={[-0.25, 0, 0]}>
           <boxGeometry args={[0.3, 0.18, 0.005]} />
           <Mat color="#fffde0" roughness={0.9} />
@@ -5469,32 +5511,54 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       </group>
 
 
-      {/* "COMING SOON" poster board near entrance */}
-      <group position={[getObjectById("coming-soon-board")?.x ?? 7.5, getObjectById("coming-soon-board")?.y ?? 1.8, getObjectById("coming-soon-board")?.z ?? 6.2]} rotation={[0, getObjectById("coming-soon-board")?.rotY ?? -0.4, 0]}>
-        <mesh>
-          <boxGeometry args={[1.0, 1.2, 0.04]} />
-          <Mat color="#0a1830" roughness={0.6} />
+      {/* "COMING SOON" poster board near entrance — on A-frame easel */}
+      <group position={[getObjectById("coming-soon-board")?.x ?? 7.5, getObjectById("coming-soon-board")?.y ?? 0, getObjectById("coming-soon-board")?.z ?? 6.2]} rotation={[0, getObjectById("coming-soon-board")?.rotY ?? -0.4, 0]}>
+        {/* A-frame easel legs */}
+        <mesh position={[-0.35, 0.7, -0.15]} rotation={[-0.15, 0, 0.08]}>
+          <boxGeometry args={[0.03, 1.4, 0.03]} />
+          <Mat color="#5a4020" roughness={0.8} />
         </mesh>
-        <mesh position={[0, 0, 0.01]}>
-          <boxGeometry args={[1.1, 1.3, 0.02]} />
-          <Mat color="#ffd700" roughness={0.5} />
+        <mesh position={[0.35, 0.7, -0.15]} rotation={[-0.15, 0, -0.08]}>
+          <boxGeometry args={[0.03, 1.4, 0.03]} />
+          <Mat color="#5a4020" roughness={0.8} />
         </mesh>
-        <mesh position={[0, 0, 0.02]}>
-          <boxGeometry args={[0.95, 1.15, 0.01]} />
-          <Mat color="#0a1830" roughness={0.6} />
+        {/* Back support leg */}
+        <mesh position={[0, 0.55, 0.2]} rotation={[0.35, 0, 0]}>
+          <boxGeometry args={[0.03, 1.1, 0.03]} />
+          <Mat color="#5a4020" roughness={0.8} />
         </mesh>
-        <Text position={[0, 0.42, 0.03]} fontSize={0.075} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
-          COMING SOON
-        </Text>
-        {[[-0.22, 0.05, "#b91c1c"], [0.22, 0.05, "#1d4ed8"], [-0.22, -0.3, "#7c3aed"], [0.22, -0.3, "#059669"]].map(([px, py, c], i) => (
-          <mesh key={`coming-${i}`} position={[px as number, py as number, 0.03]}>
-            <boxGeometry args={[0.3, 0.28, 0.01]} />
-            <Mat color={c as string} roughness={0.6} />
+        {/* Cross brace */}
+        <mesh position={[0, 0.35, -0.12]}>
+          <boxGeometry args={[0.65, 0.03, 0.03]} />
+          <Mat color="#5a4020" roughness={0.8} />
+        </mesh>
+        {/* Board — raised to sit on easel */}
+        <group position={[0, 1.2, -0.06]}>
+          <mesh>
+            <boxGeometry args={[1.0, 1.2, 0.04]} />
+            <Mat color="#0a1830" roughness={0.6} />
           </mesh>
-        ))}
-        <Text position={[0, -0.52, 0.03]} fontSize={0.035} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
-          UPCOMING RELEASES
-        </Text>
+          <mesh position={[0, 0, 0.01]}>
+            <boxGeometry args={[1.1, 1.3, 0.02]} />
+            <Mat color="#ffd700" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0, 0.02]}>
+            <boxGeometry args={[0.95, 1.15, 0.01]} />
+            <Mat color="#0a1830" roughness={0.6} />
+          </mesh>
+          <Text position={[0, 0.42, 0.03]} fontSize={0.075} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+            COMING SOON
+          </Text>
+          {[[-0.22, 0.05, "#b91c1c"], [0.22, 0.05, "#1d4ed8"], [-0.22, -0.3, "#7c3aed"], [0.22, -0.3, "#059669"]].map(([px, py, c], i) => (
+            <mesh key={`coming-${i}`} position={[px as number, py as number, 0.03]}>
+              <boxGeometry args={[0.3, 0.28, 0.01]} />
+              <Mat color={c as string} roughness={0.6} />
+            </mesh>
+          ))}
+          <Text position={[0, -0.52, 0.03]} fontSize={0.035} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>
+            UPCOMING RELEASES
+          </Text>
+        </group>
       </group>
 
       {/* 10. Clock on the back wall */}
