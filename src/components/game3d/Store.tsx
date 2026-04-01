@@ -65,8 +65,8 @@ function AisleSign({ z, label }: { z: number; label: string; colors: string[] })
       {/* Blockbuster blue background with yellow border */}
       <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.2, 0.36, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
       <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.1, 0.3, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
-      <Text position={[0, 2.6, 0.02]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
-      <Text position={[0, 2.6, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      <Text position={[0, 2.6, 0.025]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      <Text position={[0, 2.6, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
     </group>
   );
 }
@@ -79,9 +79,9 @@ function AisleFloorMarkings() {
 function FloorRug() {
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.009, 5.2]}><planeGeometry args={[3.4, 2.4]} /><Mat color="#ffd700" roughness={0.95} /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 5.2]}><planeGeometry args={[3, 2]} /><Mat color="#0a1830" roughness={0.95} /></mesh>
-      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>FRIDAY NIGHT VIDEO</Text>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 5.2]}><planeGeometry args={[3.4, 2.4]} /><Mat color="#ffd700" roughness={0.95} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 5.2]}><planeGeometry args={[3, 2]} /><Mat color="#0a1830" roughness={0.95} /></mesh>
+      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.014, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>FRIDAY NIGHT VIDEO</Text>
     </group>
   );
 }
@@ -103,7 +103,7 @@ function TrophyShelf() {
       {TIER_YS.map((y, i) => (<mesh key={`shelf-${i}`} position={[0, y - 0.08, 0]}><boxGeometry args={[2.5, 0.04, 0.25]} /><Mat color="#5a3a1a" roughness={0.7} /></mesh>))}
       <mesh position={[0, 1.72, 0]}><boxGeometry args={[2.5, 0.04, 0.25]} /><Mat color="#5a3a1a" roughness={0.7} /></mesh>
       {[-1.25, 1.25].map((x, i) => (<mesh key={`side-${i}`} position={[x, 0.85, 0]}><boxGeometry args={[0.04, 1.7, 0.25]} /><Mat color="#4a2a14" roughness={0.8} /></mesh>))}
-      <group position={[0, 1.88, 0]}><mesh><boxGeometry args={[1.6, 0.22, 0.04]} /><Mat color="#1a1a2e" roughness={0.6} /></mesh><Text position={[0, 0, 0.025]} fontSize={0.1} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>COLLECTION</Text></group>
+      <group position={[0, 1.88, 0]}><mesh><boxGeometry args={[1.6, 0.22, 0.04]} /><Mat color="#1a1a2e" roughness={0.6} /></mesh><Text position={[0, 0, 0.03]} fontSize={0.1} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>COLLECTION</Text></group>
       {PROPS.map((prop, idx) => {
         const col = idx % 5; const row = Math.floor(idx / 5);
         const x = (col - 2) * COL_SPACING; const y = TIER_YS[row];
@@ -226,15 +226,15 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* BE KIND REWIND */}
       <group position={[-ROOM_W / 2 + 0.12, 2.0, getObjectById("be-kind-sign")?.z ?? 2.5]} rotation={[0, Math.PI / 2, 0]}>
         <mesh><boxGeometry args={[1.5, 0.35, 0.03]} /><Mat color="#0a1a3a" roughness={0.6} /></mesh>
-        <Text position={[0, 0, 0.02]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
-        <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
+        <Text position={[0, 0, 0.025]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
+        <Text position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
       </group>
 
       {/* OPEN sign */}
       <group position={[getObjectById("open-sign")?.x ?? -4, getObjectById("open-sign")?.y ?? 2.3, ROOM_D / 2]}>
         <mesh><boxGeometry args={[1.0, 0.45, 0.03]} /><Mat color="#0a0a18" roughness={0.5} /></mesh>
-        <mesh position={[0, 0, 0.01]}><boxGeometry args={[1.1, 0.55, 0.01]} /><Mat color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.2} transparent opacity={0.5} /></mesh>
-        <Text position={[0, 0, 0.02]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>OPEN<meshBasicMaterial color="#ff3e7a" toneMapped={false} /></Text>
+        <mesh position={[0, 0, 0.02]}><boxGeometry args={[1.1, 0.55, 0.01]} /><Mat color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.2} transparent opacity={0.5} /></mesh>
+        <Text position={[0, 0, 0.03]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>OPEN<meshBasicMaterial color="#ff3e7a" toneMapped={false} /></Text>
         <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>OPEN<meshBasicMaterial color="#ff3e7a" toneMapped={false} /></Text>
       </group>
 
@@ -242,10 +242,10 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <group position={[getObjectById("store-hours")?.x ?? 4, getObjectById("store-hours")?.y ?? 1.8, getObjectById("store-hours")?.z ?? ROOM_D / 2 + 0.05]}>
         <mesh position={[0, 0, -0.005]}><boxGeometry args={[1.3, 0.9, 0.03]} /><Mat color="#1a3a6a" roughness={0.5} /></mesh>
         <mesh><boxGeometry args={[1.2, 0.8, 0.03]} /><Mat color="#f0f0e8" roughness={0.7} /></mesh>
-        <Text position={[0, 0.25, 0.02]} fontSize={0.08} color="#1a3a6a" anchorX="center" font={undefined}>STORE HOURS</Text>
-        <Text position={[0, 0.05, 0.02]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>MON-SAT 10AM - 11PM</Text>
-        <Text position={[0, -0.1, 0.02]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>SUN 11AM - 9PM</Text>
-        <Text position={[0, -0.28, 0.02]} fontSize={0.035} color="#cc3333" anchorX="center" font={undefined}>OPEN LATE FRIDAYS!</Text>
+        <Text position={[0, 0.25, 0.025]} fontSize={0.08} color="#1a3a6a" anchorX="center" font={undefined}>STORE HOURS</Text>
+        <Text position={[0, 0.05, 0.025]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>MON-SAT 10AM - 11PM</Text>
+        <Text position={[0, -0.1, 0.025]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>SUN 11AM - 9PM</Text>
+        <Text position={[0, -0.28, 0.025]} fontSize={0.035} color="#cc3333" anchorX="center" font={undefined}>OPEN LATE FRIDAYS!</Text>
       </group>
 
       {/* Clock near counter */}
@@ -259,15 +259,15 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* Late fees sign */}
       <group position={[ROOM_W / 2 - 0.1, getObjectById("late-fees-sign")?.y ?? 1.5, getObjectById("late-fees-sign")?.z ?? 5.2]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh><boxGeometry args={[1.0, 0.6, 0.02]} /><Mat color="#0a1a3a" roughness={0.6} /></mesh>
-        <Text position={[0, 0.15, 0.015]} fontSize={0.08} color="#ef4444" anchorX="center" font={undefined}>LATE FEES</Text>
-        <Text position={[0, 0, 0.015]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>1-DAY: $1.50 | 2-DAY: $3.00</Text>
-        <Text position={[0, -0.12, 0.015]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>BE KIND, RETURN ON TIME!</Text>
+        <Text position={[0, 0.15, 0.02]} fontSize={0.08} color="#ef4444" anchorX="center" font={undefined}>LATE FEES</Text>
+        <Text position={[0, 0, 0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>1-DAY: $1.50 | 2-DAY: $3.00</Text>
+        <Text position={[0, -0.12, 0.02]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>BE KIND, RETURN ON TIME!</Text>
       </group>
 
       {/* Bulletin board */}
       <group position={[-ROOM_W / 2 + 0.08, getObjectById("bulletin-board")?.y ?? 1.6, getObjectById("bulletin-board")?.z ?? 4.8]} rotation={[0, Math.PI / 2, 0]}>
         <mesh><boxGeometry args={[1.2, 0.8, 0.05]} /><Mat color="#7a5a30" roughness={0.85} /></mesh>
-        {[[-0.3, 0.15, "#ffd700"], [0.1, 0.2, "#ef4444"], [-0.15, -0.1, "#22c55e"], [0.25, -0.05, "#3b82f6"]].map(([dx, dy, c], i) => (<mesh key={`note${i}`} position={[dx as number, dy as number, 0.03]} rotation={[0, 0, (i - 1.5) * 0.1]}><planeGeometry args={[0.2, 0.2]} /><Mat color={c as string} roughness={0.7} /></mesh>))}
+        {[[-0.3, 0.15, "#ffd700"], [0.1, 0.2, "#ef4444"], [-0.15, -0.1, "#22c55e"], [0.25, -0.05, "#3b82f6"]].map(([dx, dy, c], i) => (<mesh key={`note${i}`} position={[dx as number, dy as number, 0.04]} rotation={[0, 0, (i - 1.5) * 0.1]}><planeGeometry args={[0.2, 0.2]} /><Mat color={c as string} roughness={0.7} /></mesh>))}
       </group>
 
       {/* Specials chalkboard */}
@@ -325,7 +325,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}><planeGeometry args={[ROOM_W + 8, 14]} /><meshBasicMaterial color="#2a2a40" /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[getObjectById("sidewalk")?.x ?? 0, -0.04, getObjectById("sidewalk")?.z ?? ROOM_D / 2 + 0.8]}><planeGeometry args={[ROOM_W + 2, 1.5]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, ROOM_D / 2 + 0.5]}><planeGeometry args={[ROOM_W, 1.5]} /><meshBasicMaterial color="#2a2520" /></mesh>
-      {[-6, -3, 0, 3, 6].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.04, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
+      {[-6, -3, 0, 3, 6].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
 
       {/* Parking lot lamps */}
       {[getObjectById("lamp-1")?.x ?? -6, getObjectById("lamp-2")?.x ?? 0, getObjectById("lamp-3")?.x ?? 6].map((lx, i) => (<group key={`lamp-${i}`} position={[lx, 0, [getObjectById("lamp-1")?.z, getObjectById("lamp-2")?.z, getObjectById("lamp-3")?.z][i] ?? ROOM_D / 2 + 7]}><mesh position={[0, 1.5, 0]}><cylinderGeometry args={[0.03, 0.04, 3, 8]} /><meshBasicMaterial color="#444" /></mesh><mesh position={[0, 3.1, 0]}><boxGeometry args={[0.3, 0.08, 0.15]} /><meshBasicMaterial color="#555" /></mesh><mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}><circleGeometry args={[1.5, 12]} /><meshBasicMaterial color="#332a15" transparent opacity={0.3} /></mesh></group>))}
@@ -345,7 +345,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* Roof line */}
       <mesh position={[0, ROOM_H + 1.2, ROOM_D / 2 - 0.1]}><boxGeometry args={[ROOM_W + 12, 0.15, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>
       <mesh position={[0, ROOM_H + 1.1, ROOM_D / 2 + 0.25]}><boxGeometry args={[ROOM_W + 12.2, 0.08, 0.05]} /><meshBasicMaterial color="#444450" /></mesh>
-      <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.03]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
+      <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
       </>}
 
       {/* Pizza Palace */}
@@ -365,7 +365,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* Laundromat */}
       <mesh position={[getObjectById("laundro-building")?.x ?? ROOM_W / 2 + 3, ROOM_H / 2, getObjectById("laundro-building")?.z ?? ROOM_D / 2]}><boxGeometry args={[6, ROOM_H, 0.3]} /><meshBasicMaterial color="#2a2a30" /></mesh>
       <mesh position={[getObjectById("laundro-door")?.x ?? ROOM_W / 2 + 3.5, 1.1, getObjectById("laundro-door")?.z ?? ROOM_D / 2 + 0.16]}><planeGeometry args={[1.0, 2.2]} /><meshBasicMaterial color="#111115" /></mesh>
-      <group position={[ROOM_W / 2 + 3, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}><mesh><boxGeometry args={[3.5, 0.6, 0.05]} /><meshBasicMaterial color="#0a0a1a" /></mesh><Text position={[0, 0, 0.03]} fontSize={0.24} color="#77ddff" anchorX="center" anchorY="middle">LAUNDROMAT<meshBasicMaterial color="#77ddff" toneMapped={false} /></Text><mesh position={[0, 0, -0.01]}><planeGeometry args={[3.8, 0.9]} /><meshBasicMaterial color="#3399cc" transparent opacity={0.08} /></mesh></group>
+      <group position={[ROOM_W / 2 + 3, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}><mesh><boxGeometry args={[3.5, 0.6, 0.05]} /><meshBasicMaterial color="#0a0a1a" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.24} color="#77ddff" anchorX="center" anchorY="middle">LAUNDROMAT<meshBasicMaterial color="#77ddff" toneMapped={false} /></Text><mesh position={[0, 0, -0.01]}><planeGeometry args={[3.8, 0.9]} /><meshBasicMaterial color="#3399cc" transparent opacity={0.08} /></mesh></group>
       <mesh position={[ROOM_W / 2 + 3, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}><boxGeometry args={[5.5, 0.05, 0.8]} /><meshBasicMaterial color="#113355" /></mesh>
       <mesh position={[getObjectById("laundro-window")?.x ?? ROOM_W / 2 + 2, 1.4, getObjectById("laundro-window")?.z ?? ROOM_D / 2 + 0.17]}><planeGeometry args={[2.2, 1.8]} /><meshBasicMaterial color="#223344" transparent opacity={0.5} /></mesh>
       {[[-1.1, 0], [1.1, 0], [0, 0.9], [0, -0.9]].map(([ox, oy], i) => (<mesh key={`laund-frame-${i}`} position={[ROOM_W / 2 + 2 + (ox as number), 1.4 + (oy as number), ROOM_D / 2 + 0.18]}><boxGeometry args={[i < 2 ? 0.04 : 2.3, i < 2 ? 1.9 : 0.04, 0.03]} /><meshBasicMaterial color="#334455" /></mesh>))}
@@ -443,8 +443,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* Rewards sign */}
       <group position={[getObjectById("rewards-sign")?.x ?? 7, getObjectById("rewards-sign")?.y ?? 2.8, getObjectById("rewards-sign")?.z ?? 5]}>
         <mesh><boxGeometry args={[2.5, 0.4, 0.03]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} /></mesh>
-        <Text position={[0, 0, 0.02]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>REWARDS MEMBER? ASK!</Text>
-        <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>REWARDS MEMBER? ASK!</Text>
+        <Text position={[0, 0, 0.025]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>REWARDS MEMBER? ASK!</Text>
+        <Text position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>REWARDS MEMBER? ASK!</Text>
       </group>
 
 
@@ -458,8 +458,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <group position={[getObjectById("return-bin")?.x ?? 3.5, 0, getObjectById("return-bin")?.z ?? 5.2]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
         <mesh position={[0, 0.5, 0]}><boxGeometry args={[0.8, 1.0, 0.6]} /><Mat color="#1a3a6a" roughness={0.7} /></mesh>
         <mesh position={[0, 0.8, 0.28]}><boxGeometry args={[0.5, 0.1, 0.06]} /><meshBasicMaterial color="#0a0a1a" /></mesh>
-        <Text position={[0, 1.1, 0.31]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>DROP RETURNS HERE</Text>
-        <Text position={[0, 1.1, -0.31]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>DROP RETURNS HERE</Text>
+        <Text position={[0, 1.1, 0.32]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>DROP RETURNS HERE</Text>
+        <Text position={[0, 1.1, -0.32]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>DROP RETURNS HERE</Text>
       </group>
 
       {/* Bargain bin */}
@@ -467,16 +467,16 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
         <mesh position={[0, 0.25, 0]}><boxGeometry args={[0.9, 0.5, 0.7]} /><Mat color="#6a4a20" roughness={0.9} /></mesh>
         <mesh position={[0, 0.35, 0]}><boxGeometry args={[0.8, 0.35, 0.6]} /><Mat color="#3a2a10" roughness={0.9} /></mesh>
         <mesh position={[0, 0.6, -0.36]}><boxGeometry args={[0.6, 0.22, 0.02]} /><Mat color="#ef4444" roughness={0.5} /></mesh>
-        <Text position={[0, 0.6, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
-        <Text position={[0, 0.6, -0.345]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
+        <Text position={[0, 0.6, -0.39]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
+        <Text position={[0, 0.6, -0.34]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
       </group>
 
       {/* Welcome mat outside */}
       <mesh position={[0, 0.005, 6.3]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[3.5, 1.2]} /><Mat color="#1a1a1a" roughness={0.8} /></mesh>
-      <Text position={[0, 0.008, 6.3]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>WELCOME</Text>
+      <Text position={[0, 0.01, 6.3]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>WELCOME</Text>
 
       {/* Welcome mat inside */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, ROOM_D / 2 - 0.5]}><planeGeometry args={[2, 1]} /><Mat color="#4a2020" roughness={0.95} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, ROOM_D / 2 - 0.5]}><planeGeometry args={[2, 1]} /><Mat color="#4a2020" roughness={0.95} /></mesh>
     </group>
   );
 }

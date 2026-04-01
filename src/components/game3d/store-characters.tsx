@@ -802,8 +802,8 @@ export function VinnyCharacter() {
         <mesh position={[0, 0.02, -0.22]}><boxGeometry args={[0.04, 0.006, 0.006]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
         <mesh position={[-0.12, 0.02, -0.14]} rotation={[0, 0.4, 0]}><boxGeometry args={[0.005, 0.005, 0.14]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
         <mesh position={[0.12, 0.02, -0.14]} rotation={[0, -0.4, 0]}><boxGeometry args={[0.005, 0.005, 0.14]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
-        <mesh position={[-0.08, 0.02, -0.2]}><circleGeometry args={[0.038, 16]} /><Mat color="#e8e8ff" transparent opacity={0.15} /></mesh>
-        <mesh position={[0.08, 0.02, -0.2]}><circleGeometry args={[0.038, 16]} /><Mat color="#e8e8ff" transparent opacity={0.15} /></mesh>
+        <mesh position={[-0.08, 0.02, -0.21]}><circleGeometry args={[0.038, 16]} /><Mat color="#e8e8ff" transparent opacity={0.15} /></mesh>
+        <mesh position={[0.08, 0.02, -0.21]}><circleGeometry args={[0.038, 16]} /><Mat color="#e8e8ff" transparent opacity={0.15} /></mesh>
         <mesh position={[-0.08, 0.02, -0.19]}><sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
         <mesh position={[0.08, 0.02, -0.19]}><sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
         <mesh position={[-0.08, 0.02, -0.22]}><sphereGeometry args={[0.015, 8, 8]} /><Mat color="#1a1a1a" /></mesh>

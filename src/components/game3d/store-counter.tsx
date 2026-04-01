@@ -55,8 +55,8 @@ export function Counter() {
 
       <group position={[2.15, 1.0, 0.16]} rotation={[0, -0.2, 0]}>
         <mesh rotation={[0.35, 0, 0]}><boxGeometry args={[0.3, 0.18, 0.02]} /><Mat color="#f4efe2" roughness={0.65} /></mesh>
-        <Text position={[0, 0.03, -0.01]} rotation={[0.35, Math.PI, 0]} fontSize={0.028} color="#1a3a6a" anchorX="center" anchorY="middle" font={undefined}>JOIN</Text>
-        <Text position={[0, -0.03, -0.01]} rotation={[0.35, Math.PI, 0]} fontSize={0.028} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>REWARDS</Text>
+        <Text position={[0, 0.03, -0.02]} rotation={[0.35, Math.PI, 0]} fontSize={0.028} color="#1a3a6a" anchorX="center" anchorY="middle" font={undefined}>JOIN</Text>
+        <Text position={[0, -0.03, -0.02]} rotation={[0.35, Math.PI, 0]} fontSize={0.028} color="#cc2222" anchorX="center" anchorY="middle" font={undefined}>REWARDS</Text>
       </group>
 
       {[1.0, 1.3, 1.6, 1.9].map((dx, i) => {
@@ -76,12 +76,12 @@ export function Counter() {
       })}
 
       <mesh position={[2.3, 1.00, -0.2]}><boxGeometry args={[0.5, 0.25, 0.35]} /><Mat color="#2a2a3a" roughness={0.7} /></mesh>
-      <Text position={[2.3, 1.20, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>RETURNS</Text>
+      <Text position={[2.3, 1.20, -0.4]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>RETURNS</Text>
 
       {/* Monitor on counter — base sits on surface at y=0.90 */}
       <group position={[0.5, 1.10, 0.3]}>
         <mesh><boxGeometry args={[0.4, 0.35, 0.05]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
-        <mesh position={[0, 0.01, -0.026]}><planeGeometry args={[0.34, 0.26]} /><Mat color="#1a3a6a" emissive="#1a4a8a" emissiveIntensity={0.6} /></mesh>
+        <mesh position={[0, 0.01, -0.03]}><planeGeometry args={[0.34, 0.26]} /><Mat color="#1a3a6a" emissive="#1a4a8a" emissiveIntensity={0.6} /></mesh>
         <mesh position={[0, -0.22, 0.02]}><boxGeometry args={[0.08, 0.1, 0.06]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
         <mesh position={[0, -0.27, 0.02]}><boxGeometry args={[0.18, 0.02, 0.12]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
       </group>

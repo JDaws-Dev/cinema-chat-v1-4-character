@@ -290,7 +290,7 @@ export function StaffPicksShelf() {
         <Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.5} />
       </mesh>
       <Text
-        position={[0, 0.48, -0.065]}
+        position={[0, 0.48, -0.06]}
         fontSize={0.07}
         color="#0a1830"
         anchorX="center"
@@ -338,7 +338,7 @@ export function NewReleasesWall() {
   }, []);
 
   return (
-    <group position={[0, 0, -ROOM_D / 2 + 0.15]}>
+    <group position={[0, 0, -ROOM_D / 2 + 0.17]}>
       {/* Shelf unit — centered, not full wall */}
       <mesh position={[0, 1.0, 0]}>
         <boxGeometry args={[8, 2.0, 0.3]} />

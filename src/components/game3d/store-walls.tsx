@@ -63,15 +63,15 @@ export function WallCrtTv({ position, yaw = 0, tilt = 0, scale = 1, pipeDrop = 0
         <RoundedBox args={[1.28, 0.92, 0.07]} radius={0.03} smoothness={2} position={[0, -0.7, 0.3]}><Mat color="#090909" roughness={0.45} /></RoundedBox>
         <mesh position={[0, SCREEN_Y, 0.338]}><planeGeometry args={[1.05, 0.74]} /><meshBasicMaterial ref={matRef} color="#2f8dff" side={THREE.DoubleSide} toneMapped={false} /></mesh>
         <mesh position={[0, SCREEN_Y + 0.11, 0.341]}><planeGeometry args={[0.9, 0.26]} /><meshBasicMaterial color="#7c3aed" transparent opacity={0.64} toneMapped={false} /></mesh>
-        <mesh position={[-0.18, SCREEN_Y - 0.08, 0.342]}><planeGeometry args={[0.32, 0.18]} /><meshBasicMaterial color="#2dd4bf" transparent opacity={0.72} toneMapped={false} /></mesh>
-        <mesh position={[0.16, SCREEN_Y - 0.05, 0.342]}><planeGeometry args={[0.28, 0.22]} /><meshBasicMaterial color="#fb923c" transparent opacity={0.7} toneMapped={false} /></mesh>
-        <mesh position={[0, SCREEN_Y - 0.23, 0.342]}><planeGeometry args={[0.95, 0.09]} /><meshBasicMaterial color="#fde047" transparent opacity={0.45} toneMapped={false} /></mesh>
-        <group ref={playTextRef} position={[-0.31, SCREEN_Y + 0.23, 0.344]}><Text fontSize={0.07} color="#f4f8ff" anchorX="left" anchorY="middle" font={undefined}>PLAY<meshBasicMaterial color="#f4f8ff" toneMapped={false} /></Text></group>
-        <mesh ref={scanBandRef} position={[0, SCREEN_Y + 0.18, 0.343]}><planeGeometry args={[1.0, 0.1]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.2} toneMapped={false} /></mesh>
-        <mesh ref={glareRef} position={[-0.12, SCREEN_Y + 0.1, 0.344]} rotation={[0, 0, -0.2]}><planeGeometry args={[0.34, 0.62]} /><meshBasicMaterial color="#f6f2d8" transparent opacity={0.07} toneMapped={false} /></mesh>
-        {[-0.2, -0.05, 0.15].map((dy, i) => (<mesh key={`scan-${i}`} position={[0, SCREEN_Y + dy, 0.342]}><planeGeometry args={[0.98, 0.01]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.08} toneMapped={false} /></mesh>))}
+        <mesh position={[-0.18, SCREEN_Y - 0.08, 0.343]}><planeGeometry args={[0.32, 0.18]} /><meshBasicMaterial color="#2dd4bf" transparent opacity={0.72} toneMapped={false} /></mesh>
+        <mesh position={[0.16, SCREEN_Y - 0.05, 0.344]}><planeGeometry args={[0.28, 0.22]} /><meshBasicMaterial color="#fb923c" transparent opacity={0.7} toneMapped={false} /></mesh>
+        <mesh position={[0, SCREEN_Y - 0.23, 0.345]}><planeGeometry args={[0.95, 0.09]} /><meshBasicMaterial color="#fde047" transparent opacity={0.45} toneMapped={false} /></mesh>
+        <group ref={playTextRef} position={[-0.31, SCREEN_Y + 0.23, 0.352]}><Text fontSize={0.07} color="#f4f8ff" anchorX="left" anchorY="middle" font={undefined}>PLAY<meshBasicMaterial color="#f4f8ff" toneMapped={false} /></Text></group>
+        <mesh ref={scanBandRef} position={[0, SCREEN_Y + 0.18, 0.348]}><planeGeometry args={[1.0, 0.1]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.2} toneMapped={false} /></mesh>
+        <mesh ref={glareRef} position={[-0.12, SCREEN_Y + 0.1, 0.354]} rotation={[0, 0, -0.2]}><planeGeometry args={[0.34, 0.62]} /><meshBasicMaterial color="#f6f2d8" transparent opacity={0.07} toneMapped={false} /></mesh>
+        {[-0.2, -0.05, 0.15].map((dy, i) => (<mesh key={`scan-${i}`} position={[0, SCREEN_Y + dy, 0.346]}><planeGeometry args={[0.98, 0.01]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.08} toneMapped={false} /></mesh>))}
         <mesh position={[0.49, -0.8, 0.31]}><boxGeometry args={[0.18, 0.46, 0.02]} /><Mat color="#1c1c1c" roughness={0.85} /></mesh>
-        {[-0.22, -0.1, 0.02, 0.14].map((dy, i) => (<mesh key={`speaker-slot-${i}`} position={[0.49, -0.7 + dy, 0.322]}><boxGeometry args={[0.13, 0.012, 0.008]} /><Mat color="#050505" roughness={0.5} /></mesh>))}
+        {[-0.22, -0.1, 0.02, 0.14].map((dy, i) => (<mesh key={`speaker-slot-${i}`} position={[0.49, -0.7 + dy, 0.325]}><boxGeometry args={[0.13, 0.012, 0.008]} /><Mat color="#050505" roughness={0.5} /></mesh>))}
         <mesh position={[0.43, -0.44, 0.3]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.03, 0.03, 0.03, 10]} /><Mat color="#4d4d4d" roughness={0.38} /></mesh>
         <mesh position={[0.43, -0.54, 0.3]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.024, 0.024, 0.03, 10]} /><Mat color="#4d4d4d" roughness={0.38} /></mesh>
         <mesh position={[-0.08, 0.02, -0.23]} rotation={[0.2, 0, -0.35]}><cylinderGeometry args={[0.01, 0.01, 0.28, 6]} /><Mat color="#7a7a7a" roughness={0.35} metalness={0.55} /></mesh>
