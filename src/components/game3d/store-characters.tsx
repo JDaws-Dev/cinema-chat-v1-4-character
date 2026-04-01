@@ -10,24 +10,21 @@ import { getObjectById } from "@/lib/store-layout";
 import { SHELF_ROWS } from "./store-constants";
 import { Mat } from "./store-materials";
 
-// Aisle waypoints NPCs can walk between (x, z) — stays between shelf rows
-// NPC waypoints — must be in the AISLES between shelves, not through them
-// Shelf centers: x = -5, -1.5, 1.5, 5 (each 2.8 wide)
-// Aisle centers between shelves: x = -3.25, 0, 3.25
-// Shelf rows at z = -3, 0, 3 — cross aisles at z = -1.5, 1.5
-// Aisles between shifted shelf rows: z=-4, -1, 2
-// Between row1&2: z=-2.5, between row2&3: z=0.5, past row3: z=3.5
+// NPC waypoints — aisles between the 12 chevron gondolas
+// Center aisle: x=0 (between left pair and right pair)
+// Left aisle: x=-4, Right aisle: x=4
+// Cross aisles at z=-3, z=0, z=2.5 (between rows)
 export const NPC_WAYPOINTS: [number, number][] = [
-  [0, -6],      // back center
-  [-3, -5],     // back-left aisle
-  [2, -5],      // back-right aisle
-  [-3, -2.5],   // between row 1 & 2
-  [2, -2.5],    // between row 1 & 2 right
-  [-2, 0.5],    // between row 2 & 3
-  [3, 0.5],     // between row 2 & 3 right
-  [-2, 3.5],    // front-left (past shelves)
-  [3, 3.5],     // front-right (near checkout)
-  [0, 4],       // center front
+  [0, -5.5],    // back center
+  [-4, -4.2],   // left aisle, row 1
+  [4, -4.2],    // right aisle, row 1
+  [0, -3],      // center, between row 1 and 2
+  [-4, -1.5],   // left aisle, row 2
+  [4, -1.5],    // right aisle, row 2
+  [0, 0],       // center, between row 2 and 3
+  [-4, 1],      // left aisle, row 3
+  [4, 1],       // right aisle, row 3
+  [0, 3],       // center front
 ];
 
 // ── NPC collision helpers ─────────────────────────────────

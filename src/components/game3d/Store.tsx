@@ -11,7 +11,7 @@ import { getObjectById } from "@/lib/store-layout";
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
 import { Mat, setEraYears, getShelfMovies } from "./store-materials";
-import { ShelfUnit, WallShelf, EndcapDisplay, StaffPicksShelf, NewReleasesWall } from "./store-shelves";
+import { ShelfUnit, WallShelf, NewReleasesWall } from "./store-shelves";
 import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyCar, KenneyModel, getRandomAdultPersonality } from "./store-characters";
 import { Counter } from "./store-counter";
 import { WallPoster, WallCrtTv, AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
@@ -184,12 +184,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       {/* ── SHELVES ── */}
       {SHELF_ROWS.map((s, i) => (<ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} rotY={s.rotY} />))}
       <WallShelf position={[getObjectById("wallshelf-back-drama")?.x ?? -5, 0, -ROOM_D/2 + 0.15]} rotation={[0, 0, 0]} width={6} genre="DRAMA" color="#6366f1" />
-      <WallShelf position={[-ROOM_W/2 + 0.15, 0, getObjectById("wallshelf-left-foreign")?.z ?? -3]} rotation={[0, Math.PI/2, 0]} width={4} genre="FOREIGN" color="#6366f1" />
-      <WallShelf position={[-ROOM_W/2 + 0.15, 0, getObjectById("wallshelf-left-docs")?.z ?? 1]} rotation={[0, Math.PI/2, 0]} width={4} genre="DOCS" color="#65a30d" />
-      <WallShelf position={[ROOM_W/2 - 0.15, 0, getObjectById("wallshelf-right-new")?.z ?? -2]} rotation={[0, -Math.PI/2, 0]} width={8} genre="NEW" color="#ec4899" />
       {AISLE_SIGNS.map((sign, i) => (<AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />))}
       <AisleFloorMarkings />
-      <StaffPicksShelf />
 
       {/* ── COUNTER + CHARACTERS ── */}
       <Counter />
@@ -446,17 +442,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       <KenneyModel model="pottedPlant" position={[getObjectById("plant")?.x ?? (ROOM_W / 2 - 0.5), 0, getObjectById("plant")?.z ?? (-ROOM_D / 2 + 0.5)]} scale={0.5} />
       <KenneyModel model="trashcan" position={[getObjectById("trash-can")?.x ?? -1.5, 0, getObjectById("trash-can")?.z ?? (ROOM_D / 2 - 1)]} scale={0.5} />
 
-      {/* Cooler */}
-      <group position={[getObjectById("cooler")?.x ?? 8.63, 0, getObjectById("cooler")?.z ?? 3.5]}>
-        <mesh position={[0, 0.75, 0]}><boxGeometry args={[0.8, 1.5, 0.6]} /><Mat color="#d6d8dd" roughness={0.55} /></mesh>
-        <mesh position={[-0.37, 0.75, 0]}><boxGeometry args={[0.05, 1.42, 0.56]} /><Mat color="#31568c" roughness={0.45} /></mesh>
-        <mesh position={[0.37, 0.75, 0]}><boxGeometry args={[0.05, 1.42, 0.56]} /><Mat color="#31568c" roughness={0.45} /></mesh>
-        <mesh position={[0, 1.42, 0]}><boxGeometry args={[0.72, 0.08, 0.56]} /><Mat color="#31568c" roughness={0.45} /></mesh>
-        <mesh position={[0, 0.75, -0.31]}><planeGeometry args={[0.75, 1.2]} /><Mat color="#aaddee" transparent opacity={0.22} side={THREE.DoubleSide} /></mesh>
-        {[0.5, 1.0].map((sy, i) => (<mesh key={`cooler-shelf-${i}`} position={[0, sy, 0]}><boxGeometry args={[0.7, 0.02, 0.5]} /><Mat color="#cccccc" roughness={0.4} /></mesh>))}
-        {[-0.15, 0, 0.15].map((dx, i) => (<group key={`bottle-top-${i}`}><KenneyModel model={i % 2 === 0 ? "soda-can" : "soda-bottle"} position={[dx, 1.1, 0]} scale={0.25} /><KenneyModel model={i % 2 === 0 ? "soda-bottle" : "soda-can"} position={[dx, 0.6, 0]} scale={0.25} /></group>))}
-        <Text position={[0, 1.55, -0.1]} fontSize={0.04} color="#cc0000" anchorX="center" font={undefined}>COLD DRINKS $1</Text>
-      </group>
 
       {/* Rewards sign */}
       <group position={[getObjectById("rewards-sign")?.x ?? 7, getObjectById("rewards-sign")?.y ?? 2.8, getObjectById("rewards-sign")?.z ?? 5]}>
@@ -465,8 +450,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
         <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>REWARDS MEMBER? ASK!</Text>
       </group>
 
-      {/* Endcap displays */}
-      {[{ x: -2.61 + 1.5, z: -4.19 - 0.6, rotY: 0.35, label: "HORROR", colors: ["#dc2626", "#991b1b", "#7c2d12"] },{ x: 2.67 + 1.5, z: -4.28 - 0.6, rotY: -0.35, label: "COMEDY", colors: ["#f97316", "#ca8a04", "#ea580c"] },{ x: -2.55 + 1.5, z: -1.58 + 0.8, rotY: 0.35, label: "ACTION", colors: ["#ef4444", "#b91c1c", "#dc2626"] }].map((ec, i) => (<EndcapDisplay key={`endcap2-${i}`} x={ec.x} z={ec.z} rotY={ec.rotY} label={ec.label} vhsColors={ec.colors} />))}
 
       {/* Security mirror */}
       <group position={[-9.2, 3.3, -6.2]}><mesh rotation={[Math.PI / 4, 0, 0]}><circleGeometry args={[0.45, 24]} /><Mat color="#c0c8d0" roughness={0.8} metalness={0.3} /></mesh><mesh position={[0, 0.15, 0.05]}><cylinderGeometry args={[0.06, 0.06, 0.15, 8]} /><Mat color="#444444" roughness={0.8} /></mesh></group>

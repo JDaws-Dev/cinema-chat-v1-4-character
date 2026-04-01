@@ -18,17 +18,17 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   const colliders: { x: number; z: number; hw: number; hd: number }[] = [];
 
   // ── Gondola shelves ──
-  // Each is 3.2w x 0.6d but rotated, so compute AABB from rotation.
-  // Add 15% padding for comfortable clearance.
+  // Each is 3.2w x 0.6d but rotated 0.6 rad, so compute AABB from rotation.
+  // Add 10% padding for comfortable clearance.
   for (const row of getShelfRows()) {
     const absRot = Math.abs(row.rotY || 0);
     const cosR = Math.cos(absRot);
     const sinR = Math.sin(absRot);
     const shelfW = 3.2; // layout width
     const shelfD = 0.6; // layout depth
-    // AABB half-extents of a rotated rectangle, +15% padding
-    const hw = ((shelfW * cosR + shelfD * sinR) / 2) * 1.15;
-    const hd = ((shelfW * sinR + shelfD * cosR) / 2) * 1.15;
+    // AABB half-extents of a rotated rectangle, +10% padding
+    const hw = ((shelfW * cosR + shelfD * sinR) / 2) * 1.1;
+    const hd = ((shelfW * sinR + shelfD * cosR) / 2) * 1.1;
     colliders.push({ x: row.x, z: row.z, hw, hd });
   }
 
@@ -44,22 +44,6 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   const dramWall = getObjectById("wallshelf-back-drama");
   if (dramWall) colliders.push({ x: dramWall.x, z: dramWall.z, hw: 3.2, hd: 0.4 });
 
-  // ── Wall shelf: FOREIGN on left wall (x=-9.85, z=-3, 4 tall along wall) ──
-  // Against the left wall — room bounds handle x, but add thin collider for z extent
-  const foreignWall = getObjectById("wallshelf-left-foreign");
-  if (foreignWall) colliders.push({ x: foreignWall.x, z: foreignWall.z, hw: 0.4, hd: 2.2 });
-
-  // ── Wall shelf: DOCS on left wall (x=-9.85, z=1, 4 tall along wall) ──
-  const docsWall = getObjectById("wallshelf-left-docs");
-  if (docsWall) colliders.push({ x: docsWall.x, z: docsWall.z, hw: 0.4, hd: 2.2 });
-
-  // ── Wall shelf: NEW RELEASES on right wall (x=9.85, z=-2, 8 tall along wall) ──
-  const newWall = getObjectById("wallshelf-right-new");
-  if (newWall) colliders.push({ x: newWall.x, z: newWall.z, hw: 0.4, hd: 4.2 });
-
-  // ── Cooler (x=8.63, z=3.5, 0.8w x 0.6d) ──
-  const cooler = getObjectById("cooler");
-  if (cooler) colliders.push({ x: cooler.x, z: cooler.z, hw: 0.5, hd: 0.4 });
 
   // ── Trophy shelf (x=9.7, z=-4, rotated 90deg so 0.6w x 2.5d) ──
   const trophy = getObjectById("trophy-shelf");
