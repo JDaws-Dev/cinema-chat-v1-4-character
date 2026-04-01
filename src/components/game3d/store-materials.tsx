@@ -126,10 +126,8 @@ const GENRE_TMDB_IDS: Record<string, string> = {
   HORROR: "27", "SCI-FI": "878", COMEDY: "35", DRAMA: "18",
   ACTION: "28", CLASSICS: "classics", FAMILY: "10751", NEW: "",
   THRILLER: "53", ROMANCE: "10749", ANIMATED: "16", WESTERN: "37",
-  FOREIGN: "10752", INDIE: "18", CULT: "27", CRIME: "80",
-  MYSTERY: "9648", ADVENTURE: "12", FANTASY: "14", WAR: "10752",
-  MUSICAL: "10402", KIDS: "10751", SPORTS: "28", DOCUMENTARY: "99",
-  FITNESS: "10751", "TV SERIES": "10770",
+  ADVENTURE: "12", FANTASY: "14", WAR: "10752", MUSICAL: "10402",
+  KIDS: "10751", CRIME: "80", MYSTERY: "9648",
 };
 
 export interface PosterData { url: string; title: string; id: number; }
@@ -206,9 +204,9 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
     } else {
       // Genre — fetch 3 pages for more variety, filtered by era (offset for P2 racks)
       Promise.all([
-        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${1 + pageOffset}`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${2 + pageOffset}`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=6&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${3 + pageOffset}`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${1 + pageOffset}`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${2 + pageOffset}`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${3 + pageOffset}`).then(r => r.json()),
       ]).then(([p1, p2, p3]) => {
         const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
         const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
