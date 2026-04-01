@@ -351,19 +351,81 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
       </>}
 
-      {/* Pizza Palace */}
-      <mesh position={[getObjectById("pizza-building")?.x ?? -ROOM_W / 2 - 3, ROOM_H / 2, getObjectById("pizza-building")?.z ?? ROOM_D / 2]}><boxGeometry args={[6, ROOM_H, 0.3]} /><meshBasicMaterial color="#2a2a30" /></mesh>
-      <mesh position={[getObjectById("pizza-door")?.x ?? -ROOM_W / 2 - 2.5, 1.1, getObjectById("pizza-door")?.z ?? ROOM_D / 2 + 0.16]}><planeGeometry args={[1.0, 2.2]} /><meshBasicMaterial color="#111115" /></mesh>
-      <mesh position={[-ROOM_W / 2 - 2.5, 2.22, ROOM_D / 2 + 0.17]}><boxGeometry args={[1.1, 0.04, 0.04]} /><meshBasicMaterial color="#553322" /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-ROOM_W / 2 - 2.5, -0.03, ROOM_D / 2 + 0.6]}><planeGeometry args={[1.6, 1.0]} /><meshBasicMaterial color="#553311" transparent opacity={0.35} /></mesh>
-      <group position={[-ROOM_W / 2 - 3, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}><mesh><boxGeometry args={[3.5, 0.6, 0.05]} /><meshBasicMaterial color="#1a0a0a" /></mesh><mesh position={[0, 0, 0.01]}><boxGeometry args={[3.6, 0.7, 0.02]} /><meshBasicMaterial color="#cc3333" /></mesh><mesh position={[0, 0, 0.02]}><boxGeometry args={[3.4, 0.5, 0.02]} /><meshBasicMaterial color="#1a0a0a" /></mesh><Text position={[0, 0, 0.04]} fontSize={0.24} color="#ff6666" anchorX="center" anchorY="middle">PIZZA PALACE<meshBasicMaterial color="#ff6666" toneMapped={false} /></Text><mesh position={[0, 0, -0.01]}><planeGeometry args={[3.8, 0.9]} /><meshBasicMaterial color="#ff3333" transparent opacity={0.08} /></mesh></group>
-      <group position={[getObjectById("pizza-slice-sign")?.x ?? -ROOM_W / 2 - 4.5, ROOM_H - 0.3, getObjectById("pizza-slice-sign")?.z ?? ROOM_D / 2 + 0.2]}><mesh rotation={[0, 0, 0.1]}><coneGeometry args={[0.35, 0.6, 3]} /><meshBasicMaterial color="#ff6622" toneMapped={false} /></mesh><mesh position={[-0.05, 0.05, 0.18]}><circleGeometry args={[0.05, 8]} /><meshBasicMaterial color="#cc2200" /></mesh><mesh position={[0.08, -0.1, 0.18]}><circleGeometry args={[0.04, 8]} /><meshBasicMaterial color="#cc2200" /></mesh></group>
-      {Array.from({ length: 10 }).map((_, i) => (<mesh key={`pizza-awning-${i}`} position={[-ROOM_W / 2 - 5.5 + i * 0.55, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}><boxGeometry args={[0.55, 0.05, 0.8]} /><meshBasicMaterial color={i % 2 === 0 ? "#cc2222" : "#eeeeee"} /></mesh>))}
-      <mesh position={[getObjectById("pizza-window")?.x ?? -ROOM_W / 2 - 3.8, 1.4, getObjectById("pizza-window")?.z ?? ROOM_D / 2 + 0.17]}><planeGeometry args={[1.8, 1.6]} /><meshBasicMaterial color="#443311" transparent opacity={0.6} /></mesh>
-      <mesh position={[-ROOM_W / 2 - 3.8, 1.4, ROOM_D / 2 + 0.18]}><boxGeometry args={[1.9, 0.04, 0.03]} /><meshBasicMaterial color="#553322" /></mesh>
-      <mesh position={[-ROOM_W / 2 - 3.8, 1.4, ROOM_D / 2 + 0.18]}><boxGeometry args={[0.04, 1.7, 0.03]} /><meshBasicMaterial color="#553322" /></mesh>
-      <group position={[-ROOM_W / 2 - 3.8, 1.8, ROOM_D / 2 + 0.19]}><mesh><boxGeometry args={[1.2, 0.3, 0.02]} /><meshBasicMaterial color="#0a0a0a" /></mesh><Text position={[0, 0, 0.02]} fontSize={0.14} color="#ff3366" anchorX="center" anchorY="middle">OPEN LATE<meshBasicMaterial color="#ff3366" toneMapped={false} /></Text></group>
-      <group position={[getObjectById("pizza-menu")?.x ?? -ROOM_W / 2 - 1.6, 1.2, getObjectById("pizza-menu")?.z ?? ROOM_D / 2 + 0.4]}><mesh><boxGeometry args={[0.6, 0.9, 0.05]} /><meshBasicMaterial color="#222211" /></mesh><mesh position={[0, 0, 0.01]}><boxGeometry args={[0.55, 0.85, 0.02]} /><meshBasicMaterial color="#443322" /></mesh><Text position={[0, 0.2, 0.03]} fontSize={0.08} color="#ffcc44" anchorX="center" anchorY="middle">SLICES $1.50<meshBasicMaterial color="#ffcc44" toneMapped={false} /></Text><Text position={[0, 0.05, 0.03]} fontSize={0.06} color="#ffffff" anchorX="center" anchorY="middle">WHOLE PIE $8.99<meshBasicMaterial color="#ffffff" toneMapped={false} /></Text><Text position={[0, -0.1, 0.03]} fontSize={0.06} color="#ffffff" anchorX="center" anchorY="middle">2-LITER SODA $1<meshBasicMaterial color="#ffffff" toneMapped={false} /></Text><mesh position={[-0.25, -0.55, 0.1]} rotation={[0.15, 0, 0]}><boxGeometry args={[0.04, 0.3, 0.04]} /><meshBasicMaterial color="#443322" /></mesh><mesh position={[0.25, -0.55, 0.1]} rotation={[0.15, 0, 0]}><boxGeometry args={[0.04, 0.3, 0.04]} /><meshBasicMaterial color="#443322" /></mesh></group>
+      {/* ── PIZZA PALACE — walkable interior ── */}
+      <group position={[-13, 0, 5.5]}>
+        {/* Floor */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}><planeGeometry args={[6, 5]} /><meshBasicMaterial color="#4a3020" /></mesh>
+        {/* Checkerboard tiles */}
+        {Array.from({ length: 6 }).map((_, ix) => Array.from({ length: 5 }).map((_, iz) => (
+          (ix + iz) % 2 === 0 ? <mesh key={`tile-${ix}-${iz}`} rotation={[-Math.PI / 2, 0, 0]} position={[-2.5 + ix, 0.012, -2 + iz]}><planeGeometry args={[1, 1]} /><meshBasicMaterial color="#5a3a28" /></mesh> : null
+        )))}
+        {/* Ceiling */}
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}><planeGeometry args={[6, 5]} /><meshBasicMaterial color="#8a7a6a" /></mesh>
+        {/* Back wall (z=-2.5, shared with video store) */}
+        <mesh position={[0, ROOM_H / 2, -2.5]}><planeGeometry args={[6, ROOM_H]} /><meshBasicMaterial color="#8a2020" /></mesh>
+        {/* Left wall (x=-3) */}
+        <mesh position={[-3, ROOM_H / 2, 0]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[5, ROOM_H]} /><meshBasicMaterial color="#7a1818" /></mesh>
+        {/* Right wall — shared with video store (x=3, but video store left wall is here) */}
+
+        {/* Front wall with door gap at x=-0.5 (width 1.2) */}
+        <mesh position={[-1.7, ROOM_H / 2, 1.5]}><planeGeometry args={[2.6, ROOM_H]} /><meshBasicMaterial color="#8a2020" /></mesh>
+        <mesh position={[1.9, ROOM_H / 2, 1.5]}><planeGeometry args={[2.2, ROOM_H]} /><meshBasicMaterial color="#8a2020" /></mesh>
+        {/* Above door */}
+        <mesh position={[-0.3, 2.6, 1.5]}><planeGeometry args={[1.4, 0.9]} /><meshBasicMaterial color="#8a2020" /></mesh>
+
+        {/* Counter — pizza display case */}
+        <mesh position={[0, 0.5, -1.5]}><boxGeometry args={[4, 1, 0.8]} /><Mat color="#5a3a20" roughness={0.7} /></mesh>
+        <mesh position={[0, 1.02, -1.5]}><boxGeometry args={[4.1, 0.04, 0.85]} /><Mat color="#7a5a30" roughness={0.4} /></mesh>
+        {/* Glass display on counter */}
+        <mesh position={[0, 1.3, -1.5]}><boxGeometry args={[3, 0.5, 0.6]} /><Mat color="#aaddee" transparent opacity={0.2} /></mesh>
+        {/* Pizza boxes inside */}
+        {[-1, 0, 1].map((dx, i) => (
+          <mesh key={`pizza-${i}`} position={[dx, 1.1, -1.5]}><boxGeometry args={[0.7, 0.08, 0.7]} /><meshBasicMaterial color={["#cc8833", "#dd9944", "#bb7722"][i]} /></mesh>
+        ))}
+
+        {/* Soda fountain */}
+        <mesh position={[-2.5, 0.8, -1]}><boxGeometry args={[0.8, 1.6, 0.5]} /><Mat color="#333333" roughness={0.5} /></mesh>
+        <Text position={[-2.5, 1.5, -0.74]} fontSize={0.08} color="#ff3333" anchorX="center" anchorY="middle" font={undefined}>DRINKS</Text>
+
+        {/* Menu board on back wall */}
+        <mesh position={[0, 2.5, -2.48]}><boxGeometry args={[3, 0.8, 0.04]} /><meshBasicMaterial color="#1a0a0a" /></mesh>
+        <Text position={[0, 2.7, -2.45]} fontSize={0.12} color="#ffcc44" anchorX="center" anchorY="middle" font={undefined}>PIZZA PALACE</Text>
+        <Text position={[-0.8, 2.4, -2.45]} fontSize={0.07} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>SLICE $1.50</Text>
+        <Text position={[0, 2.4, -2.45]} fontSize={0.07} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PIE $8.99</Text>
+        <Text position={[0.8, 2.4, -2.45]} fontSize={0.07} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>SODA $1</Text>
+
+        {/* Booth seating along left wall */}
+        {[-1, 0.5].map((dz, i) => (
+          <group key={`booth-${i}`} position={[-2.6, 0, dz]}>
+            {/* Bench */}
+            <mesh position={[0, 0.35, 0]}><boxGeometry args={[0.6, 0.7, 1.2]} /><Mat color="#8b1a1a" roughness={0.6} /></mesh>
+            {/* Table */}
+            <mesh position={[0.55, 0.55, 0]}><boxGeometry args={[0.6, 0.04, 1]} /><Mat color="#ddd8cc" roughness={0.4} /></mesh>
+            <mesh position={[0.55, 0.27, 0]}><boxGeometry args={[0.04, 0.54, 0.04]} /><Mat color="#888888" roughness={0.4} metalness={0.5} /></mesh>
+          </group>
+        ))}
+
+        {/* Ceiling light */}
+        <mesh position={[0, ROOM_H - 0.05, 0]}><boxGeometry args={[1.5, 0.04, 0.3]} /><meshBasicMaterial color="#fffae8" /></mesh>
+        <pointLight position={[0, ROOM_H - 0.2, 0]} intensity={0.8} distance={8} color="#fff4d0" />
+
+        {/* Neon OPEN sign in window */}
+        <group position={[1.5, 2, 1.48]}>
+          <mesh><boxGeometry args={[0.7, 0.35, 0.03]} /><meshBasicMaterial color="#0a0a0a" /></mesh>
+          <Text position={[0, 0, 0.02]} fontSize={0.14} color="#ff3366" anchorX="center" anchorY="middle" font={undefined}>OPEN</Text>
+        </group>
+      </group>
+
+      {/* Pizza Palace exterior signage */}
+      <group position={[-13, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}>
+        <mesh><boxGeometry args={[5.5, 0.7, 0.05]} /><meshBasicMaterial color="#cc3333" /></mesh>
+        <mesh position={[0, 0, 0.03]}><boxGeometry args={[5.3, 0.55, 0.02]} /><meshBasicMaterial color="#1a0a0a" /></mesh>
+        <Text position={[0, 0, 0.05]} fontSize={0.28} color="#ff6666" anchorX="center" anchorY="middle">PIZZA PALACE<meshBasicMaterial color="#ff6666" toneMapped={false} /></Text>
+      </group>
+      {/* Red & white awning */}
+      {Array.from({ length: 11 }).map((_, i) => (<mesh key={`pizza-awning-${i}`} position={[-16 + i * 0.55, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}><boxGeometry args={[0.55, 0.05, 0.8]} /><meshBasicMaterial color={i % 2 === 0 ? "#cc2222" : "#eeeeee"} /></mesh>))}
+      {/* Pizza window (looking into shop) */}
+      <mesh position={[-14.5, 1.4, ROOM_D / 2 + 0.17]}><planeGeometry args={[2.2, 1.8]} /><meshBasicMaterial color="#443311" transparent opacity={0.4} /></mesh>
 
       {/* Laundromat */}
       <mesh position={[getObjectById("laundro-building")?.x ?? ROOM_W / 2 + 3, ROOM_H / 2, getObjectById("laundro-building")?.z ?? ROOM_D / 2]}><boxGeometry args={[6, ROOM_H, 0.3]} /><meshBasicMaterial color="#2a2a30" /></mesh>

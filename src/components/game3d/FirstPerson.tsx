@@ -8,7 +8,7 @@ import { setPlayerPosition } from "@/lib/audio";
 
 const SPEED = 3.5;
 const MOUSE_SENS = 0.002;
-const ROOM_BOUNDS = { minX: -9.5, maxX: 9.5, minZ: -6.5, maxZ: 14 }; // extended +z for outside area
+const ROOM_BOUNDS = { minX: -17, maxX: 17, minZ: -6.5, maxZ: 20 }; // full strip mall + parking lot + road
 const PLAYER_RADIUS = 0.4;
 
 // Collision boxes derived from layout data — positions stay in sync with editor
@@ -51,8 +51,8 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   const bargainCrate = getObjectById("bargain-crate");
   if (bargainCrate) colliders.push({ x: bargainCrate.x, z: bargainCrate.z, hw: 0.55, hd: 0.45 });
 
-  // ── Room walls ──
-  // Left wall (x=-10)
+  // ── Video Store walls ──
+  // Left wall (x=-10) — gap at z=-5.19 for employees door
   colliders.push({ x: -10.2, z: 0, hw: 0.2, hd: 7 });
   // Right wall (x=+10)
   colliders.push({ x: 10.2, z: 0, hw: 0.2, hd: 7 });
@@ -60,6 +60,24 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   colliders.push({ x: -5.85, z: 7.2, hw: 4.15, hd: 0.2 });
   // Front wall — right of door (x=1.7 to x=10, z=7)
   colliders.push({ x: 5.85, z: 7.2, hw: 4.15, hd: 0.2 });
+  // Back wall (z=-7)
+  colliders.push({ x: 0, z: -7.2, hw: 10, hd: 0.2 });
+
+  // ── Pizza Palace walls (x=-16 to x=-10, z=7) ──
+  // Back wall of pizza place (z=7, same as video store front — shared wall)
+  // Left wall of pizza place (x=-16)
+  colliders.push({ x: -16.2, z: 4, hw: 0.2, hd: 3.5 });
+  // Front wall — left of pizza door (x=-16 to x=-13, z=7.3)
+  colliders.push({ x: -14.75, z: 7.3, hw: 1.25, hd: 0.2 });
+  // Front wall — right of pizza door (x=-12 to x=-10, z=7.3)
+  colliders.push({ x: -11, z: 7.3, hw: 1, hd: 0.2 });
+  // Back wall of pizza place (z=4.5 — interior back)
+  colliders.push({ x: -13, z: 4.3, hw: 3, hd: 0.2 });
+
+  // ── Laundromat walls (x=10 to x=16) — can't enter ──
+  colliders.push({ x: 13, z: 7.2, hw: 3, hd: 0.2 });
+  // Right wall of laundromat
+  colliders.push({ x: 16.2, z: 4, hw: 0.2, hd: 3.5 });
 
   return colliders;
 }
@@ -98,8 +116,8 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   useEffect(() => {
     // Set spawn position only on very first mount
     if (!initialized.current) {
-      camera.position.set(0, 1.6, 14); // Outside in parking lot — can see the sign
-      camera.lookAt(0, 2.5, 7); // Face toward store sign
+      camera.position.set(0, 1.6, 19); // Out in the street — full strip mall view
+      camera.lookAt(0, 3.5, 7); // Face toward store signage
       camera.getWorldDirection(new THREE.Vector3()); // force update
       euler.current.setFromQuaternion(camera.quaternion); // sync euler to camera
       initialized.current = true;
