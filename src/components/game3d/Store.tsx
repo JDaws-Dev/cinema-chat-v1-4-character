@@ -390,8 +390,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
         <mesh position={[0, ROOM_H / 2, -2.5]}><boxGeometry args={[6, ROOM_H, 0.1]} /><meshBasicMaterial color="#8a2020" /></mesh>
         {/* Left wall (x=-3) */}
         <mesh position={[-3, ROOM_H / 2, 0]}><boxGeometry args={[0.1, ROOM_H, 5]} /><meshBasicMaterial color="#7a1818" /></mesh>
-        {/* Right wall — shared with video store */}
-        <mesh position={[3, ROOM_H / 2, 0]}><boxGeometry args={[0.1, ROOM_H, 5]} /><meshBasicMaterial color="#7a1818" /></mesh>
+        {/* Right wall omitted — video store's left wall serves as divider */}
 
         {/* Front wall with door gap */}
         <mesh position={[-1.7, ROOM_H / 2, 1.5]}><boxGeometry args={[2.6, ROOM_H, 0.1]} /><meshBasicMaterial color="#8a2020" /></mesh>
