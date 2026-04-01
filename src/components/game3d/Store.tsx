@@ -321,11 +321,14 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <mesh position={[12.3, 14.2, 33.9]} rotation={[0, Math.PI, 0]}><circleGeometry args={[0.7, 16]} /><meshBasicMaterial color="#c0c4d0" /></mesh>
       </>}
 
-      {/* Parking lot */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}><planeGeometry args={[ROOM_W + 8, 14]} /><meshBasicMaterial color="#2a2a40" /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[getObjectById("sidewalk")?.x ?? 0, -0.04, getObjectById("sidewalk")?.z ?? ROOM_D / 2 + 0.8]}><planeGeometry args={[ROOM_W + 2, 1.5]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, ROOM_D / 2 + 0.5]}><planeGeometry args={[ROOM_W, 1.5]} /><meshBasicMaterial color="#2a2520" /></mesh>
-      {[-6, -3, 0, 3, 6].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
+      {/* Parking lot — full strip mall width (Pizza Palace to Laundromat) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}><planeGeometry args={[36, 14]} /><meshBasicMaterial color="#2a2a40" /></mesh>
+      {/* Sidewalk — runs full length in front of all three businesses */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, ROOM_D / 2 + 0.8]}><planeGeometry args={[36, 1.5]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
+      {/* Curb edge */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, ROOM_D / 2 + 0.5]}><planeGeometry args={[36, 1.5]} /><meshBasicMaterial color="#2a2520" /></mesh>
+      {/* Parking lines — spread across full lot */}
+      {[-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
 
       {/* Parking lot lamps */}
       {[getObjectById("lamp-1")?.x ?? -6, getObjectById("lamp-2")?.x ?? 0, getObjectById("lamp-3")?.x ?? 6].map((lx, i) => (<group key={`lamp-${i}`} position={[lx, 0, [getObjectById("lamp-1")?.z, getObjectById("lamp-2")?.z, getObjectById("lamp-3")?.z][i] ?? ROOM_D / 2 + 7]}><mesh position={[0, 1.5, 0]}><cylinderGeometry args={[0.03, 0.04, 3, 8]} /><meshBasicMaterial color="#444" /></mesh><mesh position={[0, 3.1, 0]}><boxGeometry args={[0.3, 0.08, 0.15]} /><meshBasicMaterial color="#555" /></mesh><mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}><circleGeometry args={[1.5, 12]} /><meshBasicMaterial color="#332a15" transparent opacity={0.3} /></mesh></group>))}
@@ -373,7 +376,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <group position={[getObjectById("laundro-open")?.x ?? ROOM_W / 2 + 1.2, 2.0, getObjectById("laundro-open")?.z ?? ROOM_D / 2 + 0.25]}><mesh><boxGeometry args={[0.7, 0.35, 0.04]} /><meshBasicMaterial color="#111111" /></mesh><Text position={[0, 0, 0.03]} fontSize={0.16} color="#33ff66" anchorX="center" anchorY="middle">OPEN<meshBasicMaterial color="#33ff66" toneMapped={false} /></Text></group>
 
       {/* Curb + Cars */}
-      <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}><boxGeometry args={[ROOM_W + 4, 0.1, 0.15]} /><meshBasicMaterial color="#555555" /></mesh>
+      <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}><boxGeometry args={[36, 0.1, 0.15]} /><meshBasicMaterial color="#555555" /></mesh>
       <BoxCar color="#4466aa" cabinColor="#223355" position={[getObjectById("car-sedan")?.x ?? 5, 0, getObjectById("car-sedan")?.z ?? ROOM_D/2 + 4]} />
       <BoxCar color="#cc4444" cabinColor="#222233" position={[getObjectById("car-van")?.x ?? -4, 0, getObjectById("car-van")?.z ?? ROOM_D/2 + 4]} rotation={[0, Math.PI, 0]} />
       <BoxCar color="#338833" cabinColor="#1a331a" position={[getObjectById("car-suv")?.x ?? 1, 0, getObjectById("car-suv")?.z ?? ROOM_D/2 + 5.5]} />
@@ -383,11 +386,11 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <BoxCar color="#222244" cabinColor="#111122" position={[getObjectById("car-police")?.x ?? 10, 0, getObjectById("car-police")?.z ?? ROOM_D / 2 + 4]} />
       <BoxCar color="#aa6633" cabinColor="#663311" position={[getObjectById("car-delivery")?.x ?? -2, 0, getObjectById("car-delivery")?.z ?? ROOM_D / 2 + 5.5]} rotation={[0, Math.PI, 0]} />
 
-      {/* Road */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, ROOM_D / 2 + 13]}><planeGeometry args={[ROOM_W + 20, 6]} /><meshBasicMaterial color="#111116" /></mesh>
-      {[-8, -4, 0, 4, 8].map((dx, i) => (<mesh key={`roadline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[dx, -0.055, ROOM_D / 2 + 13]}><planeGeometry args={[1.5, 0.08]} /><meshBasicMaterial color="#555533" /></mesh>))}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 13.05]}><planeGeometry args={[30, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 12.9]}><planeGeometry args={[30, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
+      {/* Road — full width */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, ROOM_D / 2 + 13]}><planeGeometry args={[40, 6]} /><meshBasicMaterial color="#111116" /></mesh>
+      {[-12, -8, -4, 0, 4, 8, 12].map((dx, i) => (<mesh key={`roadline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[dx, -0.055, ROOM_D / 2 + 13]}><planeGeometry args={[1.5, 0.08]} /><meshBasicMaterial color="#555533" /></mesh>))}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 13.05]}><planeGeometry args={[40, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 12.9]}><planeGeometry args={[40, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
 
       {/* Storefront windows + doors + awning — keeping inline for build verification */}
       <mesh position={[0, ROOM_H - 0.25, ROOM_D / 2]}><boxGeometry args={[4, 0.7, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
