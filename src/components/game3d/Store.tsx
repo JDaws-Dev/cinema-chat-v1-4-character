@@ -30,11 +30,11 @@ function NeonSign() {
   );
 }
 
-// ── Aisle signs — show all genres in each row (front + back of all 4 racks) ──
+// ── Aisle signs — show genres in each row ──
 const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
-  { z: -4.2, label: "HORROR \u2022 THRILLER \u2022 SCI-FI \u2022 FANTASY \u2022 COMEDY \u2022 ROMANCE \u2022 DRAMA \u2022 CLASSICS", colors: [] },
-  { z: -1.5, label: "ACTION \u2022 ADVENTURE \u2022 CRIME \u2022 MYSTERY \u2022 FAMILY \u2022 ANIMATED \u2022 WESTERN \u2022 WAR", colors: [] },
-  { z: 1, label: "MUSICAL \u2022 FOREIGN \u2022 CULT \u2022 INDIE \u2022 KIDS \u2022 SPORTS \u2022 SUSPENSE \u2022 NOIR", colors: [] },
+  { z: -4.2, label: "ACTION \u2022 ADVENTURE \u2022 COMEDY \u2022 ROMANCE", colors: [] },
+  { z: -1.5, label: "HORROR \u2022 THRILLER \u2022 DRAMA \u2022 MYSTERY \u2022 CLASSICS", colors: [] },
+  { z: 1, label: "SCI-FI \u2022 FANTASY \u2022 FAMILY \u2022 ANIMATED \u2022 CRIME \u2022 WESTERN \u2022 FOREIGN \u2022 INDIE", colors: [] },
 ];
 
 function AisleSign({ z, label }: { z: number; label: string; colors: string[] }) {

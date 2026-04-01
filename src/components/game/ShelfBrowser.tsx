@@ -11,9 +11,7 @@ const GENRE_MAP: Record<string, string> = {
   romance: "10749", animated: "16", western: "37", foreign: "10752",
   indie: "18", cult: "27", crime: "80", mystery: "9648", adventure: "12",
   fantasy: "14", war: "10752", musical: "10402", kids: "10751",
-  sports: "28", suspense: "53", noir: "80", disaster: "28", survival: "53",
-  "stand-up": "35", sketch: "35", period: "18", epic: "18",
-  biography: "18", "true story": "18",
+  sports: "28", documentary: "99", fitness: "10751", "tv series": "10770",
 };
 
 const SPINE_COLORS: Record<string, string> = {
@@ -79,7 +77,8 @@ export function ShelfBrowser({ genre, open, onClose, onFilmClick }: ShelfBrowser
         .catch(() => {})
         .finally(() => setLoading(false));
     } else {
-      const genreId = GENRE_MAP[genre];
+      const cleanGenre = genre.replace(/-p2$/i, "");
+      const genreId = GENRE_MAP[cleanGenre];
       if (!genreId) {
         setLoading(false);
         return;
