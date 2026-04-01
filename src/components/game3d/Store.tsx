@@ -72,7 +72,7 @@ function AisleSign({ z, label }: { z: number; label: string; colors: string[] })
 }
 
 function AisleFloorMarkings() {
-  return (<>{[-2.5, 0.5, 3.5].map((z) => (<mesh key={`floor-strip-${z}`} position={[0, 0.005, z]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[ROOM_W - 2, 0.08]} /><meshBasicMaterial color="#0d1320" /></mesh>))}</>);
+  return null;
 }
 
 
@@ -146,7 +146,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* ── FLOOR ── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}><planeGeometry args={[ROOM_W, ROOM_D]} /><Mat color={FLOOR_COLOR} roughness={0.95} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, ROOM_D / 2 - 1]}><planeGeometry args={[6, 2]} /><Mat color="#3a3a3a" roughness={0.8} /></mesh>
-      {[-4, 0, 4].map((x, i) => (<mesh key={`fl${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[x, 0.002, 0]}><circleGeometry args={[3, 24]} /><Mat color="#1e2850" roughness={0.9} transparent opacity={0.3} /></mesh>))}
 
       {/* ── CEILING (hidden in top-down view) ── */}
       {!topDown && <>
@@ -392,52 +391,42 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       {/* Storefront windows + doors + awning — keeping inline for build verification */}
       <mesh position={[0, ROOM_H - 0.25, ROOM_D / 2]}><boxGeometry args={[4, 0.7, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
-      <mesh position={[-5, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[5.6, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>
-      <mesh position={[5, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[5.6, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>
-      <mesh position={[-5, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}><boxGeometry args={[5.6, 0.5, 0.06]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
-      <mesh position={[5, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}><boxGeometry args={[5.6, 0.5, 0.06]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
+      {/* Upper wall band above windows — wall to door frame */}
+      <mesh position={[-5.85, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[8.3, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>
+      <mesh position={[5.85, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[8.3, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>
+      <mesh position={[-5.85, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}><boxGeometry args={[8.3, 0.5, 0.06]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
+      <mesh position={[5.85, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}><boxGeometry args={[8.3, 0.5, 0.06]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
       <mesh position={[0, ROOM_H - 0.15, ROOM_D / 2 + 0.01]}><boxGeometry args={[1.2, 0.5, 0.06]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
+      {/* Door frame pillars */}
       <mesh position={[-1.7, 1.4, ROOM_D / 2 + 0.02]}><boxGeometry args={[0.12, 2.8, 0.06]} /><Mat color="#3a3a4a" roughness={0.4} metalness={0.5} /></mesh>
       <mesh position={[1.7, 1.4, ROOM_D / 2 + 0.02]}><boxGeometry args={[0.12, 2.8, 0.06]} /><Mat color="#3a3a4a" roughness={0.4} metalness={0.5} /></mesh>
-      <mesh position={[-5, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[5.5, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>
-      <mesh position={[5, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[5.5, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>
-      <mesh position={[-5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[5.5, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
-      <mesh position={[5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[5.5, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
+      {/* Glass windows — wall to door frame, no overlap with side walls */}
+      <mesh position={[-5.85, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[8.3, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>
+      <mesh position={[5.85, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[8.3, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>
+      {/* Window sills */}
+      <mesh position={[-5.85, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[8.3, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
+      <mesh position={[5.85, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[8.3, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
+      {/* Knee wall below windows */}
+      <mesh position={[-5.85, 0.13, ROOM_D / 2]}><boxGeometry args={[8.3, 0.26, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
+      <mesh position={[5.85, 0.13, ROOM_D / 2]}><boxGeometry args={[8.3, 0.26, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
       <mesh position={[0, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}><boxGeometry args={[5, 0.06, 1.2]} /><Mat color="#1a3a8a" roughness={0.7} /></mesh>
       <mesh position={[0, ROOM_H + 0.02, ROOM_D / 2 + 0.7]} rotation={[0.25, 0, 0]}><boxGeometry args={[5, 0.03, 0.25]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.6} /></mesh>
 
-      {/* Entrance doors */}
+      {/* Entrance — simple double glass doors with thin frame */}
       <AnimatedEntranceDoor side="left" doorOpen={entranceDoorOpen}>
-        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.0, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} /></mesh>
-        <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
-        <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
-        <Text position={[0, 1.15, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
-        <mesh position={[0, 1.15, 0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
-        <Text position={[0, 1.15, 0.03]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.5, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
+        <mesh position={[0, 1.0, -0.02]}><boxGeometry args={[0.6, 0.06, 0.03]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
         <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </AnimatedEntranceDoor>
       <AnimatedEntranceDoor side="right" doorOpen={entranceDoorOpen}>
-        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.0, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.12} side={THREE.DoubleSide} /></mesh>
-        <mesh position={[-0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0.52, 1.4, 0]}><boxGeometry args={[0.04, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0, 2.82, 0]}><boxGeometry args={[1.08, 0.04, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
-        <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.8, 0.06, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
-        <mesh position={[0, 1.15, -0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
-        <Text position={[0, 1.15, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
-        <mesh position={[0, 1.15, 0.02]}><boxGeometry args={[0.25, 0.08, 0.005]} /><Mat color="#cc0000" roughness={0.5} /></mesh>
-        <Text position={[0, 1.15, 0.03]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
-        <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.5, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
+        <mesh position={[0, 1.0, -0.02]}><boxGeometry args={[0.6, 0.06, 0.03]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PULL</Text>
       </AnimatedEntranceDoor>
-      <mesh position={[0, 1.4, ROOM_D / 2 - 0.05]}><boxGeometry args={[0.06, 2.84, 0.04]} /><Mat color="#3a3a3a" roughness={0.4} metalness={0.6} /></mesh>
 
-      {/* Security pillars */}
-      <mesh position={[-1.2, 0.75, ROOM_D / 2 - 0.5]}><boxGeometry args={[0.15, 1.5, 0.08]} /><Mat color="#e8e8e0" roughness={0.6} /></mesh>
-      <mesh position={[1.2, 0.75, ROOM_D / 2 - 0.5]}><boxGeometry args={[0.15, 1.5, 0.08]} /><Mat color="#e8e8e0" roughness={0.6} /></mesh>
-      <mesh position={[-1.2, 1.55, ROOM_D / 2 - 0.5]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} /></mesh>
-      <mesh position={[1.2, 1.55, ROOM_D / 2 - 0.5]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} /></mesh>
+      {/* Security sensor gates — slim, inside entrance */}
+      <mesh position={[-1.0, 0.6, ROOM_D / 2 - 0.4]}><boxGeometry args={[0.06, 1.2, 0.04]} /><Mat color="#cccccc" roughness={0.4} metalness={0.5} /></mesh>
+      <mesh position={[1.0, 0.6, ROOM_D / 2 - 0.4]}><boxGeometry args={[0.06, 1.2, 0.04]} /><Mat color="#cccccc" roughness={0.4} metalness={0.5} /></mesh>
 
       <FloorRug />
 
