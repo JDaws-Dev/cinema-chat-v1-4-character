@@ -40,26 +40,22 @@ export interface StoreLayout {
 export const STORE_LAYOUT: StoreLayout = {
   version: 1,
   objects: [
-    // Row 1 — left pair: ACTION/ADVENTURE (adjacent), right pair: COMEDY (adjacent)
     { id: "shelf-row1-action", label: "ACTION/ADVENTURE", category: "shelf", x: -6.73, y: 0, z: -4.01, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#00006e","backGenre":"THRILLER","backColor":"#00006e"} },
     { id: "shelf-row1-action2", label: "ACTION/ADVENTURE", category: "shelf", x: -3.06, y: 0, z: -4.77, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"ADVENTURE","color":"#00006e","backGenre":"THRILLER-P2","backColor":"#00006e"} },
     { id: "shelf-row1-comedy", label: "COMEDY", category: "shelf", x: 2.95, y: 0, z: -4.73, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#00006e","backGenre":"ROMANCE","backColor":"#00006e"} },
     { id: "shelf-row1-comedy2", label: "COMEDY", category: "shelf", x: 6.54, y: 0, z: -3.79, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"COMEDY-P2","color":"#00006e","backGenre":"ROMANCE-P2","backColor":"#00006e"} },
-    // Row 2 — left pair: HORROR (adjacent), right pair: DRAMA (adjacent)
     { id: "shelf-row2-horror", label: "HORROR", category: "shelf", x: -6.35, y: 0, z: -1.41, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#00006e","backGenre":"WESTERN","backColor":"#00006e"} },
     { id: "shelf-row2-horror2", label: "HORROR", category: "shelf", x: -2.42, y: 0, z: -2.43, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"HORROR-P2","color":"#00006e","backGenre":"MUSICAL","backColor":"#00006e"} },
     { id: "shelf-row2-drama", label: "DRAMA", category: "shelf", x: 2.65, y: 0, z: -2.5, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"DRAMA","color":"#00006e","backGenre":"CLASSICS","backColor":"#00006e"} },
     { id: "shelf-row2-drama2", label: "DRAMA", category: "shelf", x: 6.16, y: 0, z: -1.52, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"DRAMA-P2","color":"#00006e","backGenre":"CLASSICS-P2","backColor":"#00006e"} },
-    // Row 3 — left pair: SCI-FI & FANTASY (adjacent), right pair: KIDS & FAMILY (adjacent)
     { id: "shelf-row3-scifi", label: "SCI-FI & FANTASY", category: "shelf", x: -5.82, y: 0, z: 1.05, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#00006e","backGenre":"ACTION-P2","backColor":"#00006e"} },
     { id: "shelf-row3-scifi2", label: "SCI-FI & FANTASY", category: "shelf", x: -2.12, y: 0, z: 0.07, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"FANTASY","color":"#00006e","backGenre":"ADVENTURE-P2","backColor":"#00006e"} },
     { id: "shelf-row3-family", label: "KIDS & FAMILY", category: "shelf", x: 2.61, y: 0, z: -0.01, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"KIDS","color":"#00006e","backGenre":"COMEDY-P3","backColor":"#00006e"} },
     { id: "shelf-row3-family2", label: "KIDS & FAMILY", category: "shelf", x: 6.01, y: 0, z: 0.9, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"FAMILY","color":"#00006e","backGenre":"DRAMA-P3","backColor":"#00006e"} },
-    // Row 4 — left pair: MUSICALS (adjacent), right pair: WESTERN (adjacent)
     { id: "shelf-row4-musical", label: "MUSICALS", category: "shelf", x: -12.55, y: 0, z: -1.71, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"MUSICAL","color":"#00006e","backGenre":"HORROR-P3","backColor":"#00006e"} },
     { id: "shelf-row4-musical2", label: "MUSICALS", category: "shelf", x: -5.75, y: 0, z: 3.66, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"MUSICAL-P2","color":"#00006e","backGenre":"SCI-FI-P2","backColor":"#00006e"} },
     { id: "shelf-row4-western", label: "WESTERN", category: "shelf", x: -2, y: 0, z: 2.71, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"WESTERN","color":"#00006e","backGenre":"ROMANCE-P3","backColor":"#00006e"} },
-    { id: "shelf-row4-western2", label: "WESTERN", category: "shelf", x: 3.7, y: 0, z: 2.26, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"WESTERN-P2","color":"#00006e","backGenre":"FANTASY-P2","backColor":"#00006e"} },
+    { id: "shelf-row4-western2", label: "WESTERN", category: "shelf", x: -0.22, y: 0, z: 5.68, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"WESTERN-P2","color":"#00006e","backGenre":"FANTASY-P2","backColor":"#00006e"} },
     { id: "wallshelf-back-drama", label: "Wall: NEW RELEASES", category: "shelf", x: 0, y: 0, z: -6.85, w: 18, d: 0.3, meta: {"genre":"NEW","color":"#ec4899","rotation":[0,0,0],"width":18} },
     { id: "new-releases-wall", label: "NEW RELEASES (wall)", category: "shelf", x: 0, y: 0, z: -6.85, w: 19, d: 0.3, meta: {"type":"new-releases-display"} },
     { id: "staff-picks", label: "Staff Picks", category: "prop", x: 9.75, y: 1.2, z: -2.65, w: 0.4, d: 1.2, meta: {"rotation":[0,-1.5707963267948966,0]} },

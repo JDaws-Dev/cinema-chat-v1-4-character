@@ -22,14 +22,14 @@ function BoxCar({ position, rotation = [0, 0, 0], color, cabinColor }: {
   cabinColor?: string;
 }) {
   return (
-    <group position={position} rotation={rotation}>
+    <group position={position} rotation={rotation} scale={1.4}>
       {/* Body */}
-      <mesh position={[0, 0.35, 0]}><boxGeometry args={[1.8, 0.5, 0.9]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      <mesh position={[0, 0.35, 0]}><boxGeometry args={[0.9, 0.5, 2.0]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
       {/* Cabin */}
-      <mesh position={[0, 0.7, 0]}><boxGeometry args={[1.0, 0.35, 0.8]} /><meshStandardMaterial color={cabinColor ?? "#222233"} roughness={0.4} metalness={0.1} /></mesh>
+      <mesh position={[0, 0.7, -0.1]}><boxGeometry args={[0.8, 0.35, 1.1]} /><meshStandardMaterial color={cabinColor ?? "#222233"} roughness={0.4} metalness={0.1} /></mesh>
       {/* Wheels */}
-      {[[-0.55, 0.12, 0.45], [-0.55, 0.12, -0.45], [0.55, 0.12, 0.45], [0.55, 0.12, -0.45]].map(([wx, wy, wz], i) => (
-        <mesh key={i} position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.12, 0.12, 0.08, 8]} /><meshStandardMaterial color="#111111" /></mesh>
+      {[[0.45, 0.12, -0.6], [-0.45, 0.12, -0.6], [0.45, 0.12, 0.6], [-0.45, 0.12, 0.6]].map(([wx, wy, wz], i) => (
+        <mesh key={i} position={[wx, wy, wz]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.14, 0.14, 0.08, 8]} /><meshStandardMaterial color="#111111" /></mesh>
       ))}
     </group>
   );
