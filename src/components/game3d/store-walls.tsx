@@ -83,12 +83,15 @@ export function WallCrtTv({ position, yaw = 0, tilt = 0, scale = 1, pipeDrop = 0
 
 export function AnimatedEntranceDoor({ side, doorOpen, children }: { side: 'left' | 'right'; doorOpen: boolean; children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
-  const targetAngle = doorOpen ? (side === 'left' ? -Math.PI / 3 : Math.PI / 3) : 0;
+  // Doors swing outward toward parking lot (+z)
+  const targetAngle = doorOpen ? (side === 'left' ? Math.PI / 3 : -Math.PI / 3) : 0;
   useFrame(() => { if (ref.current) ref.current.rotation.y += (targetAngle - ref.current.rotation.y) * 0.08; });
-  const hingeX = side === 'left' ? -0.55 : 0.55;
+  // Hinge at outer edge of door frame (±1.7), door swings from there
+  const hingeX = side === 'left' ? -1.7 : 1.7;
+  const doorCenterX = side === 'left' ? 0.75 : -0.75;
   return (
     <group position={[hingeX, 0, ROOM_D / 2 - 0.05]}>
-      <group ref={ref}><group position={[side === 'left' ? 0.55 : -0.55, 0, 0]}>{children}</group></group>
+      <group ref={ref}><group position={[doorCenterX, 0, 0]}>{children}</group></group>
     </group>
   );
 }

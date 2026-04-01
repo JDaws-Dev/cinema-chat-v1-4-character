@@ -406,9 +406,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* Window sills */}
       <mesh position={[-5.85, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[8.3, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
       <mesh position={[5.85, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[8.3, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
-      {/* Knee wall below windows */}
-      <mesh position={[-5.85, 0.13, ROOM_D / 2]}><boxGeometry args={[8.3, 0.26, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
-      <mesh position={[5.85, 0.13, ROOM_D / 2]}><boxGeometry args={[8.3, 0.26, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
+      {/* Knee wall below windows — full width, seals corners */}
+      <mesh position={[0, 0.13, ROOM_D / 2]}><boxGeometry args={[ROOM_W + 0.3, 0.26, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
       <mesh position={[0, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}><boxGeometry args={[5, 0.06, 1.2]} /><Mat color="#1a3a8a" roughness={0.7} /></mesh>
       <mesh position={[0, ROOM_H + 0.02, ROOM_D / 2 + 0.7]} rotation={[0.25, 0, 0]}><boxGeometry args={[5, 0.03, 0.25]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.6} /></mesh>
 
