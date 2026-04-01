@@ -143,8 +143,14 @@ export function getShelfMovies(): { title: string; genre: string; id: number }[]
   return Array.from(shelfMovieRegistry.values());
 }
 
+// Cache all fetched posters per genre+era so duplicate shelves can take different slices
+const genrePosterCache: Record<string, PosterData[]> = {};
+const genreSliceCounter: Record<string, number> = {};
+
 export function usePosterUrls(genre: string, count: number): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
+  // Each shelf instance gets the next slice of cached results
+  const sliceRef = useRef<number>(-1);
 
   useEffect(() => {
     const genreId = GENRE_TMDB_IDS[genre];
@@ -197,25 +203,46 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
         }
       }).catch(() => {});
     } else {
-      // Genre — fetch 3 pages for variety, filtered by era
-      Promise.all([
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=1`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=2`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=3`).then(r => r.json()),
-      ]).then(([p1, p2, p3]) => {
-        const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
-        const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url);
-        // Cycle/repeat to fill all slots if not enough unique results
-        if (uniquePosters.length > 0 && uniquePosters.length < count) {
-          const filled: PosterData[] = [];
-          for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
-          setPosters(filled);
-        } else {
-          setPosters(uniquePosters);
+      // Genre — fetch 3 pages, cache results, each shelf takes a different slice
+      const cacheKey = `${genre}_${startYear}_${endYear}`;
+      const fetchAndSlice = (allPosters: PosterData[]) => {
+        // Assign a slice index for this shelf instance
+        if (sliceRef.current === -1) {
+          sliceRef.current = genreSliceCounter[cacheKey] || 0;
+          genreSliceCounter[cacheKey] = (genreSliceCounter[cacheKey] || 0) + 1;
         }
-      }).catch(() => {});
+        const offset = sliceRef.current * count;
+        const sliced = allPosters.slice(offset, offset + count);
+        // If not enough in our slice, wrap around
+        if (sliced.length > 0 && sliced.length < count) {
+          const filled: PosterData[] = [];
+          for (let i = 0; i < count; i++) filled.push(sliced[i % sliced.length]);
+          setPosters(filled);
+        } else if (sliced.length === 0) {
+          // Our slice is empty, use from start
+          const wrapped = allPosters.slice(0, count);
+          setPosters(wrapped.length > 0 ? wrapped : []);
+        } else {
+          setPosters(sliced);
+        }
+      };
+
+      if (genrePosterCache[cacheKey]) {
+        fetchAndSlice(genrePosterCache[cacheKey]);
+      } else {
+        Promise.all([
+          fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=1`).then(r => r.json()),
+          fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=2`).then(r => r.json()),
+          fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=3`).then(r => r.json()),
+        ]).then(([p1, p2, p3]) => {
+          const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
+          const allPosters = all.map((m: Record<string, unknown>) => ({
+            url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
+          })).filter((p: PosterData) => p.url);
+          genrePosterCache[cacheKey] = allPosters;
+          fetchAndSlice(allPosters);
+        }).catch(() => {});
+      }
     }
   }, [genre, count]);
 
