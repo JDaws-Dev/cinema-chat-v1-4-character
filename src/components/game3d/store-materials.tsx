@@ -147,12 +147,7 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
 
   useEffect(() => {
-    // Support "-P2"/"-P3" suffix for extra racks of same genre (different TMDB pages)
-    const pageMatch = genre.match(/-P(\d+)$/);
-    const pageNum = pageMatch ? parseInt(pageMatch[1]) : 0;
-    const baseGenre = pageNum ? genre.replace(/-P\d+$/, "") : genre;
-    const pageOffset = pageNum * 3; // P2=pages 4-6, P3=pages 7-9
-    const genreId = GENRE_TMDB_IDS[baseGenre];
+    const genreId = GENRE_TMDB_IDS[genre];
     const [startYear, endYear] = currentEraYears.split("-");
 
     if (!genreId) {
@@ -204,9 +199,9 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
     } else {
       // Genre — fetch 3 pages for more variety, filtered by era (offset for P2 racks)
       Promise.all([
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${1 + pageOffset}`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${2 + pageOffset}`).then(r => r.json()),
-        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=${3 + pageOffset}`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=1`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=2`).then(r => r.json()),
+        fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=3`).then(r => r.json()),
       ]).then(([p1, p2, p3]) => {
         const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
         const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
@@ -226,8 +221,7 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
 
   // Register loaded movies in global registry for challenge system
   useEffect(() => {
-    const cleanGenre = genre.replace(/-P\d+$/, "");
-    const genreName = cleanGenre.charAt(0).toUpperCase() + cleanGenre.slice(1).toLowerCase().replace(/-/g, " ");
+    const genreName = genre.charAt(0).toUpperCase() + genre.slice(1).toLowerCase().replace(/-/g, " ");
     for (const p of posters) {
       if (p.title && p.id) {
         shelfMovieRegistry.set(`${p.id}`, { title: p.title, genre: genreName, id: p.id });
