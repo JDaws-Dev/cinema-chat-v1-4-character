@@ -128,75 +128,56 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
         onClick={(e) => e.stopPropagation()}
       >
         {loading ? (
-          <div className="vhs-back-loading">Loading film details...</div>
+          <div className="vhs-back-loading">Loading...</div>
         ) : !film ? (
           <div className="vhs-back-loading">Film not found</div>
         ) : (
           <>
-            {/* Close button */}
-            <button onClick={onClose} className="vhs-back-close" aria-label="Close">
-              &times;
-            </button>
+            {/* Close X */}
+            <button onClick={onClose} className="vhs-back-close" aria-label="Close">&times;</button>
 
-            {/* Header: poster + title block */}
-            <div className="vhs-back-header">
+            {/* VHS Tape Window — the iconic cassette reels graphic */}
+            <div className="vhs-tape-window">
+              <div className="vhs-tape-reel" />
+              <div className="vhs-tape-film" />
+              <div className="vhs-tape-reel" />
+            </div>
+
+            {/* Title banner — big and bold like a real VHS */}
+            <h2 className="vhs-back-title">{film.title.toUpperCase()}</h2>
+
+            {/* Meta line */}
+            <p className="vhs-back-meta">
+              {film.year} &bull; {film.runtime ? `${film.runtime} min` : ''} &bull; {film.genres.slice(0, 2).join(' / ')}
+            </p>
+
+            {/* Rating badge */}
+            {film.voteAverage && (
+              <div className="vhs-rating-badge">
+                ★ {(film.voteAverage / 2).toFixed(1)}
+              </div>
+            )}
+
+            {/* Poster + Synopsis side by side */}
+            <div className="vhs-back-body">
               {film.posterUrl && (
-                <img
-                  src={film.posterUrl}
-                  alt={film.title}
-                  className="vhs-back-poster"
-                />
+                <img src={film.posterUrl} alt={film.title} className="vhs-back-poster" />
               )}
-              <div className="vhs-back-title-block">
-                <h2 className="vhs-back-title">{film.title}</h2>
-                <p className="vhs-back-meta">
-                  {[
-                    film.year,
-                    film.voteAverage ? `${(film.voteAverage / 2).toFixed(1)}/5` : null,
-                    film.runtime ? `${film.runtime} min` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" \u2022 ")}
-                </p>
-                {film.genres.length > 0 && (
-                  <p className="vhs-back-genres">{film.genres.slice(0, 3).join(" / ")}</p>
+              <div className="vhs-back-text">
+                {film.overview && (
+                  <p className="vhs-back-synopsis">{film.overview}</p>
                 )}
+                <div className="vhs-back-credits">
+                  {film.director && <p><span className="vhs-back-label">DIR:</span> {film.director}</p>}
+                  {topCast && <p><span className="vhs-back-label">CAST:</span> {topCast}</p>}
+                </div>
               </div>
             </div>
 
-            <div className="vhs-back-divider" />
-
-            {/* Synopsis */}
-            {film.overview && (
-              <p className="vhs-back-synopsis">&ldquo;{film.overview}&rdquo;</p>
-            )}
-
-            <div className="vhs-back-divider" />
-
-            {/* Credits */}
-            <div className="vhs-back-credits">
-              {film.director && (
-                <p>
-                  <span className="vhs-back-label">DIRECTOR:</span> {film.director}
-                </p>
-              )}
-              {topCast && (
-                <p>
-                  <span className="vhs-back-label">STARRING:</span> {topCast}
-                </p>
-              )}
-              {film.productionCompanies.length > 0 && (
-                <p>
-                  <span className="vhs-back-label">STUDIO:</span>{" "}
-                  {film.productionCompanies.slice(0, 2).join(", ")}
-                </p>
-              )}
-            </div>
-
-            {/* Streaming providers */}
+            {/* Streaming */}
             {film.providers.flatrate.length > 0 && (
               <div className="vhs-back-providers">
-                <span className="vhs-back-label">STREAM ON:</span>
+                <span className="vhs-back-label">STREAM:</span>
                 <span className="vhs-back-provider-logos">
                   {film.providers.flatrate.map((p) =>
                     p.logoPath ? (
@@ -209,7 +190,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
               </div>
             )}
 
-            {/* Actions: Rent or Put Back */}
+            {/* Actions */}
             <div className="vhs-back-actions">
               {onRent ? (
                 <>
@@ -217,7 +198,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                     className="vhs-rent-btn"
                     onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
                   >
-                    GRAB THIS
+                    ▶ GRAB THIS
                   </button>
                   <button className="vhs-putback-btn" onClick={onClose}>
                     PUT IT BACK

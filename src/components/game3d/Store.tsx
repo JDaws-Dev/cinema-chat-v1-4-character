@@ -321,7 +321,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       <TrophyShelf />
 
       {/* Neon accent strips */}
-      {SHELF_ROWS.map((s, i) => (<ShelfNeonStrip key={`neon-${i}`} position={[s.x, 1.50, s.z]} color={s.color} />))}
+      {/* Shelf neon strips removed — looked like weird colored bars */}
 
       {/* ── EXTERIOR ── */}
       {/* Sky dome */}

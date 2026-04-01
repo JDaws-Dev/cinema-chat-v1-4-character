@@ -1622,6 +1622,71 @@
   border-radius: 4px;
 }
 
+/* VHS Tape Window — the iconic cassette reel graphic */
+.vhs-tape-window {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #111;
+  border: 2px solid #333;
+  border-radius: 6px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+}
+.vhs-tape-reel {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid #555;
+  background: #222;
+  position: relative;
+}
+.vhs-tape-reel::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #444;
+}
+.vhs-tape-film {
+  width: 40px;
+  height: 6px;
+  background: #3a2a1a;
+  border-radius: 1px;
+}
+
+/* Rating badge */
+.vhs-rating-badge {
+  display: inline-block;
+  background: var(--genre-color, #ffd700);
+  color: #0a0a1a;
+  font-weight: bold;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin: 6px 0 10px;
+}
+
+/* Body: poster + text side by side */
+.vhs-back-body {
+  display: flex;
+  gap: 12px;
+  margin: 10px 0;
+}
+.vhs-back-body .vhs-back-poster {
+  width: 90px;
+  flex-shrink: 0;
+}
+.vhs-back-text {
+  flex: 1;
+  min-width: 0;
+}
+
 .vhs-back-loading {
   padding: 48px 0;
   text-align: center;
