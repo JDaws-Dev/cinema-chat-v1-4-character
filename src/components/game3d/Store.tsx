@@ -294,7 +294,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       </group>
 
       {/* Challenge board */}
-      <group position={[ROOM_W / 2 - 0.08, getObjectById("challenge-board")?.y ?? 1.62, getObjectById("challenge-board")?.z ?? 2.65]} rotation={[0, -Math.PI / 2, 0]} userData={{ interactType: "challenge", label: "Challenge Board" }}>
+      <group position={[getObjectById("challenge-board")?.x ?? (ROOM_W / 2 - 0.08), getObjectById("challenge-board")?.y ?? 1.62, getObjectById("challenge-board")?.z ?? 2.65]} rotation={[0, getObjectById("challenge-board")?.rotY ?? -Math.PI / 2, 0]} userData={{ interactType: "challenge", label: "Challenge Board" }}>
         <mesh userData={{ interactType: "challenge", label: "Challenge Board" }}><boxGeometry args={[0.72, 0.5, 0.04]} /><Mat color="#122448" roughness={0.55} /></mesh>
         <mesh position={[0, 0, 0.01]}><boxGeometry args={[0.82, 0.6, 0.02]} /><Mat color="#d4a514" emissive="#ffd700" emissiveIntensity={0.08} roughness={0.55} /></mesh>
         <mesh position={[0, 0, 0.02]}><boxGeometry args={[0.68, 0.46, 0.01]} /><Mat color="#0f1a33" roughness={0.5} /></mesh>

@@ -83,7 +83,7 @@ export const STORE_LAYOUT: StoreLayout = {
     { id: "open-sign", label: "OPEN", category: "wall", x: -4, y: 2.3, z: 7, w: 1, d: 0.15 },
     { id: "store-hours", label: "STORE HOURS", category: "wall", x: 4, y: 1.8, z: 7.05, w: 1.3, d: 0.9 },
     { id: "promo-board", label: "STORE SPECIALS", category: "wall", x: 9.84, y: 1.72, z: 3.05, rotY: -1.5707963267948966, w: 0.2, d: 1 },
-    { id: "challenge-board", label: "CHALLENGE BOARD", category: "wall", x: 9.92, y: 1.62, z: 2.65, rotY: -1.5707963267948966, w: 0.2, d: 0.72 },
+    { id: "challenge-board", label: "CHALLENGE BOARD", category: "wall", x: -6.95, y: 1.62, z: 6.23, w: 0.2, d: 0.72 },
     { id: "tv-left", label: "CRT TV (left)", category: "wall", x: -9.05, y: 2.2, z: 0, w: 0.3, d: 1.2, meta: {"yaw":1.3907963267948966,"tilt":0.12,"scale":0.84} },
     { id: "tv-right", label: "CRT TV (right)", category: "wall", x: 9.28, y: 2.26, z: 0, w: 0.3, d: 1, meta: {"yaw":-1.3907963267948966,"tilt":0.12,"scale":0.7} },
     { id: "bulletin-board", label: "Bulletin Board", category: "wall", x: -9.92, y: 1.6, z: 4.8, rotY: 1.5707963267948966, w: 0.2, d: 1.2 },
