@@ -413,14 +413,40 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       {/* Entrance — simple double glass doors with thin frame */}
       <AnimatedEntranceDoor side="left" doorOpen={entranceDoorOpen}>
+        {/* Glass pane */}
         <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.7, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
-        <mesh position={[0, 1.0, -0.02]}><boxGeometry args={[0.6, 0.06, 0.03]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
-        <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        {/* Aluminum frame */}
+        <mesh position={[0, 2.8, 0]}><boxGeometry args={[1.7, 0.04, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[0, 0, 0]}><boxGeometry args={[1.7, 0.04, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[-0.85, 1.4, 0]}><boxGeometry args={[0.04, 2.8, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[0.85, 1.4, 0]}><boxGeometry args={[0.04, 2.8, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        {/* Push bar */}
+        <mesh position={[0, 1.0, -0.03]}><boxGeometry args={[0.9, 0.06, 0.03]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        {/* Push plate */}
+        <mesh position={[0.3, 1.0, -0.05]}><boxGeometry args={[0.12, 0.2, 0.01]} /><Mat color="#aaaaaa" roughness={0.2} metalness={0.8} /></mesh>
+        {/* PUSH label */}
+        <Text position={[0, 1.9, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.07} color="#dddddd" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
+        {/* Store hours sticker */}
+        <mesh position={[0, 0.5, -0.01]}><boxGeometry args={[0.5, 0.3, 0.005]} /><Mat color="#ffffff" transparent opacity={0.7} /></mesh>
+        <Text position={[0, 0.55, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.03} color="#333333" anchorX="center" anchorY="middle" font={undefined}>OPEN 7 DAYS</Text>
+        <Text position={[0, 0.47, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#555555" anchorX="center" anchorY="middle" font={undefined}>10AM - 11PM</Text>
       </AnimatedEntranceDoor>
       <AnimatedEntranceDoor side="right" doorOpen={entranceDoorOpen}>
+        {/* Glass pane */}
         <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.7, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
-        <mesh position={[0, 1.0, -0.02]}><boxGeometry args={[0.6, 0.06, 0.03]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
-        <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PULL</Text>
+        {/* Aluminum frame */}
+        <mesh position={[0, 2.8, 0]}><boxGeometry args={[1.7, 0.04, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[0, 0, 0]}><boxGeometry args={[1.7, 0.04, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[-0.85, 1.4, 0]}><boxGeometry args={[0.04, 2.8, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        <mesh position={[0.85, 1.4, 0]}><boxGeometry args={[0.04, 2.8, 0.04]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
+        {/* Pull handle */}
+        <mesh position={[-0.3, 1.1, -0.04]}><boxGeometry args={[0.03, 0.3, 0.06]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        <mesh position={[-0.3, 1.1, 0.04]}><boxGeometry args={[0.03, 0.3, 0.06]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
+        {/* PULL label */}
+        <Text position={[0, 1.9, 0.02]} fontSize={0.07} color="#dddddd" anchorX="center" anchorY="middle" font={undefined}>PULL</Text>
+        {/* Return slot sign */}
+        <mesh position={[0, 0.5, 0.01]}><boxGeometry args={[0.6, 0.2, 0.005]} /><Mat color="#cc0000" /></mesh>
+        <Text position={[0, 0.5, 0.02]} fontSize={0.04} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>VIDEO RETURN →</Text>
       </AnimatedEntranceDoor>
 
       {/* Security sensor gates — slim, inside entrance */}
