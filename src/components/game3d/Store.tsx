@@ -1422,238 +1422,6 @@ function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hairStyle 
   );
 }
 
-// ── Tarantino Easter Egg NPC ─────────────────────────────
-// Rare NPC (30% spawn) — walks fast, wears Hawaiian shirt, rants about movies
-function TarantinoNPC() {
-  const id = "npc-tarantino";
-  const _tPos = getObjectById("tarantino");
-  const startPos: [number, number, number] = [_tPos?.x ?? 0, _tPos?.y ?? -0.05, _tPos?.z ?? -2.5];
-  const ref = useRef<THREE.Group>(null);
-  const leftLegRef = useRef<THREE.Mesh>(null);
-  const rightLegRef = useRef<THREE.Mesh>(null);
-  const leftArmRef = useRef<THREE.Mesh>(null);
-  const rightArmRef = useRef<THREE.Mesh>(null);
-  const speed = 1.0; // faster than regular NPCs
-  const startIdx = useMemo(() => {
-    let best = 0;
-    let bestDist = Infinity;
-    for (let i = 0; i < NPC_WAYPOINTS.length; i++) {
-      const dx = NPC_WAYPOINTS[i][0] - startPos[0];
-      const dz = NPC_WAYPOINTS[i][1] - startPos[2];
-      const d = dx * dx + dz * dz;
-      if (d < bestDist) { bestDist = d; best = i; }
-    }
-    return best;
-  }, []);
-  const waypointIdx = useRef(startIdx);
-  const direction = useRef(useMemo(() => (Math.random() > 0.5 ? 1 : -1), []));
-  const waitTimer = useRef(0);
-  const waitDuration = useRef(0);
-  const isBrowsing = useRef(false);
-
-  useFrame((state, delta) => {
-    if (!ref.current) return;
-    const dt = Math.min(delta, 0.1);
-    const t = state.clock.elapsedTime;
-
-    npcPositions.set(id, { x: ref.current.position.x, z: ref.current.position.z });
-
-    const resetLimbs = () => {
-      if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
-      if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
-      if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
-      if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
-    };
-
-    if (waitTimer.current > 0) {
-      waitTimer.current -= dt;
-      ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
-      resetLimbs();
-      return;
-    }
-
-    const target = NPC_WAYPOINTS[waypointIdx.current];
-    const dx = target[0] - ref.current.position.x;
-    const dz = target[1] - ref.current.position.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-
-    if (dist < 0.3) {
-      if (Math.random() < 0.4) {
-        isBrowsing.current = true;
-        waitTimer.current = 5 + Math.random() * 5;
-        waitDuration.current = waitTimer.current;
-        const npcZ = ref.current.position.z;
-        const shelfZs = [-4, -1, 2];
-        let nearestZ = shelfZs[0];
-        let nearestDist = Math.abs(npcZ - shelfZs[0]);
-        for (const sz of shelfZs) {
-          const d = Math.abs(npcZ - sz);
-          if (d < nearestDist) { nearestDist = d; nearestZ = sz; }
-        }
-        ref.current.rotation.y = nearestZ < npcZ ? Math.PI : 0;
-      } else {
-        isBrowsing.current = false;
-        waitTimer.current = 0.5 + Math.random() * 0.5;
-        waitDuration.current = waitTimer.current;
-      }
-      waypointIdx.current = (waypointIdx.current + direction.current + NPC_WAYPOINTS.length) % NPC_WAYPOINTS.length;
-    } else {
-      const nx = dx / dist;
-      const nz = dz / dist;
-      const newX = ref.current.position.x + nx * speed * dt;
-      const newZ = ref.current.position.z + nz * speed * dt;
-
-      if (npcTooCloseToOther(id, newX, newZ)) {
-        waitTimer.current = 0.3 + Math.random() * 0.3;
-        waitDuration.current = waitTimer.current;
-        resetLimbs();
-      } else {
-        if (!npcCollidesShelf(newX, ref.current.position.z)) ref.current.position.x = newX;
-        if (!npcCollidesShelf(ref.current.position.x, newZ)) ref.current.position.z = newZ;
-        ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
-        ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
-        const swing = Math.sin(t * 8) * 0.3;
-        if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
-        if (rightLegRef.current) rightLegRef.current.rotation.x = -swing;
-        if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * 0.6;
-        if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.6;
-      }
-    }
-
-    registerNPCPosition(id, ref.current.position.x, ref.current.position.z);
-  });
-
-  useEffect(() => {
-    return () => { unregisterNPCPosition(id); npcPositions.delete(id); };
-  }, []);
-
-  const skinTone = "#e0b896";
-  const hairColor = "#1a1a1a";
-  const shirtColor = "#cc4422"; // Hawaiian shirt base
-
-  return (
-    <group ref={ref} position={startPos} scale={1.1} userData={{ interactType: "tarantino", label: "Talk to Quentin" }}>
-      {/* Legs */}
-      <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
-        <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <Mat color="#2a2a3a" roughness={0.8} />
-      </mesh>
-      <mesh ref={rightLegRef} position={[0.06, 0.3, 0]}>
-        <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <Mat color="#2a2a3a" roughness={0.8} />
-      </mesh>
-      {/* Body — Hawaiian shirt */}
-      <mesh position={[0, 0.8, 0]}>
-        <boxGeometry args={[0.34, 0.44, 0.22]} />
-        <Mat color={shirtColor} roughness={0.7} />
-      </mesh>
-      {/* Hawaiian pattern overlay stripes */}
-      <mesh position={[-0.08, 0.82, -0.115]}>
-        <boxGeometry args={[0.06, 0.38, 0.005]} />
-        <Mat color="#e8a030" roughness={0.7} />
-      </mesh>
-      <mesh position={[0.08, 0.82, -0.115]}>
-        <boxGeometry args={[0.06, 0.38, 0.005]} />
-        <Mat color="#30a060" roughness={0.7} />
-      </mesh>
-      <mesh position={[0, 0.82, -0.115]}>
-        <boxGeometry args={[0.06, 0.38, 0.005]} />
-        <Mat color="#e8d040" roughness={0.7} />
-      </mesh>
-      {/* Open collar */}
-      <mesh position={[-0.06, 1.01, -0.08]} rotation={[0.3, 0, 0.3]}>
-        <boxGeometry args={[0.08, 0.04, 0.02]} />
-        <Mat color={shirtColor} roughness={0.6} />
-      </mesh>
-      <mesh position={[0.06, 1.01, -0.08]} rotation={[0.3, 0, -0.3]}>
-        <boxGeometry args={[0.08, 0.04, 0.02]} />
-        <Mat color={shirtColor} roughness={0.6} />
-      </mesh>
-      {/* Belt line */}
-      <mesh position={[0, 0.58, 0]}>
-        <boxGeometry args={[0.35, 0.03, 0.23]} />
-        <Mat color="#2a2a2a" roughness={0.7} />
-      </mesh>
-      {/* Left arm */}
-      <mesh ref={leftArmRef} position={[-0.22, 0.78, 0]}>
-        <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <Mat color={shirtColor} roughness={0.7} />
-      </mesh>
-      <mesh position={[-0.22, 0.58, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <Mat color={skinTone} roughness={0.8} />
-      </mesh>
-      {/* Right arm */}
-      <mesh ref={rightArmRef} position={[0.22, 0.78, 0]}>
-        <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <Mat color={shirtColor} roughness={0.7} />
-      </mesh>
-      <mesh position={[0.22, 0.58, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <Mat color={skinTone} roughness={0.8} />
-      </mesh>
-
-      {/* Head — slightly taller with prominent chin */}
-      <mesh position={[0, 1.2, 0]} scale={[1, 1.1, 0.9]}>
-        <sphereGeometry args={[0.16, 12, 14]} />
-        <Mat color={skinTone} roughness={0.75} />
-      </mesh>
-      <mesh position={[0, 1.26, 0]}>
-        <sphereGeometry args={[0.13, 12, 8]} />
-        <Mat color={skinTone} roughness={0.75} />
-      </mesh>
-      {/* Prominent chin/jaw */}
-      <mesh position={[0, 1.08, -0.04]}>
-        <boxGeometry args={[0.22, 0.08, 0.16]} />
-        <Mat color={skinTone} roughness={0.75} />
-      </mesh>
-      <mesh position={[0, 1.04, -0.06]}>
-        <boxGeometry args={[0.16, 0.04, 0.1]} />
-        <Mat color={skinTone} roughness={0.75} />
-      </mesh>
-
-      {/* Dark slicked-back hair */}
-      <mesh position={[0, 1.34, 0.04]}>
-        <boxGeometry args={[0.28, 0.1, 0.24]} />
-        <Mat color={hairColor} roughness={0.9} />
-      </mesh>
-      <mesh position={[0, 1.28, 0.12]}>
-        <boxGeometry args={[0.22, 0.16, 0.06]} />
-        <Mat color={hairColor} roughness={0.9} />
-      </mesh>
-
-      {/* Nose */}
-      <mesh position={[0, 1.18, -0.16]}>
-        <boxGeometry args={[0.03, 0.05, 0.04]} />
-        <Mat color={skinTone} roughness={0.8} />
-      </mesh>
-      {/* Eyebrows — thick */}
-      <mesh position={[-0.05, 1.26, -0.14]}>
-        <boxGeometry args={[0.06, 0.015, 0.02]} />
-        <Mat color={hairColor} roughness={0.9} />
-      </mesh>
-      <mesh position={[0.05, 1.26, -0.14]}>
-        <boxGeometry args={[0.06, 0.015, 0.02]} />
-        <Mat color={hairColor} roughness={0.9} />
-      </mesh>
-      {/* Eyes */}
-      <mesh position={[-0.05, 1.22, -0.14]}>
-        <sphereGeometry args={[0.018, 8, 8]} />
-        <Mat color="#1a1a1a" />
-      </mesh>
-      <mesh position={[0.05, 1.22, -0.14]}>
-        <sphereGeometry args={[0.018, 8, 8]} />
-        <Mat color="#1a1a1a" />
-      </mesh>
-
-      {/* Shadow */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.003, 0]}>
-        <circleGeometry args={[0.22, 12]} />
-        <Mat color="#000000" transparent opacity={0.15} />
-      </mesh>
-    </group>
-  );
-}
 
 function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   startPos: [number, number, number]; shirtColor: string; hairColor: string; skinTone: string;
@@ -2504,22 +2272,6 @@ function WallCrtTv({
 // Gumball machine removed
 
 // Security dome mirror in ceiling corner
-function SecurityDome({ position }: { position: [number, number, number] }) {
-  return (
-    <group position={position}>
-      {/* Mounting plate */}
-      <mesh position={[0, 0.02, 0]}>
-        <cylinderGeometry args={[0.15, 0.15, 0.02, 16]} />
-        <Mat color="#333" roughness={0.5} />
-      </mesh>
-      {/* Dome — dark reflective */}
-      <mesh>
-        <sphereGeometry args={[0.15, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <Mat color="#111" roughness={0.05} metalness={0.9} />
-      </mesh>
-    </group>
-  );
-}
 
 // Neon accent strip for shelves
 function ShelfNeonStrip({ position, color, width = 2.6 }: { position: [number, number, number]; color: string; width?: number }) {
@@ -2949,65 +2701,6 @@ function KenneyModel({ model, position, rotation = [0, 0, 0], scale = 1 }: {
   return <primitive object={cloned} position={position} rotation={rotation} scale={scale} />;
 }
 
-// ── Back Room mini shelf (smaller than main ShelfUnit) ──
-function BackRoomShelf({ position, genre, color }: { position: [number, number, number]; genre: string; color: string }) {
-  const posters = usePosterUrls(genre, 12);
-  const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
-
-  const count = 5;
-  const spacing = 0.20;
-  const startX = -(count - 1) * spacing * 0.5;
-
-  return (
-    <group position={position} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
-      {/* Small shelf frame */}
-      <mesh position={[0, 0.6, 0]}>
-        <boxGeometry args={[1.3, 1.2, 0.04]} />
-        <meshBasicMaterial color="#3a2515" />
-      </mesh>
-      {/* Side panels */}
-      <mesh position={[-0.65, 0.6, 0]}>
-        <boxGeometry args={[0.03, 1.2, 0.3]} />
-        <meshBasicMaterial color="#2a1a0a" />
-      </mesh>
-      <mesh position={[0.65, 0.6, 0]}>
-        <boxGeometry args={[0.03, 1.2, 0.3]} />
-        <meshBasicMaterial color="#2a1a0a" />
-      </mesh>
-      {/* 2 shelf boards */}
-      {[0.05, 0.55].map((sy, i) => (
-        <mesh key={`br-board-${i}`} position={[0, sy, 0]}>
-          <boxGeometry args={[1.26, 0.03, 0.28]} />
-          <meshBasicMaterial color="#4a2818" />
-        </mesh>
-      ))}
-      {/* Top cap */}
-      <mesh position={[0, 1.22, 0]}>
-        <boxGeometry args={[1.34, 0.03, 0.32]} />
-        <meshBasicMaterial color="#5a3828" />
-      </mesh>
-      {/* Genre label */}
-      <Text position={[0, 1.28, 0]} fontSize={0.06} color={color} anchorX="center" anchorY="bottom" font={undefined}>
-        {genre}
-      </Text>
-      {/* VHS tapes — 2 rows */}
-      {[0.20, 0.70].map((shelfY, row) =>
-        Array.from({ length: count }).map((_, i) => {
-          const idx = row * count + i;
-          const poster = posters[idx];
-          return poster ? (
-            <PosterBox key={`br-${row}-${i}`} url={poster.url} position={[startX + i * spacing, shelfY, -0.08]} rotation={0} movieTitle={poster.title} movieId={poster.id} genreColor={color} />
-          ) : (
-            <mesh key={`br-${row}-${i}`} position={[startX + i * spacing, shelfY, -0.08]}>
-              <boxGeometry args={[0.15, 0.26, 0.025]} />
-              <meshBasicMaterial color={color} />
-            </mesh>
-          );
-        })
-      )}
-    </group>
-  );
-}
 
 /* ── Animated entrance door (swings open on player approach) ──────── */
 function AnimatedEntranceDoor({ side, doorOpen, children }: { side: 'left' | 'right'; doorOpen: boolean; children: React.ReactNode }) {
@@ -3072,12 +2765,11 @@ const NPC_POOL = [
   { id: 'npc-l', shirtColor: '#f39c12', hairColor: '#1a1a1a', skinTone: '#e8c4a0', hairStyle: 'ponytail' as const },
 ];
 
-export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number; backRoomOpen?: boolean }) {
+export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number }) {
   // Sync era into module-level variable so usePosterUrls picks it up
   useEffect(() => {
     if (eraYears) setEraYears(eraYears);
   }, [eraYears]);
-  const [showTarantino] = useState(() => Math.random() < 0.3);
 
   // Randomly select 4-6 NPCs from the pool each mount, each with a random personality
   const spawnedNpcs = useMemo(() => {
@@ -3300,42 +2992,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* Floor pools removed — carpet color handles the look now */}
 
-      {/* Warm glow on counter top — register/monitor light simulation */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, 0.88, 5.5]}>
-        <planeGeometry args={[5, 1.0]} />
-        <meshBasicMaterial color="#2a2010" transparent opacity={0.3} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, 0.012, 5.7]}>
-        <planeGeometry args={[6.8, 2.1]} />
-        <meshBasicMaterial color="#443018" transparent opacity={0.14} />
-      </mesh>
-      {/* Warm emissive ceiling plane above counter — warm/cool zoning per design guide */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6, ROOM_H - 0.08, 5.5]}>
-        <planeGeometry args={[5, 2]} />
-        <meshBasicMaterial color="#ffd9a0" transparent opacity={0.08} />
-      </mesh>
-
-      {/* Edge darkening — dark strips along floor-wall junctions for visual grounding */}
-      {/* Back wall */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, -ROOM_D / 2 + 0.5]}>
-        <planeGeometry args={[ROOM_W, 1.0]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
-      </mesh>
-      {/* Front wall */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, ROOM_D / 2 - 0.5]}>
-        <planeGeometry args={[ROOM_W, 1.0]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
-      </mesh>
-      {/* Left wall */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-ROOM_W / 2 + 0.5, 0.002, 0]}>
-        <planeGeometry args={[1.0, ROOM_D]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
-      </mesh>
-      {/* Right wall */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[ROOM_W / 2 - 0.5, 0.002, 0]}>
-        <planeGeometry args={[1.0, ROOM_D]} />
-        <meshBasicMaterial color="#080808" transparent opacity={0.08} />
-      </mesh>
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
@@ -3389,7 +3045,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       ))}
       {maxNpcs >= 1 && <KidCustomer startPos={[getObjectById("kid")?.x ?? 0, -0.05, getObjectById("kid")?.z ?? 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
       <CharlieCharacter />
-      {showTarantino && <TarantinoNPC />}
 
       {/* New Releases wall display */}
       <NewReleasesWall />
@@ -5080,28 +4735,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
 
-      {/* Security dome mirrors in ceiling corners */}
-      <SecurityDome position={[-ROOM_W / 2 + 0.5, ROOM_H - 0.05, -ROOM_D / 2 + 0.5]} />
-      <SecurityDome position={[ROOM_W / 2 - 0.5, ROOM_H - 0.05, ROOM_D / 2 - 0.5]} />
 
-      {/* AC vent on ceiling — offset below grid to prevent z-fighting */}
-      <mesh position={[3, ROOM_H - 0.05, -2]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.52, 0.52]} />
-        <Mat color="#c8c0b0" roughness={0.6} />
-      </mesh>
-      {/* Vent slats */}
-      {[-0.16, -0.06, 0.04, 0.14].map((dy, i) => (
-        <mesh key={`vent-${i}`} position={[3, ROOM_H - 0.05, -2 + dy]}>
-          <boxGeometry args={[0.42, 0.003, 0.015]} />
-          <Mat color="#aaa89a" roughness={0.5} />
-        </mesh>
-      ))}
-
-      {/* Water stain on ceiling tile — adds character */}
-      <mesh position={[-6, ROOM_H - 0.05, 2]} rotation={[Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.4, 12]} />
-        <Mat color="#c0b090" roughness={0.95} transparent opacity={0.4} />
-      </mesh>
 
       {/* Neon accent strips under shelf top surfaces — genre colored glow */}
       {SHELF_ROWS.map((s, i) => (
@@ -5110,8 +4744,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* "EMPLOYEES ONLY" door on left wall */}
       <group position={[-ROOM_W / 2 + 0.07, 0, getObjectById("employees-door")?.z ?? -5.19]} rotation={[0, Math.PI / 2, 0]}>
-        {/* Door — swings open when backRoomOpen */}
-        <AnimatedEmployeeDoor open={backRoomOpen}>
+        {/* Door — always closed (back room removed) */}
+        <AnimatedEmployeeDoor open={false}>
           <group userData={{ interactType: "employees_door", label: "Employees Only" }}>
             <mesh position={[0, 1.15, 0]}>
               <boxGeometry args={[0.9, 2.3, 0.04]} />
@@ -5147,145 +4781,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </mesh>
       </group>
 
-      {/* ── EMPLOYEES ONLY BACK ROOM ─────────────────────────── */}
-      {/* Room: 4 wide (x: -10 to -14) x 3 deep (z: -3.5 to -6.5) x 3.5 tall */}
-      {/* Only geometry — always present behind the wall; door blocks passage */}
-      <group>
-        {/* Back room floor — darker carpet */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-12, 0.001, -5]}>
-          <planeGeometry args={[4, 3]} />
-          <meshBasicMaterial color="#0a0a1a" />
-        </mesh>
-
-        {/* Back room ceiling */}
-        <mesh rotation={[Math.PI / 2, 0, 0]} position={[-12, ROOM_H, -5]}>
-          <planeGeometry args={[4, 3]} />
-          <meshBasicMaterial color={CEILING_COLOR} />
-        </mesh>
-
-        {/* Back room walls — darker blue */}
-        {/* Back wall (x = -14) */}
-        <mesh position={[-14, ROOM_H / 2, -5]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[3, ROOM_H]} />
-          <meshBasicMaterial color="#0a1220" />
-        </mesh>
-        {/* Far wall (z = -6.5) */}
-        <mesh position={[-12, ROOM_H / 2, -6.5]}>
-          <planeGeometry args={[4, ROOM_H]} />
-          <meshBasicMaterial color="#0a1220" />
-        </mesh>
-        {/* Near wall (z = -3.5) */}
-        <mesh position={[-12, ROOM_H / 2, -3.5]} rotation={[0, Math.PI, 0]}>
-          <planeGeometry args={[4, ROOM_H]} />
-          <meshBasicMaterial color="#0a1220" />
-        </mesh>
-        {/* Left wall section above/below doorway — patches on the main store left wall */}
-        {/* Above door opening */}
-        <mesh position={[-ROOM_W / 2, 2.65, -5.19]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[1.0, 0.85]} />
-          <meshBasicMaterial color="#0a1220" />
-        </mesh>
-
-        {/* "VINNY'S PRIVATE COLLECTION" sign on back wall */}
-        <group position={[-13.95, 2.2, -5]} rotation={[0, Math.PI / 2, 0]}>
-          <mesh>
-            <boxGeometry args={[2.0, 0.35, 0.02]} />
-            <meshBasicMaterial color="#1a0a2a" />
-          </mesh>
-          <Text position={[0, 0, 0.015]} fontSize={0.09} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
-            {"VINNY'S PRIVATE COLLECTION"}
-          </Text>
-        </group>
-
-        {/* Cult classic poster on far wall */}
-        <group position={[-12.5, 1.8, -6.45]}>
-          <mesh>
-            <boxGeometry args={[0.6, 0.9, 0.02]} />
-            <meshBasicMaterial color="#2a0a0a" />
-          </mesh>
-          <Text position={[0, 0.28, 0.015]} fontSize={0.06} color="#ff4444" anchorX="center" font={undefined}>
-            THE ROCKY
-          </Text>
-          <Text position={[0, 0.18, 0.015]} fontSize={0.06} color="#ff4444" anchorX="center" font={undefined}>
-            HORROR
-          </Text>
-          <Text position={[0, 0.08, 0.015]} fontSize={0.06} color="#ff4444" anchorX="center" font={undefined}>
-            PICTURE SHOW
-          </Text>
-          <Text position={[0, -0.12, 0.015]} fontSize={0.04} color="#cc8888" anchorX="center" font={undefined}>
-            {"Don't dream it, be it."}
-          </Text>
-          {/* Lips icon */}
-          <Text position={[0, -0.28, 0.015]} fontSize={0.12} color="#ff2222" anchorX="center" font={undefined}>
-            {"\uD83D\uDC8B"}
-          </Text>
-        </group>
-
-        {/* Another poster — Eraserhead */}
-        <group position={[-11.3, 1.8, -6.45]}>
-          <mesh>
-            <boxGeometry args={[0.6, 0.9, 0.02]} />
-            <meshBasicMaterial color="#0a0a0a" />
-          </mesh>
-          <Text position={[0, 0.2, 0.015]} fontSize={0.065} color="#cccccc" anchorX="center" font={undefined}>
-            ERASERHEAD
-          </Text>
-          <Text position={[0, -0.05, 0.015]} fontSize={0.035} color="#888888" anchorX="center" font={undefined}>
-            A DAVID LYNCH FILM
-          </Text>
-        </group>
-
-        {/* Small desk with lamp */}
-        <group position={[-13.2, 0, -4.2]}>
-          {/* Desk surface */}
-          <mesh position={[0, 0.7, 0]}>
-            <boxGeometry args={[1.0, 0.04, 0.6]} />
-            <meshBasicMaterial color="#3a2515" />
-          </mesh>
-          {/* Desk legs */}
-          {[[-0.45, -0.25], [-0.45, 0.25], [0.45, -0.25], [0.45, 0.25]].map(([lx, lz], i) => (
-            <mesh key={`desk-leg-${i}`} position={[lx, 0.35, lz]}>
-              <boxGeometry args={[0.04, 0.7, 0.04]} />
-              <meshBasicMaterial color="#2a1a0a" />
-            </mesh>
-          ))}
-          {/* Lamp base */}
-          <mesh position={[0.3, 0.75, 0]}>
-            <cylinderGeometry args={[0.06, 0.08, 0.04, 8]} />
-            <meshBasicMaterial color="#b8960a" />
-          </mesh>
-          {/* Lamp pole */}
-          <mesh position={[0.3, 0.95, 0]}>
-            <cylinderGeometry args={[0.012, 0.012, 0.38, 6]} />
-            <meshBasicMaterial color="#b8960a" />
-          </mesh>
-          {/* Lamp shade — warm glow */}
-          <mesh position={[0.3, 1.15, 0]}>
-            <cylinderGeometry args={[0.04, 0.1, 0.15, 8]} />
-            <meshBasicMaterial color="#ffdd88" transparent opacity={0.8} />
-          </mesh>
-          {/* Warm light pool on desk */}
-          <mesh position={[0.3, 0.725, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <circleGeometry args={[0.3, 12]} />
-            <meshBasicMaterial color="#443320" transparent opacity={0.4} />
-          </mesh>
-        </group>
-
-        {/* Shelf 1 — CULT section (left side of room) */}
-        <BackRoomShelf position={[-13.5, 0, -5.8]} genre="CULT" color="#991b1b" />
-
-        {/* Shelf 2 — FOREIGN section (center) */}
-        <BackRoomShelf position={[-12, 0, -5.8]} genre="FOREIGN" color="#6366f1" />
-
-        {/* Shelf 3 — INDIE section (right side) */}
-        <BackRoomShelf position={[-10.5, 0, -5.8]} genre="INDIE" color="#a855f7" />
-
-        {/* Ambient warm floor glow */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-12, 0.003, -5]}>
-          <circleGeometry args={[1.5, 16]} />
-          <meshBasicMaterial color="#1a1508" transparent opacity={0.5} />
-        </mesh>
-      </group>
 
       {/* "LATE FEES" warning sign near checkout */}
       <group position={[ROOM_W / 2 - 0.1, getObjectById("late-fees-sign")?.y ?? 1.5, getObjectById("late-fees-sign")?.z ?? 5.2]} rotation={[0, -Math.PI / 2, 0]}>
@@ -5554,147 +5049,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       {/* Right wall CRT monitor */}
       <WallCrtTv position={[getObjectById("tv-right")?.x ?? (ROOM_W / 2 - 0.72), getObjectById("tv-right")?.y ?? 2.26, getObjectById("tv-right")?.z ?? -3.9]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
 
-      {/* ── KIDS CORNER ────────────────── */}
-      <group position={[getObjectById("kids-corner")?.x ?? 8, 0, getObjectById("kids-corner")?.z ?? -5]}>
-        {/* Floor mat — bright colored */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
-          <planeGeometry args={[3, 2.5]} />
-          <meshBasicMaterial color="#2a1a4a" />
-        </mesh>
 
-        {/* "KIDS CORNER" sign */}
-        <mesh position={[0, 2.2, -1]}>
-          <boxGeometry args={[2, 0.3, 0.03]} />
-          <Mat color="#22c55e" roughness={0.5} />
-        </mesh>
-        <Text position={[0, 2.2, -0.97]} fontSize={0.12} color="#ffffff" anchorX="center" font={undefined}>
-          KIDS CORNER
-        </Text>
 
-        {/* Small TV playing cartoons */}
-        <group position={[1, 1.2, -1]} rotation={[0, -Math.PI / 4, 0]}>
-          <mesh>
-            <boxGeometry args={[0.5, 0.4, 0.3]} />
-            <Mat color="#2a2a2a" roughness={0.5} />
-          </mesh>
-          <mesh position={[0, 0, 0.16]}>
-            <planeGeometry args={[0.4, 0.3]} />
-            <meshBasicMaterial color="#4a8aff" />
-          </mesh>
-          <mesh position={[0, -0.25, 0]}>
-            <boxGeometry args={[0.3, 0.1, 0.2]} />
-            <Mat color="#333" roughness={0.5} />
-          </mesh>
-        </group>
-
-        {/* Two low shelves (kid height ~1.0m) */}
-        <group position={[-0.5, 0, 0]}>
-          <mesh position={[0, 0.5, 0]}>
-            <boxGeometry args={[2, 1.0, 0.3]} />
-            <Mat color={SHELF_COLOR} roughness={0.8} />
-          </mesh>
-          <mesh position={[0, 1.02, 0]}>
-            <boxGeometry args={[2.1, 0.04, 0.35]} />
-            <Mat color="#8a6838" roughness={0.5} />
-          </mesh>
-          {/* Shelf board */}
-          <mesh position={[0, 0.5, 0.05]}>
-            <boxGeometry args={[1.9, 0.04, 0.25]} />
-            <Mat color="#6a4226" roughness={0.7} />
-          </mesh>
-          {/* "FAMILY" sign */}
-          <Text position={[0, 1.1, 0.15]} fontSize={0.08} color="#22c55e" anchorX="center" font={undefined}>
-            FAMILY FAVORITES
-          </Text>
-        </group>
-
-        {/* Small bean bag chairs (spheres on floor) */}
-        <mesh position={[0.5, 0.15, 0.5]}>
-          <sphereGeometry args={[0.2, 8, 8]} />
-          <Mat color="#ef4444" roughness={0.8} />
-        </mesh>
-        <mesh position={[-0.3, 0.15, 0.8]}>
-          <sphereGeometry args={[0.2, 8, 8]} />
-          <Mat color="#3b82f6" roughness={0.8} />
-        </mesh>
-      </group>
-
-      {/* ── VIDEO GAMES SECTION ────────── */}
-      <group position={[getObjectById("video-games")?.x ?? -8, 0, getObjectById("video-games")?.z ?? 4]}>
-        {/* "VIDEO GAMES" sign */}
-        <mesh position={[0, 2.0, -0.5]}>
-          <boxGeometry args={[2.5, 0.3, 0.03]} />
-          <Mat color="#8b5cf6" roughness={0.5} />
-        </mesh>
-        <Text position={[0, 2.0, -0.47]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>
-          VIDEO GAMES
-        </Text>
-
-        {/* Game console demo unit */}
-        <group position={[0, 0, 0]}>
-          <mesh position={[0, 0.5, 0]}>
-            <boxGeometry args={[0.8, 1.0, 0.6]} />
-            <Mat color="#1a1a2a" roughness={0.5} />
-          </mesh>
-          {/* TV on top */}
-          <mesh position={[0, 1.2, 0]}>
-            <boxGeometry args={[0.6, 0.45, 0.35]} />
-            <Mat color="#2a2a2a" roughness={0.5} />
-          </mesh>
-          <mesh position={[0, 1.2, 0.18]}>
-            <planeGeometry args={[0.5, 0.35]} />
-            <meshBasicMaterial color="#2a6a2a" />
-          </mesh>
-          {/* "TRY ME!" sign */}
-          <Text position={[0, 0.5, -0.32]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
-            TRY ME!
-          </Text>
-        </group>
-
-        {/* Game shelves (smaller) */}
-        <mesh position={[-0.8, 0.5, -0.5]}>
-          <boxGeometry args={[0.8, 1.0, 0.25]} />
-          <Mat color={SHELF_COLOR} roughness={0.8} />
-        </mesh>
-        <mesh position={[0.8, 0.5, -0.5]}>
-          <boxGeometry args={[0.8, 1.0, 0.25]} />
-          <Mat color={SHELF_COLOR} roughness={0.8} />
-        </mesh>
-      </group>
-
-      {/* ── PREVIOUSLY VIEWED BARGAIN BIN ──── */}
-      <group position={[getObjectById("bargain-bin")?.x ?? -4, 0, getObjectById("bargain-bin")?.z ?? 4]}>
-        {/* Low table/bin */}
-        <mesh position={[0, 0.4, 0]}>
-          <boxGeometry args={[2.5, 0.8, 1.2]} />
-          <Mat color="#5a3820" roughness={0.8} />
-        </mesh>
-        <mesh position={[0, 0.82, 0]}>
-          <boxGeometry args={[2.6, 0.04, 1.25]} />
-          <Mat color="#8a6838" roughness={0.5} />
-        </mesh>
-
-        {/* Scattered VHS tapes on top (messy pile) */}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <mesh key={`bargain-${i}`} position={[
-            -0.8 + Math.random() * 1.6,
-            0.87 + i * 0.03,
-            -0.4 + Math.random() * 0.8,
-          ]} rotation={[0, Math.random() * Math.PI, 0]}>
-            <boxGeometry args={[0.15, 0.26, 0.025]} />
-            <Mat color={["#dc2626", "#3b82f6", "#f97316", "#22c55e", "#7c3aed", "#ca8a04", "#ef4444", "#06b6d4"][i]} roughness={0.6} />
-          </mesh>
-        ))}
-
-        {/* "PREVIOUSLY VIEWED — $4.99" sign */}
-        <mesh position={[0, 1.3, -0.4]}>
-          <boxGeometry args={[2, 0.3, 0.03]} />
-          <Mat color="#ef4444" roughness={0.5} />
-        </mesh>
-        <Text position={[0, 1.3, -0.37]} fontSize={0.08} color="#ffffff" anchorX="center" font={undefined}>
-          PREVIOUSLY VIEWED — $4.99
-        </Text>
-      </group>
 
       {/* ── INTERIOR RETURN BIN ──── */}
       <group position={[getObjectById("return-bin")?.x ?? 5, 0, getObjectById("return-bin")?.z ?? 5]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
@@ -5712,30 +5068,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </Text>
       </group>
 
-      {/* ══════════════════════════════════════════════════════════ */}
-      {/* ── LIVED-IN DETAIL PROPS (1992 video store clutter) ──── */}
-      {/* ══════════════════════════════════════════════════════════ */}
-
-      {/* 1. Cardboard movie standee near entrance */}
-      <group position={[getObjectById("standee")?.x ?? 3.2, 0, getObjectById("standee")?.z ?? 5.2]} rotation={[0, getObjectById("standee")?.rotY ?? -0.3, 0]}>
-        {/* Flat cardboard cutout — tilted slightly back */}
-        <mesh position={[0, 0.9, 0]} rotation={[0.06, 0, 0]}>
-          <boxGeometry args={[0.6, 1.8, 0.04]} />
-          <Mat color="#c4903a" roughness={0.8} />
-        </mesh>
-        {/* Kickstand on back */}
-        <mesh position={[0, 0.4, 0.15]} rotation={[0.4, 0, 0]}>
-          <boxGeometry args={[0.25, 0.8, 0.03]} />
-          <Mat color="#a07030" roughness={0.8} />
-        </mesh>
-        {/* "Coming Soon" text on standee */}
-        <Text position={[0, 1.55, -0.025]} fontSize={0.07} color="#ffffff" anchorX="center" font={undefined}>
-          COMING SOON
-        </Text>
-        <Text position={[0, 0.5, -0.025]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>
-          ON VIDEO
-        </Text>
-      </group>
 
       {/* 2. "Be Kind Rewind" sticker on counter */}
       <mesh position={[8.2, 0.91, 5.15]} rotation={[-Math.PI / 2, 0, 0.12]}>
@@ -6115,39 +5447,9 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         ))}
       </group>
 
-      {/* Second AC vent on ceiling — near entrance, offset below grid */}
-      <mesh position={[-4, ROOM_H - 0.05, 4]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.5, 0.5]} />
-        <Mat color="#c8c0b0" roughness={0.6} />
-      </mesh>
-      {[-0.15, -0.05, 0.05, 0.15].map((dy, i) => (
-        <mesh key={`vent2-${i}`} position={[-4, ROOM_H - 0.05, 4 + dy]}>
-          <boxGeometry args={[0.4, 0.003, 0.015]} />
-          <Mat color="#aaa89a" roughness={0.5} />
-        </mesh>
-      ))}
 
       {/* ── ENTRANCE AREA ─────────────────────────────────────── */}
 
-      {/* Umbrella stand near the door */}
-      <group position={[getObjectById("umbrella-stand")?.x ?? 1.8, getObjectById("umbrella-stand")?.y ?? 0, getObjectById("umbrella-stand")?.z ?? 6.2]}>
-        <mesh position={[0, 0.25, 0]}>
-          <cylinderGeometry args={[0.12, 0.14, 0.5, 10]} />
-          <Mat color="#3a3a3a" roughness={0.6} />
-        </mesh>
-        <mesh position={[0, 0.5, 0]}>
-          <cylinderGeometry args={[0.13, 0.12, 0.02, 10]} />
-          <Mat color="#555555" roughness={0.4} metalness={0.3} />
-        </mesh>
-        <mesh position={[0.03, 0.55, 0]} rotation={[0, 0, 0.15]}>
-          <cylinderGeometry args={[0.008, 0.008, 0.45, 4]} />
-          <Mat color="#1a3a8a" roughness={0.5} />
-        </mesh>
-        <mesh position={[0.06, 0.78, 0]} rotation={[Math.PI / 2, 0, 0.15]}>
-          <torusGeometry args={[0.025, 0.005, 6, 8, Math.PI]} />
-          <Mat color="#1a3a8a" roughness={0.5} />
-        </mesh>
-      </group>
 
       {/* "WE BUY USED TAPES" sign in the window */}
       <group position={[getObjectById("we-buy-tapes")?.x ?? -3.5, getObjectById("we-buy-tapes")?.y ?? 1.0, getObjectById("we-buy-tapes")?.z ?? ROOM_D / 2 + 0.02]}>
@@ -6166,26 +5468,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </Text>
       </group>
 
-      {/* Stack of free local newspapers/flyers near the door */}
-      <group position={[getObjectById("newspaper-stand")?.x ?? -2.5, getObjectById("newspaper-stand")?.y ?? 0, getObjectById("newspaper-stand")?.z ?? 6.0]}>
-        <mesh position={[0, 0.3, 0]}>
-          <boxGeometry args={[0.4, 0.04, 0.3]} />
-          <Mat color="#777777" roughness={0.5} />
-        </mesh>
-        {[[-0.17, 0.14, -0.12], [0.17, 0.14, -0.12], [-0.17, 0.14, 0.12], [0.17, 0.14, 0.12]].map(([lx, ly, lz], i) => (
-          <mesh key={`news-leg-${i}`} position={[lx, ly, lz]}>
-            <cylinderGeometry args={[0.008, 0.008, 0.28, 4]} />
-            <Mat color="#777777" roughness={0.5} />
-          </mesh>
-        ))}
-        <mesh position={[0, 0.34, 0]}>
-          <boxGeometry args={[0.35, 0.06, 0.25]} />
-          <Mat color="#f0eee0" roughness={0.9} />
-        </mesh>
-        <Text position={[0, 0.45, -0.13]} fontSize={0.04} color="#333333" anchorX="center" font={undefined}>
-          FREE — TAKE ONE
-        </Text>
-      </group>
 
       {/* "COMING SOON" poster board near entrance */}
       <group position={[getObjectById("coming-soon-board")?.x ?? 7.5, getObjectById("coming-soon-board")?.y ?? 1.8, getObjectById("coming-soon-board")?.z ?? 6.2]} rotation={[0, getObjectById("coming-soon-board")?.rotY ?? -0.4, 0]}>
