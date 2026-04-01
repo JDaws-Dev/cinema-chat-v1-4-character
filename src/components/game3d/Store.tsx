@@ -21,15 +21,39 @@ function BoxCar({ position, rotation = [0, 0, 0], color, cabinColor }: {
   color: string;
   cabinColor?: string;
 }) {
+  const cb = cabinColor ?? "#222233";
   return (
     <group position={position} rotation={rotation} scale={1.4}>
-      {/* Body */}
-      <mesh position={[0, 0.35, 0]}><boxGeometry args={[0.9, 0.5, 2.0]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-      {/* Cabin */}
-      <mesh position={[0, 0.7, -0.1]}><boxGeometry args={[0.8, 0.35, 1.1]} /><meshStandardMaterial color={cabinColor ?? "#222233"} roughness={0.4} metalness={0.1} /></mesh>
-      {/* Wheels */}
+      {/* Body — lower half with slight taper */}
+      <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.95, 0.4, 2.1]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      {/* Hood — slopes down at front */}
+      <mesh position={[0, 0.42, 0.7]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.9, 0.12, 0.6]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      {/* Trunk — slight slope at back */}
+      <mesh position={[0, 0.42, -0.75]} rotation={[0.1, 0, 0]}><boxGeometry args={[0.9, 0.1, 0.5]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      {/* Cabin — windowed area */}
+      <mesh position={[0, 0.65, -0.05]}><boxGeometry args={[0.82, 0.3, 1.0]} /><meshStandardMaterial color={cb} roughness={0.3} metalness={0.15} /></mesh>
+      {/* Windshield */}
+      <mesh position={[0, 0.68, 0.5]} rotation={[-0.3, 0, 0]}><boxGeometry args={[0.78, 0.28, 0.02]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.4} roughness={0.05} metalness={0.3} /></mesh>
+      {/* Rear window */}
+      <mesh position={[0, 0.68, -0.55]} rotation={[0.25, 0, 0]}><boxGeometry args={[0.72, 0.24, 0.02]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.35} roughness={0.05} metalness={0.3} /></mesh>
+      {/* Side windows */}
+      <mesh position={[0.42, 0.68, -0.05]}><boxGeometry args={[0.02, 0.22, 0.85]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.3} roughness={0.05} metalness={0.3} /></mesh>
+      <mesh position={[-0.42, 0.68, -0.05]}><boxGeometry args={[0.02, 0.22, 0.85]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.3} roughness={0.05} metalness={0.3} /></mesh>
+      {/* Bumpers */}
+      <mesh position={[0, 0.18, 1.06]}><boxGeometry args={[0.8, 0.1, 0.06]} /><meshStandardMaterial color="#444444" roughness={0.3} metalness={0.6} /></mesh>
+      <mesh position={[0, 0.18, -1.06]}><boxGeometry args={[0.8, 0.1, 0.06]} /><meshStandardMaterial color="#444444" roughness={0.3} metalness={0.6} /></mesh>
+      {/* Headlights */}
+      <mesh position={[-0.32, 0.32, 1.06]}><boxGeometry args={[0.18, 0.1, 0.03]} /><meshBasicMaterial color="#ffffaa" /></mesh>
+      <mesh position={[0.32, 0.32, 1.06]}><boxGeometry args={[0.18, 0.1, 0.03]} /><meshBasicMaterial color="#ffffaa" /></mesh>
+      {/* Tail lights */}
+      <mesh position={[-0.35, 0.32, -1.06]}><boxGeometry args={[0.14, 0.08, 0.03]} /><meshBasicMaterial color="#cc2222" /></mesh>
+      <mesh position={[0.35, 0.32, -1.06]}><boxGeometry args={[0.14, 0.08, 0.03]} /><meshBasicMaterial color="#cc2222" /></mesh>
+      {/* Wheels + wheel wells */}
       {[[0.45, 0.12, -0.6], [-0.45, 0.12, -0.6], [0.45, 0.12, 0.6], [-0.45, 0.12, 0.6]].map(([wx, wy, wz], i) => (
-        <mesh key={i} position={[wx, wy, wz]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.14, 0.14, 0.08, 8]} /><meshStandardMaterial color="#111111" /></mesh>
+        <group key={i}>
+          <mesh position={[wx, wy, wz]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.14, 0.14, 0.1, 10]} /><meshStandardMaterial color="#1a1a1a" roughness={0.8} /></mesh>
+          <mesh position={[wx > 0 ? wx + 0.01 : wx - 0.01, wy, wz]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.08, 0.08, 0.12, 8]} /><meshStandardMaterial color="#555555" roughness={0.3} metalness={0.5} /></mesh>
+        </group>
       ))}
     </group>
   );
@@ -354,24 +378,26 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* ── PIZZA PALACE — walkable interior ── */}
       <group position={[-13, 0, 5.5]}>
         {/* Floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}><planeGeometry args={[6, 5]} /><meshBasicMaterial color="#4a3020" /></mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}><planeGeometry args={[6, 5]} /><meshBasicMaterial color="#4a3020" side={THREE.DoubleSide} /></mesh>
         {/* Checkerboard tiles */}
         {Array.from({ length: 6 }).map((_, ix) => Array.from({ length: 5 }).map((_, iz) => (
-          (ix + iz) % 2 === 0 ? <mesh key={`tile-${ix}-${iz}`} rotation={[-Math.PI / 2, 0, 0]} position={[-2.5 + ix, 0.012, -2 + iz]}><planeGeometry args={[1, 1]} /><meshBasicMaterial color="#5a3a28" /></mesh> : null
+          (ix + iz) % 2 === 0 ? <mesh key={`tile-${ix}-${iz}`} rotation={[-Math.PI / 2, 0, 0]} position={[-2.5 + ix, 0.012, -2 + iz]}><planeGeometry args={[1, 1]} /><meshBasicMaterial color="#5a3a28" side={THREE.DoubleSide} /></mesh> : null
         )))}
         {/* Ceiling */}
-        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}><planeGeometry args={[6, 5]} /><meshBasicMaterial color="#8a7a6a" /></mesh>
-        {/* Back wall (z=-2.5, shared with video store) */}
-        <mesh position={[0, ROOM_H / 2, -2.5]}><planeGeometry args={[6, ROOM_H]} /><meshBasicMaterial color="#8a2020" /></mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}><planeGeometry args={[6, 5]} /><meshBasicMaterial color="#8a7a6a" side={THREE.DoubleSide} /></mesh>
+        {/* Walls — use thin boxes so they're visible from both sides */}
+        {/* Back wall (z=-2.5) */}
+        <mesh position={[0, ROOM_H / 2, -2.5]}><boxGeometry args={[6, ROOM_H, 0.1]} /><meshBasicMaterial color="#8a2020" /></mesh>
         {/* Left wall (x=-3) */}
-        <mesh position={[-3, ROOM_H / 2, 0]} rotation={[0, Math.PI / 2, 0]}><planeGeometry args={[5, ROOM_H]} /><meshBasicMaterial color="#7a1818" /></mesh>
-        {/* Right wall — shared with video store (x=3, but video store left wall is here) */}
+        <mesh position={[-3, ROOM_H / 2, 0]}><boxGeometry args={[0.1, ROOM_H, 5]} /><meshBasicMaterial color="#7a1818" /></mesh>
+        {/* Right wall — shared with video store */}
+        <mesh position={[3, ROOM_H / 2, 0]}><boxGeometry args={[0.1, ROOM_H, 5]} /><meshBasicMaterial color="#7a1818" /></mesh>
 
-        {/* Front wall with door gap at x=-0.5 (width 1.2) */}
-        <mesh position={[-1.7, ROOM_H / 2, 1.5]}><planeGeometry args={[2.6, ROOM_H]} /><meshBasicMaterial color="#8a2020" /></mesh>
-        <mesh position={[1.9, ROOM_H / 2, 1.5]}><planeGeometry args={[2.2, ROOM_H]} /><meshBasicMaterial color="#8a2020" /></mesh>
+        {/* Front wall with door gap */}
+        <mesh position={[-1.7, ROOM_H / 2, 1.5]}><boxGeometry args={[2.6, ROOM_H, 0.1]} /><meshBasicMaterial color="#8a2020" /></mesh>
+        <mesh position={[1.9, ROOM_H / 2, 1.5]}><boxGeometry args={[2.2, ROOM_H, 0.1]} /><meshBasicMaterial color="#8a2020" /></mesh>
         {/* Above door */}
-        <mesh position={[-0.3, 2.6, 1.5]}><planeGeometry args={[1.4, 0.9]} /><meshBasicMaterial color="#8a2020" /></mesh>
+        <mesh position={[-0.3, 2.6, 1.5]}><boxGeometry args={[1.4, 0.9, 0.1]} /><meshBasicMaterial color="#8a2020" /></mesh>
 
         {/* Counter — pizza display case */}
         <mesh position={[0, 0.5, -1.5]}><boxGeometry args={[4, 1, 0.8]} /><Mat color="#5a3a20" roughness={0.7} /></mesh>

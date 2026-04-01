@@ -1289,19 +1289,20 @@ export default function GamePage() {
 
       {/* Unified inventory bar */}
       {!hasOverlay && (
-        <div className="g3-inventory-bar">
+        <div className="g3-inventory-bar" style={{ position: 'relative' }}>
+          <span className="g3-inventory-label">INVENTORY</span>
           {heldMovies.map((movie, i) => (
             <div key={`m${i}`} className="g3-inv-slot g3-inv-movie" onClick={() => setHeldMovies(prev => prev.filter(m => m.id !== movie.id))} title={`${movie.title} (click to drop)`}>
               {movie.posterUrl ? (
-                <img src={`/api/image-proxy?url=${encodeURIComponent(movie.posterUrl.replace('/w342/', '/w92/'))}`} alt={movie.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 3 }} />
+                <img src={`/api/image-proxy?url=${encodeURIComponent(movie.posterUrl.replace('/w342/', '/w92/'))}`} alt={movie.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
               ) : (
-                <span style={{ fontSize: '0.5rem', textAlign: 'center' }}>{movie.title.substring(0, 10)}</span>
+                <span style={{ fontSize: '0.5rem', textAlign: 'center', padding: 2 }}>{movie.title.substring(0, 12)}</span>
               )}
             </div>
           ))}
           {heldSnacks.map((snack, i) => (
-            <div key={`s${i}`} className="g3-inv-slot g3-inv-snack" onClick={() => setHeldSnacks(prev => prev.filter(s => s.name !== snack.name))}>
-              {snack.emoji}
+            <div key={`s${i}`} className="g3-inv-slot g3-inv-snack" onClick={() => setHeldSnacks(prev => prev.filter(s => s.name !== snack.name))} title={`${snack.name} (click to drop)`}>
+              <span style={{ fontSize: '1.3rem' }}>{snack.emoji}</span>
             </div>
           ))}
           {Array.from({ length: 8 - heldMovies.length - heldSnacks.length }).map((_, i) => (
@@ -1324,23 +1325,22 @@ export default function GamePage() {
         </button>
       )}
 
-      {/* HUD */}
+      {/* HUD top bar */}
       <div className="g3-hud">
         <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
         <span className="g3-hud-hint">
           {overlay === "rpg_dialogue" ? (isMobile ? "Tap a response · Tap ✕ to leave" : "1-4 to respond · Q to leave") :
            hasOverlay ? (isMobile ? "Tap ✕ to close" : "Press Q or click ✕ to close") :
            heldMovies.length > 0 ? `Take your ${heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny!` :
-           challenge ? "" :
-           isMobile ? "Touch to move · Tap to interact" : "WASD move · E interact · J quests"}
+           challenge ? "" : ""}
         </span>
         <div className="g3-hud-right">
           <span className="g3-game-clock" style={{
             fontFamily: "'Courier New', monospace",
             color: gameTime >= 22.5 ? '#ff4444' : gameTime >= 22 ? '#ffa500' : '#ffd700',
-            fontSize: '0.8rem',
+            fontSize: '0.95rem',
             fontWeight: 'bold',
-            textShadow: gameTime >= 22.5 ? '0 0 8px rgba(255, 68, 68, 0.6)' : 'none',
+            textShadow: gameTime >= 22.5 ? '0 0 8px rgba(255, 68, 68, 0.6)' : '0 0 6px rgba(255, 215, 0, 0.2)',
           }}>
             {formatGameTime(gameTime)}
           </span>
@@ -1349,23 +1349,58 @@ export default function GamePage() {
             const progress = next ? ((totalXP - currentTier.minXP) / (next.minXP - currentTier.minXP)) * 100 : 100;
             return (
               <div className="g3-tier-badge" style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '4px 10px', borderRadius: 4,
-                border: `1px solid ${currentTier.color}`,
-                color: currentTier.color, fontSize: '0.75rem', fontFamily: 'monospace'
+                border: `2px solid ${currentTier.color}`,
+                color: currentTier.color,
               }}>
-                <span>{currentTier.emoji}</span>
-                <span>{currentTier.name.toUpperCase()}</span>
-                <div style={{ width: 60, height: 6, background: '#1a1a2a', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min(progress, 100)}%`, height: '100%', background: currentTier.color, borderRadius: 3, transition: 'width 0.5s ease' }} />
+                <span style={{ fontSize: '1.1rem' }}>{currentTier.emoji}</span>
+                <span className="g3-tier-badge-name">{currentTier.name.toUpperCase()}</span>
+                <div className="g3-tier-badge-bar">
+                  <div className="g3-tier-badge-fill" style={{ width: `${Math.min(progress, 100)}%`, background: currentTier.color }} />
                 </div>
-                <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>{totalXP}XP</span>
+                <span className="g3-tier-badge-xp">{totalXP}XP</span>
               </div>
             );
           })()}
           <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); setMusicMuted(next); return next; }); }} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
         </div>
       </div>
+
+      {/* Challenge indicator — compact top-left */}
+      {challenge && !hasOverlay && (
+        <div className="g3-challenge-indicator">
+          <span className="g3-challenge-indicator-icon">{challenge.type === "vinnys_mystery" ? "🔍" : challenge.type === "speed_run" ? "⚡" : "🎬"}</span>
+          <div className="g3-challenge-indicator-info">
+            <span className="g3-challenge-indicator-name">
+              {challenge.type === "vinnys_mystery" ? "MYSTERY" : challenge.type === "speed_run" ? "SPEED RUN" : "MOVIE NIGHT"}
+            </span>
+            <span className="g3-challenge-indicator-progress">
+              {challenge.type !== "vinnys_mystery" ? `${challenge.movies.filter(cm => heldMovies.some(m => m.title.toLowerCase() === cm.title.toLowerCase())).length}/${challenge.movies.length} found` : "Find the film"}
+            </span>
+          </div>
+          <span className="g3-challenge-indicator-timer" style={{
+            color: challenge.timeLimit && challengeTimer > (challenge.timeLimit - 15) ? "#ef4444" : "#ffd700",
+          }}>
+            {challenge.timeLimit ? `${Math.max(0, challenge.timeLimit - challengeTimer)}s` : `${challengeTimer}s`}
+          </span>
+        </div>
+      )}
+
+      {/* Controls bar — always visible at bottom (desktop only) */}
+      {!hasOverlay && !topDown && !isMobile && (
+        <div className="g3-controls-bar">
+          <span className="g3-key">WASD</span> move
+          <span className="g3-sep">|</span>
+          <span className="g3-key">Mouse</span> look
+          <span className="g3-sep">|</span>
+          <span className="g3-key">E</span> interact
+          <span className="g3-sep">|</span>
+          <span className="g3-key">T</span> map
+          <span className="g3-sep">|</span>
+          <span className="g3-key">J</span> quests
+          <span className="g3-sep">|</span>
+          <span className="g3-key">C</span> screenshot
+        </div>
+      )}
 
       {/* Tier-up notification */}
       {tierUpNotification && (

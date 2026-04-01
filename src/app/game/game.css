@@ -1354,10 +1354,12 @@
 }
 
 .g3-challenge-timer {
-  font-size: 0.6rem;
-  color: rgba(255, 215, 0, 0.5);
-  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 215, 0, 0.6);
+  margin-top: 10px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .g3-challenge-complete {
