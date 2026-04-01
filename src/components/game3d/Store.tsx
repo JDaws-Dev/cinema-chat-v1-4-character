@@ -335,7 +335,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       {/* Fascia + signage (hidden in top-down) */}
       {!topDown && <>
-      <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.2]}><boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
+      <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.22]}><boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
       <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
         <mesh><boxGeometry args={[8, 1.2, 0.2]} /><meshBasicMaterial color="#0a0a1a" /></mesh>
         <mesh position={[0, 0, 0.11]}><boxGeometry args={[8.1, 1.25, 0.01]} /><meshBasicMaterial color="#b8960a" /></mesh>
@@ -346,8 +346,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       </group>
 
       {/* Roof line */}
-      <mesh position={[0, ROOM_H + 1.2, ROOM_D / 2 - 0.1]}><boxGeometry args={[ROOM_W + 12, 0.15, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>
-      <mesh position={[0, ROOM_H + 1.1, ROOM_D / 2 + 0.25]}><boxGeometry args={[ROOM_W + 12.2, 0.08, 0.05]} /><meshBasicMaterial color="#444450" /></mesh>
+      <mesh position={[0, ROOM_H + 1.2, ROOM_D / 2 - 0.12]}><boxGeometry args={[ROOM_W + 12, 0.15, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>
+      <mesh position={[0, ROOM_H + 1.1, ROOM_D / 2 + 0.27]}><boxGeometry args={[ROOM_W + 12.2, 0.08, 0.05]} /><meshBasicMaterial color="#444450" /></mesh>
       <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
       </>}
 
@@ -424,8 +424,21 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       </group>
       {/* Red & white awning */}
       {Array.from({ length: 11 }).map((_, i) => (<mesh key={`pizza-awning-${i}`} position={[-16 + i * 0.55, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}><boxGeometry args={[0.55, 0.05, 0.8]} /><meshBasicMaterial color={i % 2 === 0 ? "#cc2222" : "#eeeeee"} /></mesh>))}
-      {/* Pizza window (looking into shop) */}
-      <mesh position={[-14.5, 1.4, ROOM_D / 2 + 0.17]}><planeGeometry args={[2.2, 1.8]} /><meshBasicMaterial color="#443311" transparent opacity={0.4} /></mesh>
+      {/* Pizza window (looking into shop) — proper glass + aluminum frame */}
+      <group position={[-14.5, 1.4, ROOM_D / 2 + 0.17]}>
+        {/* Glass pane */}
+        <mesh><planeGeometry args={[2.2, 1.8]} /><Mat color="#a0c0e0" transparent opacity={0.18} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>
+        {/* Aluminum frame — top */}
+        <mesh position={[0, 0.92, 0.01]}><boxGeometry args={[2.3, 0.06, 0.04]} /><Mat color="#666666" roughness={0.3} metalness={0.6} /></mesh>
+        {/* Aluminum frame — bottom */}
+        <mesh position={[0, -0.92, 0.01]}><boxGeometry args={[2.3, 0.06, 0.04]} /><Mat color="#666666" roughness={0.3} metalness={0.6} /></mesh>
+        {/* Aluminum frame — left */}
+        <mesh position={[-1.12, 0, 0.01]}><boxGeometry args={[0.06, 1.9, 0.04]} /><Mat color="#666666" roughness={0.3} metalness={0.6} /></mesh>
+        {/* Aluminum frame — right */}
+        <mesh position={[1.12, 0, 0.01]}><boxGeometry args={[0.06, 1.9, 0.04]} /><Mat color="#666666" roughness={0.3} metalness={0.6} /></mesh>
+        {/* Center divider (vertical) */}
+        <mesh position={[0, 0, 0.01]}><boxGeometry args={[0.04, 1.8, 0.03]} /><Mat color="#666666" roughness={0.3} metalness={0.6} /></mesh>
+      </group>
 
       {/* Laundromat */}
       <mesh position={[getObjectById("laundro-building")?.x ?? ROOM_W / 2 + 3, ROOM_H / 2, getObjectById("laundro-building")?.z ?? ROOM_D / 2]}><boxGeometry args={[6, ROOM_H, 0.3]} /><meshBasicMaterial color="#2a2a30" /></mesh>
@@ -473,8 +486,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <mesh position={[5.5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[7.6, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
       {/* Knee wall below windows — full width, seals corners */}
       <mesh position={[0, 0.13, ROOM_D / 2 - 0.01]}><boxGeometry args={[ROOM_W - 0.1, 0.26, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
-      <mesh position={[0, ROOM_H + 0.05, ROOM_D / 2 + 0.3]} rotation={[0.25, 0, 0]}><boxGeometry args={[5, 0.06, 1.2]} /><Mat color="#1a3a8a" roughness={0.7} /></mesh>
-      <mesh position={[0, ROOM_H + 0.02, ROOM_D / 2 + 0.7]} rotation={[0.25, 0, 0]}><boxGeometry args={[5, 0.03, 0.25]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} roughness={0.6} /></mesh>
 
       {/* Entrance — simple double glass doors with thin frame */}
       <AnimatedEntranceDoor side="left" doorOpen={entranceDoorOpen}>
