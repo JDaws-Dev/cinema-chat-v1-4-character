@@ -40,14 +40,23 @@ export interface StoreLayout {
 export const STORE_LAYOUT: StoreLayout = {
   version: 1,
   objects: [
-    { id: "shelf-row1-horror", label: "HORROR / CULT", category: "shelf", x: -2.61, y: 0, z: -4.19, rotY: 0.349, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#dc2626","backGenre":"CULT","backColor":"#991b1b"} },
-    { id: "shelf-row1-scifi", label: "SCI-FI / FOREIGN", category: "shelf", x: -6.35, y: 0, z: -2.89, rotY: 0.349, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#3b82f6","backGenre":"FOREIGN","backColor":"#6366f1"} },
-    { id: "shelf-row1-comedy", label: "COMEDY / INDIE", category: "shelf", x: 2.67, y: 0, z: -4.28, rotY: -0.349, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#f97316","backGenre":"INDIE","backColor":"#a855f7"} },
-    { id: "shelf-row2-action", label: "ACTION / THRILLER", category: "shelf", x: -2.55, y: 0, z: -1.58, rotY: 0.349, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#ef4444","backGenre":"THRILLER","backColor":"#7c3aed"} },
-    { id: "shelf-row2-classics", label: "CLASSICS / DOCS", category: "shelf", x: 2.94, y: 0, z: -1.28, rotY: -0.349, w: 3.2, d: 0.6, meta: {"genre":"CLASSICS","color":"#ca8a04","backGenre":"DOCS","backColor":"#65a30d"} },
-    { id: "shelf-row3-family", label: "FAMILY / ANIMATED", category: "shelf", x: -2.26, y: 0, z: 1.3, rotY: 0.4, w: 3.2, d: 0.6, meta: {"genre":"FAMILY","color":"#22c55e","backGenre":"ANIMATED","backColor":"#06b6d4"} },
-    { id: "shelf-row3-western", label: "WESTERN / ROMANCE", category: "shelf", x: 2.05, y: 0, z: 1.24, rotY: -0.4, w: 3.2, d: 0.6, meta: {"genre":"WESTERN","color":"#92400e","backGenre":"ROMANCE","backColor":"#f43f5e"} },
-    { id: "wallshelf-back-drama", label: "Wall: DRAMA", category: "shelf", x: -5, y: 0, z: -6.85, w: 6, d: 0.3, meta: {"genre":"DRAMA","color":"#6366f1","rotation":[0,0,0],"width":6} },
+    // 12 gondolas in 3 rows of 4 (2 chevron pairs per row) — matches Fusion 360 model
+    // Row 1 (back, z≈-4) — left pair angles right, right pair angles left
+    { id: "shelf-row1-horror", label: "HORROR / CULT", category: "shelf", x: -6, y: 0, z: -4.2, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#dc2626","backGenre":"CULT","backColor":"#991b1b"} },
+    { id: "shelf-row1-scifi", label: "SCI-FI / FOREIGN", category: "shelf", x: -2, y: 0, z: -4.2, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#3b82f6","backGenre":"FOREIGN","backColor":"#6366f1"} },
+    { id: "shelf-row1-comedy", label: "COMEDY / INDIE", category: "shelf", x: 2, y: 0, z: -4.2, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#f97316","backGenre":"INDIE","backColor":"#a855f7"} },
+    { id: "shelf-row1-drama", label: "DRAMA / CLASSICS", category: "shelf", x: 6, y: 0, z: -4.2, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"DRAMA","color":"#6366f1","backGenre":"CLASSICS","backColor":"#ca8a04"} },
+    // Row 2 (middle, z≈-1.5)
+    { id: "shelf-row2-action", label: "ACTION / THRILLER", category: "shelf", x: -6, y: 0, z: -1.5, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#ef4444","backGenre":"THRILLER","backColor":"#7c3aed"} },
+    { id: "shelf-row2-western", label: "WESTERN / DOCS", category: "shelf", x: -2, y: 0, z: -1.5, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"WESTERN","color":"#92400e","backGenre":"DOCS","backColor":"#65a30d"} },
+    { id: "shelf-row2-romance", label: "ROMANCE / ANIMATED", category: "shelf", x: 2, y: 0, z: -1.5, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"ROMANCE","color":"#f43f5e","backGenre":"ANIMATED","backColor":"#06b6d4"} },
+    { id: "shelf-row2-family", label: "FAMILY / CLASSICS", category: "shelf", x: 6, y: 0, z: -1.5, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"FAMILY","color":"#22c55e","backGenre":"CLASSICS","backColor":"#ca8a04"} },
+    // Row 3 (front, z≈1) — closest to entrance, still leaves open space
+    { id: "shelf-row3-horror2", label: "HORROR / MYSTERY", category: "shelf", x: -6, y: 0, z: 1, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#dc2626","backGenre":"CULT","backColor":"#991b1b"} },
+    { id: "shelf-row3-scifi2", label: "SCI-FI / FANTASY", category: "shelf", x: -2, y: 0, z: 1, rotY: 0.6, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#3b82f6","backGenre":"FOREIGN","backColor":"#6366f1"} },
+    { id: "shelf-row3-comedy2", label: "COMEDY / KIDS", category: "shelf", x: 2, y: 0, z: 1, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#f97316","backGenre":"FAMILY","backColor":"#22c55e"} },
+    { id: "shelf-row3-action2", label: "ACTION / ADVENTURE", category: "shelf", x: 6, y: 0, z: 1, rotY: -0.6, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#ef4444","backGenre":"WESTERN","backColor":"#92400e"} },
+    { id: "wallshelf-back-drama", label: "Wall: NEW RELEASES", category: "shelf", x: 0, y: 0, z: -6.85, w: 18, d: 0.3, meta: {"genre":"NEW","color":"#ec4899","rotation":[0,0,0],"width":18} },
     { id: "wallshelf-left-foreign", label: "Wall: FOREIGN", category: "shelf", x: -9.85, y: 0, z: -3, w: 0.3, d: 4, meta: {"genre":"FOREIGN","color":"#6366f1","rotation":[0,1.5707963267948966,0],"width":4} },
     { id: "wallshelf-left-docs", label: "Wall: DOCS", category: "shelf", x: -9.85, y: 0, z: 1, w: 0.3, d: 4, meta: {"genre":"DOCS","color":"#65a30d","rotation":[0,1.5707963267948966,0],"width":4} },
     { id: "wallshelf-right-new", label: "Wall: NEW RELEASES", category: "shelf", x: 9.85, y: 0, z: -2, w: 0.3, d: 8, meta: {"genre":"NEW","color":"#ec4899","rotation":[0,-1.5707963267948966,0],"width":8} },
