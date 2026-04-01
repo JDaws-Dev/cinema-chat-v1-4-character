@@ -969,6 +969,23 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay]);
 
+  // C to take screenshot
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
+      if ((e.key === "c" || e.key === "C") && overlay === "none") {
+        const canvas = document.querySelector("canvas");
+        if (!canvas) return;
+        const link = document.createElement("a");
+        link.download = `friday-night-video-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [overlay]);
+
   // J to open quest log
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1015,7 +1032,7 @@ export default function GamePage() {
       <div onClick={() => { if (isMobile && hoverLabel && !hasOverlay) { mobileInput.interact = true; } }}>
       <Canvas
         shadows={false}
-        gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: false }}
+        gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: true }}
         camera={{ fov: 70, near: 0.1, far: 50 }}
         dpr={isMobile ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
