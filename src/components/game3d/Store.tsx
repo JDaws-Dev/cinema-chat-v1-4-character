@@ -19,11 +19,6 @@ import { WallPoster, WallCrtTv, AnimatedEntranceDoor, AnimatedEmployeeDoor, Base
 // Re-export for external consumers
 export { setEraYears, getShelfMovies };
 
-// ── Neon accent strip for shelves ──
-function ShelfNeonStrip({ position, color, width = 2.6 }: { position: [number, number, number]; color: string; width?: number }) {
-  return (<group position={position}><mesh><boxGeometry args={[width, 0.02, 0.02]} /><Mat color={color} emissive={color} emissiveIntensity={0.8} /></mesh></group>);
-}
-
 // ── Neon sign ──
 function NeonSign() {
   const pos = getObjectById("neon-sign");
@@ -264,7 +259,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
       {/* Bulletin board */}
       <group position={[-ROOM_W / 2 + 0.08, getObjectById("bulletin-board")?.y ?? 1.6, getObjectById("bulletin-board")?.z ?? 4.8]} rotation={[0, Math.PI / 2, 0]}>
         <mesh><boxGeometry args={[1.2, 0.8, 0.05]} /><Mat color="#7a5a30" roughness={0.85} /></mesh>
-        {[[-0.3, 0.15, "#ffd700"], [0.1, 0.2, "#ef4444"], [-0.15, -0.1, "#22c55e"], [0.25, -0.05, "#3b82f6"]].map(([dx, dy, c], i) => (<mesh key={`note${i}`} position={[dx as number, dy as number, -0.03]} rotation={[0, 0, (i - 1.5) * 0.1]}><planeGeometry args={[0.2, 0.2]} /><Mat color={c as string} roughness={0.7} /></mesh>))}
+        {[[-0.3, 0.15, "#ffd700"], [0.1, 0.2, "#ef4444"], [-0.15, -0.1, "#22c55e"], [0.25, -0.05, "#3b82f6"]].map(([dx, dy, c], i) => (<mesh key={`note${i}`} position={[dx as number, dy as number, 0.03]} rotation={[0, 0, (i - 1.5) * 0.1]}><planeGeometry args={[0.2, 0.2]} /><Mat color={c as string} roughness={0.7} /></mesh>))}
       </group>
 
       {/* Phone on wall */}
@@ -320,8 +315,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
 
       <TrophyShelf />
 
-      {/* Neon accent strips */}
-      {/* Shelf neon strips removed — looked like weird colored bars */}
+      {/* Neon accent strips (removed — looked like weird colored bars) */}
 
       {/* ── EXTERIOR ── */}
       {/* Sky dome */}
@@ -493,7 +487,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5 }: { isMobile?: boolean;
         <mesh position={[0, 0.25, 0]}><boxGeometry args={[0.9, 0.5, 0.7]} /><Mat color="#6a4a20" roughness={0.9} /></mesh>
         <mesh position={[0, 0.35, 0]}><boxGeometry args={[0.8, 0.35, 0.6]} /><Mat color="#3a2a10" roughness={0.9} /></mesh>
         <mesh position={[0, 0.6, -0.36]}><boxGeometry args={[0.6, 0.22, 0.02]} /><Mat color="#ef4444" roughness={0.5} /></mesh>
-        <Text position={[0, 0.6, -0.375]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
+        <Text position={[0, 0.6, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
+        <Text position={[0, 0.6, -0.345]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
       </group>
 
       {/* Welcome mat outside */}

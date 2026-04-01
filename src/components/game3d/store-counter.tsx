@@ -60,7 +60,7 @@ export function Counter() {
 
       {[1.0, 1.3, 1.6, 1.9].map((dx, i) => {
         const counterSnacks = [{ name: "Popcorn", emoji: "\ud83c\udf7f" },{ name: "Soda", emoji: "\ud83e\udd64" },{ name: "Nachos", emoji: "\ud83e\uddc0" },{ name: "Cookie", emoji: "\ud83c\udf6a" }];
-        const counterModels = [null, "soda-can", "chocolate", "cookie-chocolate"] as const;
+        const counterModels = ["candy-bar-wrapper", "soda-can", "chocolate", "cookie-chocolate"] as const;
         const snack = counterSnacks[i];
         const model = counterModels[i];
         return (
@@ -68,7 +68,7 @@ export function Counter() {
           {model ? (
             <KenneyModel model={model} position={[0, 0, 0]} scale={0.3} />
           ) : (
-            <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}><boxGeometry args={[0.12, 0.18, 0.06]} /><Mat color="#ef4444" roughness={0.5} /></mesh>
+            <mesh userData={{ interactType: "snack", interactData: JSON.stringify({ name: snack.name, emoji: snack.emoji }), label: `Pick up: ${snack.name}` }}><boxGeometry args={[0.12, 0.18, 0.06]} /><Mat color="#5a3a20" roughness={0.5} /></mesh>
           )}
         </group>
         );
