@@ -51,6 +51,16 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   const bargainCrate = getObjectById("bargain-crate");
   if (bargainCrate) colliders.push({ x: bargainCrate.x, z: bargainCrate.z, hw: 0.55, hd: 0.45 });
 
+  // ── Room walls ──
+  // Left wall (x=-10)
+  colliders.push({ x: -10.2, z: 0, hw: 0.2, hd: 7 });
+  // Right wall (x=+10)
+  colliders.push({ x: 10.2, z: 0, hw: 0.2, hd: 7 });
+  // Front wall — left of door (x=-10 to x=-1.7, z=7)
+  colliders.push({ x: -5.85, z: 7.2, hw: 4.15, hd: 0.2 });
+  // Front wall — right of door (x=1.7 to x=10, z=7)
+  colliders.push({ x: 5.85, z: 7.2, hw: 4.15, hd: 0.2 });
+
   return colliders;
 }
 
