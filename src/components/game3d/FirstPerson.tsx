@@ -18,17 +18,17 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   const colliders: { x: number; z: number; hw: number; hd: number }[] = [];
 
   // ── Gondola shelves ──
-  // Each is 3.2w x 0.6d but rotated 0.6 rad, so compute AABB from rotation.
-  // Add 10% padding for comfortable clearance.
+  // Each is 3.2w x 0.6d rotated ~0.6 rad. Use tight AABB (no padding)
+  // so players can walk between adjacent shelves.
   for (const row of getShelfRows()) {
     const absRot = Math.abs(row.rotY || 0);
     const cosR = Math.cos(absRot);
     const sinR = Math.sin(absRot);
-    const shelfW = 3.2; // layout width
-    const shelfD = 0.6; // layout depth
-    // AABB half-extents of a rotated rectangle, +10% padding
-    const hw = ((shelfW * cosR + shelfD * sinR) / 2) * 1.1;
-    const hd = ((shelfW * sinR + shelfD * cosR) / 2) * 1.1;
+    const shelfW = 2.8; // slightly smaller than visual (3.2) for walkability
+    const shelfD = 0.35; // actual narrow depth of gondola
+    // Tight AABB — no padding multiplier
+    const hw = (shelfW * cosR + shelfD * sinR) / 2;
+    const hd = (shelfW * sinR + shelfD * cosR) / 2;
     colliders.push({ x: row.x, z: row.z, hw, hd });
   }
 
