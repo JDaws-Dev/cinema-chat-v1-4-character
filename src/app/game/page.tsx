@@ -15,14 +15,11 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNextTier, recordVinnyRec, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
-import { getWeeklyChallenge, isWeeklyChallengeComplete, completeWeeklyChallenge } from "@/lib/weekly-challenges";
+import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNextTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
-import { generateRequest, type ProceduralRequest } from "@/lib/procedural-quests";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
-import { getRandomConversation, type NPCConversation } from "@/lib/npc-conversations";
-import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, generateVinnyRepDialogue, getVinnyRecommendation, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
+import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { mobileInput } from "@/components/game3d/MobileControls";
 import "./game.css";
 
@@ -131,22 +128,11 @@ export default function GamePage() {
   const [mysteryHintsUsed, setMysteryHintsUsed] = useState(0);
   const [mysteryWrongMsg, setMysteryWrongMsg] = useState<string | null>(null);
 
-  // New Release Race state
-  const [raceActive, setRaceActive] = useState(false);
-  const [raceMovie, setRaceMovie] = useState<string | null>(null);
-  const [raceTimeLeft, setRaceTimeLeft] = useState(0);
-  const [raceResult, setRaceResult] = useState<"won" | "lost" | null>(null);
-
   // Audio state
   const [audioMuted, setAudioMuted] = useState(false);
   const [musicOff, setMusicOff] = useState(false);
   const [subtitle, setSubtitle] = useState<string | null>(null);
   const subtitleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  // NPC conversation state
-  const [npcLine, setNpcLine] = useState<string | null>(null);
-  const npcConvoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const npcConvoPlaying = useRef(false);
 
   // RPG dialogue state
   const [rpgDialogue, setRpgDialogue] = useState<DialogueTree | null>(null);
@@ -181,18 +167,9 @@ export default function GamePage() {
 
   // Side quest state (uses existing showQuestNotif for notifications)
 
-  // Procedural customer request state
-  const [activeRequest, setActiveRequest] = useState<ProceduralRequest | null>(null);
-
-  // Vinny recommendation tracking
-  const [vinnyRec, setVinnyRec] = useState<string | null>(null);
-
   // Quest system state
   const [questNotification, setQuestNotification] = useState<string | null>(null);
   const questNotifTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  // Back room door state
-  const [backRoomOpen, setBackRoomOpen] = useState(false);
 
   // Membership tier state
   const [totalXP, setTotalXP] = useState(0);
@@ -205,23 +182,6 @@ export default function GamePage() {
   const gameClockRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const closingAnnouncedRef = useRef<Set<string>>(new Set());
 
-  // iOS "Add to Home Screen" prompt
-  const [showHomeScreenPrompt, setShowHomeScreenPrompt] = useState(false);
-
-  useEffect(() => {
-    if (!started) return;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      || (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    const dismissed = localStorage.getItem('fnv_homescreen_dismissed');
-
-    if (isIOS && isSafari && !isStandalone && !dismissed) {
-      const timer = setTimeout(() => setShowHomeScreenPrompt(true), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [started]);
-
   // Load props count + tier on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
     setPropsCount(getPropsCount());
@@ -232,34 +192,6 @@ export default function GamePage() {
       if (subtitleTimer.current) clearTimeout(subtitleTimer.current);
       subtitleTimer.current = setTimeout(() => setSubtitle(null), duration);
     });
-
-    // Periodically trigger NPC conversations (every 30-60s)
-    const scheduleConvo = () => {
-      const delay = 30000 + Math.random() * 30000; // 30-60s
-      npcConvoTimer.current = setTimeout(() => {
-        if (npcConvoPlaying.current) { scheduleConvo(); return; }
-        npcConvoPlaying.current = true;
-        const convo = getRandomConversation();
-        // Play each line sequentially
-        convo.lines.forEach((line, i) => {
-          setTimeout(() => {
-            setNpcLine(`${line.speaker}: "${line.text}"`);
-          }, line.delay);
-        });
-        // Clear after last line + 3s
-        const lastLine = convo.lines[convo.lines.length - 1];
-        const totalDuration = lastLine.delay + 3000;
-        setTimeout(() => {
-          setNpcLine(null);
-          npcConvoPlaying.current = false;
-        }, totalDuration);
-        scheduleConvo();
-      }, delay);
-    };
-    // First conversation after 15s
-    npcConvoTimer.current = setTimeout(() => { scheduleConvo(); }, 15000);
-
-    return () => { if (npcConvoTimer.current) clearTimeout(npcConvoTimer.current); };
   }, []);
 
   // Update challenge timer every second + check speed run timeout
@@ -279,24 +211,6 @@ export default function GamePage() {
     }, 1000);
     return () => clearInterval(iv);
   }, [challenge]);
-
-  // New Release Race countdown timer
-  useEffect(() => {
-    if (!raceActive) return;
-    const iv = setInterval(() => {
-      setRaceTimeLeft(prev => {
-        if (prev <= 1) {
-          setRaceActive(false);
-          setRaceResult("lost");
-          playSFX("challenge_fail");
-          playRandomLine("challenge_fail");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(iv);
-  }, [raceActive]);
 
   useEffect(() => { setStats(loadStats()); }, []);
 
@@ -462,18 +376,6 @@ export default function GamePage() {
 
   // Handle RPG dialogue response selection (quest triggers + node navigation)
   const handleDialogueResponse = useCallback((resp: { text: string; next: DialogueNode; questStart?: string; questComplete?: string }) => {
-    // Check for procedural request accept/decline
-    const pending = (window as unknown as Record<string, unknown>).__pendingProceduralRequest as ProceduralRequest | undefined;
-    if (pending && rpgDialogue?.id?.startsWith("proc_dlg_")) {
-      if (resp.text.startsWith("Sure")) {
-        // Player accepted the procedural request
-        setActiveRequest(pending);
-        showQuestNotif(`Customer Request: Find ${pending.targetMovie.title}`);
-        playSFX("challenge_start");
-      }
-      delete (window as unknown as Record<string, unknown>).__pendingProceduralRequest;
-    }
-
     if (resp.questStart) {
       const questId = resp.questStart;
       const state = getQuestState();
@@ -516,21 +418,13 @@ export default function GamePage() {
         }
       }
     }
-    // Track Vinny recommendation dialogue — store recommendation when player sees it
-    if (rpgDialogue?.id === "vinny_recommendation") {
-      // Extract recommended movie from the opener text
-      const match = rpgDialogue.opener.text.match(/check out (.+?)\. Absolute classic/);
-      if (match) {
-        setVinnyRec(match[1]);
-      }
-    }
     setRpgHistory(prev => [
       ...prev,
       { speaker: "You", text: resp.text },
       { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
     ]);
     setRpgNode(resp.next);
-  }, [showQuestNotif, handleTierUp, rpgDialogue, activeRequest]);
+  }, [showQuestNotif, handleTierUp]);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
@@ -624,44 +518,8 @@ export default function GamePage() {
         playSFX("vhs_pickup");
         // Track movie pickup for quest objectives
         trackQuestMoviePickup(movie.title, movie.genre || "");
-        // Check if this completes an active procedural customer request
-        if (activeRequest && movie.title === activeRequest.targetMovie.title) {
-          const xpResult = addXP(activeRequest.reward);
-          showQuestNotif(`Customer Request Complete! +${activeRequest.reward} XP`);
-          playSFX("challenge_complete");
-          setActiveRequest(null);
-          setTotalXP(xpResult.newTotal);
-          if (xpResult.tierUp) {
-            handleTierUp({ tierUp: true, newTier: xpResult.newTier });
-          }
-          setCurrentTier(getMembershipTier(xpResult.newTotal));
-        }
-        // Track if player picked up Vinny's recommendation
-        if (vinnyRec && movie.title.toLowerCase().includes(vinnyRec.toLowerCase())) {
-          recordVinnyRec(true);
-          setVinnyRec(null);
-          showQuestNotif("Vinny's pick! He'll remember that.");
-        }
         // Vinny quip on pickup (30% chance to avoid spam)
         if (Math.random() < 0.3) playRandomLine("pickup");
-        // Check if this movie wins the race
-        if (raceActive && raceMovie && movie.title.toLowerCase() === raceMovie.toLowerCase()) {
-          const elapsed = 15 - raceTimeLeft;
-          setRaceActive(false);
-          setRaceResult("won");
-          recordChallengeCompletion("race", elapsed);
-          playSFX("challenge_complete");
-          playRandomLine("challenge_complete");
-          // Check for lightsaber prop unlock on first race win
-          const state = loadGameState();
-          const raceCount = state.challengeCompletions["race"] || 0;
-          if (raceCount === 1 && !state.unlockedProps.includes("lightsaber")) {
-            unlockProp("lightsaber");
-            const prop = PROPS.find(p => p.id === "lightsaber");
-            if (prop) setRewardProp(prop);
-          }
-          setPropsCount(getPropsCount());
-        }
       } catch { /* ignore parse errors */ }
       return;
     }
@@ -784,19 +642,10 @@ export default function GamePage() {
         setOverlay("checkout");
         return;
       }
-      // RPG dialogue with Vinny — sometimes quiz, recommendation, or conversation
+      // RPG dialogue with Vinny — sometimes quiz or conversation
       playRandomLine("greetings");
       const roll = Math.random();
-      if (roll < 0.2) {
-        // Vinny recommendation dialogue (reputation-aware)
-        const recMovie = getVinnyRecommendation();
-        const tree = generateVinnyRepDialogue(recMovie);
-        setRpgDialogue(tree);
-        setRpgNode(tree.opener);
-        setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
-        setVinnyRec(recMovie);
-        setOverlay("rpg_dialogue");
-      } else if (roll < 0.6) {
+      if (roll < 0.5) {
         // RPG-style conversation with tier-aware greeting
         const tree = getRandomDialogue("vinny");
         const tierGreeting = getVinnyTierGreeting(currentTier.name);
@@ -833,33 +682,7 @@ export default function GamePage() {
           }
         }
       }
-      // Offer a procedural request (40% if none active), side quest (30%), or normal dialogue
-      if (!activeRequest && Math.random() < 0.4) {
-        const req = generateRequest();
-        if (req) {
-          // Show procedural request as RPG dialogue with accept/decline
-          const declineNode: DialogueNode = { speaker: "Customer", text: "Oh well, maybe next time.", responses: [] };
-          const acceptNode: DialogueNode = { speaker: "Customer", text: `Great! I'll wait here while you look for ${req.targetMovie.title}.`, responses: [] };
-          const opener: DialogueNode = {
-            speaker: "Customer",
-            portrait: undefined,
-            text: req.customerLine,
-            responses: [
-              { text: `Sure, I'll find ${req.targetMovie.title} for you!`, next: acceptNode, questStart: undefined, questComplete: undefined },
-              { text: "Sorry, I'm busy right now.", next: declineNode, questStart: undefined, questComplete: undefined },
-            ],
-          };
-          const wrappedTree: DialogueTree = { id: `proc_dlg_${req.id}`, opener, npc: "customer", portrait: "" };
-          setRpgDialogue(wrappedTree);
-          setRpgNode(opener);
-          setRpgHistory([{ speaker: opener.speaker, portrait: opener.portrait, text: opener.text }]);
-          setOverlay("rpg_dialogue");
-          // Store pending request to be accepted when player picks the accept response
-          (window as unknown as Record<string, unknown>).__pendingProceduralRequest = req;
-          return;
-        }
-      }
-      // Fall through: side quest (50% of remaining) or normal dialogue
+      // Side quest (50%) or normal dialogue
       const completedIds = getQuestState().completedQuests;
       const questTree = Math.random() < 0.5 ? getRandomQuestDialogue(completedIds) : null;
       if (questTree) {
@@ -926,27 +749,8 @@ export default function GamePage() {
       trackQuestGenreVisit(genre);
     } else if (type === "tv") {
       startPuzzle();
-    } else if (type === "employees_door") {
-      // Employees Only back room — Platinum members only
-      const tier = getMembershipTier();
-      if (tier.name === "Platinum") {
-        playSFX("door_chime");
-        setBackRoomOpen(prev => {
-          const opening = !prev;
-          playVinnyLine(
-            opening
-              ? "Welcome to the inner sanctum... browse at your leisure."
-              : "Locking it up. Come back anytime.",
-            "Vinny"
-          );
-          return opening;
-        });
-      } else {
-        playVinnyLine("Sorry, that area is for Platinum members only. Keep earning XP!", "Vinny");
-      }
-      return; // Don't exit pointer lock — stay in game
     }
-  }, [overlay, heldMovies, challenge, mysteryClue, raceActive, raceMovie, raceTimeLeft, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit, activeRequest, backRoomOpen]);
+  }, [overlay, heldMovies, challenge, mysteryClue, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit]);
 
   // ── Start a challenge (movie_night or speed_run) ──────
   const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
@@ -999,20 +803,6 @@ export default function GamePage() {
     setHeldMovies([]);
     setOverlay("none");
     playRandomLine("challenge_start");
-  }, []);
-
-  // ── Start New Release Race ──────────────────────────────
-  const startRace = useCallback(() => {
-    const shelfMovies = getShelfMovies();
-    if (shelfMovies.length === 0) return;
-    const movie = shelfMovies[Math.floor(Math.random() * shelfMovies.length)];
-    setRaceMovie(movie.title);
-    setRaceActive(true);
-    setRaceTimeLeft(15);
-    setRaceResult(null);
-    setHeldMovies([]);
-    setOverlay("none");
-    playSFX("door_chime");
   }, []);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
@@ -1113,59 +903,10 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay, closeOverlay, rpgNode, handleDialogueResponse]);
 
-  // Screenshot helper — forces a render frame then captures (works with preserveDrawingBuffer: false)
-  const takeScreenshot = useCallback(() => {
-    const canvas = document.querySelector("canvas");
-    if (!canvas) return;
-    // Get the WebGL context and force a render before reading pixels
-    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
-    if (!gl) return;
-    // Request animation frame to ensure a fresh render, then capture immediately
-    requestAnimationFrame(() => {
-      const maxW = 1280;
-      const scale = Math.min(1, maxW / canvas.width);
-      const w = Math.round(canvas.width * scale);
-      const h = Math.round(canvas.height * scale);
-      // Read pixels directly from WebGL framebuffer
-      const pixels = new Uint8Array(canvas.width * canvas.height * 4);
-      gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-      // Create offscreen canvas and flip vertically (WebGL is bottom-up)
-      const offscreen = document.createElement("canvas");
-      offscreen.width = w;
-      offscreen.height = h;
-      const ctx = offscreen.getContext("2d");
-      if (!ctx) return;
-      const srcCanvas = document.createElement("canvas");
-      srcCanvas.width = canvas.width;
-      srcCanvas.height = canvas.height;
-      const srcCtx = srcCanvas.getContext("2d");
-      if (!srcCtx) return;
-      const imgData = srcCtx.createImageData(canvas.width, canvas.height);
-      // Flip rows vertically
-      for (let y = 0; y < canvas.height; y++) {
-        const srcRow = (canvas.height - 1 - y) * canvas.width * 4;
-        const dstRow = y * canvas.width * 4;
-        imgData.data.set(pixels.subarray(srcRow, srcRow + canvas.width * 4), dstRow);
-      }
-      srcCtx.putImageData(imgData, 0, 0);
-      ctx.drawImage(srcCanvas, 0, 0, w, h);
-      offscreen.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `fnv-${Date.now()}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }, "image/png");
-    });
-  }, []);
-
-  // C to take screenshot, J to open quest log
+  // J to open quest log
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
-      if (e.key === "c" || e.key === "C") takeScreenshot();
       if ((e.key === "j" || e.key === "J") && overlay === "none") {
         document.exitPointerLock();
         setOverlay("quest_log");
@@ -1173,7 +914,7 @@ export default function GamePage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [takeScreenshot, overlay]);
+  }, [overlay]);
 
   // ── Splash ─────────────────────────────────────────────
   if (!started) {
@@ -1217,8 +958,8 @@ export default function GamePage() {
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
-          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} backRoomOpen={backRoomOpen} />
-          <FirstPersonControls disabled={hasOverlay} backRoomOpen={backRoomOpen} />
+          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} />
+          <FirstPersonControls disabled={hasOverlay} />
           {!hasOverlay && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
         </Suspense>
@@ -1270,11 +1011,6 @@ export default function GamePage() {
       {/* Subtitle display — Vinny's voice lines */}
       {subtitle && (
         <div className="g3-subtitle">{subtitle}</div>
-      )}
-
-      {/* NPC conversation chatter — overheard nearby */}
-      {npcLine && !hasOverlay && !subtitle && (
-        <div className="g3-npc-chatter">{npcLine}</div>
       )}
 
       {/* Pickup flash + title toast */}
@@ -1333,39 +1069,6 @@ export default function GamePage() {
           {mysteryWrongMsg && (
             <div style={{ fontSize: "0.75rem", color: "#ef4444", marginTop: 8, fontWeight: 600 }}>{mysteryWrongMsg}</div>
           )}
-        </div>
-      )}
-
-      {/* New Release Race HUD */}
-      {raceActive && !hasOverlay && (
-        <div className="g3-challenge-list" style={{ borderColor: "rgba(239, 68, 68, 0.5)" }}>
-          <div className="g3-challenge-header" style={{ color: "#ef4444" }}>NEW RELEASE RACE</div>
-          <div className="g3-challenge-item">
-            A customer just returned:
-          </div>
-          <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#ffd700", padding: "4px 0" }}>
-            {raceMovie}
-          </div>
-          <div className="g3-challenge-item">
-            Find it before the other customer!
-          </div>
-          <div className="g3-challenge-timer" style={{ color: raceTimeLeft <= 5 ? "#ef4444" : undefined, fontSize: "1rem", fontWeight: 700 }}>
-            {raceTimeLeft}s
-          </div>
-        </div>
-      )}
-
-      {/* New Release Race result overlay */}
-      {raceResult && (
-        <div className="g3-challenge-complete" onClick={() => setRaceResult(null)}>
-          <div className="g3-challenge-complete-card">
-            <div className="g3-challenge-complete-icon">{raceResult === "won" ? "🏆" : "😤"}</div>
-            <div className="g3-challenge-complete-title">{raceResult === "won" ? "YOU GOT IT!" : "TOO SLOW!"}</div>
-            <div className="g3-challenge-complete-time">{raceResult === "won" ? "Snagged it just in time!" : "The other customer grabbed it first."}</div>
-            <button className="g3-splash-btn" onClick={() => setRaceResult(null)} style={{ marginTop: 12, padding: "12px 24px", fontSize: "0.9rem" }}>
-              {raceResult === "won" ? "NICE!" : "NEXT TIME"}
-            </button>
-          </div>
         </div>
       )}
 
@@ -1433,27 +1136,6 @@ export default function GamePage() {
                 )}
               </button>
 
-              {/* New Release Race — unlocks after 7 Movie Night completions */}
-              {(() => {
-                const raceUnlocked = movieNightCount >= 7;
-                return (
-                  <button
-                    className={`g3-challenge-option ${!raceUnlocked ? "g3-challenge-option-locked" : ""}`}
-                    onClick={() => { if (raceUnlocked) startRace(); }}
-                    disabled={!raceUnlocked}
-                  >
-                    <div className="g3-challenge-option-name">New Release Race</div>
-                    <div className="g3-challenge-option-desc">
-                      {raceUnlocked ? "A customer just returned a hot tape — grab it before someone else!" : ""}
-                    </div>
-                    {raceUnlocked ? (
-                      <div className="g3-challenge-option-stats">Completed {gs.challengeCompletions["race"] || 0} time{(gs.challengeCompletions["race"] || 0) !== 1 ? "s" : ""}</div>
-                    ) : (
-                      <div className="g3-challenge-option-lock">Complete 7 Movie Nights to unlock</div>
-                    )}
-                  </button>
-                );
-              })()}
             </div>
           </div>
         );
@@ -1563,7 +1245,6 @@ export default function GamePage() {
           <div className="g3-props-badge">🏆 {propsCount.unlocked}/{propsCount.total}</div>
           <button className="g3-screenshot-btn" onClick={() => { setMusicOff(m => { const next = !m; setMusicMuted(next); return next; }); }} title="Toggle Music">{musicOff ? "🎵" : "🎶"}</button>
           <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); return next; }); }} title="Mute All">{audioMuted ? "🔇" : "🔊"}</button>
-          <button className="g3-screenshot-btn" onClick={takeScreenshot} title="Screenshot">📷</button>
         </div>
       </div>
 
@@ -1736,12 +1417,6 @@ export default function GamePage() {
           </div>
         </div>
       )}
-      {/* Active procedural request tracker */}
-      {activeRequest && (
-        <div className="g3-active-request">
-          <span className="g3-active-request-icon">&#128203;</span> Find: {activeRequest.targetMovie.title}
-        </div>
-      )}
       {/* Quest notification toast — stacked */}
       <div className="g3-quest-notif-stack" style={{ position: 'fixed', top: '10px', right: '10px', display: 'flex', flexDirection: 'column', gap: '6px', zIndex: 9999, pointerEvents: 'none' }}>
         {notifications.map((n) => (
@@ -1802,11 +1477,6 @@ export default function GamePage() {
                   const state = loadGameState();
                   state.totalMoviesFound += heldMovies.length;
                   saveGameState(state);
-                  // Track if player ignored Vinny's recommendation at checkout
-                  if (vinnyRec && !heldMovies.some(m => m.title.toLowerCase().includes(vinnyRec.toLowerCase()))) {
-                    recordVinnyRec(false);
-                  }
-                  setVinnyRec(null);
                   setOverlay("none");
                   setHeldMovies([]);
                   setHeldSnacks([]);
@@ -1835,28 +1505,6 @@ export default function GamePage() {
               <button className="g3-overlay-close" onClick={closeOverlay}>&#10005;</button>
             </div>
             <div className="g3-overlay-body g3-quest-log">
-              {/* Weekly Challenge */}
-              {(() => {
-                const wc = getWeeklyChallenge();
-                const done = isWeeklyChallengeComplete(wc.id);
-                return (
-                  <div className="g3-quest-section">
-                    <div className="g3-quest-section-title">WEEKLY CHALLENGE</div>
-                    <div className={`g3-quest-card ${done ? "g3-quest-completed" : "g3-quest-active"}`}>
-                      <div className="g3-quest-card-header">
-                        <span className="g3-quest-title">{wc.title}</span>
-                        {done && <span className="g3-quest-check-done">{"\u2713"}</span>}
-                      </div>
-                      <p className="g3-quest-desc">{wc.description}</p>
-                      <div className="g3-quest-reward">
-                        {done ? `Earned: ${wc.reward} XP` : `Reward: ${wc.reward} XP`}
-                      </div>
-                      <p style={{ fontSize: "0.7rem", opacity: 0.6, marginTop: "0.25rem" }}>Resets every Monday</p>
-                    </div>
-                  </div>
-                );
-              })()}
-
               {/* Active Quests */}
               {active.length > 0 && (
                 <div className="g3-quest-section">
@@ -1973,17 +1621,6 @@ export default function GamePage() {
               ) : null}
             </div>
           </div>
-        </div>
-      )}
-      {/* iOS "Add to Home Screen" prompt */}
-      {showHomeScreenPrompt && (
-        <div className="g3-homescreen-prompt">
-          <div className="g3-homescreen-content">
-            <span>{"\ud83d\udcf1"} For fullscreen + audio: Tap</span>
-            <span className="g3-share-icon">{"\u2b06"}</span>
-            <span>then &quot;Add to Home Screen&quot;</span>
-          </div>
-          <button onClick={() => { setShowHomeScreenPrompt(false); localStorage.setItem('fnv_homescreen_dismissed', '1'); }} className="g3-homescreen-dismiss">{"\u2715"}</button>
         </div>
       )}
     </div>

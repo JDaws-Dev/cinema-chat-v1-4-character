@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useMemo, useState, useEffect, useContext, createContext } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import { Text, useTexture, RoundedBox, useGLTF, Billboard } from "@react-three/drei";
 import * as THREE from "three";
@@ -8,9 +8,6 @@ import { hasProp, PROPS } from "@/lib/game-state";
 import { registerNPCPosition, unregisterNPCPosition, playSFX } from "@/lib/audio";
 import { type NpcPersonality, type PersonalityType, PERSONALITIES, getRandomAdultPersonality, getPersonalityLabel } from "@/lib/npc-personalities";
 import { getShelfRows, getObjectById } from "@/lib/store-layout";
-
-// Mobile context — meshBasicMaterial on mobile, meshToonMaterial on desktop
-const MobileCtx = createContext(false);
 
 // Toon shading gradient — 3-step (shadow, mid, highlight) for cel-shaded look
 const toonGradientTexture = (() => {
@@ -32,15 +29,8 @@ const toonGradientTexture = (() => {
   return tex;
 })();
 
-/** Drop-in material — meshToonMaterial on desktop (cel-shaded), meshBasicMaterial on mobile */
+/** Drop-in material — meshToonMaterial everywhere (cel-shaded) */
 function Mat(props: Record<string, unknown>) {
-  const mob = useContext(MobileCtx);
-  if (mob) {
-    const { roughness, metalness, emissiveIntensity, emissive, ...rest } = props;
-    const color = (emissive && (emissiveIntensity as number) > 0.5) ? emissive : rest.color;
-    return <meshBasicMaterial {...rest} color={color as string} />;
-  }
-  // Desktop: toon material for stylized cel-shaded look
   const { roughness, metalness, ...toonProps } = props;
   return <meshToonMaterial {...(toonProps as Record<string, unknown>)} gradientMap={toonGradientTexture} />;
 }
@@ -321,7 +311,6 @@ const SHELF_ROWS = getShelfRows();
 /** Instanced fallback VHS boxes — one draw call for all solid-colored boxes on a side */
 function InstancedVHSBoxes({ positions, color }: { positions: [number, number, number][]; color: string }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const mob = useContext(MobileCtx);
   const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
 
   useEffect(() => {
@@ -338,26 +327,21 @@ function InstancedVHSBoxes({ positions, color }: { positions: [number, number, n
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, positions.length]}>
       <boxGeometry args={[0.15, 0.26, 0.025]} />
-      {mob ? (
-        <meshBasicMaterial color={color} />
-      ) : (
-        <meshToonMaterial color={color} gradientMap={toonGradientTexture} />
-      )}
+      <meshToonMaterial color={color} gradientMap={toonGradientTexture} />
     </instancedMesh>
   );
 }
 
-function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile, rotY = 0 }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; isMobile?: boolean; rotY?: number }) {
+function ShelfUnit({ x, z, genre, color, backGenre, backColor, rotY = 0 }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; rotY?: number }) {
   const frontPosters = usePosterUrls(genre, 30); // 10 tapes × 3 tiers = 30, no repeats
   const backPosters = usePosterUrls(backGenre || genre, 30);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const backGenreKey = (backGenre || genre).toLowerCase().replace(/[- ]/g, "");
   const bColor = backColor || color;
 
-  // Pack shelves full — reduced on mobile for performance
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = isMobile ? 6 : 10;
+    const count = 10;
     const spacing = 0.22; // clear gaps between each VHS case
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
@@ -370,7 +354,7 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile, rotY = 
       }
     }
     return result;
-  }, [isMobile]);
+  }, []);
 
   return (
     <group position={[x, 0, z]} rotation={[0, rotY, 0]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
@@ -438,20 +422,19 @@ function ShelfUnit({ x, z, genre, color, backGenre, backColor, isMobile, rotY = 
 }
 
 function WallShelf({
-  position, rotation, width, genre, color, isMobile
+  position, rotation, width, genre, color
 }: {
   position: [number, number, number];
   rotation: [number, number, number];
   width: number;
   genre: string;
   color: string;
-  isMobile?: boolean;
 }) {
   const posters = usePosterUrls(genre, 20);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
 
   // Wall shelves have 3 tiers, single-sided (face one direction)
-  const tapeCount = isMobile ? 6 : Math.floor(width / 0.22);
+  const tapeCount = Math.floor(width / 0.22);
 
   return (
     <group position={position} rotation={rotation}
@@ -1879,7 +1862,7 @@ function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
   );
 }
 
-function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
+function CharlieCharacter() {
   const ref = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const leftLegRef = useRef<THREE.Mesh>(null);
@@ -2248,7 +2231,7 @@ function CharlieCharacter({ isMobile }: { isMobile?: boolean }) {
   );
 }
 
-function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
+function NewReleasesWall() {
   const posters = usePosterUrls("NEW", 30); // fetch more unique posters to fill wall
   // Only trending — these are actual new releases
   const allPosters = posters;
@@ -2256,8 +2239,8 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
   // Same PosterBox format as the racks — small VHS boxes in a grid
   const positions = useMemo(() => {
     const result: { x: number; y: number; idx: number }[] = [];
-    const cols = isMobile ? 10 : 20;
-    const rows = isMobile ? 2 : 3;
+    const cols = 20;
+    const rows = 3;
     const spacing = 0.24;
     const startX = -(cols - 1) * spacing * 0.5;
     let idx = 0;
@@ -2267,7 +2250,7 @@ function NewReleasesWall({ isMobile }: { isMobile?: boolean }) {
       }
     }
     return result;
-  }, [isMobile]);
+  }, []);
 
   return (
     <group position={[0, 0, -ROOM_D / 2 + 0.15]}>
@@ -2539,7 +2522,7 @@ function SecurityDome({ position }: { position: [number, number, number] }) {
 }
 
 // Neon accent strip for shelves
-function ShelfNeonStrip({ position, color, width = 2.6, isMobile }: { position: [number, number, number]; color: string; width?: number; isMobile?: boolean }) {
+function ShelfNeonStrip({ position, color, width = 2.6 }: { position: [number, number, number]; color: string; width?: number }) {
   return (
     <group position={position}>
       <mesh>
@@ -2802,7 +2785,7 @@ const RARITY_COLORS: Record<string, string> = {
   uncommon: "#06b6d4",
 };
 
-function TrophyShelf({ isMobile }: { isMobile?: boolean }) {
+function TrophyShelf() {
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -2967,11 +2950,11 @@ function KenneyModel({ model, position, rotation = [0, 0, 0], scale = 1 }: {
 }
 
 // ── Back Room mini shelf (smaller than main ShelfUnit) ──
-function BackRoomShelf({ position, genre, color, isMobile }: { position: [number, number, number]; genre: string; color: string; isMobile?: boolean }) {
+function BackRoomShelf({ position, genre, color }: { position: [number, number, number]; genre: string; color: string }) {
   const posters = usePosterUrls(genre, 12);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
 
-  const count = isMobile ? 3 : 5;
+  const count = 5;
   const spacing = 0.20;
   const startX = -(count - 1) * spacing * 0.5;
 
@@ -3125,7 +3108,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
   }, [entranceDoorOpen]);
 
   return (
-    <MobileCtx.Provider value={!!isMobile}>
     <group>
       {/* Floor — blue commercial carpet like Blockbuster */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
@@ -3357,25 +3339,25 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* Shelves */}
       {SHELF_ROWS.map((s, i) => (
-        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} isMobile={isMobile} rotY={s.rotY} />
+        <ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} rotY={s.rotY} />
       ))}
 
       {/* ── PERIMETER WALL SHELVING ─── */}
       {/* Back wall — DRAMA (left half) */}
       <WallShelf position={[getObjectById("wallshelf-back-drama")?.x ?? -5, 0, -ROOM_D/2 + 0.15]} rotation={[0, 0, 0]}
-        width={6} genre="DRAMA" color="#6366f1" isMobile={isMobile} />
+        width={6} genre="DRAMA" color="#6366f1" />
 
       {/* Left wall — upper section */}
       <WallShelf position={[-ROOM_W/2 + 0.15, 0, getObjectById("wallshelf-left-foreign")?.z ?? -3]} rotation={[0, Math.PI/2, 0]}
-        width={4} genre="FOREIGN" color="#6366f1" isMobile={isMobile} />
+        width={4} genre="FOREIGN" color="#6366f1" />
 
       {/* Left wall — lower section */}
       <WallShelf position={[-ROOM_W/2 + 0.15, 0, getObjectById("wallshelf-left-docs")?.z ?? 1]} rotation={[0, Math.PI/2, 0]}
-        width={4} genre="DOCS" color="#65a30d" isMobile={isMobile} />
+        width={4} genre="DOCS" color="#65a30d" />
 
       {/* Right wall — NEW RELEASES (main section) */}
       <WallShelf position={[ROOM_W/2 - 0.15, 0, getObjectById("wallshelf-right-new")?.z ?? -2]} rotation={[0, -Math.PI/2, 0]}
-        width={8} genre="NEW" color="#ec4899" isMobile={isMobile} />
+        width={8} genre="NEW" color="#ec4899" />
 
       {/* Hanging aisle signs */}
       {AISLE_SIGNS.map((sign, i) => (
@@ -3406,11 +3388,11 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         />
       ))}
       {maxNpcs >= 1 && <KidCustomer startPos={[getObjectById("kid")?.x ?? 0, -0.05, getObjectById("kid")?.z ?? 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
-      <CharlieCharacter isMobile={isMobile} />
+      <CharlieCharacter />
       {showTarantino && <TarantinoNPC />}
 
       {/* New Releases wall display */}
-      <NewReleasesWall isMobile={isMobile} />
+      <NewReleasesWall />
 
       {/* Neon sign */}
       <NeonSign />
@@ -5094,7 +5076,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
       {/* ── TROPHY SHELF ────────────────────────────────────── */}
-      <TrophyShelf isMobile={isMobile} />
+      <TrophyShelf />
 
       {/* ── ATMOSPHERE & DETAIL ──────────────────────────────── */}
 
@@ -5123,7 +5105,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
 
       {/* Neon accent strips under shelf top surfaces — genre colored glow */}
       {SHELF_ROWS.map((s, i) => (
-        <ShelfNeonStrip key={`neon-${i}`} position={[s.x, 1.50, s.z]} color={s.color} isMobile={isMobile} />
+        <ShelfNeonStrip key={`neon-${i}`} position={[s.x, 1.50, s.z]} color={s.color} />
       ))}
 
       {/* "EMPLOYEES ONLY" door on left wall */}
@@ -5290,13 +5272,13 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
         </group>
 
         {/* Shelf 1 — CULT section (left side of room) */}
-        <BackRoomShelf position={[-13.5, 0, -5.8]} genre="CULT" color="#991b1b" isMobile={isMobile} />
+        <BackRoomShelf position={[-13.5, 0, -5.8]} genre="CULT" color="#991b1b" />
 
         {/* Shelf 2 — FOREIGN section (center) */}
-        <BackRoomShelf position={[-12, 0, -5.8]} genre="FOREIGN" color="#6366f1" isMobile={isMobile} />
+        <BackRoomShelf position={[-12, 0, -5.8]} genre="FOREIGN" color="#6366f1" />
 
         {/* Shelf 3 — INDIE section (right side) */}
-        <BackRoomShelf position={[-10.5, 0, -5.8]} genre="INDIE" color="#a855f7" isMobile={isMobile} />
+        <BackRoomShelf position={[-10.5, 0, -5.8]} genre="INDIE" color="#a855f7" />
 
         {/* Ambient warm floor glow */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-12, 0.003, -5]}>
@@ -6263,7 +6245,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, backRoomOpen = false }:
       </group>
 
     </group>
-    </MobileCtx.Provider>
   );
 }
 
