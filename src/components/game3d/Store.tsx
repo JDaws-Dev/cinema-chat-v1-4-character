@@ -413,12 +413,12 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       {/* Entrance — simple double glass doors with thin frame */}
       <AnimatedEntranceDoor side="left" doorOpen={entranceDoorOpen}>
-        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.5, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
+        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.7, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
         <mesh position={[0, 1.0, -0.02]}><boxGeometry args={[0.6, 0.06, 0.03]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
         <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PUSH</Text>
       </AnimatedEntranceDoor>
       <AnimatedEntranceDoor side="right" doorOpen={entranceDoorOpen}>
-        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.5, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
+        <mesh position={[0, 1.4, 0]}><planeGeometry args={[1.7, 2.8]} /><Mat color="#a0c0e0" transparent opacity={0.15} side={THREE.DoubleSide} /></mesh>
         <mesh position={[0, 1.0, -0.02]}><boxGeometry args={[0.6, 0.06, 0.03]} /><Mat color="#888888" roughness={0.3} metalness={0.7} /></mesh>
         <Text position={[0, 1.8, 0.01]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>PULL</Text>
       </AnimatedEntranceDoor>

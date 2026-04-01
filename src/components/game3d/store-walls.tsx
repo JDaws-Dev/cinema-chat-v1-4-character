@@ -88,7 +88,7 @@ export function AnimatedEntranceDoor({ side, doorOpen, children }: { side: 'left
   useFrame(() => { if (ref.current) ref.current.rotation.y += (targetAngle - ref.current.rotation.y) * 0.08; });
   // Hinge at outer edge of door frame (±1.7), door swings from there
   const hingeX = side === 'left' ? -1.7 : 1.7;
-  const doorCenterX = side === 'left' ? 0.75 : -0.75;
+  const doorCenterX = side === 'left' ? 0.85 : -0.85;
   return (
     <group position={[hingeX, 0, ROOM_D / 2 - 0.05]}>
       <group ref={ref}><group position={[doorCenterX, 0, 0]}>{children}</group></group>
