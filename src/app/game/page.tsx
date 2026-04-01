@@ -1016,7 +1016,7 @@ export default function GamePage() {
       <Canvas
         shadows={false}
         gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: false }}
-        camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.6, 5] }}
+        camera={{ fov: 70, near: 0.1, far: 50 }}
         dpr={isMobile ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
         style={{ background: "#1a2a48", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
