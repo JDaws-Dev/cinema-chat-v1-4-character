@@ -1225,8 +1225,12 @@ export default function GamePage() {
       {!hasOverlay && (
         <div className="g3-inventory-bar">
           {heldMovies.map((movie, i) => (
-            <div key={`m${i}`} className="g3-inv-slot g3-inv-movie" onClick={() => setHeldMovies(prev => prev.filter(m => m.id !== movie.id))}>
-              <span role="img" aria-label="movie">🎬</span> <span>{movie.title.substring(0, 12)}</span>
+            <div key={`m${i}`} className="g3-inv-slot g3-inv-movie" onClick={() => setHeldMovies(prev => prev.filter(m => m.id !== movie.id))} title={`${movie.title} (click to drop)`}>
+              {movie.posterUrl ? (
+                <img src={`/api/image-proxy?url=${encodeURIComponent(movie.posterUrl.replace('/w342/', '/w92/'))}`} alt={movie.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 3 }} />
+              ) : (
+                <span style={{ fontSize: '0.5rem', textAlign: 'center' }}>{movie.title.substring(0, 10)}</span>
+              )}
             </div>
           ))}
           {heldSnacks.map((snack, i) => (
