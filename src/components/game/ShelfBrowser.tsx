@@ -6,21 +6,14 @@ import type { TrendingMovie, SearchResult } from "@/lib/types";
 
 // Map zone IDs to TMDB genre IDs
 const GENRE_MAP: Record<string, string> = {
-  horror: "27",
-  scifi: "878",
-  comedy: "35",
-  drama: "18",
-  action: "28",
-  classics: "classics",
-  family: "10751",
-  thriller: "53",
-  romance: "10749",
-  animated: "16",
-  western: "37",
-  foreign: "10752",
-  docs: "99",
-  indie: "18",
-  cult: "27",
+  horror: "27", scifi: "878", "sci-fi": "878", comedy: "35", drama: "18",
+  action: "28", classics: "classics", family: "10751", thriller: "53",
+  romance: "10749", animated: "16", western: "37", foreign: "10752",
+  indie: "18", cult: "27", crime: "80", mystery: "9648", adventure: "12",
+  fantasy: "14", war: "10752", musical: "10402", kids: "10751",
+  sports: "28", suspense: "53", noir: "80", disaster: "28", survival: "53",
+  "stand-up": "35", sketch: "35", period: "18", epic: "18",
+  biography: "18", "true story": "18",
 };
 
 const SPINE_COLORS: Record<string, string> = {

@@ -126,7 +126,12 @@ const GENRE_TMDB_IDS: Record<string, string> = {
   HORROR: "27", "SCI-FI": "878", COMEDY: "35", DRAMA: "18",
   ACTION: "28", CLASSICS: "classics", FAMILY: "10751", NEW: "",
   THRILLER: "53", ROMANCE: "10749", ANIMATED: "16", WESTERN: "37",
-  FOREIGN: "10752", DOCS: "99", INDIE: "18", CULT: "27",
+  FOREIGN: "10752", INDIE: "18", CULT: "27", CRIME: "80",
+  MYSTERY: "9648", ADVENTURE: "12", FANTASY: "14", WAR: "10752",
+  MUSICAL: "10402", KIDS: "10751", SPORTS: "28", SUSPENSE: "53",
+  NOIR: "80", DISASTER: "28", SURVIVAL: "53", "STAND-UP": "35",
+  SKETCH: "35", PERIOD: "18", EPIC: "18", BIOGRAPHY: "18",
+  "TRUE STORY": "18",
 };
 
 export interface PosterData { url: string; title: string; id: number; }

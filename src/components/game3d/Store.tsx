@@ -253,19 +253,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
         {[[-0.3, 0.15, "#ffd700"], [0.1, 0.2, "#ef4444"], [-0.15, -0.1, "#22c55e"], [0.25, -0.05, "#3b82f6"]].map(([dx, dy, c], i) => (<mesh key={`note${i}`} position={[dx as number, dy as number, 0.03]} rotation={[0, 0, (i - 1.5) * 0.1]}><planeGeometry args={[0.2, 0.2]} /><Mat color={c as string} roughness={0.7} /></mesh>))}
       </group>
 
-      {/* Phone on wall */}
-      <group position={[getObjectById("wall-phone")?.x ?? 9.8, getObjectById("wall-phone")?.y ?? 2.2, getObjectById("wall-phone")?.z ?? 5.3]} rotation={[0, getObjectById("wall-phone")?.rotY ?? -Math.PI / 2, 0]}>
-        <mesh position={[0, 0.1, 0]}><boxGeometry args={[0.15, 0.25, 0.02]} /><Mat color="#d4c9a8" roughness={0.8} /></mesh>
-        <mesh position={[0, 0.15, 0.02]}><boxGeometry args={[0.12, 0.03, 0.04]} /><Mat color="#c8b888" roughness={0.7} /></mesh>
-        <group position={[0, 0.17, 0.03]}>
-          <mesh position={[0, 0.07, 0]}><cylinderGeometry args={[0.025, 0.02, 0.04, 8]} /><Mat color="#c8b888" roughness={0.6} /></mesh>
-          <mesh position={[0, 0, 0]}><cylinderGeometry args={[0.012, 0.012, 0.12, 8]} /><Mat color="#c8b888" roughness={0.6} /></mesh>
-          <mesh position={[0, -0.07, 0]}><cylinderGeometry args={[0.02, 0.025, 0.04, 8]} /><Mat color="#c8b888" roughness={0.6} /></mesh>
-        </group>
-        {[0, 1, 2, 3, 4, 5].map((i) => (<mesh key={`cord-${i}`} position={[0, -0.02 - i * 0.04, 0.02]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.015, 0.003, 6, 8, Math.PI]} /><Mat color="#c8b888" roughness={0.7} /></mesh>))}
-        <mesh position={[0, -0.02, 0.015]}><boxGeometry args={[0.08, 0.1, 0.01]} /><Mat color="#bba878" roughness={0.7} /></mesh>
-      </group>
-
       {/* Specials chalkboard */}
       <group position={[getObjectById("promo-board")?.x ?? 9.84, getObjectById("promo-board")?.y ?? 1.72, getObjectById("promo-board")?.z ?? 3.05]} rotation={[0, getObjectById("promo-board")?.rotY ?? -Math.PI / 2, 0]}>
         <mesh><boxGeometry args={[1.02, 0.78, 0.04]} /><Mat color="#1a2f58" roughness={0.7} /></mesh>
@@ -295,9 +282,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       {/* Challenge board */}
       <group position={[getObjectById("challenge-board")?.x ?? (ROOM_W / 2 - 0.08), getObjectById("challenge-board")?.y ?? 1.62, getObjectById("challenge-board")?.z ?? 2.65]} rotation={[0, getObjectById("challenge-board")?.rotY ?? -Math.PI / 2, 0]} userData={{ interactType: "challenge", label: "Challenge Board" }}>
-        <mesh userData={{ interactType: "challenge", label: "Challenge Board" }}><boxGeometry args={[0.72, 0.5, 0.04]} /><Mat color="#122448" roughness={0.55} /></mesh>
-        <mesh position={[0, 0, 0.01]}><boxGeometry args={[0.82, 0.6, 0.02]} /><Mat color="#d4a514" emissive="#ffd700" emissiveIntensity={0.08} roughness={0.55} /></mesh>
-        <mesh position={[0, 0, 0.02]}><boxGeometry args={[0.68, 0.46, 0.01]} /><Mat color="#0f1a33" roughness={0.5} /></mesh>
+        <mesh position={[0, 0, -0.02]} userData={{ interactType: "challenge", label: "Challenge Board" }}><boxGeometry args={[0.82, 0.6, 0.04]} /><Mat color="#d4a514" emissive="#ffd700" emissiveIntensity={0.08} roughness={0.55} /></mesh>
+        <mesh position={[0, 0, 0.01]}><boxGeometry args={[0.68, 0.46, 0.02]} /><Mat color="#0f1a33" roughness={0.5} /></mesh>
         <Text position={[0, 0.115, 0.03]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>MOVIE NIGHT</Text>
         <Text position={[0, 0.03, 0.03]} fontSize={0.038} color="#7ec8ff" anchorX="center" anchorY="middle" font={undefined}>CHALLENGE</Text>
         <Text position={[0, -0.045, 0.03]} fontSize={0.021} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>Pick tonight's theme</Text>
@@ -437,8 +423,7 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       <FloorRug />
 
-      {/* Potted plant + trash can */}
-      <KenneyModel model="pottedPlant" position={[getObjectById("plant")?.x ?? (ROOM_W / 2 - 0.5), 0, getObjectById("plant")?.z ?? (-ROOM_D / 2 + 0.5)]} scale={0.5} />
+      {/* Trash can */}
       <KenneyModel model="trashcan" position={[getObjectById("trash-can")?.x ?? -1.5, 0, getObjectById("trash-can")?.z ?? (ROOM_D / 2 - 1)]} scale={0.5} />
 
 
@@ -491,7 +476,7 @@ useGLTF.preload('/models/taxi.glb');
 useGLTF.preload('/models/police.glb');
 useGLTF.preload('/models/delivery.glb');
 useGLTF.preload('/models/trashcan.glb');
-useGLTF.preload('/models/pottedPlant.glb');
+;
 useGLTF.preload('/models/televisionVintage.glb');
 useGLTF.preload('/models/candy-bar.glb');
 useGLTF.preload('/models/candy-bar-wrapper.glb');

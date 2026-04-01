@@ -16,8 +16,9 @@ export function Counter() {
       <mesh position={[0, 0.64, -0.56]}><boxGeometry args={[5.92, 0.16, 0.05]} /><Mat color="#1c3f73" roughness={0.55} /></mesh>
       <mesh position={[0, 0.18, -0.71]}><boxGeometry args={[5.15, 0.04, 0.04]} /><Mat color="#b8952a" roughness={0.3} metalness={0.65} /></mesh>
 
-      {[0.3, 0.6].map((y) => (
-        <mesh key={`candy-shelf-${y}`} position={[0, y, -0.58]}><boxGeometry args={[4, 0.03, 0.25]} /><Mat color="#5a3820" roughness={0.7} /></mesh>
+      {/* Candy display — mounted on front face of counter */}
+      {[0.25, 0.50].map((y) => (
+        <mesh key={`candy-shelf-${y}`} position={[0, y, -0.75]}><boxGeometry args={[4, 0.03, 0.3]} /><Mat color="#5a3820" roughness={0.7} /></mesh>
       ))}
       {[-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5].map((dx, i) => {
         const topSnacks = [
@@ -30,16 +31,16 @@ export function Counter() {
         const bottomSnack = bottomSnacks[i];
         return (
         <group key={`candy-row-${i}`}>
-          <group position={[dx, 0.72, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
+          <group position={[dx, 0.62, -0.75]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: topSnack.name, emoji: topSnack.emoji }), label: `Pick up: ${topSnack.name}` }}>
             <KenneyModel model={i % 2 === 0 ? "candy-bar" : "chocolate"} position={[0, 0, 0]} scale={0.3} />
           </group>
-          <group position={[dx, 0.42, -0.58]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
+          <group position={[dx, 0.37, -0.75]} userData={{ interactType: "snack", interactData: JSON.stringify({ name: bottomSnack.name, emoji: bottomSnack.emoji }), label: `Pick up: ${bottomSnack.name}` }}>
             <KenneyModel model={i % 2 === 0 ? "candy-bar-wrapper" : "cookie-chocolate"} position={[0, 0, 0]} scale={0.3} />
           </group>
         </group>
         );
       })}
-      <Text position={[0, 0.73, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>CANDY & SNACKS</Text>
+      <Text position={[0, 0.73, -0.78]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>CANDY & SNACKS</Text>
 
       <group position={[-1.5, 0.95, 0]}>
         <RoundedBox args={[0.55, 0.35, 0.4]} radius={0.03} smoothness={3}><Mat color="#2a2a2a" roughness={0.4} /></RoundedBox>
@@ -77,17 +78,12 @@ export function Counter() {
       <mesh position={[2.3, 1.00, -0.2]}><boxGeometry args={[0.5, 0.25, 0.35]} /><Mat color="#2a2a3a" roughness={0.7} /></mesh>
       <Text position={[2.3, 1.20, -0.38]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>RETURNS</Text>
 
-      <group position={[0.5, 1.35, 0.3]}>
+      {/* Monitor on counter — base sits on surface at y=0.90 */}
+      <group position={[0.5, 1.10, 0.3]}>
         <mesh><boxGeometry args={[0.4, 0.35, 0.05]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
         <mesh position={[0, 0.01, -0.026]}><planeGeometry args={[0.34, 0.26]} /><Mat color="#1a3a6a" emissive="#1a4a8a" emissiveIntensity={0.6} /></mesh>
         <mesh position={[0, -0.22, 0.02]}><boxGeometry args={[0.08, 0.1, 0.06]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
         <mesh position={[0, -0.27, 0.02]}><boxGeometry args={[0.18, 0.02, 0.12]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
-      </group>
-
-      <group position={[-0.15, 0.92, 0.28]}>
-        <mesh position={[0, 0.12, 0]}><cylinderGeometry args={[0.025, 0.03, 0.24, 8]} /><Mat color="#444444" roughness={0.45} metalness={0.4} /></mesh>
-        <mesh position={[0, 0.25, 0.02]} rotation={[-0.45, 0, 0]}><coneGeometry args={[0.09, 0.16, 10]} /><Mat color="#173560" roughness={0.5} /></mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.05, 0.01, -0.04]}><circleGeometry args={[0.18, 16]} /><meshBasicMaterial color="#ffcf86" transparent opacity={0.16} /></mesh>
       </group>
 
       <mesh position={[1.0, 0.95, -0.2]}><boxGeometry args={[0.15, 0.08, 0.2]} /><Mat color="#333333" roughness={0.5} /></mesh>
