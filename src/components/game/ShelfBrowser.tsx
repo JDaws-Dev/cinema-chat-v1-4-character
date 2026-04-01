@@ -77,7 +77,7 @@ export function ShelfBrowser({ genre, open, onClose, onFilmClick }: ShelfBrowser
         .catch(() => {})
         .finally(() => setLoading(false));
     } else {
-      const cleanGenre = genre.replace(/-p2$/i, "");
+      const cleanGenre = genre.replace(/-p\d+$/i, "");
       const genreId = GENRE_MAP[cleanGenre];
       if (!genreId) {
         setLoading(false);

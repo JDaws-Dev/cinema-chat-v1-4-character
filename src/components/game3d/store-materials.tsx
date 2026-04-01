@@ -149,10 +149,11 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
 
   useEffect(() => {
-    // Support "-P2" suffix for second rack of same genre (uses pages 4-6 instead of 1-3)
-    const isPage2 = genre.endsWith("-P2");
-    const baseGenre = isPage2 ? genre.replace("-P2", "") : genre;
-    const pageOffset = isPage2 ? 3 : 0; // pages 4,5,6 for P2 racks
+    // Support "-P2"/"-P3" suffix for extra racks of same genre (different TMDB pages)
+    const pageMatch = genre.match(/-P(\d+)$/);
+    const pageNum = pageMatch ? parseInt(pageMatch[1]) : 0;
+    const baseGenre = pageNum ? genre.replace(/-P\d+$/, "") : genre;
+    const pageOffset = pageNum * 3; // P2=pages 4-6, P3=pages 7-9
     const genreId = GENRE_TMDB_IDS[baseGenre];
     const [startYear, endYear] = currentEraYears.split("-");
 
@@ -227,7 +228,7 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
 
   // Register loaded movies in global registry for challenge system
   useEffect(() => {
-    const cleanGenre = genre.replace(/-P2$/, "");
+    const cleanGenre = genre.replace(/-P\d+$/, "");
     const genreName = cleanGenre.charAt(0).toUpperCase() + cleanGenre.slice(1).toLowerCase().replace(/-/g, " ");
     for (const p of posters) {
       if (p.title && p.id) {

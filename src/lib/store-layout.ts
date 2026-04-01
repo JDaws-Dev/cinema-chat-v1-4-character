@@ -40,26 +40,26 @@ export interface StoreLayout {
 export const STORE_LAYOUT: StoreLayout = {
   version: 1,
   objects: [
-    // Row 1: Action (big section) + Comedy (big section)
-    { id: "shelf-row1-action", label: "ACTION / ADVENTURE", category: "shelf", x: -6.73, y: 0, z: -4.01, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#00006e","backGenre":"ADVENTURE","backColor":"#00006e"} },
-    { id: "shelf-row1-action2", label: "ACTION / ADVENTURE", category: "shelf", x: -3.06, y: 0, z: -4.77, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"ACTION-P2","color":"#00006e","backGenre":"ADVENTURE-P2","backColor":"#00006e"} },
-    { id: "shelf-row1-comedy", label: "COMEDY / ROMANCE", category: "shelf", x: 2.95, y: 0, z: -4.73, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#00006e","backGenre":"ROMANCE","backColor":"#00006e"} },
-    { id: "shelf-row1-comedy2", label: "COMEDY / ROMANCE", category: "shelf", x: 6.54, y: 0, z: -3.79, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"COMEDY-P2","color":"#00006e","backGenre":"ROMANCE-P2","backColor":"#00006e"} },
-    // Row 2: Horror (big section) + Drama (big section)
-    { id: "shelf-row2-horror", label: "HORROR / THRILLER", category: "shelf", x: -6.35, y: 0, z: -1.41, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"HORROR","color":"#00006e","backGenre":"THRILLER","backColor":"#00006e"} },
-    { id: "shelf-row2-horror2", label: "HORROR / THRILLER", category: "shelf", x: -2.42, y: 0, z: -2.43, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"HORROR-P2","color":"#00006e","backGenre":"THRILLER-P2","backColor":"#00006e"} },
-    { id: "shelf-row2-drama", label: "DRAMA / MYSTERY", category: "shelf", x: 2.65, y: 0, z: -2.5, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"DRAMA","color":"#00006e","backGenre":"MYSTERY","backColor":"#00006e"} },
-    { id: "shelf-row2-drama2", label: "DRAMA / CLASSICS", category: "shelf", x: 6.16, y: 0, z: -1.52, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"DRAMA-P2","color":"#00006e","backGenre":"CLASSICS","backColor":"#00006e"} },
-    // Row 3: Sci-Fi, Family, Crime, Western
-    { id: "shelf-row3-scifi", label: "SCI-FI / FANTASY", category: "shelf", x: -5.82, y: 0, z: 1.05, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI","color":"#00006e","backGenre":"FANTASY","backColor":"#00006e"} },
-    { id: "shelf-row3-family", label: "FAMILY / ANIMATED", category: "shelf", x: -2.12, y: 0, z: 0.07, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"FAMILY","color":"#00006e","backGenre":"ANIMATED","backColor":"#00006e"} },
-    { id: "shelf-row3-crime", label: "CRIME / WESTERN", category: "shelf", x: 2.61, y: 0, z: -0.01, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"CRIME","color":"#00006e","backGenre":"WESTERN","backColor":"#00006e"} },
-    { id: "shelf-row3-foreign", label: "FOREIGN / INDIE", category: "shelf", x: 6.01, y: 0, z: 0.9, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"FOREIGN","color":"#00006e","backGenre":"INDIE","backColor":"#00006e"} },
-    // Row 4: Musical, War, Cult, Special Interest
-    { id: "shelf-row4-musical", label: "MUSICAL / WAR", category: "shelf", x: -12.55, y: 0, z: -1.71, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"MUSICAL","color":"#00006e","backGenre":"WAR","backColor":"#00006e"} },
-    { id: "shelf-row4-cult", label: "CULT / DOCUMENTARY", category: "shelf", x: -2, y: 0, z: 2.71, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"CULT","color":"#00006e","backGenre":"DOCUMENTARY","backColor":"#00006e"} },
-    { id: "shelf-row4-sports", label: "SPORTS / FITNESS", category: "shelf", x: -5.75, y: 0, z: 3.66, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"SPORTS","color":"#00006e","backGenre":"FITNESS","backColor":"#00006e"} },
-    { id: "shelf-row4-kids", label: "KIDS / TV SERIES", category: "shelf", x: 3.7, y: 0, z: 2.26, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"KIDS","color":"#00006e","backGenre":"TV SERIES","backColor":"#00006e"} },
+    // Row 1: Action/Adventure + Comedy side by side, then Horror + Drama
+    { id: "shelf-row1-action", label: "ACTION/ADVENTURE", category: "shelf", x: -6.73, y: 0, z: -4.01, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"ACTION","color":"#00006e","backGenre":"HORROR","backColor":"#00006e"} },
+    { id: "shelf-row1-action2", label: "ACTION/ADVENTURE", category: "shelf", x: -3.06, y: 0, z: -4.77, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"ADVENTURE","color":"#00006e","backGenre":"HORROR-P2","backColor":"#00006e"} },
+    { id: "shelf-row1-comedy", label: "COMEDY", category: "shelf", x: 2.95, y: 0, z: -4.73, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"COMEDY","color":"#00006e","backGenre":"DRAMA","backColor":"#00006e"} },
+    { id: "shelf-row1-comedy2", label: "COMEDY", category: "shelf", x: 6.54, y: 0, z: -3.79, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"COMEDY-P2","color":"#00006e","backGenre":"DRAMA-P2","backColor":"#00006e"} },
+    // Row 2: Thriller + Romance side by side, then Sci-Fi/Fantasy + Kids & Family
+    { id: "shelf-row2-thriller", label: "THRILLER", category: "shelf", x: -6.35, y: 0, z: -1.41, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"THRILLER","color":"#00006e","backGenre":"SCI-FI","backColor":"#00006e"} },
+    { id: "shelf-row2-thriller2", label: "THRILLER", category: "shelf", x: -2.42, y: 0, z: -2.43, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"THRILLER-P2","color":"#00006e","backGenre":"FANTASY","backColor":"#00006e"} },
+    { id: "shelf-row2-romance", label: "ROMANCE", category: "shelf", x: 2.65, y: 0, z: -2.5, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"ROMANCE","color":"#00006e","backGenre":"KIDS","backColor":"#00006e"} },
+    { id: "shelf-row2-romance2", label: "ROMANCE", category: "shelf", x: 6.16, y: 0, z: -1.52, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"ROMANCE-P2","color":"#00006e","backGenre":"FAMILY","backColor":"#00006e"} },
+    // Row 3: Musicals + Classics, Western + extras
+    { id: "shelf-row3-musicals", label: "MUSICALS", category: "shelf", x: -5.82, y: 0, z: 1.05, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"MUSICAL","color":"#00006e","backGenre":"ACTION-P2","backColor":"#00006e"} },
+    { id: "shelf-row3-musicals2", label: "MUSICALS", category: "shelf", x: -2.12, y: 0, z: 0.07, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"MUSICAL-P2","color":"#00006e","backGenre":"ADVENTURE-P2","backColor":"#00006e"} },
+    { id: "shelf-row3-classics", label: "CLASSICS", category: "shelf", x: 2.61, y: 0, z: -0.01, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"CLASSICS","color":"#00006e","backGenre":"SCI-FI-P2","backColor":"#00006e"} },
+    { id: "shelf-row3-classics2", label: "CLASSICS", category: "shelf", x: 6.01, y: 0, z: 0.9, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"CLASSICS-P2","color":"#00006e","backGenre":"FANTASY-P2","backColor":"#00006e"} },
+    // Row 4: Western + overflow for big genres
+    { id: "shelf-row4-western", label: "WESTERN", category: "shelf", x: -12.55, y: 0, z: -1.71, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"WESTERN","color":"#00006e","backGenre":"HORROR-P3","backColor":"#00006e"} },
+    { id: "shelf-row4-western2", label: "WESTERN", category: "shelf", x: -2, y: 0, z: 2.71, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"WESTERN-P2","color":"#00006e","backGenre":"COMEDY-P3","backColor":"#00006e"} },
+    { id: "shelf-row4-kids", label: "KIDS & FAMILY", category: "shelf", x: -5.75, y: 0, z: 3.66, rotY: 0.175, w: 3.2, d: 0.6, meta: {"genre":"KIDS-P2","color":"#00006e","backGenre":"DRAMA-P3","backColor":"#00006e"} },
+    { id: "shelf-row4-scifi", label: "SCI-FI & FANTASY", category: "shelf", x: 3.7, y: 0, z: 2.26, rotY: -0.175, w: 3.2, d: 0.6, meta: {"genre":"SCI-FI-P3","color":"#00006e","backGenre":"FAMILY-P2","backColor":"#00006e"} },
     { id: "wallshelf-back-drama", label: "Wall: NEW RELEASES", category: "shelf", x: 0, y: 0, z: -6.85, w: 18, d: 0.3, meta: {"genre":"NEW","color":"#ec4899","rotation":[0,0,0],"width":18} },
     { id: "new-releases-wall", label: "NEW RELEASES (wall)", category: "shelf", x: 0, y: 0, z: -6.85, w: 19, d: 0.3, meta: {"type":"new-releases-display"} },
     { id: "staff-picks", label: "Staff Picks", category: "prop", x: 9.75, y: 1.2, z: -2.65, w: 0.4, d: 1.2, meta: {"rotation":[0,-1.5707963267948966,0]} },

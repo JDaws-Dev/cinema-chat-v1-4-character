@@ -660,10 +660,10 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
   width: 100%;
-  padding: 0 20px;
+  padding: 0 32px;
 }
 
 .g3-puzzle-top {
@@ -676,8 +676,375 @@
 .g3-puzzle-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ── Vinny's Five (vf-*) Puzzle Styles ───────────────────── */
+.vf-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+  transition: filter 0.5s ease;
+}
+
+.vf-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 14, 24, 0.7) 0%, rgba(10, 14, 24, 0.95) 100%);
+  z-index: 2;
+}
+
+.vf-back {
+  background: rgba(255, 215, 0, 0.08);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  color: #ffd700;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--fnv-font-game);
+  padding: 10px 18px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: all 0.2s;
+}
+
+.vf-back:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
+.vf-star-track {
+  display: flex;
+  gap: 4px;
+}
+
+.vf-star {
+  font-size: 1.5rem;
+  color: rgba(255, 215, 0, 0.15);
+  transition: color 0.3s;
+}
+
+.vf-star-lit {
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.vf-star-won {
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+  animation: vf-star-pulse 0.4s ease;
+}
+
+@keyframes vf-star-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.vf-clue-num {
+  font-size: 1rem;
+  color: rgba(255, 215, 0, 0.5);
+  font-weight: 700;
+  font-family: var(--fnv-font-game);
+}
+
+.vf-clue-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+
+.vf-clue-item {
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+  border-radius: 8px;
+}
+
+.vf-clue-vinny {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.vf-v-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.2);
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: #ffd700;
+  flex-shrink: 0;
+}
+
+.vf-clue-poetic {
+  font-size: 1.2rem;
+  font-style: italic;
+  color: #e8e2d6;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.vf-clue-fact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vf-clue-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #ffd700;
+  letter-spacing: 0.1em;
+  background: rgba(255, 215, 0, 0.1);
+  padding: 4px 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.vf-clue-val {
+  font-size: 1.05rem;
+  color: #e0e0e0;
+}
+
+.vf-clue-tagline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vf-clue-tagline-text {
+  font-size: 1.05rem;
+  font-style: italic;
+  color: #ccc;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.vf-clue-poster-reveal {
+  text-align: center;
+}
+
+.vf-poster-big {
+  max-height: 200px;
+  border-radius: 4px;
+  border: 2px solid #444;
+}
+
+.vf-input-bottom {
+  flex-shrink: 0;
+  padding: 16px 0;
+}
+
+.vf-input-wrap {
+  display: flex;
+  gap: 10px;
+}
+
+.vf-input {
+  flex: 1;
+  padding: 14px 18px;
+  font-size: 1.1rem;
+  color: #e8e2d6;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 215, 0, 0.25);
+  border-radius: 6px;
+  outline: none;
+  font-family: var(--fnv-font-game);
+  transition: border-color 0.2s;
+}
+
+.vf-input:focus {
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
+.vf-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.vf-skip {
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--fnv-font-game);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.vf-skip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.vf-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.vf-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(10, 14, 24, 0.95);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--fnv-font-game);
+  color: #e0e0e0;
+  text-align: left;
+  width: 100%;
+}
+
+.vf-result:hover {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.vf-result-poster {
+  width: 36px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.vf-result-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.vf-result-year {
+  font-size: 0.85rem;
+  color: #888;
+  margin-left: auto;
+}
+
+/* Reveal card */
+.vf-reveal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px 0;
+}
+
+.vf-reveal-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.vf-reveal-poster {
+  width: 120px;
+  border-radius: 4px;
+  border: 2px solid #444;
+}
+
+.vf-reveal-info {
+  text-align: left;
+}
+
+.vf-reveal-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+}
+
+.vf-reveal-meta {
+  font-size: 1rem;
+  color: #888;
+  margin: 6px 0 0;
+}
+
+.vf-score-banner {
+  font-size: 1.2rem;
+  font-weight: 800;
+  padding: 12px 28px;
+  border-radius: 6px;
+  letter-spacing: 0.03em;
+}
+
+.vf-score-win {
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.vf-score-lose {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 2px solid rgba(239, 68, 68, 0.3);
+}
+
+/* VF buttons */
+.vf-btn {
+  padding: 14px 28px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: var(--fnv-font-game);
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.vf-btn-primary {
+  background: #ffd700;
+  color: #0a0e18;
+  border: 2px solid #ffd700;
+}
+
+.vf-btn-primary:hover {
+  background: #ffe44d;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.vf-btn-secondary {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.vf-btn-secondary:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.vf-btn-ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  border: none;
+  padding: 10px 20px;
+}
+
+.vf-btn-ghost:hover {
+  color: #ffd700;
 }
 
 /* ── Loading overlay ─────────────────────────────────────── */
@@ -832,30 +1199,35 @@
 
 .g3-challenge-complete-card {
   text-align: center;
-  padding: 30px 40px;
-  background: rgba(10, 14, 24, 0.95);
-  border: 2px solid rgba(255, 215, 0, 0.4);
-  border-radius: 16px;
-  box-shadow: 0 0 40px rgba(255, 215, 0, 0.15);
+  padding: 48px 60px;
+  background: rgba(10, 14, 24, 0.97);
+  border: 3px solid rgba(255, 215, 0, 0.5);
+  border-radius: 12px;
+  box-shadow:
+    0 0 60px rgba(255, 215, 0, 0.2),
+    0 0 100px rgba(0, 0, 0, 0.5);
+  max-width: 500px;
+  width: 85vw;
 }
 
 .g3-challenge-complete-icon {
-  font-size: 3rem;
-  margin-bottom: 12px;
+  font-size: 4.5rem;
+  margin-bottom: 16px;
 }
 
 .g3-challenge-complete-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 900;
   color: #ffd700;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 24px rgba(255, 215, 0, 0.4);
+  font-family: var(--fnv-font-game);
 }
 
 .g3-challenge-complete-time {
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   color: rgba(232, 226, 214, 0.7);
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 /* ── Challenge Selection Overlay ─────────────────────────── */
@@ -1009,6 +1381,304 @@
   background: #06b6d4;
 }
 
+/* ── Shelf Browser Panel ──────────────────────────────────── */
+.game-panel {
+  position: fixed;
+  z-index: 20;
+  background: rgba(10, 14, 24, 0.97);
+  backdrop-filter: blur(16px);
+  font-family: var(--fnv-font-game);
+  transition: transform 0.3s ease-out;
+}
+
+.panel-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 80vh;
+  border-top: 3px solid rgba(255, 215, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+}
+
+.panel-bottom.panel-open {
+  transform: translateY(0);
+  animation: slide-up 0.3s ease-out;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 2px solid rgba(255, 215, 0, 0.25);
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.08) 0%, transparent 100%);
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #ffd700;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+}
+
+.panel-close {
+  background: rgba(255, 215, 0, 0.08);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+  color: #ffd700;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: var(--fnv-font-game);
+  padding: 8px 18px;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+}
+
+.panel-close:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.panel-loading,
+.panel-empty {
+  text-align: center;
+  color: rgba(255, 215, 0, 0.5);
+  font-size: 1rem;
+  padding: 48px 0;
+  letter-spacing: 0.1em;
+}
+
+/* VHS tape grid in shelf browser */
+.vhs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.vhs-cassette {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  padding-bottom: 8px;
+}
+
+.vhs-cassette:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.vhs-poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.vhs-poster-placeholder {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  font-size: 0.7rem;
+  text-align: center;
+  padding: 8px;
+}
+
+.vhs-spine {
+  height: 4px;
+  width: 100%;
+  margin-top: -1px;
+}
+
+.vhs-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  padding: 6px 8px 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.vhs-year {
+  font-size: 0.65rem;
+  color: #888;
+  padding: 0 8px;
+}
+
+/* ── Quiz Overlay Styles (Quote & Synopsis) ──────────────── */
+.fnv-quote-display {
+  font-size: 1.4rem;
+  font-style: italic;
+  color: #e8e2d6;
+  line-height: 1.6;
+  padding: 24px;
+  background: rgba(255, 215, 0, 0.04);
+  border-left: 4px solid rgba(255, 215, 0, 0.4);
+  border-radius: 4px;
+  margin-bottom: 24px;
+  font-family: var(--fnv-font-game);
+}
+
+.fnv-synopsis-display {
+  padding: 24px;
+  background: rgba(255, 215, 0, 0.04);
+  border-left: 4px solid rgba(255, 215, 0, 0.4);
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+.fnv-synopsis-label {
+  font-size: 0.85rem;
+  color: #ffd700;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+}
+
+.fnv-synopsis-display p {
+  font-size: 1.1rem;
+  color: #e8e2d6;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.fnv-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fnv-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 215, 0, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--fnv-font-game);
+  font-size: 1rem;
+  color: #e0e0e0;
+  text-align: left;
+  min-height: 56px;
+}
+
+.fnv-option:hover:not(:disabled) {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.fnv-opt-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #ffd700;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.fnv-opt-correct {
+  border-color: #22c55e !important;
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #22c55e;
+}
+
+.fnv-opt-correct .fnv-opt-letter {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.fnv-opt-wrong {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444;
+}
+
+.fnv-opt-wrong .fnv-opt-letter {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.fnv-opt-dim {
+  opacity: 0.35;
+}
+
+/* Vinny comment after quiz answer */
+.fnv-vinny-greet {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  background: rgba(255, 215, 0, 0.04);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 8px;
+}
+
+.fnv-vinny-small {
+  font-size: 0.95rem;
+}
+
+.fnv-vinny-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.2);
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: #ffd700;
+  flex-shrink: 0;
+}
+
+.fnv-vinny-text {
+  color: rgba(232, 226, 214, 0.85);
+  line-height: 1.5;
+  font-size: 1rem;
+}
+
+.fnv-vinny-text p {
+  margin: 0;
+}
+
 /* ── Mobile responsive ───────────────────────────────────── */
 @media (max-width: 768px) {
   /* Bottom slide-up panels: full screen on mobile */
@@ -1030,14 +1700,32 @@
 
   /* Bigger close button for touch targets */
   .g3-overlay-close {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
   }
 
   /* Bump font sizes for readability */
   .g3-overlay-title {
-    font-size: 0.85rem;
+    font-size: 1rem;
+  }
+
+  .g3-overlay-body {
+    padding: 20px 16px;
+  }
+
+  .fnv-options {
+    grid-template-columns: 1fr;
+  }
+
+  .fnv-quote-display {
+    font-size: 1.1rem;
+    padding: 16px;
+  }
+
+  .vhs-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
   }
 
   .g3-chat-msg {
@@ -1656,11 +2344,17 @@
 /* Mobile */
 @media (max-width: 768px) {
   .g3-rpg-overlay { padding: 0 12px 12px; }
-  .g3-rpg-text { font-size: 0.85rem; padding: 12px 16px; }
-  .g3-rpg-choice { padding: 8px 16px; }
-  .g3-rpg-choice-text { font-size: 0.8rem; }
-  .g3-quest-log { max-height: 60vh; }
-  .g3-quest-card { padding: 10px 12px; }
+  .g3-rpg-box { max-width: 100%; }
+  .g3-rpg-text { font-size: 1rem; padding: 16px 18px; }
+  .g3-rpg-choice { padding: 12px 18px; }
+  .g3-rpg-choice-text { font-size: 0.95rem; }
+  .g3-rpg-choice-num { width: 26px; height: 26px; }
+  .g3-quest-log { max-height: 80vh; }
+  .g3-quest-card { padding: 14px 16px; }
+  .g3-quest-title { font-size: 1rem; }
+  .g3-quest-desc { font-size: 0.85rem; }
+  .g3-quest-obj { font-size: 0.85rem; }
+  .panel-bottom { max-height: 90vh; }
 }
 
 
@@ -1670,19 +2364,20 @@
 
 .vhs-back {
   position: relative;
-  width: 360px;
-  max-height: 80vh;
+  width: 520px;
+  max-height: 85vh;
   background: #1a1a2a;
-  border: 3px solid #333;
-  border-left: 8px solid var(--genre-color, #ffd700);
-  border-radius: 4px;
-  padding: 20px 20px 16px;
+  border: 3px solid #444;
+  border-left: 10px solid var(--genre-color, #ffd700);
+  border-radius: 6px;
+  padding: 28px 28px 20px;
   color: #e0e0e0;
   font-family: 'Courier New', Courier, monospace;
   overflow-y: auto;
   z-index: 100;
   box-shadow:
-    0 0 30px rgba(0, 0, 0, 0.8),
+    0 0 50px rgba(0, 0, 0, 0.8),
+    0 0 80px rgba(0, 0, 0, 0.4),
     inset 0 0 60px rgba(0, 0, 0, 0.3);
 }
 
@@ -1776,20 +2471,23 @@
 
 .vhs-back-close {
   position: absolute;
-  top: 8px;
-  right: 10px;
-  background: none;
-  border: none;
-  color: #666;
-  font-size: 1.4em;
+  top: 10px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #888;
+  font-size: 1.6em;
   cursor: pointer;
   line-height: 1;
-  padding: 2px 6px;
-  transition: color 0.15s;
+  padding: 4px 10px;
+  transition: all 0.15s;
   z-index: 2;
 }
 .vhs-back-close:hover {
   color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Header: poster thumbnail + title */
@@ -1800,12 +2498,12 @@
 }
 
 .vhs-back-poster {
-  width: 72px;
+  width: 100px;
   height: auto;
   aspect-ratio: 2 / 3;
   object-fit: cover;
-  border-radius: 2px;
-  border: 1px solid #444;
+  border-radius: 3px;
+  border: 2px solid #444;
   flex-shrink: 0;
 }
 
@@ -1815,27 +2513,27 @@
 }
 
 .vhs-back-title {
-  font-size: 1.15em;
+  font-size: 1.4em;
   font-weight: bold;
   color: #ffffff;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   line-height: 1.2;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
 
 .vhs-back-meta {
-  font-size: 0.75em;
+  font-size: 0.85em;
   color: #888;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
 }
 
 .vhs-back-genres {
-  font-size: 0.7em;
+  font-size: 0.8em;
   color: var(--genre-color, #ffd700);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 /* Divider */
@@ -1847,8 +2545,8 @@
 
 /* Synopsis */
 .vhs-back-synopsis {
-  font-size: 0.82em;
-  line-height: 1.55;
+  font-size: 0.95em;
+  line-height: 1.6;
   color: #ccc;
   margin: 0;
   font-style: italic;
@@ -1935,21 +2633,21 @@
 /* Rent / Put Back buttons */
 .vhs-rent-btn {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.85em;
+  font-size: 1em;
   font-weight: bold;
-  padding: 8px 20px;
-  border-radius: 3px;
+  padding: 12px 28px;
+  border-radius: 4px;
   border: 2px solid #ffd700;
   background: #ffd700;
   color: #1a1a2a;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   transition: background 0.15s, box-shadow 0.15s;
 }
 .vhs-rent-btn:hover {
   background: #ffe44d;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 .vhs-putback-btn {
   font-family: 'Courier New', Courier, monospace;
@@ -2040,18 +2738,18 @@
   white-space: nowrap;
 }
 
-/* Mobile: slightly narrower */
-@media (max-width: 480px) {
+/* Mobile: full width */
+@media (max-width: 600px) {
   .vhs-back {
-    width: calc(100vw - 32px);
-    max-height: 85vh;
-    padding: 16px 14px 12px;
+    width: calc(100vw - 24px);
+    max-height: 90vh;
+    padding: 20px 16px 14px;
   }
   .vhs-back-poster {
-    width: 60px;
+    width: 80px;
   }
   .vhs-back-title {
-    font-size: 1em;
+    font-size: 1.15em;
   }
 }
 
@@ -2159,36 +2857,37 @@
 }
 
 .g3-score-breakdown {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   color: #555;
-  margin: 6px 0;
-  line-height: 1.5;
+  margin: 10px 0;
+  line-height: 1.6;
 }
 
 .g3-score-xp {
-  font-size: 0.85rem;
+  font-size: 1.1rem;
   font-weight: bold;
   color: #2e7d32;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .g3-receipt-buttons {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 24px;
 }
 
 .g3-receipt-btn {
   font-family: 'Courier New', monospace;
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   font-weight: bold;
-  padding: 10px 16px;
+  padding: 14px 20px;
   border: 2px solid #1a1a1a;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   transition: all 0.15s ease;
+  border-radius: 4px;
 }
 
 .g3-receipt-btn-primary {
@@ -2212,11 +2911,14 @@
 /* Mobile receipt adjustments */
 @media (max-width: 480px) {
   .g3-receipt {
-    padding: 16px;
-    max-width: 300px;
+    padding: 24px 20px;
+    max-width: 400px;
   }
   .g3-score-big {
-    font-size: 2rem;
+    font-size: 2.5rem;
+  }
+  .g3-receipt-item {
+    font-size: 0.9rem;
   }
 }
 
