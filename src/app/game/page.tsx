@@ -853,7 +853,7 @@ export default function GamePage() {
       const canFreeChat = totalXP >= 500; // Gold membership unlocks freeform chat
 
       // Build rich personality-driven dialogue tree
-      const personalityTree = buildCustomerDialogue(personality, npcName, relLevel, canFreeChat);
+      const personalityTree = buildCustomerDialogue(personality, npcName, relLevel, canFreeChat, era);
 
       // Store NPC chat target info for freeform chat (if unlocked)
       setNpcChatTarget({
