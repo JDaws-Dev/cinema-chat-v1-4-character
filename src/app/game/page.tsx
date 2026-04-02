@@ -22,6 +22,7 @@ import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { mobileInput } from "@/components/game3d/MobileControls";
+import type { EraId } from "@/lib/curated-movie-catalog";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -32,6 +33,7 @@ const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ def
 const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerson").then(m => ({ default: m.FirstPersonControls })), { ssr: false });
 const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction").then(m => ({ default: m.InteractionSystem })), { ssr: false });
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
+const HeldVhsView = dynamic(() => import("@/components/game3d/HeldVhsView").then(m => ({ default: m.HeldVhsView })), { ssr: false });
 
 const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
 const STATS_KEY = "vnv_stats";
@@ -1044,6 +1046,7 @@ export default function GamePage() {
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
           <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} topDown={topDown} />
           <FirstPersonControls disabled={hasOverlay || topDown} />
+          <HeldVhsView movies={heldMovies} visible={!hasOverlay && !topDown} />
           {topDown && <TopDownCamera />}
           {!hasOverlay && !topDown && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
@@ -1439,7 +1442,7 @@ export default function GamePage() {
 
       {/* Shelf Browser */}
       {overlay === "shelf" && (
-        <ShelfBrowser genre={shelfGenre} open onClose={closeOverlay} onFilmClick={(id) => { setFilmId(id); setOverlay("film_detail"); }} />
+        <ShelfBrowser genre={shelfGenre} eraId={era as EraId} open onClose={closeOverlay} onFilmClick={(id) => { setFilmId(id); setOverlay("film_detail"); }} />
       )}
 
       {/* Film Detail (VHS back-of-box) */}

@@ -1,3 +1,4 @@
+import { getCatalogMovieInfo } from "@/lib/curated-movie-catalog";
 import { tmdbFetch, posterUrl, logoUrl } from "@/lib/tmdb";
 import type { MovieInfo, StreamingProviders, Provider } from "@/lib/types";
 
@@ -11,6 +12,11 @@ export async function GET(req: Request) {
   }
 
   try {
+    const catalog = getCatalogMovieInfo(title, year ? parseInt(year) : null);
+    if (catalog.movie) {
+      return Response.json(catalog);
+    }
+
     const params: Record<string, string> = { query: title };
     if (year) params.year = year;
 

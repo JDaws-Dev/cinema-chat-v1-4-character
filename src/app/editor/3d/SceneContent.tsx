@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -9,6 +9,7 @@ import {
   Grid,
 } from "@react-three/drei";
 import * as THREE from "three";
+import { Store } from "@/components/game3d/Store";
 import type { EditorObject } from "./page";
 
 interface EditorCollider {
@@ -19,9 +20,11 @@ interface EditorCollider {
   hd: number;
 }
 
-// ── Room dimensions ──
-const ROOM_W = 20;
-const ROOM_D = 14;
+// ── Scene dimensions ──
+const SCENE_W = 32;
+const SCENE_D = 22;
+const STORE_W = 20;
+const STORE_D = 14;
 const WALL_H = 4;
 
 // ── Category colors (hex -> THREE.Color) ──
@@ -46,6 +49,36 @@ const CAT_HEIGHTS: Record<string, number> = {
   exterior: 2.5,
 };
 
+function getEditorBoxFootprint(obj: EditorObject): { w: number; d: number } {
+  const worldW = obj.w ?? 0.5;
+  const worldD = obj.d ?? 0.5;
+  const prefabId = obj._prefabId ?? obj.prefab;
+
+  const usesFacingWidth =
+    prefabId === "wall/poster" ||
+    prefabId === "prop/bulletin-board" ||
+    prefabId === "prop/wall-clock" ||
+    prefabId === "prop/crt-tv" ||
+    prefabId?.startsWith("sign/");
+
+  if (!usesFacingWidth) {
+    return { w: worldW, d: worldD };
+  }
+
+  return {
+    w: Math.max(worldW, worldD),
+    d: Math.min(worldW, worldD),
+  };
+}
+
+function getEditorBoxRotationY(obj: EditorObject): number {
+  const prefabId = obj._prefabId ?? obj.prefab;
+  if (prefabId === "prop/crt-tv" && typeof obj.meta?.yaw === "number") {
+    return obj.meta.yaw;
+  }
+  return obj.rotY ?? 0;
+}
+
 // ── Single store object box ──
 function StoreBox({
   obj,
@@ -57,8 +90,8 @@ function StoreBox({
   onClick: () => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const w = obj.w ?? 0.5;
-  const d = obj.d ?? 0.5;
+  const { w, d } = getEditorBoxFootprint(obj);
+  const rotY = getEditorBoxRotationY(obj);
   const h = obj._height ?? CAT_HEIGHTS[obj.category] ?? 1.0;
   const color = obj._color ?? CAT_COLORS[obj.category] ?? "#888";
   const opacity = obj.hidden ? 0.22 : isSelected ? 0.9 : 0.7;
@@ -67,7 +100,7 @@ function StoreBox({
   return (
     <group
       position={[obj.x, obj.y + h / 2, obj.z]}
-      rotation={[0, obj.rotY ?? 0, 0]}
+      rotation={[0, rotY, 0]}
     >
       {/* Main box */}
       <mesh ref={meshRef} onClick={(e) => { e.stopPropagation(); onClick(); }}>
@@ -76,6 +109,8 @@ function StoreBox({
           color={color}
           transparent
           opacity={opacity}
+          depthTest={false}
+          depthWrite={false}
         />
       </mesh>
 
@@ -83,7 +118,11 @@ function StoreBox({
       {isSelected && (
         <lineSegments>
           <edgesGeometry args={[new THREE.BoxGeometry(w, h, d)]} />
-          <lineBasicMaterial color={outlineColor} linewidth={2} />
+          <lineBasicMaterial
+            color={outlineColor}
+            linewidth={2}
+            depthTest={false}
+          />
         </lineSegments>
       )}
 
@@ -103,44 +142,44 @@ function StoreBox({
   );
 }
 
-// ── Translucent walls ──
-function Walls() {
-  const wallMat = (
-    <meshStandardMaterial
-      color="#334"
-      transparent
-      opacity={0.15}
-      side={THREE.DoubleSide}
-    />
-  );
+// ── Store guide frame ──
+function StoreFrame() {
   return (
     <group>
-      {/* Back wall (z = -ROOM_D/2) */}
-      <mesh position={[0, WALL_H / 2, -ROOM_D / 2]}>
-        <planeGeometry args={[ROOM_W, WALL_H]} />
-        {wallMat}
+      <lineSegments position={[0, WALL_H / 2, 0]}>
+        <edgesGeometry args={[new THREE.BoxGeometry(STORE_W, WALL_H, STORE_D)]} />
+        <lineBasicMaterial color="#556" />
+      </lineSegments>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[STORE_W, STORE_D]} />
+        <meshStandardMaterial color="#1a223c" transparent opacity={0.12} />
       </mesh>
-      {/* Front wall (z = +ROOM_D/2) */}
-      <mesh position={[0, WALL_H / 2, ROOM_D / 2]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[ROOM_W, WALL_H]} />
-        {wallMat}
-      </mesh>
-      {/* Left wall (x = -ROOM_W/2) */}
-      <mesh
-        position={[-ROOM_W / 2, WALL_H / 2, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-      >
-        <planeGeometry args={[ROOM_D, WALL_H]} />
-        {wallMat}
-      </mesh>
-      {/* Right wall (x = +ROOM_W/2) */}
-      <mesh
-        position={[ROOM_W / 2, WALL_H / 2, 0]}
-        rotation={[0, -Math.PI / 2, 0]}
-      >
-        <planeGeometry args={[ROOM_D, WALL_H]} />
-        {wallMat}
-      </mesh>
+    </group>
+  );
+}
+
+function StorePreview() {
+  const previewRef = useRef<THREE.Group>(null);
+
+  useEffect(() => {
+    const preview = previewRef.current;
+    if (!preview) return;
+
+    preview.traverse((child) => {
+      (
+        child as THREE.Object3D & {
+          raycast?: (
+            raycaster: THREE.Raycaster,
+            intersects: THREE.Intersection[]
+          ) => void;
+        }
+      ).raycast = () => {};
+    });
+  }, []);
+
+  return (
+    <group ref={previewRef}>
+      <Store isMobile={false} maxNpcs={0} topDown={false} />
     </group>
   );
 }
@@ -222,17 +261,16 @@ function SelectedTransform({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const transformRef = useRef<any>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const w = obj.w ?? 0.5;
-  const d = obj.d ?? 0.5;
+  const { w, d } = getEditorBoxFootprint(obj);
+  const rotY = getEditorBoxRotationY(obj);
   const h = obj._height ?? CAT_HEIGHTS[obj.category] ?? 1.0;
-  const [dragging, setDragging] = useState(false);
 
   // Disable orbit controls while dragging transform
   useEffect(() => {
     const ctrl = transformRef.current;
-    if (!ctrl) return;
+    if (!ctrl || !groupRef.current) return;
+    (ctrl as { attach: (object: THREE.Object3D) => void }).attach(groupRef.current);
     const handler = (event: { value: boolean }) => {
-      setDragging(event.value);
       if (orbitRef.current) {
         (orbitRef.current as { enabled: boolean }).enabled = !event.value;
       }
@@ -245,22 +283,23 @@ function SelectedTransform({
     (ctrl as any).addEventListener("dragging-changed", handler);
     return () => {
       (ctrl as any).removeEventListener("dragging-changed", handler);
+      (ctrl as { detach: () => void }).detach();
     };
-  }, [obj.id, obj.category, h, orbitRef, onTransformEnd, dragging]);
+  }, [obj.id, obj.category, h, orbitRef, onTransformEnd]);
 
   return (
     <TransformControls
       ref={transformRef}
-      object={groupRef.current ?? undefined}
       mode={mode}
       space={space}
       rotationSnap={rotationSnap}
+      enabled={!obj.locked}
       size={0.7}
     >
       <group
         ref={groupRef}
         position={[obj.x, obj.y + h / 2, obj.z]}
-        rotation={[0, obj.rotY ?? 0, 0]}
+        rotation={[0, rotY, 0]}
       >
         <mesh>
           <boxGeometry args={[w, h, d]} />
@@ -268,11 +307,17 @@ function SelectedTransform({
             color={obj._color ?? CAT_COLORS[obj.category] ?? "#888"}
             transparent
             opacity={obj.hidden ? 0.3 : 0.9}
+            depthTest={false}
+            depthWrite={false}
           />
         </mesh>
         <lineSegments>
           <edgesGeometry args={[new THREE.BoxGeometry(w, h, d)]} />
-          <lineBasicMaterial color={obj.locked ? "#ef4444" : "#ffffff"} linewidth={2} />
+          <lineBasicMaterial
+            color={obj.locked ? "#ef4444" : "#ffffff"}
+            linewidth={2}
+            depthTest={false}
+          />
         </lineSegments>
         <Text
           position={[0, h / 2 + 0.3, 0]}
@@ -351,7 +396,7 @@ export default function SceneContent({
 
       {/* Floor grid */}
       <Grid
-        args={[ROOM_W, ROOM_D]}
+        args={[SCENE_W, SCENE_D]}
         cellSize={1}
         cellThickness={0.5}
         cellColor="#334"
@@ -368,7 +413,7 @@ export default function SceneContent({
         position={[0, -0.02, 0]}
         onClick={() => onSelect(null)}
       >
-        <planeGeometry args={[40, 30]} />
+        <planeGeometry args={[SCENE_W + 8, SCENE_D + 8]} />
         <meshStandardMaterial
           color="#141830"
           transparent
@@ -376,8 +421,11 @@ export default function SceneContent({
         />
       </mesh>
 
-      {/* Walls */}
-      <Walls />
+      {/* Store guide frame */}
+      <StoreFrame />
+
+      {/* Real scene preview */}
+      <StorePreview />
 
       {/* Objects (skip selected — it's rendered by TransformControls) */}
       {objects
@@ -402,6 +450,7 @@ export default function SceneContent({
               color="#f59e0b"
               transparent
               opacity={0.18}
+              depthTest={false}
               depthWrite={false}
             />
           </mesh>

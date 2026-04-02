@@ -1,6 +1,10 @@
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMAGE = "https://image.tmdb.org/t/p";
 
+export function isTmdbConfigured(): boolean {
+  return Boolean(process.env.TMDB_API_KEY);
+}
+
 export function tmdbFetch(path: string, params: Record<string, string> = {}) {
   const key = process.env.TMDB_API_KEY;
   if (!key) throw new Error("TMDB_API_KEY not configured");

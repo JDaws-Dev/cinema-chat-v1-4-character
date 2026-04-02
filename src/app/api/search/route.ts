@@ -1,4 +1,5 @@
-import { tmdbFetch, posterUrl } from "@/lib/tmdb";
+import { discoverCatalogMovies, searchCatalogMovies } from "@/lib/curated-movie-catalog";
+import { isTmdbConfigured, tmdbFetch, posterUrl } from "@/lib/tmdb";
 import type { SearchResponse, SearchResult } from "@/lib/types";
 
 const GENRE_MAP: Record<number, string> = {
@@ -18,8 +19,39 @@ export async function GET(req: Request) {
   const releaseDateLte = searchParams.get("releaseDateLte");
   const releaseDateGte = searchParams.get("releaseDateGte");
   const page = searchParams.get("page") || "1";
+  const numericPage = parseInt(page);
 
   try {
+    if (query && !isTmdbConfigured()) {
+      const localResults = searchCatalogMovies(query);
+      return Response.json({
+        results: localResults,
+        totalResults: localResults.length,
+        totalPages: 1,
+        page: 1,
+      } satisfies SearchResponse);
+    }
+
+    if (!query) {
+      const hasHistoricalDateWindow =
+        (releaseDateLte && Number(releaseDateLte.slice(0, 4)) <= 1999) ||
+        (releaseDateGte && Number(releaseDateGte.slice(0, 4)) <= 1999) ||
+        Boolean(decade) ||
+        genreId === "classics";
+
+      if (!isTmdbConfigured() || hasHistoricalDateWindow) {
+        return Response.json(
+          discoverCatalogMovies({
+            decade,
+            genreId,
+            releaseDateGte,
+            releaseDateLte,
+            page: numericPage,
+          })
+        );
+      }
+    }
+
     let results: SearchResult[] = [];
     let totalResults = 0;
     let totalPages = 0;
@@ -79,7 +111,7 @@ export async function GET(req: Request) {
       results,
       totalResults,
       totalPages,
-      page: parseInt(page),
+      page: numericPage,
     };
 
     return Response.json(response);

@@ -196,6 +196,58 @@ function ChallengeBoardPrefab({ obj }: { obj: ResolvedLayoutObject }) {
   );
 }
 
+function StorefrontMarqueePrefab({ obj }: { obj: ResolvedLayoutObject }) {
+  const width = obj.w ?? 8;
+  const subtitle = getMetaString(
+    obj,
+    "subtitle",
+    "YOUR NEIGHBORHOOD VIDEO STORE"
+  );
+
+  return (
+    <LayoutSignGroup obj={obj}>
+      <mesh>
+        <boxGeometry args={[width, 1.2, 0.2]} />
+        <meshBasicMaterial color="#0a0a1a" />
+      </mesh>
+      <mesh position={[0, 0, 0.11]}>
+        <boxGeometry args={[width + 0.1, 1.25, 0.01]} />
+        <meshBasicMaterial color="#b8960a" />
+      </mesh>
+      <mesh position={[0, 0, 0.115]}>
+        <boxGeometry args={[width - 0.1, 1.1, 0.01]} />
+        <meshBasicMaterial color="#0a0a1a" />
+      </mesh>
+      <group position={[-width / 2 + 0.8, 0.05, 0.13]}>
+        <mesh position={[-0.15, 0, 0]}>
+          <boxGeometry args={[0.28, 0.4, 0.03]} />
+          <meshBasicMaterial color="#ffd700" toneMapped={false} />
+        </mesh>
+        <mesh position={[0.15, 0, 0]}>
+          <boxGeometry args={[0.28, 0.4, 0.03]} />
+          <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
+        </mesh>
+        <mesh position={[0.15, 0, 0.016]}>
+          <boxGeometry args={[0.32, 0.44, 0.003]} />
+          <meshBasicMaterial color="#ffd700" toneMapped={false} />
+        </mesh>
+        <mesh position={[0.15, 0, 0.019]}>
+          <boxGeometry args={[0.28, 0.4, 0.003]} />
+          <meshBasicMaterial color="#1a3a6a" toneMapped={false} />
+        </mesh>
+      </group>
+      <Text position={[0.2, 0.1, 0.13]} fontSize={0.5} color="#ffd700" anchorX="center" anchorY="middle">
+        {obj.label}
+        <meshBasicMaterial color="#ffd700" toneMapped={false} />
+      </Text>
+      <Text position={[0.2, -0.3, 0.13]} fontSize={0.1} color="#cccccc" anchorX="center" anchorY="middle">
+        {subtitle}
+        <meshBasicMaterial color="#cccccc" toneMapped={false} />
+      </Text>
+    </LayoutSignGroup>
+  );
+}
+
 function BulletinBoardPrefab({ obj }: { obj: ResolvedLayoutObject }) {
   return (
     <LayoutSignGroup obj={obj}>
@@ -316,60 +368,69 @@ function BoxCar({
   cabinColor?: string;
 }) {
   const cb = cabinColor ?? "#222233";
+  const carLength = Math.max(obj.w ?? 2, 1.4);
+  const carWidth = Math.max(obj.d ?? 1, 0.75);
+  const bodyLength = carLength * 0.82;
+  const bumperLength = carLength * 0.08;
+  const cabinLength = carLength * 0.42;
+  const cabinWidth = carWidth * 0.82;
+  const wheelOffsetX = bodyLength * 0.32;
+  const wheelOffsetZ = carWidth * 0.34;
+
   return (
-    <group position={[obj.x, obj.y, obj.z]} rotation={[0, obj.rotY ?? 0, 0]} scale={1.4}>
+    <group position={[obj.x, obj.y, obj.z]} rotation={[0, obj.rotY ?? 0, 0]}>
       <mesh position={[0, 0.3, 0]}>
-        <boxGeometry args={[0.95, 0.4, 2.1]} />
+        <boxGeometry args={[bodyLength, 0.4, carWidth]} />
         <meshStandardMaterial color={color} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.42, 0.7]} rotation={[-0.15, 0, 0]}>
-        <boxGeometry args={[0.9, 0.12, 0.6]} />
+      <mesh position={[bodyLength * 0.34, 0.42, 0]} rotation={[0, 0, -0.15]}>
+        <boxGeometry args={[bumperLength, 0.12, carWidth * 0.9]} />
         <meshStandardMaterial color={color} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.42, -0.75]} rotation={[0.1, 0, 0]}>
-        <boxGeometry args={[0.9, 0.1, 0.5]} />
+      <mesh position={[-bodyLength * 0.34, 0.42, 0]} rotation={[0, 0, 0.1]}>
+        <boxGeometry args={[bumperLength, 0.1, carWidth * 0.82]} />
         <meshStandardMaterial color={color} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.65, -0.05]}>
-        <boxGeometry args={[0.82, 0.3, 1.0]} />
+      <mesh position={[0, 0.65, 0]}>
+        <boxGeometry args={[cabinLength, 0.3, cabinWidth]} />
         <meshStandardMaterial color={cb} roughness={0.3} metalness={0.15} />
       </mesh>
-      <mesh position={[0, 0.68, 0.5]} rotation={[-0.3, 0, 0]}>
-        <boxGeometry args={[0.78, 0.28, 0.02]} />
+      <mesh position={[cabinLength * 0.12, 0.68, cabinWidth * 0.52]} rotation={[-0.3, 0, 0]}>
+        <boxGeometry args={[cabinLength * 0.82, 0.28, 0.02]} />
         <meshStandardMaterial color="#88aacc" transparent opacity={0.4} roughness={0.05} metalness={0.3} />
       </mesh>
-      <mesh position={[0, 0.68, -0.55]} rotation={[0.25, 0, 0]}>
-        <boxGeometry args={[0.72, 0.24, 0.02]} />
+      <mesh position={[-cabinLength * 0.12, 0.68, -cabinWidth * 0.52]} rotation={[0.25, 0, 0]}>
+        <boxGeometry args={[cabinLength * 0.76, 0.24, 0.02]} />
         <meshStandardMaterial color="#88aacc" transparent opacity={0.35} roughness={0.05} metalness={0.3} />
       </mesh>
-      <mesh position={[0.42, 0.68, -0.05]}>
-        <boxGeometry args={[0.02, 0.22, 0.85]} />
+      <mesh position={[0, 0.68, -cabinWidth * 0.52]}>
+        <boxGeometry args={[cabinLength * 0.78, 0.22, 0.02]} />
         <meshStandardMaterial color="#88aacc" transparent opacity={0.3} roughness={0.05} metalness={0.3} />
       </mesh>
-      <mesh position={[-0.42, 0.68, -0.05]}>
-        <boxGeometry args={[0.02, 0.22, 0.85]} />
+      <mesh position={[0, 0.68, cabinWidth * 0.52]}>
+        <boxGeometry args={[cabinLength * 0.78, 0.22, 0.02]} />
         <meshStandardMaterial color="#88aacc" transparent opacity={0.3} roughness={0.05} metalness={0.3} />
       </mesh>
-      <mesh position={[0, 0.18, 1.06]}>
-        <boxGeometry args={[0.8, 0.1, 0.06]} />
+      <mesh position={[bodyLength * 0.49, 0.18, 0]}>
+        <boxGeometry args={[0.06, 0.1, carWidth * 0.8]} />
         <meshStandardMaterial color="#444444" roughness={0.3} metalness={0.6} />
       </mesh>
-      <mesh position={[0, 0.18, -1.06]}>
-        <boxGeometry args={[0.8, 0.1, 0.06]} />
+      <mesh position={[-bodyLength * 0.49, 0.18, 0]}>
+        <boxGeometry args={[0.06, 0.1, carWidth * 0.8]} />
         <meshStandardMaterial color="#444444" roughness={0.3} metalness={0.6} />
       </mesh>
       {[
-        [0.45, 0.12, -0.6],
-        [-0.45, 0.12, -0.6],
-        [0.45, 0.12, 0.6],
-        [-0.45, 0.12, 0.6],
+        [wheelOffsetX, 0.12, -wheelOffsetZ],
+        [-wheelOffsetX, 0.12, -wheelOffsetZ],
+        [wheelOffsetX, 0.12, wheelOffsetZ],
+        [-wheelOffsetX, 0.12, wheelOffsetZ],
       ].map(([wx, wy, wz], i) => (
         <group key={i}>
-          <mesh position={[wx, wy, wz]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.14, 0.14, 0.1, 10]} />
             <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
           </mesh>
-          <mesh position={[wx > 0 ? wx + 0.01 : wx - 0.01, wy, wz]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh position={[wx, wy, wz]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.08, 0.08, 0.12, 8]} />
             <meshStandardMaterial color="#555555" roughness={0.3} metalness={0.5} />
           </mesh>
@@ -508,6 +569,8 @@ function renderPrefab(obj: ResolvedLayoutObject): React.ReactNode {
       return <PromoBoardPrefab key={obj.id} obj={obj} />;
     case "sign/challenge-board":
       return <ChallengeBoardPrefab key={obj.id} obj={obj} />;
+    case "sign/storefront-marquee":
+      return <StorefrontMarqueePrefab key={obj.id} obj={obj} />;
     case "prop/bulletin-board":
       return <BulletinBoardPrefab key={obj.id} obj={obj} />;
     case "prop/wall-clock":

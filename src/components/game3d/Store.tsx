@@ -225,14 +225,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {/* Fascia + signage (hidden in top-down) */}
       {!topDown && <>
       <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.22]}><boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
-      <group position={[0, ROOM_H + 0.5, ROOM_D / 2 + 0.5]}>
-        <mesh><boxGeometry args={[8, 1.2, 0.2]} /><meshBasicMaterial color="#0a0a1a" /></mesh>
-        <mesh position={[0, 0, 0.11]}><boxGeometry args={[8.1, 1.25, 0.01]} /><meshBasicMaterial color="#b8960a" /></mesh>
-        <mesh position={[0, 0, 0.115]}><boxGeometry args={[7.9, 1.1, 0.01]} /><meshBasicMaterial color="#0a0a1a" /></mesh>
-        <group position={[-3.2, 0.05, 0.13]}><mesh position={[-0.15, 0, 0]}><boxGeometry args={[0.28, 0.4, 0.03]} /><meshBasicMaterial color="#ffd700" toneMapped={false} /></mesh><mesh position={[0.15, 0, 0]}><boxGeometry args={[0.28, 0.4, 0.03]} /><meshBasicMaterial color="#1a3a6a" toneMapped={false} /></mesh><mesh position={[0.15, 0, 0.016]}><boxGeometry args={[0.32, 0.44, 0.003]} /><meshBasicMaterial color="#ffd700" toneMapped={false} /></mesh><mesh position={[0.15, 0, 0.019]}><boxGeometry args={[0.28, 0.4, 0.003]} /><meshBasicMaterial color="#1a3a6a" toneMapped={false} /></mesh></group>
-        <Text position={[0.2, 0.1, 0.13]} fontSize={0.5} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>FRIDAY NIGHT VIDEO<meshBasicMaterial color="#ffd700" toneMapped={false} /></Text>
-        <Text position={[0.2, -0.3, 0.13]} fontSize={0.1} color="#cccccc" anchorX="center" anchorY="middle" font={undefined}>YOUR NEIGHBORHOOD VIDEO STORE<meshBasicMaterial color="#cccccc" toneMapped={false} /></Text>
-      </group>
 
       {/* Roof line */}
       <mesh position={[0, ROOM_H + 1.2, ROOM_D / 2 - 0.12]}><boxGeometry args={[ROOM_W + 12, 0.15, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>

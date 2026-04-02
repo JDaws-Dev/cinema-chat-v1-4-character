@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { fetchTrending, fetchSearch } from "@/lib/api";
+import { getShelfBrowserMovies, type EraId } from "@/lib/curated-movie-catalog";
 import type { TrendingMovie, SearchResult } from "@/lib/types";
 
 // Map zone IDs to TMDB genre IDs
@@ -36,6 +37,7 @@ const SPINE_COLORS: Record<string, string> = {
 
 interface ShelfBrowserProps {
   genre: string;
+  eraId: EraId;
   open: boolean;
   onClose: () => void;
   onFilmClick: (id: number) => void;
@@ -43,7 +45,7 @@ interface ShelfBrowserProps {
 
 type Film = { id: number; title: string; year: number | null; posterUrl: string | null };
 
-export function ShelfBrowser({ genre, open, onClose, onFilmClick }: ShelfBrowserProps) {
+export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: ShelfBrowserProps) {
   const [films, setFilms] = useState<Film[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -51,6 +53,12 @@ export function ShelfBrowser({ genre, open, onClose, onFilmClick }: ShelfBrowser
     if (!open || !genre) return;
     setLoading(true);
     setFilms([]);
+
+    if (eraId !== "present") {
+      setFilms(getShelfBrowserMovies(genre, eraId));
+      setLoading(false);
+      return;
+    }
 
     if (genre === "new_releases" || genre === "staff_picks" || genre === "new") {
       fetchTrending("week")
@@ -96,7 +104,7 @@ export function ShelfBrowser({ genre, open, onClose, onFilmClick }: ShelfBrowser
         .catch(() => {})
         .finally(() => setLoading(false));
     }
-  }, [open, genre]);
+  }, [open, genre, eraId]);
 
   // Q or Backspace to close
   useEffect(() => {

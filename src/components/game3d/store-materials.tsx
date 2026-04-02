@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect } from "react";
 import * as THREE from "three";
+import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 
 // Toon shading gradient — 3-step (shadow, mid, highlight) for cel-shaded look
 export const toonGradientTexture = (() => {
@@ -65,8 +66,10 @@ export function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Textu
   pendingCallbacks.set(url, callbacks);
 
   const attemptFetch = (retry: boolean) => {
-    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
-    fetch(proxyUrl)
+    const fetchUrl = url.startsWith("https://image.tmdb.org/")
+      ? `/api/image-proxy?url=${encodeURIComponent(url)}`
+      : url;
+    fetch(fetchUrl)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.blob();
@@ -132,9 +135,28 @@ const GENRE_TMDB_IDS: Record<string, string> = {
 
 export interface PosterData { url: string; title: string; id: number; }
 
+const FALLBACK_POSTERS: PosterData[] = [
+  { url: "https://image.tmdb.org/t/p/w342/lxM6kqilAdpdhqUl2biYp5frUxE.jpg", title: "Jaws", id: 578 },
+  { url: "https://image.tmdb.org/t/p/w342/vfrQk5IPloGg1v9Rzbh2Eg3VGyM.jpg", title: "Alien", id: 348 },
+  { url: "https://image.tmdb.org/t/p/w342/63N9uy8nd9j7Eog2axPQ8lbr3Wj.jpg", title: "Blade Runner", id: 78 },
+  { url: "https://image.tmdb.org/t/p/w342/ceG9VzoRAVGwivFU403Wc3AHRys.jpg", title: "Raiders of the Lost Ark", id: 85 },
+  { url: "https://image.tmdb.org/t/p/w342/nRj5511mZdTl4saWEPoj9QroTIu.jpg", title: "The Shining", id: 694 },
+  { url: "https://image.tmdb.org/t/p/w342/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg", title: "Star Wars", id: 11 },
+  { url: "https://image.tmdb.org/t/p/w342/fNOH9f1aA7XRTzl1sAOx9iF553Q.jpg", title: "Back to the Future", id: 105 },
+  { url: "https://image.tmdb.org/t/p/w342/an0nD6uq6byfxXCfk6lQBzdL2J1.jpg", title: "E.T. the Extra-Terrestrial", id: 601 },
+  { url: "https://image.tmdb.org/t/p/w342/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg", title: "Pulp Fiction", id: 680 },
+  { url: "https://image.tmdb.org/t/p/w342/rSPw7tgCH9c6NqICZef4kZjFOQ5.jpg", title: "The Godfather", id: 238 },
+  { url: "https://image.tmdb.org/t/p/w342/gpMR1hnEo0JLEW0oGOAkxRYrf7R.jpg", title: "The Princess Bride", id: 2493 },
+  { url: "https://image.tmdb.org/t/p/w342/3E52VpEVKhklKLLjqOGKpjEJBnM.jpg", title: "Ghostbusters", id: 620 },
+];
+
 // Era-based date filtering — set by Store component, read by usePosterUrls
 let currentEraYears = "1990-1993";
-export function setEraYears(years: string) { currentEraYears = years; }
+let currentEraId: EraId = "early90s";
+export function setEraYears(years: string) {
+  currentEraYears = years;
+  currentEraId = getEraIdFromYears(years);
+}
 
 // Global registry of movies actually loaded on shelves — challenge picks from this
 const shelfMovieRegistry: Map<string, { title: string; genre: string; id: number }> = new Map();
@@ -147,6 +169,18 @@ export function getShelfMovies(): { title: string; genre: string; id: number }[]
 const genrePosterCache: Record<string, PosterData[]> = {};
 const genreSliceCounter: Record<string, number> = {};
 
+function buildFallbackPosters(count: number, cacheKey: string): PosterData[] {
+  if (sliceRefMap[cacheKey] === undefined) {
+    sliceRefMap[cacheKey] = genreSliceCounter[cacheKey] || 0;
+    genreSliceCounter[cacheKey] = (genreSliceCounter[cacheKey] || 0) + 1;
+  }
+  const offset = sliceRefMap[cacheKey] * count;
+  const rotated = FALLBACK_POSTERS.map((_, i) => FALLBACK_POSTERS[(i + offset) % FALLBACK_POSTERS.length]);
+  return Array.from({ length: count }, (_, i) => rotated[i % rotated.length]);
+}
+
+const sliceRefMap: Record<string, number> = {};
+
 export function usePosterUrls(genre: string, count: number): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
   // Each shelf instance gets the next slice of cached results
@@ -155,6 +189,35 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
   useEffect(() => {
     const genreId = GENRE_TMDB_IDS[genre];
     const [startYear, endYear] = currentEraYears.split("-");
+
+    if (currentEraId !== "present") {
+      const cacheKey = `${genre}_${currentEraId}`;
+      const localPosters = getCuratedShelfPosterData(genre, currentEraId);
+
+      const applyLocalSlice = () => {
+        if (sliceRef.current === -1) {
+          sliceRef.current = genreSliceCounter[cacheKey] || 0;
+          genreSliceCounter[cacheKey] = (genreSliceCounter[cacheKey] || 0) + 1;
+        }
+        const offset = sliceRef.current * count;
+        const rotated = localPosters.length > 0
+          ? localPosters.map((_, i) => localPosters[(i + offset) % localPosters.length])
+          : buildFallbackPosters(count, cacheKey);
+        setPosters(
+          Array.from({ length: count }, (_, i) => {
+            const poster = rotated[i % rotated.length];
+            return {
+              url: poster.url,
+              title: poster.title,
+              id: poster.id,
+            };
+          })
+        );
+      };
+
+      applyLocalSlice();
+      return;
+    }
 
     if (!genreId) {
       // "New Releases" wall — popular movies from the selected era (3 pages for more variety)
@@ -174,14 +237,18 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
           url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
         })).filter((p: PosterData) => p.url);
         // Cycle/repeat to fill all slots if not enough unique results
-        if (uniquePosters.length > 0 && uniquePosters.length < count) {
+        if (uniquePosters.length === 0) {
+          setPosters(buildFallbackPosters(count, `NEW_${startYear}_${endYear}`));
+        } else if (uniquePosters.length > 0 && uniquePosters.length < count) {
           const filled: PosterData[] = [];
           for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
           setPosters(filled);
         } else {
           setPosters(uniquePosters);
         }
-      }).catch(() => {});
+      }).catch(() => {
+        setPosters(buildFallbackPosters(count, `NEW_${startYear}_${endYear}`));
+      });
     } else if (genreId === "classics") {
       // Classics: pre-1980 highly-rated films (TCM style)
       Promise.all([
@@ -193,15 +260,18 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
         const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
           url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
         })).filter((p: PosterData) => p.url);
-        // Cycle/repeat to fill all slots if not enough unique results
-        if (uniquePosters.length > 0 && uniquePosters.length < count) {
+        if (uniquePosters.length === 0) {
+          setPosters(buildFallbackPosters(count, `CLASSICS_${startYear}_${endYear}`));
+        } else if (uniquePosters.length > 0 && uniquePosters.length < count) {
           const filled: PosterData[] = [];
           for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
           setPosters(filled);
         } else {
           setPosters(uniquePosters);
         }
-      }).catch(() => {});
+      }).catch(() => {
+        setPosters(buildFallbackPosters(count, `CLASSICS_${startYear}_${endYear}`));
+      });
     } else {
       // Genre — fetch 3 pages, cache results, each shelf takes a different slice
       const cacheKey = `${genre}_${startYear}_${endYear}`;
@@ -239,9 +309,15 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
           const allPosters = all.map((m: Record<string, unknown>) => ({
             url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
           })).filter((p: PosterData) => p.url);
+          if (allPosters.length === 0) {
+            setPosters(buildFallbackPosters(count, cacheKey));
+            return;
+          }
           genrePosterCache[cacheKey] = allPosters;
           fetchAndSlice(allPosters);
-        }).catch(() => {});
+        }).catch(() => {
+          setPosters(buildFallbackPosters(count, cacheKey));
+        });
       }
     }
   }, [genre, count]);
@@ -265,9 +341,10 @@ export function PosterBox({ url, position, rotation = 0, movieTitle, movieId, ge
 
   useEffect(() => {
     loadedRef.current = false;
-    // Use smallest TMDB sizes — VHS boxes are tiny in 3D, no need for high-res
     const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
-    const imgUrl = isMob ? url.replace("/w342/", "/w92/") : url.replace("/w342/", "/w154/");
+    const imgUrl = url.startsWith("https://image.tmdb.org/")
+      ? isMob ? url.replace("/w342/", "/w92/") : url.replace("/w342/", "/w154/")
+      : url;
 
     // 5-second fallback: show genre color if texture hasn't loaded
     const fallbackColor = genreColor || "#5a5a7a";

@@ -160,6 +160,16 @@ export const STORE_PREFABS: PrefabDefinition[] = [
     defaultInteraction: { type: "challenge", label: "Challenge Board" },
   },
   {
+    id: "sign/storefront-marquee",
+    label: "Storefront Marquee",
+    family: "sign",
+    category: "exterior",
+    defaultWidth: 8,
+    defaultDepth: 0.2,
+    editorColor: "#ffd700",
+    defaultLayer: "exterior",
+  },
+  {
     id: "prop/bulletin-board",
     label: "Bulletin Board",
     family: "prop",
@@ -229,11 +239,11 @@ export const STORE_PREFABS: PrefabDefinition[] = [
     label: "Car",
     family: "exterior",
     category: "exterior",
-    defaultWidth: 2,
-    defaultDepth: 1,
+    defaultWidth: 2.9,
+    defaultDepth: 1.35,
     editorColor: "#ff6b6b",
     defaultLayer: "exterior",
-    defaultCollider: BOX(2.2, 1.3),
+    defaultCollider: BOX(3.1, 1.65),
   },
   {
     id: "exterior/lamp-post",
@@ -273,6 +283,7 @@ export function inferPrefabId(
   if (obj.id === "store-hours") return "sign/store-hours";
   if (obj.id === "promo-board") return "sign/promo-board";
   if (obj.id === "challenge-board") return "sign/challenge-board";
+  if (obj.id === "storefront-sign") return "sign/storefront-marquee";
   if (obj.id === "bulletin-board") return "prop/bulletin-board";
   if (obj.id === "clock-counter") return "prop/wall-clock";
   if (obj.id === "return-bin") return "prop/return-bin";

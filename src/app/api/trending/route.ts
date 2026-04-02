@@ -1,4 +1,5 @@
-import { tmdbFetch, posterUrl } from "@/lib/tmdb";
+import { getCatalogTrendingMovies } from "@/lib/curated-movie-catalog";
+import { isTmdbConfigured, tmdbFetch, posterUrl } from "@/lib/tmdb";
 import type { TrendingMovie } from "@/lib/types";
 
 export async function GET(req: Request) {
@@ -6,6 +7,10 @@ export async function GET(req: Request) {
   const window = searchParams.get("window") || "week";
 
   try {
+    if (!isTmdbConfigured()) {
+      return Response.json({ movies: getCatalogTrendingMovies() });
+    }
+
     const res = await tmdbFetch(`/trending/movie/${window}`);
     const data = await res.json();
 

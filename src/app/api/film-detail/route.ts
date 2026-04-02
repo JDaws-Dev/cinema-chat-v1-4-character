@@ -1,3 +1,4 @@
+import { getCatalogFilmDetail } from "@/lib/curated-movie-catalog";
 import { tmdbFetch, posterUrl, backdropUrl, logoUrl } from "@/lib/tmdb";
 import type { FilmDetail, CastMember, CrewMember, MovieInfo, StreamingProviders, Provider } from "@/lib/types";
 
@@ -10,6 +11,11 @@ export async function GET(req: Request) {
   }
 
   try {
+    const catalogFilm = getCatalogFilmDetail(Number(id));
+    if (catalogFilm) {
+      return Response.json({ film: catalogFilm });
+    }
+
     // Parallel fetches for detail, credits, similar, providers
     const [detailRes, creditsRes, similarRes, providersRes] = await Promise.all([
       tmdbFetch(`/movie/${id}`),

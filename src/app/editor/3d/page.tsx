@@ -52,6 +52,7 @@ const PREFAB_HEIGHTS: Record<string, number> = {
   "sign/store-hours": 0.9,
   "sign/promo-board": 0.8,
   "sign/challenge-board": 0.6,
+  "sign/storefront-marquee": 1.2,
   "prop/bulletin-board": 0.8,
   "prop/wall-clock": 0.5,
   "prop/return-bin": 1.0,
@@ -227,7 +228,45 @@ export default function Editor3DPage() {
   const [focusToken, setFocusToken] = useState(0);
   const [showColliders, setShowColliders] = useState(true);
   const [hiddenLayers, setHiddenLayers] = useState<string[]>([]);
+  const [historyTick, setHistoryTick] = useState(0);
   const originalRef = useRef<EditorObject[]>([]);
+  const undoStackRef = useRef<EditorObject[][]>([]);
+  const redoStackRef = useRef<EditorObject[][]>([]);
+
+  const cloneObjects = useCallback(
+    (source: EditorObject[]) => structuredClone(source) as EditorObject[],
+    []
+  );
+
+  const syncHistory = useCallback(() => {
+    setHistoryTick((current) => current + 1);
+  }, []);
+
+  const commitObjects = useCallback(
+    (
+      updater: EditorObject[] | ((current: EditorObject[]) => EditorObject[]),
+      options?: { selectedId?: string | null }
+    ) => {
+      syncHistory();
+      setObjects((current) => {
+        const next =
+          typeof updater === "function"
+            ? (updater as (value: EditorObject[]) => EditorObject[])(current)
+            : updater;
+        if (next === current) return current;
+        undoStackRef.current.push(cloneObjects(current));
+        if (undoStackRef.current.length > 100) {
+          undoStackRef.current.shift();
+        }
+        redoStackRef.current = [];
+        return next;
+      });
+      if (options && "selectedId" in options) {
+        setSelectedId(options.selectedId ?? null);
+      }
+    },
+    [cloneObjects, syncHistory]
+  );
 
   // Fetch layout
   useEffect(() => {
@@ -237,6 +276,9 @@ export default function Editor3DPage() {
         const eds = layout.objects.map(layoutToEditor);
         setObjects(eds);
         originalRef.current = eds.map((o) => ({ ...o }));
+        undoStackRef.current = [];
+        redoStackRef.current = [];
+        syncHistory();
         setLayoutVersion(layout.version);
         setLoading(false);
       })
@@ -262,14 +304,54 @@ export default function Editor3DPage() {
           current === "local" ? "world" : "local"
         );
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          syncHistory();
+          setObjects((current) => {
+            const next = redoStackRef.current.pop();
+            if (!next) return current;
+            undoStackRef.current.push(cloneObjects(current));
+            return next;
+          });
+        } else {
+          syncHistory();
+          setObjects((current) => {
+            const next = undoStackRef.current.pop();
+            if (!next) return current;
+            redoStackRef.current.push(cloneObjects(current));
+            return next;
+          });
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        syncHistory();
+        setObjects((current) => {
+          const next = redoStackRef.current.pop();
+          if (!next) return current;
+          undoStackRef.current.push(cloneObjects(current));
+          return next;
+        });
+        return;
+      }
       if (e.key === "f" || e.key === "F") {
         if (selectedId) setFocusToken((current) => current + 1);
+      }
+      if ((e.key === "Backspace" || e.key === "Delete") && selectedId) {
+        e.preventDefault();
+        commitObjects(
+          (current) => current.filter((obj) => obj.id !== selectedId),
+          { selectedId: null }
+        );
+        return;
       }
       if (e.key === "Escape") setSelectedId(null);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedId]);
+  }, [cloneObjects, commitObjects, selectedId, syncHistory]);
 
   const selectedObj = useMemo(
     () => objects.find((o) => o.id === selectedId) ?? null,
@@ -314,11 +396,11 @@ export default function Editor3DPage() {
 
   const updateObject = useCallback(
     (id: string, patch: Partial<EditorObject>) => {
-      setObjects((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, ...patch } : o))
+      commitObjects((current) =>
+        current.map((obj) => (obj.id === id ? { ...obj, ...patch } : obj))
       );
     },
-    []
+    [commitObjects]
   );
 
   const createObject = useCallback(() => {
@@ -334,9 +416,8 @@ export default function Editor3DPage() {
           }
         : undefined
     );
-    setObjects((prev) => [...prev, next]);
-    setSelectedId(next.id);
-  }, [createPrefabId, objects, selectedId]);
+    commitObjects((current) => [...current, next], { selectedId: next.id });
+  }, [commitObjects, createPrefabId, objects, selectedId]);
 
   const duplicateSelected = useCallback(() => {
     if (!selectedObj) return;
@@ -346,9 +427,38 @@ export default function Editor3DPage() {
       x: Math.round((selectedObj.x + 0.5) * 100) / 100,
       z: Math.round((selectedObj.z + 0.5) * 100) / 100,
     };
-    setObjects((prev) => [...prev, duplicate]);
-    setSelectedId(duplicate.id);
-  }, [selectedObj]);
+    commitObjects((current) => [...current, duplicate], {
+      selectedId: duplicate.id,
+    });
+  }, [commitObjects, selectedObj]);
+
+  const deleteSelected = useCallback(() => {
+    if (!selectedObj) return;
+    commitObjects(
+      (current) => current.filter((obj) => obj.id !== selectedObj.id),
+      { selectedId: null }
+    );
+  }, [commitObjects, selectedObj]);
+
+  const undo = useCallback(() => {
+    syncHistory();
+    setObjects((current) => {
+      const next = undoStackRef.current.pop();
+      if (!next) return current;
+      redoStackRef.current.push(cloneObjects(current));
+      return next;
+    });
+  }, [cloneObjects, syncHistory]);
+
+  const redo = useCallback(() => {
+    syncHistory();
+    setObjects((current) => {
+      const next = redoStackRef.current.pop();
+      if (!next) return current;
+      undoStackRef.current.push(cloneObjects(current));
+      return next;
+    });
+  }, [cloneObjects, syncHistory]);
 
   const handleTransformEnd = useCallback(
     (id: string, pos: [number, number, number], rotY: number) => {
@@ -386,9 +496,8 @@ export default function Editor3DPage() {
   }, [objects, layoutVersion]);
 
   const resetLayout = useCallback(() => {
-    setObjects(originalRef.current.map((o) => ({ ...o })));
-    setSelectedId(null);
-  }, []);
+    commitObjects(cloneObjects(originalRef.current), { selectedId: null });
+  }, [cloneObjects, commitObjects]);
 
   const toggleLayerVisibility = useCallback((layer: string) => {
     setHiddenLayers((prev) =>
@@ -402,6 +511,9 @@ export default function Editor3DPage() {
     if (!selectedObj) return;
     setFocusToken((current) => current + 1);
   }, [selectedObj]);
+
+  const canUndo = historyTick >= 0 && undoStackRef.current.length > 0;
+  const canRedo = historyTick >= 0 && redoStackRef.current.length > 0;
 
   if (loading) {
     return (
@@ -528,6 +640,51 @@ export default function Editor3DPage() {
             Duplicate
           </button>
           <button
+            onClick={deleteSelected}
+            disabled={!selectedObj}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: "1px solid #ef4444",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: selectedObj ? "#fca5a5" : "#666",
+              cursor: selectedObj ? "pointer" : "not-allowed",
+            }}
+          >
+            Delete
+          </button>
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: "1px solid #38bdf8",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: canUndo ? "#7dd3fc" : "#666",
+              cursor: canUndo ? "pointer" : "not-allowed",
+            }}
+          >
+            Undo
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: "1px solid #14b8a6",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: canRedo ? "#5eead4" : "#666",
+              cursor: canRedo ? "pointer" : "not-allowed",
+            }}
+          >
+            Redo
+          </button>
+          <button
             onClick={() =>
               setTransformSpace((current) =>
                 current === "local" ? "world" : "local"
@@ -622,6 +779,7 @@ export default function Editor3DPage() {
           }}
         >
           Click=Select | G=Move R=Rotate S=Scale | F=Focus | L=Space |
+          Delete=Remove | Cmd/Ctrl+Z=Undo | Shift+Cmd/Ctrl+Z=Redo |
           Esc=Deselect | Scroll=Zoom | RMB=Pan
         </div>
 
