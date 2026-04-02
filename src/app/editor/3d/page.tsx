@@ -222,6 +222,9 @@ export default function Editor3DPage() {
   >("idle");
   const [cameraPos, setCameraPos] = useState<string>("--");
   const [createPrefabId, setCreatePrefabId] = useState("wall/poster");
+  const [transformSpace, setTransformSpace] = useState<"local" | "world">("local");
+  const [angleSnap, setAngleSnap] = useState(true);
+  const [focusToken, setFocusToken] = useState(0);
   const [showColliders, setShowColliders] = useState(true);
   const [hiddenLayers, setHiddenLayers] = useState<string[]>([]);
   const originalRef = useRef<EditorObject[]>([]);
@@ -254,11 +257,19 @@ export default function Editor3DPage() {
       if (e.key === "g" || e.key === "G") setTransformMode("translate");
       if (e.key === "r" || e.key === "R") setTransformMode("rotate");
       if (e.key === "s" || e.key === "S") setTransformMode("scale");
+      if (e.key === "l" || e.key === "L") {
+        setTransformSpace((current) =>
+          current === "local" ? "world" : "local"
+        );
+      }
+      if (e.key === "f" || e.key === "F") {
+        if (selectedId) setFocusToken((current) => current + 1);
+      }
       if (e.key === "Escape") setSelectedId(null);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [selectedId]);
 
   const selectedObj = useMemo(
     () => objects.find((o) => o.id === selectedId) ?? null,
@@ -387,6 +398,11 @@ export default function Editor3DPage() {
     );
   }, []);
 
+  const focusSelected = useCallback(() => {
+    if (!selectedObj) return;
+    setFocusToken((current) => current + 1);
+  }, [selectedObj]);
+
   if (loading) {
     return (
       <div
@@ -512,6 +528,53 @@ export default function Editor3DPage() {
             Duplicate
           </button>
           <button
+            onClick={() =>
+              setTransformSpace((current) =>
+                current === "local" ? "world" : "local"
+              )
+            }
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: "1px solid #a78bfa",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: "#c4b5fd",
+              cursor: "pointer",
+            }}
+          >
+            {transformSpace === "local" ? "Local Space" : "World Space"}
+          </button>
+          <button
+            onClick={() => setAngleSnap((value) => !value)}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: angleSnap ? "1px solid #10b981" : "1px solid #555",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: angleSnap ? "#6ee7b7" : "#aaa",
+              cursor: "pointer",
+            }}
+          >
+            {angleSnap ? "15° Snap" : "Free Rotate"}
+          </button>
+          <button
+            onClick={focusSelected}
+            disabled={!selectedObj}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: "1px solid #f97316",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: selectedObj ? "#fdba74" : "#666",
+              cursor: selectedObj ? "pointer" : "not-allowed",
+            }}
+          >
+            Focus
+          </button>
+          <button
             onClick={() => setShowColliders((value) => !value)}
             style={{
               padding: "4px 10px",
@@ -558,8 +621,8 @@ export default function Editor3DPage() {
             borderRadius: 4,
           }}
         >
-          Click=Select | G=Move R=Rotate S=Scale | Esc=Deselect | Scroll=Zoom |
-          RMB=Pan
+          Click=Select | G=Move R=Rotate S=Scale | F=Focus | L=Space |
+          Esc=Deselect | Scroll=Zoom | RMB=Pan
         </div>
 
         <Canvas
@@ -572,6 +635,9 @@ export default function Editor3DPage() {
             showColliders={showColliders}
             selectedId={selectedId}
             transformMode={transformMode}
+            transformSpace={transformSpace}
+            rotationSnap={angleSnap ? Math.PI / 12 : undefined}
+            focusToken={focusToken}
             onSelect={setSelectedId}
             onTransformEnd={handleTransformEnd}
             onCameraMove={setCameraPos}

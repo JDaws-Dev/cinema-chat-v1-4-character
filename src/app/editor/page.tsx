@@ -190,14 +190,18 @@ export default function EditorPage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [filterCategory, setFilterCategory] = useState<ObjCategory | "all">("all");
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [createPrefabId, setCreatePrefabId] = useState("wall/poster");
+  const [hiddenLayers, setHiddenLayers] = useState<string[]>([]);
+  const [lockedLayers, setLockedLayers] = useState<string[]>([]);
   const svgRef = useRef<SVGSVGElement>(null);
   const originalObjectsRef = useRef<StoreObject[]>([]);
   const undoStack = useRef<StoreObject[][]>([]);
   const redoStack = useRef<StoreObject[][]>([]);
+  const dragSelectionOffsets = useRef<{ id: string; dx: number; dz: number }[]>([]);
 
   // Push current state to undo stack (call before making changes)
   const pushUndo = useCallback(() => {
@@ -226,30 +230,36 @@ export default function EditorPage() {
       if (e.key === "z" && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); undo(); return; }
       // Redo: Ctrl+Shift+Z
       if (e.key === "z" && (e.metaKey || e.ctrlKey) && e.shiftKey) { e.preventDefault(); redo(); return; }
-      if (!selectedId) return;
+      if (selectedIds.length === 0) return;
       const nudge = e.shiftKey ? 0.5 : 0.1;
+      const selection = new Set(selectedIds);
       // Arrow nudge
-      if (e.key === "ArrowLeft") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, x: Math.round((o.x - nudge) * 100) / 100 } : o)); }
-      if (e.key === "ArrowRight") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, x: Math.round((o.x + nudge) * 100) / 100 } : o)); }
-      if (e.key === "ArrowUp") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, z: Math.round((o.z - nudge) * 100) / 100 } : o)); }
-      if (e.key === "ArrowDown") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, z: Math.round((o.z + nudge) * 100) / 100 } : o)); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => selection.has(o.id) ? { ...o, x: Math.round((o.x - nudge) * 100) / 100 } : o)); }
+      if (e.key === "ArrowRight") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => selection.has(o.id) ? { ...o, x: Math.round((o.x + nudge) * 100) / 100 } : o)); }
+      if (e.key === "ArrowUp") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => selection.has(o.id) ? { ...o, z: Math.round((o.z - nudge) * 100) / 100 } : o)); }
+      if (e.key === "ArrowDown") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => selection.has(o.id) ? { ...o, z: Math.round((o.z + nudge) * 100) / 100 } : o)); }
       // Delete
-      if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); pushUndo(); setObjects(prev => prev.filter(o => o.id !== selectedId)); setSelectedId(null); }
+      if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); pushUndo(); setObjects(prev => prev.filter(o => !selection.has(o.id))); setSelectedId(null); setSelectedIds([]); }
       // Duplicate: Ctrl+D
       if (e.key === "d" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         pushUndo();
-        const obj = objects.find(o => o.id === selectedId);
-        if (obj) {
-          const dup = { ...obj, id: `${obj.id}-copy-${Date.now()}`, x: obj.x + 0.5, z: obj.z + 0.5 };
-          setObjects(prev => [...prev, dup]);
-          setSelectedId(dup.id);
-        }
+        const selectedObjects = objects.filter((o) => selection.has(o.id));
+        if (selectedObjects.length === 0) return;
+        const duplicates = selectedObjects.map((obj, index) => ({
+          ...obj,
+          id: `${obj.id}-copy-${Date.now()}-${index}`,
+          x: obj.x + 0.5,
+          z: obj.z + 0.5,
+        }));
+        setObjects(prev => [...prev, ...duplicates]);
+        setSelectedId(duplicates[duplicates.length - 1]?.id ?? null);
+        setSelectedIds(duplicates.map((obj) => obj.id));
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedId, objects, undo, redo, pushUndo]);
+  }, [selectedIds, objects, undo, redo, pushUndo]);
 
   // Fetch layout from API on mount
   useEffect(() => {
@@ -288,15 +298,37 @@ export default function EditorPage() {
       e.preventDefault();
       e.stopPropagation();
       const obj = objects.find((item) => item.id === id);
-      if (obj?.locked) {
+      const layer = obj?.layer ?? obj?.category ?? "";
+      const isToggleSelection = e.shiftKey || e.metaKey || e.ctrlKey;
+      if (isToggleSelection) {
+        setSelectedIds((prev) =>
+          prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+        );
         setSelectedId(id);
         return;
       }
+      if (obj?.locked || lockedLayers.includes(layer)) {
+        setSelectedId(id);
+        setSelectedIds([id]);
+        return;
+      }
+      const nextSelection = selectedIds.includes(id) ? selectedIds : [id];
       pushUndo();
       setDragId(id);
       setSelectedId(id);
+      setSelectedIds(nextSelection);
+      const anchor = objects.find((item) => item.id === id);
+      if (anchor) {
+        dragSelectionOffsets.current = objects
+          .filter((item) => nextSelection.includes(item.id))
+          .map((item) => ({
+            id: item.id,
+            dx: item.x - anchor.x,
+            dz: item.z - anchor.z,
+          }));
+      }
     },
-    [objects, pushUndo]
+    [lockedLayers, objects, pushUndo, selectedIds]
   );
 
   const handleMouseMove = useCallback(
@@ -308,8 +340,21 @@ export default function EditorPage() {
         store.x = Math.round(store.x * 2) / 2; // snap to 0.5
         store.z = Math.round(store.z * 2) / 2;
       }
+      const offsetMap = new Map(
+        dragSelectionOffsets.current.map((entry) => [entry.id, entry] as const)
+      );
       setObjects((prev) =>
-        prev.map((o) => (o.id === dragId ? { ...o, x: store.x, z: store.z } : o))
+        prev.map((o) => {
+          const offset = offsetMap.get(o.id);
+          if (!offset) return o;
+          const nextX = store.x + offset.dx;
+          const nextZ = store.z + offset.dz;
+          return {
+            ...o,
+            x: snapToGrid ? Math.round(nextX * 2) / 2 : Math.round(nextX * 100) / 100,
+            z: snapToGrid ? Math.round(nextZ * 2) / 2 : Math.round(nextZ * 100) / 100,
+          };
+        })
       );
     },
     [dragId, getSvgPoint, snapToGrid]
@@ -317,6 +362,7 @@ export default function EditorPage() {
 
   const handleMouseUp = useCallback(() => {
     setDragId(null);
+    dragSelectionOffsets.current = [];
   }, []);
 
   const createObject = useCallback(() => {
@@ -330,6 +376,7 @@ export default function EditorPage() {
     } : undefined);
     setObjects((prev) => [...prev, next]);
     setSelectedId(next.id);
+    setSelectedIds([next.id]);
   }, [createPrefabId, objects, pushUndo, selectedId]);
 
   // Global mouse up to handle drag release outside SVG
@@ -377,14 +424,70 @@ export default function EditorPage() {
   const resetPositions = useCallback(() => {
     setObjects(originalObjectsRef.current.map((o) => ({ ...o })));
     setSelectedId(null);
+    setSelectedIds([]);
   }, []);
+
+  const alignSelection = useCallback((mode: "left" | "center-x" | "right" | "top" | "center-z" | "bottom") => {
+    if (selectedIds.length < 2) return;
+    pushUndo();
+    const selectedObjects = objects.filter((obj) => selectedIds.includes(obj.id));
+    if (selectedObjects.length < 2) return;
+    const minX = Math.min(...selectedObjects.map((obj) => obj.x));
+    const maxX = Math.max(...selectedObjects.map((obj) => obj.x));
+    const minZ = Math.min(...selectedObjects.map((obj) => obj.z));
+    const maxZ = Math.max(...selectedObjects.map((obj) => obj.z));
+    const centerX = Math.round(((minX + maxX) / 2) * 100) / 100;
+    const centerZ = Math.round(((minZ + maxZ) / 2) * 100) / 100;
+    setObjects((prev) =>
+      prev.map((obj) => {
+        if (!selectedIds.includes(obj.id)) return obj;
+        if (mode === "left") return { ...obj, x: minX };
+        if (mode === "center-x") return { ...obj, x: centerX };
+        if (mode === "right") return { ...obj, x: maxX };
+        if (mode === "top") return { ...obj, z: minZ };
+        if (mode === "center-z") return { ...obj, z: centerZ };
+        return { ...obj, z: maxZ };
+      })
+    );
+  }, [objects, pushUndo, selectedIds]);
+
+  const distributeSelection = useCallback((axis: "x" | "z") => {
+    if (selectedIds.length < 3) return;
+    pushUndo();
+    const selectedObjects = objects
+      .filter((obj) => selectedIds.includes(obj.id))
+      .slice()
+      .sort((a, b) => axis === "x" ? a.x - b.x : a.z - b.z);
+    if (selectedObjects.length < 3) return;
+    const first = axis === "x" ? selectedObjects[0].x : selectedObjects[0].z;
+    const last = axis === "x"
+      ? selectedObjects[selectedObjects.length - 1].x
+      : selectedObjects[selectedObjects.length - 1].z;
+    const step = (last - first) / (selectedObjects.length - 1);
+    const targetMap = new Map(
+      selectedObjects.map((obj, index) => [
+        obj.id,
+        Math.round((first + step * index) * 100) / 100,
+      ] as const)
+    );
+    setObjects((prev) =>
+      prev.map((obj) => {
+        const value = targetMap.get(obj.id);
+        if (value === undefined) return obj;
+        return axis === "x" ? { ...obj, x: value } : { ...obj, z: value };
+      })
+    );
+  }, [objects, pushUndo, selectedIds]);
 
   const filteredObjects =
     filterCategory === "all"
       ? objects
       : objects.filter((o) => o.category === filterCategory);
+  const layers = Array.from(new Set(objects.map((obj) => obj.layer ?? obj.category))).sort((a, b) => a.localeCompare(b));
+  const visibleObjects = filteredObjects.filter((obj) => !hiddenLayers.includes(obj.layer ?? obj.category));
 
-  const selectedObj = objects.find((o) => o.id === selectedId);
+  const selectedObj = objects.find((o) => o.id === selectedId) ?? null;
+  const multiSelected = selectedIds.length > 1;
 
   if (loading) {
     return (
@@ -412,7 +515,7 @@ export default function EditorPage() {
             Friday Night Video -- Store Layout Editor
           </h1>
           <span style={{ fontSize: 12, color: "#888" }}>
-            {ROOM_W}x{ROOM_D} | Drag objects | Arrows nudge | Ctrl+Z undo | Del remove
+            {ROOM_W}x{ROOM_D} | Drag objects | Shift/Cmd click multi-select | Arrows nudge | Ctrl+Z undo
           </span>
           <button onClick={undo} style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #555", borderRadius: 4, background: "#1a1a24", color: "#ccc", cursor: "pointer" }}>↩ Undo</button>
           <button onClick={redo} style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #555", borderRadius: 4, background: "#1a1a24", color: "#ccc", cursor: "pointer" }}>↪ Redo</button>
@@ -449,6 +552,66 @@ export default function EditorPage() {
           >
             + Add Prefab
           </button>
+          <button
+            onClick={() => alignSelection("left")}
+            disabled={selectedIds.length < 2}
+            style={{
+              padding: "4px 8px",
+              fontSize: 11,
+              border: "1px solid #f59e0b",
+              borderRadius: 4,
+              background: "#1a1a24",
+              color: selectedIds.length >= 2 ? "#fbbf24" : "#666",
+              cursor: selectedIds.length >= 2 ? "pointer" : "not-allowed",
+            }}
+          >
+            Align X
+          </button>
+          <button
+            onClick={() => alignSelection("top")}
+            disabled={selectedIds.length < 2}
+            style={{
+              padding: "4px 8px",
+              fontSize: 11,
+              border: "1px solid #f59e0b",
+              borderRadius: 4,
+              background: "#1a1a24",
+              color: selectedIds.length >= 2 ? "#fbbf24" : "#666",
+              cursor: selectedIds.length >= 2 ? "pointer" : "not-allowed",
+            }}
+          >
+            Align Z
+          </button>
+          <button
+            onClick={() => distributeSelection("x")}
+            disabled={selectedIds.length < 3}
+            style={{
+              padding: "4px 8px",
+              fontSize: 11,
+              border: "1px solid #14b8a6",
+              borderRadius: 4,
+              background: "#1a1a24",
+              color: selectedIds.length >= 3 ? "#5eead4" : "#666",
+              cursor: selectedIds.length >= 3 ? "pointer" : "not-allowed",
+            }}
+          >
+            Dist X
+          </button>
+          <button
+            onClick={() => distributeSelection("z")}
+            disabled={selectedIds.length < 3}
+            style={{
+              padding: "4px 8px",
+              fontSize: 11,
+              border: "1px solid #14b8a6",
+              borderRadius: 4,
+              background: "#1a1a24",
+              color: selectedIds.length >= 3 ? "#5eead4" : "#666",
+              cursor: selectedIds.length >= 3 ? "pointer" : "not-allowed",
+            }}
+          >
+            Dist Z
+          </button>
           <a href="/editor/3d" style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #3b82f6", borderRadius: 4, background: "#1a1a24", color: "#3b82f6", textDecoration: "none" }}>3D Editor →</a>
           <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             {(["all", "shelf", "counter", "npc", "prop", "wall", "door", "exterior"] as const).map((cat) => (
@@ -479,7 +642,17 @@ export default function EditorPage() {
             onMouseUp={handleMouseUp}
           >
             {/* Background */}
-            <rect x={0} y={0} width={SVG_W} height={SVG_H} fill="#0d0d14" />
+            <rect
+              x={0}
+              y={0}
+              width={SVG_W}
+              height={SVG_H}
+              fill="#0d0d14"
+              onMouseDown={() => {
+                setSelectedId(null);
+                setSelectedIds([]);
+              }}
+            />
 
             {/* Store floor */}
             <rect
@@ -646,15 +819,16 @@ export default function EditorPage() {
             ); })()}
 
             {/* Store objects */}
-            {filteredObjects.map((obj) => {
+            {visibleObjects.map((obj) => {
               const { sx, sy } = storeToSvg(obj.x, obj.z);
               const pw = obj.w * SCALE;
               const ph = obj.d * SCALE;
               const isHovered = hoverId === obj.id;
-              const isSelected = selectedId === obj.id;
+              const isSelected = selectedIds.includes(obj.id);
               const isDragging = dragId === obj.id;
+              const layerLocked = lockedLayers.includes(obj.layer ?? obj.category);
               const opacity = obj.hidden ? 0.25 : isDragging ? 0.9 : isHovered ? 0.85 : 0.7;
-              const strokeColor = obj.locked ? "#ef4444" : isSelected ? "#ffd700" : isHovered ? "#fff" : "transparent";
+              const strokeColor = obj.locked || layerLocked ? "#ef4444" : isSelected ? "#ffd700" : isHovered ? "#fff" : "transparent";
               // Y-axis rotation in 3D = rotation around center in 2D top-down view
               // Convert radians to degrees, negate because SVG Y is flipped
               const rotDeg = (obj._rotY ?? 0) !== 0 ? -(obj._rotY! * 180 / Math.PI) : 0;
@@ -666,7 +840,7 @@ export default function EditorPage() {
                   onMouseDown={(e) => handleMouseDown(obj.id, e)}
                   onMouseEnter={() => setHoverId(obj.id)}
                   onMouseLeave={() => setHoverId(null)}
-                  style={{ cursor: obj.locked ? "not-allowed" : isDragging ? "grabbing" : "grab" }}
+                  style={{ cursor: obj.locked || layerLocked ? "not-allowed" : isDragging ? "grabbing" : "grab" }}
                   transform={rotTransform}
                 >
                   {obj.shape === "circle" ? (
@@ -763,7 +937,42 @@ export default function EditorPage() {
         {/* Selected object detail */}
         <div style={{ padding: 16, borderBottom: "1px solid #333" }}>
           <h2 style={{ margin: "0 0 8px", fontSize: 14, color: "#ffd700" }}>Selected Object</h2>
-          {selectedObj ? (
+          {multiSelected ? (
+            <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+              <div>
+                <strong>{selectedIds.length} objects selected</strong>
+              </div>
+              <div style={{ color: "#888", fontSize: 11 }}>
+                Use the toolbar to align or distribute the selection.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
+                <button
+                  onClick={() => alignSelection("center-x")}
+                  style={{ padding: "6px 8px", background: "#2a2a3a", color: "#ffd700", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
+                >
+                  Center X
+                </button>
+                <button
+                  onClick={() => alignSelection("center-z")}
+                  style={{ padding: "6px 8px", background: "#2a2a3a", color: "#ffd700", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
+                >
+                  Center Z
+                </button>
+                <button
+                  onClick={() => alignSelection("left")}
+                  style={{ padding: "6px 8px", background: "#2a2a3a", color: "#fbbf24", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
+                >
+                  Align Left
+                </button>
+                <button
+                  onClick={() => alignSelection("top")}
+                  style={{ padding: "6px 8px", background: "#2a2a3a", color: "#fbbf24", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 11 }}
+                >
+                  Align Top
+                </button>
+              </div>
+            </div>
+          ) : selectedObj ? (
             <div style={{ fontSize: 12, lineHeight: 1.6 }}>
               <div>
                 <strong>{selectedObj.label}</strong>{" "}
@@ -1018,6 +1227,33 @@ export default function EditorPage() {
                 {meta.label}
               </div>
             ))}
+          </div>
+        </div>
+
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #333" }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 12, color: "#aaa" }}>Layers</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {layers.map((layer) => {
+              const hidden = hiddenLayers.includes(layer);
+              const locked = lockedLayers.includes(layer);
+              return (
+                <div key={layer} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 6, alignItems: "center", fontSize: 11 }}>
+                  <span style={{ color: hidden ? "#666" : "#ccc" }}>{layer}</span>
+                  <button
+                    onClick={() => setHiddenLayers((prev) => hidden ? prev.filter((entry) => entry !== layer) : [...prev, layer])}
+                    style={{ padding: "3px 6px", background: "#222", color: hidden ? "#666" : "#93c5fd", border: "1px solid #444", borderRadius: 3, cursor: "pointer", fontSize: 10 }}
+                  >
+                    {hidden ? "Show" : "Hide"}
+                  </button>
+                  <button
+                    onClick={() => setLockedLayers((prev) => locked ? prev.filter((entry) => entry !== layer) : [...prev, layer])}
+                    style={{ padding: "3px 6px", background: "#222", color: locked ? "#fca5a5" : "#ccc", border: "1px solid #444", borderRadius: 3, cursor: "pointer", fontSize: 10 }}
+                  >
+                    {locked ? "Unlock" : "Lock"}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 

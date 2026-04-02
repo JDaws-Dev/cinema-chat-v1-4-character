@@ -166,15 +166,51 @@ function CameraReporter({
   return null;
 }
 
+function FocusSelection({
+  selectedObj,
+  focusToken,
+  orbitRef,
+}: {
+  selectedObj: EditorObject | null;
+  focusToken: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  orbitRef: React.RefObject<any>;
+}) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (!selectedObj || focusToken === 0 || !orbitRef.current) return;
+    const controls = orbitRef.current as {
+      target: THREE.Vector3;
+      update: () => void;
+    };
+    const nextTarget = new THREE.Vector3(
+      selectedObj.x,
+      selectedObj.y + (selectedObj._height ?? CAT_HEIGHTS[selectedObj.category] ?? 1) * 0.5,
+      selectedObj.z
+    );
+    const currentOffset = camera.position.clone().sub(controls.target);
+    controls.target.copy(nextTarget);
+    camera.position.copy(nextTarget.clone().add(currentOffset));
+    controls.update();
+  }, [camera, focusToken, orbitRef, selectedObj]);
+
+  return null;
+}
+
 // ── Transform controls wrapper ──
 function SelectedTransform({
   obj,
   mode,
+  space,
+  rotationSnap,
   orbitRef,
   onTransformEnd,
 }: {
   obj: EditorObject;
   mode: "translate" | "rotate" | "scale";
+  space: "local" | "world";
+  rotationSnap?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   orbitRef: React.RefObject<any>;
   onTransformEnd: (
@@ -217,6 +253,8 @@ function SelectedTransform({
       ref={transformRef}
       object={groupRef.current ?? undefined}
       mode={mode}
+      space={space}
+      rotationSnap={rotationSnap}
       size={0.7}
     >
       <group
@@ -260,6 +298,9 @@ export default function SceneContent({
   showColliders,
   selectedId,
   transformMode,
+  transformSpace,
+  rotationSnap,
+  focusToken,
   onSelect,
   onTransformEnd,
   onCameraMove,
@@ -269,6 +310,9 @@ export default function SceneContent({
   showColliders: boolean;
   selectedId: string | null;
   transformMode: "translate" | "rotate" | "scale";
+  transformSpace: "local" | "world";
+  rotationSnap?: number;
+  focusToken: number;
   onSelect: (id: string | null) => void;
   onTransformEnd: (
     id: string,
@@ -299,6 +343,11 @@ export default function SceneContent({
 
       {/* Camera reporter */}
       <CameraReporter onCameraMove={onCameraMove} />
+      <FocusSelection
+        selectedObj={selectedObj}
+        focusToken={focusToken}
+        orbitRef={orbitRef}
+      />
 
       {/* Floor grid */}
       <Grid
@@ -364,6 +413,8 @@ export default function SceneContent({
           key={selectedObj.id}
           obj={selectedObj}
           mode={transformMode}
+          space={transformSpace}
+          rotationSnap={rotationSnap}
           orbitRef={orbitRef}
           onTransformEnd={onTransformEnd}
         />
