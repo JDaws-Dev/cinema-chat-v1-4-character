@@ -426,35 +426,36 @@ const CUSTOMER_QUEST_DIALOGUES: DialogueTree[] = [
   {
     id: "quest_date_night",
     npc: "Customer",
-    portrait: "?",
+    portrait: "C",
     opener: {
       speaker: "Customer",
-      portrait: "?",
-      text: "My partner wants a romance but I want horror. Can you find something we'd both enjoy?",
+      portrait: "C",
+      text: "Okay, we need help. She wants Romance. I want Action. We've been standing here for twenty minutes and we're about to just go home.",
       responses: [
         {
-          text: "Let me check the Comedy section.",
+          text: "I'll find something you'll both love.",
           questStart: "date_night_dilemma",
           next: {
             speaker: "Customer",
-            portrait: "?",
-            text: "Comedy? That's actually genius — we both like to laugh. Go check the Comedy section and let me know what you find!",
+            portrait: "C",
+            text: "Really? You'd do that? Check Romance for her, Action for me, then maybe Comedy or Thriller for a compromise. Come back when you've got something!",
           },
         },
         {
-          text: "Just watch both.",
+          text: "Comedy is usually the safe bet.",
+          questStart: "date_night_dilemma",
           next: {
             speaker: "Customer",
-            portrait: "?",
-            text: "Double feature? On a Friday? ...Actually that's not a bad idea.",
+            portrait: "C",
+            text: "You know what, that's smart. But check the other sections too — I want to feel like we explored our options. Report back!",
           },
         },
         {
-          text: "Horror is always the answer.",
+          text: "Just flip a coin.",
           next: {
             speaker: "Customer",
-            portrait: "?",
-            text: "Ha! I wish my partner agreed with you.",
+            portrait: "C",
+            text: "We tried that. She said best two out of three. Then three out of five. We're still here.",
           },
         },
       ],
@@ -604,6 +605,139 @@ const CUSTOMER_QUEST_DIALOGUES: DialogueTree[] = [
                 },
               },
             ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "quest_family_movie_night",
+    npc: "Customer",
+    portrait: "P",
+    opener: {
+      speaker: "Customer",
+      portrait: "P",
+      text: "I need to plan the perfect family movie night. The kids want something fun, I want something I won't fall asleep during. Can you help me pick?",
+      responses: [
+        {
+          text: "I'll check Family and Comedy for you.",
+          questStart: "family_movie_night",
+          next: {
+            speaker: "Customer",
+            portrait: "P",
+            text: "You're a saint. Browse the Family section, maybe Comedy too for backups, and come tell me what looks good. I'll be here — I'm not going anywhere with these kids.",
+          },
+        },
+        {
+          text: "Just get the animated one. Kids always love those.",
+          next: {
+            speaker: "Customer",
+            portrait: "P",
+            text: "Which animated one? There's like twelve of them. That's the problem! I need someone to narrow it down for me.",
+          },
+        },
+        {
+          text: "Good luck with that.",
+          next: {
+            speaker: "Customer",
+            portrait: "P",
+            text: "Thanks for nothing! ...I'm kidding. Sort of.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "quest_critics_challenge",
+    npc: "Customer",
+    portrait: "X",
+    opener: {
+      speaker: "Customer",
+      portrait: "X",
+      text: "I've been to every video store in town. None of them have anything worth watching. Prove me wrong.",
+      responses: [
+        {
+          text: "Challenge accepted. I'll build you a list.",
+          questStart: "critics_challenge",
+          next: {
+            speaker: "Customer",
+            portrait: "X",
+            text: "Fine. Browse Drama, Classics, Sci-Fi, and Thriller. If you can find something genuinely excellent in each, I'll admit this store isn't a complete waste of time.",
+          },
+        },
+        {
+          text: "Maybe the problem is your taste, not the store.",
+          next: {
+            speaker: "Customer",
+            portrait: "X",
+            text: "...Excuse me? I have a subscription to three film journals. But fine — impress me. I dare you.",
+            responses: [
+              {
+                text: "I'll take that dare.",
+                questStart: "critics_challenge",
+                next: {
+                  speaker: "Customer",
+                  portrait: "X",
+                  text: "Drama, Classics, Sci-Fi, Thriller. Four genres. Find something excellent in each. Then we'll talk.",
+                },
+              },
+              {
+                text: "Not worth my time.",
+                next: {
+                  speaker: "Customer",
+                  portrait: "X",
+                  text: "That's what I thought.",
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "quest_scare_me",
+    npc: "Customer",
+    portrait: "T",
+    opener: {
+      speaker: "Customer",
+      portrait: "T",
+      text: "My friends say I'm impossible to scare. I've seen every horror movie twice and I didn't even flinch. Find me something that'll actually keep me up tonight.",
+      responses: [
+        {
+          text: "I know just the sections. Give me a minute.",
+          questStart: "scare_me",
+          next: {
+            speaker: "Customer",
+            portrait: "T",
+            text: "Check Horror obviously, but also Thriller — sometimes the psychological stuff is scarier than the slasher stuff. Come back with your best shot!",
+          },
+        },
+        {
+          text: "Nothing scares you? Not even late fees?",
+          next: {
+            speaker: "Customer",
+            portrait: "T",
+            text: "Ha! Okay, Vinny's late fees are pretty terrifying. But seriously — find me something good. Horror and Thriller sections. I'll wait.",
+            responses: [
+              {
+                text: "Alright, I'm on it.",
+                questStart: "scare_me",
+                next: {
+                  speaker: "Customer",
+                  portrait: "T",
+                  text: "Now we're talking! Go check Horror and Thriller and bring me your scariest pick.",
+                },
+              },
+            ],
+          },
+        },
+        {
+          text: "I don't do horror.",
+          next: {
+            speaker: "Customer",
+            portrait: "T",
+            text: "...Seriously? You work in a video store and you don't do horror? That's the scariest thing I've heard all night.",
           },
         },
       ],

@@ -17,7 +17,7 @@ import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
 import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio, setCurrentEra, playNpcLine } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
@@ -170,17 +170,19 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!rpgNode) { setDisplayedText(''); setTypewriterDone(false); return; }
-    setDisplayedText('');
-    setTypewriterDone(false);
-    let i = 0;
-    const text = rpgNode.text;
-    const interval = setInterval(() => {
-      i++;
-      setDisplayedText(text.substring(0, i));
-      if (i >= text.length) { clearInterval(interval); setTypewriterDone(true); }
-    }, 25); // 25ms per character
-    return () => clearInterval(interval);
+    // Show full text immediately — no typewriter delay
+    setDisplayedText(rpgNode.text);
+    setTypewriterDone(true);
   }, [rpgNode]);
+
+  // Play ElevenLabs voice when an NPC speaks in RPG dialogue
+  useEffect(() => {
+    if (!rpgNode || rpgNode.speaker === "You") return;
+    const personalityType = npcChatTarget?.personalityType;
+    if (!personalityType) return;
+    const npcName = rpgDialogue?.npc || rpgNode.speaker;
+    playNpcLine(npcName, rpgNode.text, personalityType);
+  }, [rpgNode, npcChatTarget?.personalityType, rpgDialogue?.npc]);
 
   // Notification stacking system
   const [notifications, setNotifications] = useState<{ id: number; text: string }[]>([]);
