@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useMemo, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -13,7 +13,8 @@ import { LayoutDrivenPrefabs } from "./prefabs";
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
 import { Mat, PosterBox, setEraYears, getShelfMovies, setHeldMovieIds, setHeldMovieSlotKeys } from "./store-materials";
 import { StaffPicksShelf } from "./store-shelves";
-import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyModel, getRandomAdultPersonality } from "./store-characters";
+import { CharlieCharacter, VinnyCharacter, KenneyModel } from "./store-characters";
+import { NPCManager } from "./NPCManager";
 import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
 
 // Re-export for external consumers
@@ -156,12 +157,6 @@ export function Store({
   useEffect(() => { setHeldMovieIds(heldMovieIds); }, [heldMovieIds]);
   useEffect(() => { setHeldMovieSlotKeys(heldMovieSlotKeys); }, [heldMovieSlotKeys]);
 
-  const spawnedNpcs = useMemo(() => {
-    const shuffled = [...NPC_POOL].sort(() => Math.random() - 0.5);
-    const count = 4 + Math.floor(Math.random() * 3);
-    return shuffled.slice(0, count).map(npc => ({ ...npc, personality: getRandomAdultPersonality() }));
-  }, []);
-
   const { camera } = useThree();
   const [entranceDoorOpen, setEntranceDoorOpen] = useState(false);
   const prevEntranceDoorOpen = useRef(false);
@@ -233,8 +228,7 @@ export function Store({
 
       {/* ── COUNTER + CHARACTERS ── */}
       <VinnyCharacter />
-      {spawnedNpcs.slice(0, maxNpcs).map((npc, i) => (<NPCCustomer key={npc.id} id={npc.id} startPos={[NPC_WAYPOINTS[i % NPC_WAYPOINTS.length][0], -0.05, NPC_WAYPOINTS[i % NPC_WAYPOINTS.length][1]]} shirtColor={npc.shirtColor} hairColor={npc.hairColor} skinTone={npc.skinTone} hairStyle={npc.hairStyle} personality={npc.personality} />))}
-      {maxNpcs >= 1 && <KidCustomer startPos={[getObjectById("kid")?.x ?? 0, -0.05, getObjectById("kid")?.z ?? 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
+      <NPCManager isMobile={isMobile ?? false} />
       <CharlieCharacter />
       <StaffPicksShelf />
       <NeonSign />
