@@ -30,8 +30,10 @@ import {
   removeRecentReturnMovie,
   returnHeldMovies,
   seedStoreMovieState,
+  seedStoreMovieStateFromSlots,
   type SeededStoreMovieState,
 } from "@/lib/store-movie-state";
+import { fetchAllPresentShelfSlots } from "@/lib/live-shelf-placement";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -80,6 +82,31 @@ export default function GamePage() {
     { id: "present", label: "Present Day", years: "2024-2026", displayYear: "2025" },
   ];
   const selectedEra = ERA_OPTIONS.find(e => e.id === era) || ERA_OPTIONS[1];
+  const debugBootApplied = useRef(false);
+
+  useEffect(() => {
+    if (debugBootApplied.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const autoStart = params.get("autostart") === "1";
+    const requestedEra = params.get("era");
+    const requestedTopDown = params.get("topdown") === "1";
+    const eraOption = requestedEra ? ERA_OPTIONS.find((opt) => opt.id === requestedEra) : null;
+
+    if (!autoStart && !eraOption && !requestedTopDown) return;
+    debugBootApplied.current = true;
+
+    if (eraOption) {
+      setEra(eraOption.id);
+      setEraChosen(true);
+    }
+    if (requestedTopDown) {
+      setTopDown(true);
+    }
+    if (autoStart) {
+      setStarted(true);
+      setLoading(true);
+    }
+  }, [ERA_OPTIONS]);
 
   // Sync era to audio conversation system
   useEffect(() => {
@@ -215,10 +242,36 @@ export default function GamePage() {
 
   useEffect(() => {
     const eraId = getEraIdFromYears(selectedEra.years);
+    let cancelled = false;
+
+    if (eraId === "present") {
+      fetchAllPresentShelfSlots(selectedEra.years)
+        .then((slots) => {
+          if (cancelled) return;
+          setStoreMovieState(seedStoreMovieStateFromSlots(slots, `present:${selectedEra.years}`, {
+            missingCount: 8,
+            recentReturnCount: 4,
+          }));
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setStoreMovieState(seedStoreMovieState(eraId, selectedEra.years, {
+            missingCount: 8,
+            recentReturnCount: 4,
+          }));
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     setStoreMovieState(seedStoreMovieState(eraId, selectedEra.years, {
       missingCount: 8,
       recentReturnCount: 4,
     }));
+    return () => {
+      cancelled = true;
+    };
   }, [selectedEra.years]);
 
   // Side quest state (uses existing showQuestNotif for notifications)

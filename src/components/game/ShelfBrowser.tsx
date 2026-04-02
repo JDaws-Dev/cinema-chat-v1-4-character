@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { fetchTrending, fetchSearch } from "@/lib/api";
 import { getShelfBrowserMovies, type EraId } from "@/lib/curated-movie-catalog";
 import { getShelfPlacementSlotsForEra } from "@/lib/store-movie-state";
+import { fetchPresentShelfPlacementSlots } from "@/lib/live-shelf-placement";
 import type { TrendingMovie, SearchResult } from "@/lib/types";
 
 // Map zone IDs to TMDB genre IDs
@@ -77,11 +78,13 @@ export function ShelfBrowser({
     setLoading(true);
     setFilms([]);
 
-    if (eraId !== "present") {
-      if (placementKey) {
+    if (placementKey) {
+      const held = new Set(heldSlotKeys);
+      const inReturns = new Set(recentReturnSlotKeys);
+      const checkedOut = new Set(checkedOutSlotKeys);
+
+      if (eraId !== "present") {
         const held = new Set(heldSlotKeys);
-        const inReturns = new Set(recentReturnSlotKeys);
-        const checkedOut = new Set(checkedOutSlotKeys);
         setFilms(
           getShelfPlacementSlotsForEra(eraId, genre, placementKey, limit).map((movie) => ({
             id: movie.id,
@@ -98,9 +101,34 @@ export function ShelfBrowser({
                   : "on_shelf",
           }))
         );
-      } else {
-        setFilms(getShelfBrowserMovies(genre, eraId, shelfId, limit));
+        setLoading(false);
+        return;
       }
+
+      fetchPresentShelfPlacementSlots("2024-2026", placementKey, limit)
+        .then((slots) => {
+          setFilms(slots.map((slot) => ({
+            id: slot.id,
+            title: slot.title,
+            year: slot.year,
+            posterUrl: slot.posterUrl,
+            slotKey: slot.slotKey,
+            status: held.has(slot.slotKey)
+              ? "held"
+              : inReturns.has(slot.slotKey)
+                ? "in_returns"
+                : checkedOut.has(slot.slotKey)
+                  ? "checked_out"
+                  : "on_shelf",
+          })));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+      return;
+    }
+
+    if (eraId !== "present") {
+      setFilms(getShelfBrowserMovies(genre, eraId, shelfId, limit));
       setLoading(false);
       return;
     }

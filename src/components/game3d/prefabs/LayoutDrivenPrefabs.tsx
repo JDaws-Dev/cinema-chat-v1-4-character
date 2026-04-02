@@ -300,15 +300,35 @@ function ReturnBinPrefab({ obj }: { obj: ResolvedLayoutObject }) {
         <boxGeometry args={[0.8, 1.0, 0.6]} />
         <Mat color="#1a3a6a" roughness={0.7} />
       </mesh>
-      <mesh position={[0, 0.8, 0.28]}>
-        <boxGeometry args={[0.5, 0.1, 0.06]} />
-        <meshBasicMaterial color="#0a0a1a" />
+      <mesh position={[0, 1.02, 0]}>
+        <boxGeometry args={[0.82, 0.06, 0.62]} />
+        <Mat color="#224b86" roughness={0.45} />
       </mesh>
-      <Text position={[0, 1.1, 0.32]} fontSize={0.05} color="#ffd700" anchorX="center">
-        DROP RETURNS HERE
+      <mesh position={[0, 1.055, 0.1]}>
+        <boxGeometry args={[0.42, 0.025, 0.12]} />
+        <meshBasicMaterial color="#06070d" />
+      </mesh>
+      <mesh position={[0, 1.065, 0.1]}>
+        <boxGeometry args={[0.5, 0.012, 0.18]} />
+        <Mat color="#101828" roughness={0.35} />
+      </mesh>
+      <mesh position={[-0.22, 1.2, -0.2]}>
+        <boxGeometry args={[0.03, 0.34, 0.03]} />
+        <Mat color="#b8952a" roughness={0.35} metalness={0.18} />
+      </mesh>
+      <mesh position={[0.22, 1.2, -0.2]}>
+        <boxGeometry args={[0.03, 0.34, 0.03]} />
+        <Mat color="#b8952a" roughness={0.35} metalness={0.18} />
+      </mesh>
+      <mesh position={[0, 1.38, -0.2]}>
+        <boxGeometry args={[0.62, 0.22, 0.04]} />
+        <Mat color="#ffd700" roughness={0.4} />
+      </mesh>
+      <Text position={[0, 1.38, -0.17]} fontSize={0.05} color="#0a1830" anchorX="center" anchorY="middle">
+        DROP RETURNS
       </Text>
-      <Text position={[0, 1.1, -0.32]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center">
-        DROP RETURNS HERE
+      <Text position={[0, 1.38, -0.23]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#0a1830" anchorX="center" anchorY="middle">
+        DROP RETURNS
       </Text>
     </LayoutSignGroup>
   );

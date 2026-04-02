@@ -56,3 +56,12 @@ This note captures the new direction discussed after the current VHS/state work.
 5. Add checkout -> apartment transition.
 6. Add next-day / return-trip loop.
 7. Add side streets and extra exterior edge dressing.
+
+## Handoff Note
+
+- This is intentionally deferred behind the current VHS/store-state work.
+- Do not start the apartment expansion until the store-side movie loop is coherent:
+  - canonical home shelf per movie
+  - present-day shelves audited for duplicates/fullness
+  - checked-out / recent-returns / held-stack state unified
+  - missing-copy gameplay readable in the store first

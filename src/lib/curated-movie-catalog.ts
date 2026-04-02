@@ -293,7 +293,7 @@ function getPrimaryShelfGenre(movie: CatalogMovie): ShelfGenre {
   return movie.shelfGenres.find((genre) => genre !== "new") || movie.shelfGenres[0] || "drama";
 }
 
-function getPlacementKeysForGenre(genre: ShelfGenre): string[] {
+export function getPlacementKeysForGenre(genre: ShelfGenre): string[] {
   const keys: string[] = [];
 
   for (const obj of STORE_LAYOUT.objects) {

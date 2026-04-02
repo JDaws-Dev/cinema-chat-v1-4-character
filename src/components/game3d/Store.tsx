@@ -6,7 +6,7 @@ import { Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { playSFX } from "@/lib/audio";
-import { getObjectById } from "@/lib/store-layout";
+import { getObjectById, STORE_LAYOUT } from "@/lib/store-layout";
 import { LayoutDrivenPrefabs } from "./prefabs";
 
 // ── Module imports ──
@@ -31,22 +31,62 @@ function NeonSign() {
 }
 
 // ── Aisle signs — show genres in each row ──
-const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
-  { z: -4.2, label: "ACTION/ADVENTURE \u2022 COMEDY \u2022 HORROR \u2022 DRAMA", colors: [] },
-  { z: -1.5, label: "THRILLER \u2022 ROMANCE \u2022 SCI-FI & FANTASY \u2022 KIDS & FAMILY", colors: [] },
-  { z: 1, label: "MUSICALS \u2022 CLASSICS \u2022 SCI-FI & FANTASY", colors: [] },
+const AISLE_SIGNS: { z: number; front: string; back: string }[] = [
+  { z: -4.65, front: "ACTION • ADVENTURE • COMEDY", back: "THRILLER • ROMANCE" },
+  { z: -2.2, front: "HORROR • DRAMA", back: "HORROR • DRAMA" },
+  { z: 0.15, front: "SCI-FI • FANTASY • KIDS • FAMILY", back: "SCI-FI • FANTASY • KIDS • FAMILY" },
+  { z: 2.6, front: "MUSICAL • WESTERN • CLASSICS", back: "MUSICAL • WESTERN • CLASSICS" },
 ];
 
-function AisleSign({ z, label }: { z: number; label: string; colors: string[] }) {
+function AisleSign({ z, front, back }: { z: number; front: string; back: string }) {
   return (
     <group position={[0, 0, z]}>
       <mesh position={[0, ROOM_H - 0.45, 0]}><boxGeometry args={[0.02, 0.9, 0.02]} /><Mat color="#888888" metalness={0.5} roughness={0.3} /></mesh>
       {/* Blockbuster blue background with yellow border */}
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.2, 0.36, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.1, 0.3, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
-      <Text position={[0, 2.6, 0.025]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
-      <Text position={[0, 2.6, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      <mesh position={[0, 2.6, 0]}><boxGeometry args={[7.6, 0.52, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
+      <mesh position={[0, 2.6, 0]}><boxGeometry args={[7.48, 0.44, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
+      <Text position={[0, 2.68, 0.025]} fontSize={0.055} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{front}</Text>
+      <Text position={[0, 2.54, 0.025]} fontSize={0.04} color="#c8d8ff" anchorX="center" anchorY="middle" font={undefined}>BACK SIDE: {back}</Text>
+      <Text position={[0, 2.68, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.055} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{front}</Text>
+      <Text position={[0, 2.54, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.04} color="#c8d8ff" anchorX="center" anchorY="middle" font={undefined}>BACK SIDE: {back}</Text>
     </group>
+  );
+}
+
+function CeilingGenreMarkers() {
+  const shelves = STORE_LAYOUT.objects.filter((obj) => obj.prefab === "shelf/gondola");
+
+  return (
+    <>
+      {shelves.map((shelf) => {
+        const frontGenre = typeof shelf.meta?.genre === "string" ? shelf.meta.genre : shelf.label;
+        const backGenre = typeof shelf.meta?.backGenre === "string" ? shelf.meta.backGenre : frontGenre;
+        const rotY = shelf.rotY ?? 0;
+
+        return (
+          <group key={`marker-${shelf.id}`} position={[shelf.x, 0, shelf.z]} rotation={[0, rotY, 0]}>
+            <mesh position={[0, ROOM_H - 0.38, 0]}>
+              <boxGeometry args={[0.02, 0.42, 0.02]} />
+              <Mat color="#9aa3b5" metalness={0.45} roughness={0.35} />
+            </mesh>
+            <mesh position={[0, ROOM_H - 0.62, -0.34]}>
+              <boxGeometry args={[1.45, 0.18, 0.04]} />
+              <Mat color="#0b1e46" roughness={0.45} />
+            </mesh>
+            <Text position={[0, ROOM_H - 0.62, -0.31]} rotation={[0, Math.PI, 0]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+              {frontGenre}
+            </Text>
+            <mesh position={[0, ROOM_H - 0.62, 0.34]}>
+              <boxGeometry args={[1.45, 0.18, 0.04]} />
+              <Mat color="#0b1e46" roughness={0.45} />
+            </mesh>
+            <Text position={[0, ROOM_H - 0.62, 0.31]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+              {backGenre}
+            </Text>
+          </group>
+        );
+      })}
+    </>
   );
 }
 
@@ -68,37 +108,85 @@ function FloorRug() {
 function RecentReturnsStack({
   movies,
 }: {
-  movies: Array<{ id: number; title: string; posterUrl: string; genre: string; slotKey?: string }>;
+  movies: Array<{ id: number; title: string; posterUrl: string; genre: string; slotKey?: string; displayIndex?: number }>;
 }) {
+  const counter = getObjectById("counter");
   const bin = getObjectById("return-bin");
-  if (!bin || movies.length === 0) return null;
+  const anchor =
+    counter
+      ? { x: counter.x - 2.58, y: 0, z: counter.z - 0.32 }
+      : bin
+        ? { x: bin.x + 0.95, y: 0, z: bin.z - 0.32 }
+        : null;
+  if (!anchor || movies.length === 0) return null;
+
+  const visiblePositions: Array<[number, number, number, number]> = [
+    [-0.2, 0.05, 0.01, -0.03],
+    [0.04, 0.05, 0.01, 0.02],
+    [-0.22, 0.082, 0.23, 0.03],
+    [0.06, 0.082, 0.23, -0.02],
+  ];
 
   return (
-    <group position={[bin.x - 0.9, 0.98, bin.z - 0.05]} rotation={[0, -0.2, 0]}>
-      <mesh position={[0.1, -0.02, 0.02]}>
-        <boxGeometry args={[1.05, 0.08, 0.62]} />
-        <Mat color="#5a3a1a" roughness={0.7} />
-      </mesh>
-      <mesh position={[0.1, 0.18, 0.28]}>
-        <boxGeometry args={[0.86, 0.18, 0.04]} />
-        <Mat color="#ffd700" roughness={0.45} />
-      </mesh>
-      <Text position={[0.1, 0.18, 0.31]} fontSize={0.05} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
-        RECENT RETURNS
-      </Text>
-      {movies.slice(0, 4).map((movie, index) => (
-        <PosterBox
-          key={`recent-return-${movie.slotKey ?? movie.id}`}
-          url={movie.posterUrl}
-          position={[-0.24 + (index % 2) * 0.24, 0.17 + Math.floor(index / 2) * 0.02, -0.18 + Math.floor(index / 2) * 0.2]}
-          rotation={Math.PI * 0.96}
-          movieTitle={movie.title}
-          movieId={movie.id}
-          genreColor="#d4a514"
-          slotKey={movie.slotKey}
-          hideWithSlotKey={false}
-        />
+    <group position={[anchor.x, 0.95, anchor.z]} rotation={[0, 0.04, 0]}>
+      <group position={[0.01, 0.006, -0.215]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.56, 0.18]} />
+          <Mat color="#ffd700" roughness={0.4} />
+        </mesh>
+        <Text
+          position={[0, 0.004, 0]}
+          rotation={[-Math.PI / 2, 0, Math.PI]}
+          fontSize={0.045}
+          color="#0a1830"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+        >
+          RECENT RETURNS
+        </Text>
+      </group>
+      {[
+        { x: -0.36, y: 0.016, z: 0.41, rot: -0.08, tint: "#1a1a2a" },
+        { x: -0.36, y: 0.042, z: 0.41, rot: -0.08, tint: "#2a2430" },
+        { x: -0.36, y: 0.068, z: 0.41, rot: -0.08, tint: "#1a1a2a" },
+        { x: 0.28, y: 0.016, z: 0.47, rot: 0.06, tint: "#2a2430" },
+        { x: 0.28, y: 0.042, z: 0.47, rot: 0.06, tint: "#1a1a2a" },
+        { x: 0.28, y: 0.068, z: 0.47, rot: 0.06, tint: "#2a2430" },
+      ].map((stack, index) => (
+        <group
+          key={`recent-return-filler-${index}`}
+          position={[stack.x, stack.y, stack.z]}
+          rotation={[0, stack.rot, 0]}
+        >
+          <mesh>
+            <boxGeometry args={[0.15, 0.025, 0.26]} />
+            <Mat color={stack.tint} roughness={0.62} />
+          </mesh>
+          <mesh position={[0, 0.0132, 0]} rotation={[-Math.PI / 2, 0, Math.PI]}>
+            <planeGeometry args={[0.14, 0.25]} />
+            <Mat color={index % 3 === 0 ? "#d9c27a" : "#c9d4e8"} roughness={0.82} />
+          </mesh>
+        </group>
       ))}
+      {movies
+        .filter((movie) => (movie.displayIndex ?? 0) < visiblePositions.length)
+        .map((movie) => {
+          const [x, y, z, rot] = visiblePositions[movie.displayIndex ?? 0];
+          return (
+            <PosterBox
+              key={`recent-return-${movie.slotKey ?? movie.id}`}
+              url={movie.posterUrl}
+              position={[x, y, z]}
+              rotation={rot}
+              movieTitle={movie.title}
+              movieId={movie.id}
+              genreColor="#d4a514"
+              slotKey={movie.slotKey}
+              hideWithSlotKey={false}
+            />
+          );
+        })}
     </group>
   );
 }
@@ -228,7 +316,8 @@ export function Store({
       {[-4.5, -0.5, 3.5].map((fx) => (<group key={`front-${fx}`} position={[fx, ROOM_H - 0.04, 4.9]}><mesh><boxGeometry args={[1.65, 0.05, 0.28]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.45, 0.03, 0.08]} /><meshBasicMaterial color="#fff6dd" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.55, 0.01, 0.22]} /><Mat color="#ece8da" roughness={0.22} /></mesh></group>))}
       </>}
 
-      {AISLE_SIGNS.map((sign, i) => (<AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />))}
+      {AISLE_SIGNS.map((sign, i) => (<AisleSign key={`aisle-${i}`} z={sign.z} front={sign.front} back={sign.back} />))}
+      <CeilingGenreMarkers />
       <AisleFloorMarkings />
 
       {/* ── COUNTER + CHARACTERS ── */}

@@ -5,6 +5,7 @@ import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 import { getShelfPlacementSlotsForEra } from "@/lib/store-movie-state";
+import { fetchPresentShelfPlacementSlots } from "@/lib/live-shelf-placement";
 
 // Toon shading gradient — 3-step (shadow, mid, highlight) for cel-shaded look
 export const toonGradientTexture = (() => {
@@ -250,36 +251,24 @@ export function setHeldMovieSlotKeys(slotKeys: string[]) {
   heldMovieSlotKeys = new Set(slotKeys);
 }
 
-// Cache all fetched posters per genre+era so duplicate shelves can take different slices
-const genrePosterCache: Record<string, PosterData[]> = {};
-const genreSliceCounter: Record<string, number> = {};
-
 function buildFallbackPosters(count: number, cacheKey: string): PosterData[] {
-  if (sliceRefMap[cacheKey] === undefined) {
-    sliceRefMap[cacheKey] = genreSliceCounter[cacheKey] || 0;
-    genreSliceCounter[cacheKey] = (genreSliceCounter[cacheKey] || 0) + 1;
-  }
-  const offset = sliceRefMap[cacheKey] * count;
+  const offset = Math.abs([...cacheKey].reduce((acc, char) => acc + char.charCodeAt(0), 0)) % FALLBACK_POSTERS.length;
   const rotated = FALLBACK_POSTERS.map((_, i) => FALLBACK_POSTERS[(i + offset) % FALLBACK_POSTERS.length]);
   return Array.from({ length: count }, (_, i) => rotated[i % rotated.length]);
 }
 
-const sliceRefMap: Record<string, number> = {};
-
 export function usePosterUrls(genre: string, count: number, placementKey = ""): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
-  // Each shelf instance gets the next slice of cached results
-  const sliceRef = useRef<number>(-1);
 
   useEffect(() => {
-    const genreId = GENRE_TMDB_IDS[genre];
     const [startYear, endYear] = currentEraYears.split("-");
+    const effectivePlacementKey = placementKey || `${genre}:${count}`;
 
     if (currentEraId !== "present") {
       const localPosters = getShelfPlacementSlotsForEra(
         currentEraId,
         genre,
-        placementKey || `${genre}:${count}`,
+        effectivePlacementKey,
         count
       );
       setPosters(
@@ -292,107 +281,23 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
       return;
     }
 
-    if (!genreId) {
-      // "New Releases" wall — popular movies from the selected era (3 pages for more variety)
-      Promise.all([
-        fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=1`).then(r => r.json()),
-        fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=2`).then(r => r.json()),
-        fetch(`/api/search?releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&ratingMin=5&page=3`).then(r => r.json()),
-      ]).then(([p1, p2, p3]) => {
-        const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
-        const seen = new Set<number>();
-        const unique = all.filter((m: Record<string, unknown>) => {
-          if (seen.has(m.id as number)) return false;
-          seen.add(m.id as number);
-          return true;
-        });
-        const uniquePosters = unique.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url);
-        // Cycle/repeat to fill all slots if not enough unique results
-        if (uniquePosters.length === 0) {
-          setPosters(buildFallbackPosters(count, `NEW_${startYear}_${endYear}`));
-        } else if (uniquePosters.length > 0 && uniquePosters.length < count) {
-          const filled: PosterData[] = [];
-          for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
-          setPosters(filled);
-        } else {
-          setPosters(uniquePosters);
+    fetchPresentShelfPlacementSlots(currentEraYears, effectivePlacementKey, count)
+      .then((liveSlots) => {
+        if (liveSlots.length === 0) {
+          setPosters(buildFallbackPosters(count, `${genre}_${startYear}_${endYear}_${effectivePlacementKey}`));
+          return;
         }
-      }).catch(() => {
-        setPosters(buildFallbackPosters(count, `NEW_${startYear}_${endYear}`));
+        setPosters(
+          liveSlots.map((slot) => ({
+            url: slot.posterUrl,
+            title: slot.title,
+            id: slot.id,
+          }))
+        );
+      })
+      .catch(() => {
+        setPosters(buildFallbackPosters(count, `${genre}_${startYear}_${endYear}_${effectivePlacementKey}`));
       });
-    } else if (genreId === "classics") {
-      // Classics: pre-1980 highly-rated films (TCM style)
-      Promise.all([
-        fetch(`/api/search?decade=1960&ratingMin=7&page=1`).then(r => r.json()),
-        fetch(`/api/search?decade=1950&ratingMin=7&page=1`).then(r => r.json()),
-        fetch(`/api/search?decade=1970&ratingMin=7&page=1`).then(r => r.json()),
-      ]).then(([s60, s50, s70]) => {
-        const all = [...(s60.results || []), ...(s50.results || []), ...(s70.results || [])];
-        const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url);
-        if (uniquePosters.length === 0) {
-          setPosters(buildFallbackPosters(count, `CLASSICS_${startYear}_${endYear}`));
-        } else if (uniquePosters.length > 0 && uniquePosters.length < count) {
-          const filled: PosterData[] = [];
-          for (let i = 0; i < count; i++) filled.push(uniquePosters[i % uniquePosters.length]);
-          setPosters(filled);
-        } else {
-          setPosters(uniquePosters);
-        }
-      }).catch(() => {
-        setPosters(buildFallbackPosters(count, `CLASSICS_${startYear}_${endYear}`));
-      });
-    } else {
-      // Genre — fetch 3 pages, cache results, each shelf takes a different slice
-      const cacheKey = `${genre}_${startYear}_${endYear}`;
-      const fetchAndSlice = (allPosters: PosterData[]) => {
-        // Assign a slice index for this shelf instance
-        if (sliceRef.current === -1) {
-          sliceRef.current = genreSliceCounter[cacheKey] || 0;
-          genreSliceCounter[cacheKey] = (genreSliceCounter[cacheKey] || 0) + 1;
-        }
-        const offset = sliceRef.current * count;
-        const sliced = allPosters.slice(offset, offset + count);
-        // If not enough in our slice, wrap around
-        if (sliced.length > 0 && sliced.length < count) {
-          const filled: PosterData[] = [];
-          for (let i = 0; i < count; i++) filled.push(sliced[i % sliced.length]);
-          setPosters(filled);
-        } else if (sliced.length === 0) {
-          // Our slice is empty, use from start
-          const wrapped = allPosters.slice(0, count);
-          setPosters(wrapped.length > 0 ? wrapped : []);
-        } else {
-          setPosters(sliced);
-        }
-      };
-
-      if (genrePosterCache[cacheKey]) {
-        fetchAndSlice(genrePosterCache[cacheKey]);
-      } else {
-        Promise.all([
-          fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=1`).then(r => r.json()),
-          fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=2`).then(r => r.json()),
-          fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=3`).then(r => r.json()),
-        ]).then(([p1, p2, p3]) => {
-          const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
-          const allPosters = all.map((m: Record<string, unknown>) => ({
-            url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-          })).filter((p: PosterData) => p.url);
-          if (allPosters.length === 0) {
-            setPosters(buildFallbackPosters(count, cacheKey));
-            return;
-          }
-          genrePosterCache[cacheKey] = allPosters;
-          fetchAndSlice(allPosters);
-        }).catch(() => {
-          setPosters(buildFallbackPosters(count, cacheKey));
-        });
-      }
-    }
   }, [genre, count, placementKey]);
 
   // Register loaded movies in global registry for challenge system

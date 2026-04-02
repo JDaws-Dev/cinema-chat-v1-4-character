@@ -8,6 +8,37 @@
 
 ### Session Update -- 2026-04-02
 
+#### Handoff status for next agent
+- Branch: `prefab-editor-phase1`
+- Primary active area: canonical VHS slot state and present-day shelf assignment, not the apartment/world expansion yet.
+- Verified review workflow: use the built-in security cameras, not ad hoc desktop screenshots.
+  - `npm run security-cams`
+  - `npm run security-cams -- --era=late90s --cams=counter,right_wall`
+- The security-camera path is working again through `scripts/capture-security-cams.mjs` and `/game?autostart=1&era=...`.
+- Current high-value gameplay files:
+  - `src/app/game/page.tsx`
+  - `src/lib/store-movie-state.ts`
+  - `src/lib/live-shelf-placement.ts`
+  - `src/components/game3d/store-materials.tsx`
+  - `src/components/game/ShelfBrowser.tsx`
+  - `src/components/game3d/Store.tsx`
+  - `src/components/game3d/prefabs/LayoutDrivenPrefabs.tsx`
+- Current user priority order:
+  1. Canonical VHS state across shelf home, held stack, recent returns, and checked out.
+  2. Present-day shelf audit for duplicates, underfilled sections, and wrong genre placement.
+  3. Cleaner floor zoning and navigation cues, without cluttering the store with too many signs.
+  4. Missing-copy / recent-returns gameplay.
+  5. Apartment above the laundromat and day-loop expansion later.
+- Latest user constraints:
+  - pristine, idealized Blockbuster-memory tone
+  - one movie has one home shelf except `NEW RELEASES`
+  - no genre should be split across unrelated shelf faces
+  - comedy should be contiguous
+  - classics should be deeper in the store, not front and center
+  - navigation signage should help orient the player without making the store look busy
+  - recent returns should read from the customer side of the counter
+  - use real poster art wherever possible
+
 #### Major branch work completed
 - **Prefab/layout Phase 1**: large chunks of the store are now layout-driven instead of hardcoded scene-only JSX. Posters, signs, return bin, bargain bin, lamps, cars, trash cans, CRT TVs, shelves, the counter, and the new releases wall all moved further onto the prefab path.
 - **Collision and interaction sync**: gameplay collision now comes from layout/prefab data instead of relying only on a hand-maintained list. Shelf, sign, TV, and prop interactions are being resolved from the same object data used to render them.
@@ -15,6 +46,7 @@
 - **2D editor overhaul**: multi-select, group dragging, align/distribute, duplicate, and layer hide/lock controls are now in the 2D editor.
 - **Exterior/storefront authoring**: the large exterior `FRIDAY NIGHT VIDEO` sign is now a layout object, Pizza Palace and storefront details are visible in the 3D editor, and car footprints/colliders were brought back into alignment with their visible meshes.
 - **Security camera QA path verified**: the built-in 10-camera review system is still mounted in `/game` via `SecurityCameras.tsx` and remains the intended visual QA workflow.
+- **Security camera automation hardened**: `/game` now supports query-param auto-start/auto-era boot for review tooling, and `scripts/capture-security-cams.mjs` can drive `window.__securityCams()` headlessly with software WebGL flags.
 
 #### VHS catalog and poster system updates
 - **Historical eras moved off the tiny hand-curated fallback**: a generated per-era catalog snapshot now exists in `src/lib/generated-era-catalog.ts` and feeds historical shelf stocking through `src/lib/curated-movie-catalog.ts`.
@@ -38,13 +70,19 @@
 - **Historical shelf rendering is now placement-driven**: for non-present eras, the in-world shelf meshes and the shelf browser now read from the same canonical placement-slot assignments, and wall shelves request their true physical slot counts instead of a stale fixed `20`.
 - **Slot-state transitions are more centralized now**: challenge resets, checkout, return-bin drops, and put-backs are now routed through shared helpers in `src/lib/store-movie-state.ts` instead of each path mutating recent returns and checked-out slots separately.
 - **Store movie state is moving behind shared helpers**: checkout, put-back, challenge reset, timeout, and return-bin flows are now being routed through `src/lib/store-movie-state.ts` instead of each path mutating separate slot arrays by hand.
+- **Present-day slot seeding now uses live placement data**: `/game` now seeds present-day missing copies and recent returns from the same placement-keyed live shelf dataset used by present-day shelf rendering and the shelf browser, instead of a separate local fallback list.
+- **Present-day shelf homes are more canonical now**: the live present-day placement pass now assigns movies globally across the store instead of per-shelf fetches, which reduces duplicate present-day titles appearing on multiple non-`new releases` shelves.
 
 #### Current known issues / active work
 - **VHS artwork path is still the top priority**: most poster requests are now succeeding through `/api/catalog-poster`, but the full in-game VHS flow still needs more hardening so shelf art, shelf browser art, HUD inventory art, held-in-hand tapes, and missing/checked-out states all stay consistent.
 - **Shelf/browser/state unification is still incomplete**: historical shelf browsing and shelf rendering now share placement-slot data, but the full canonical movie-slot model across held stack, returns stack, checkout, and present-day shelves still needs more hardening.
 - **Present-day shelves are still the big holdout**: historical eras now use the stronger placement-slot path, but the live/present-day movie pipeline still needs to be pulled into the same model.
+- **Present-day is closer, but not done**: live placement seeding now matches present-day shelf/browser data at spawn, but more of the present-day pipeline still needs to be centralized behind one canonical source instead of multiple fetch call sites.
+- **Present-day uniqueness still needs more testing**: the global live assignment pass is in, but it still needs runtime audit against the actual floor layout to confirm genre balance and shelf fullness stay good as duplicates are removed.
 - **Historical catalog quality still needs tuning**: the generated era catalogs are large enough now, but the selection rules still need to skew harder toward mainstream, high-recognition rental-store movies rather than odd TMDB long-tail results.
 - **Returns gameplay is only at Phase 1**: spawn-time missing copies and rentable recent returns exist now, but routing returned movies back to their canonical shelf homes and building competitive/customer race logic still remains.
+- **Floor zoning still needs cleanup**: the user explicitly wants each genre to feel contiguous and easier to navigate, with simpler signage and a clearer front-of-store vs back-of-store genre mix.
+- **Present-day runtime audit still needs to happen**: after the global de-duplication pass, the live store should be checked for shelf fullness, duplicates, and genre misplacement using the built-in security camera flow and/or direct runtime inspection.
 
 ### Architecture
 - **React Three Fiber** with first-person controls (WASD + mouse look)
@@ -137,6 +175,13 @@ window.__securityCams(['overhead','entrance'])  // specific cameras
 ```
 Cameras: overhead, entrance, back_wall, left_wall, right_wall, counter, ceiling_front, ceiling_back, exterior, side_elev
 Images saved to: `/tmp/fnv-cams/{name}.png`
+
+Headless capture from the repo root:
+```bash
+npm run security-cams
+npm run security-cams -- --era=late90s --cams=counter,left_wall
+```
+This uses `/game?autostart=1&era=...` plus Chromium WebGL flags so captures work without manual clicking through the splash and era selector.
 
 ### User's Nostalgia Vision
 > "I love the idea of the pizza parlor — we'd always get pizza and a movie for Friday night. So much nostalgia."

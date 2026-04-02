@@ -18,6 +18,7 @@ export interface ReturnableMovieSlot {
   posterUrl: string;
   genre: string;
   slotKey: string;
+  displayIndex: number;
 }
 
 export interface SeededStoreMovieState {
@@ -41,6 +42,33 @@ export interface StoreMovieSlotBuckets {
   recentReturnSlotKeys: string[];
   checkedOutSlotKeys: string[];
   unavailableSlotKeys: string[];
+}
+
+function seedStateFromSlots(
+  slots: StoreMovieSlot[],
+  seed: string,
+  options?: {
+    missingCount?: number;
+    recentReturnCount?: number;
+  }
+): SeededStoreMovieState {
+  const missingCount = options?.missingCount ?? 8;
+  const recentReturnCount = options?.recentReturnCount ?? 4;
+  const random = createSeededRandom(seed);
+  const shuffled = [...slots].sort(() => random() - 0.5);
+  const picked = shuffled.slice(0, missingCount);
+
+  return {
+    missingSlotKeys: picked.map((movie) => movie.slotKey),
+    recentReturns: picked.slice(0, recentReturnCount).map((movie, index) => ({
+      id: movie.id,
+      title: movie.title,
+      posterUrl: movie.posterUrl,
+      genre: movie.genre,
+      slotKey: movie.slotKey,
+      displayIndex: index,
+    })),
+  };
 }
 
 function createSeededRandom(seed: string): () => number {
@@ -125,16 +153,18 @@ export function seedStoreMovieState(
     recentReturnCount?: number;
   }
 ): SeededStoreMovieState {
-  const missingCount = options?.missingCount ?? 8;
-  const recentReturnCount = options?.recentReturnCount ?? 4;
-  const random = createSeededRandom(`${eraId}:${seed}`);
-  const shuffled = [...getCanonicalShelfSlotsForEra(eraId)].sort(() => random() - 0.5);
-  const picked = shuffled.slice(0, missingCount);
+  return seedStateFromSlots(getCanonicalShelfSlotsForEra(eraId), `${eraId}:${seed}`, options);
+}
 
-  return {
-    missingSlotKeys: picked.map((movie) => movie.slotKey),
-    recentReturns: picked.slice(0, recentReturnCount),
-  };
+export function seedStoreMovieStateFromSlots(
+  slots: StoreMovieSlot[],
+  seed: string,
+  options?: {
+    missingCount?: number;
+    recentReturnCount?: number;
+  }
+): SeededStoreMovieState {
+  return seedStateFromSlots(slots, seed, options);
 }
 
 export function getMovieSlotKeys<T extends SlotBackedMovie>(movies: T[]): string[] {
@@ -146,28 +176,32 @@ export function mergeRecentReturnMovies<T extends ReturnableMovieLike>(
   incoming: T[],
   limit = 8,
 ): ReturnableMovieSlot[] {
-  const merged: ReturnableMovieSlot[] = [];
+  const merged = [...existing];
   const seen = new Set<string>();
+  const usedDisplayIndexes = new Set<number>(existing.map((movie) => movie.displayIndex));
 
-  const normalizedIncoming = incoming.flatMap((movie) => (
-    movie.slotKey
-      ? [{
-          id: movie.id,
-          title: movie.title,
-          posterUrl: movie.posterUrl,
-          genre: movie.genre,
-          slotKey: movie.slotKey,
-        }]
-      : []
-  ));
-
-  for (const movie of [...normalizedIncoming, ...existing]) {
-    if (seen.has(movie.slotKey)) continue;
+  for (const movie of existing) {
     seen.add(movie.slotKey);
-    merged.push(movie);
+  }
+
+  for (const movie of incoming) {
+    if (!movie.slotKey || seen.has(movie.slotKey)) continue;
+    let displayIndex = 0;
+    while (usedDisplayIndexes.has(displayIndex)) displayIndex++;
+    usedDisplayIndexes.add(displayIndex);
+    seen.add(movie.slotKey);
+    merged.push({
+      id: movie.id,
+      title: movie.title,
+      posterUrl: movie.posterUrl,
+      genre: movie.genre,
+      slotKey: movie.slotKey,
+      displayIndex,
+    });
     if (merged.length >= limit) break;
   }
 
+  merged.sort((a, b) => a.displayIndex - b.displayIndex);
   return merged;
 }
 
