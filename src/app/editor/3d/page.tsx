@@ -200,6 +200,7 @@ export default function Editor3DPage() {
       if (!res.ok) throw new Error(await res.text());
       setSaveStatus("saved");
       originalRef.current = objects.map((o) => ({ ...o }));
+      if (window.parent !== window) window.parent.postMessage({ type: "layout-saved" }, "*");
       setTimeout(() => setSaveStatus("idle"), 2500);
     } catch {
       setSaveStatus("error");

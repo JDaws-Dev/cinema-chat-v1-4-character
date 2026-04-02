@@ -280,6 +280,8 @@ export default function EditorPage() {
       if (!res.ok) throw new Error(await res.text());
       setSaveStatus("saved");
       originalObjectsRef.current = objects.map((o) => ({ ...o }));
+      // Notify parent (dual editor) that layout was saved
+      if (window.parent !== window) window.parent.postMessage({ type: "layout-saved" }, "*");
       setTimeout(() => setSaveStatus("idle"), 2500);
     } catch (err) {
       console.error("Save failed:", err);
