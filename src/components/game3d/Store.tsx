@@ -11,7 +11,7 @@ import { LayoutDrivenPrefabs } from "./prefabs";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
-import { Mat, setEraYears, getShelfMovies, setHeldMovieIds, setHeldMovieSlotKeys } from "./store-materials";
+import { Mat, PosterBox, setEraYears, getShelfMovies, setHeldMovieIds, setHeldMovieSlotKeys } from "./store-materials";
 import { StaffPicksShelf } from "./store-shelves";
 import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyModel, getRandomAdultPersonality } from "./store-characters";
 import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
@@ -65,6 +65,44 @@ function FloorRug() {
   );
 }
 
+function RecentReturnsStack({
+  movies,
+}: {
+  movies: Array<{ id: number; title: string; posterUrl: string; genre: string; slotKey?: string }>;
+}) {
+  const bin = getObjectById("return-bin");
+  if (!bin || movies.length === 0) return null;
+
+  return (
+    <group position={[bin.x - 0.9, 0.98, bin.z - 0.05]} rotation={[0, -0.2, 0]}>
+      <mesh position={[0.1, -0.02, 0.02]}>
+        <boxGeometry args={[1.05, 0.08, 0.62]} />
+        <Mat color="#5a3a1a" roughness={0.7} />
+      </mesh>
+      <mesh position={[0.1, 0.18, 0.28]}>
+        <boxGeometry args={[0.86, 0.18, 0.04]} />
+        <Mat color="#ffd700" roughness={0.45} />
+      </mesh>
+      <Text position={[0.1, 0.18, 0.31]} fontSize={0.05} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
+        RECENT RETURNS
+      </Text>
+      {movies.slice(0, 4).map((movie, index) => (
+        <PosterBox
+          key={`recent-return-${movie.slotKey ?? movie.id}`}
+          url={movie.posterUrl}
+          position={[-0.24 + (index % 2) * 0.24, 0.17 + Math.floor(index / 2) * 0.02, -0.18 + Math.floor(index / 2) * 0.2]}
+          rotation={Math.PI * 0.96}
+          movieTitle={movie.title}
+          movieId={movie.id}
+          genreColor="#d4a514"
+          slotKey={movie.slotKey}
+          hideWithSlotKey={false}
+        />
+      ))}
+    </group>
+  );
+}
+
 // ── Trophy Shelf ──
 const RARITY_COLORS: Record<string, string> = { legendary: "#ffd700", rare: "#a855f7", uncommon: "#06b6d4" };
 
@@ -102,6 +140,7 @@ export function Store({
   eraYears,
   heldMovieIds = [],
   heldMovieSlotKeys = [],
+  recentReturnMovies = [],
   maxNpcs = 5,
   topDown = false,
 }: {
@@ -109,6 +148,7 @@ export function Store({
   eraYears?: string;
   heldMovieIds?: number[];
   heldMovieSlotKeys?: string[];
+  recentReturnMovies?: Array<{ id: number; title: string; posterUrl: string; genre: string; slotKey?: string }>;
   maxNpcs?: number;
   topDown?: boolean;
 }) {
@@ -216,6 +256,7 @@ export function Store({
 
       <TrophyShelf />
       <LayoutDrivenPrefabs />
+      <RecentReturnsStack movies={recentReturnMovies} />
 
       {/* Neon accent strips (removed — looked like weird colored bars) */}
 

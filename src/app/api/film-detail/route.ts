@@ -2,6 +2,25 @@ import { getCatalogFilmDetail } from "@/lib/curated-movie-catalog";
 import { tmdbFetch, posterUrl, backdropUrl, logoUrl } from "@/lib/tmdb";
 import type { FilmDetail, CastMember, CrewMember, MovieInfo, StreamingProviders, Provider } from "@/lib/types";
 
+function mapStreamingProviders(providersData: Record<string, unknown>): StreamingProviders {
+  const us = (providersData.results as { US?: { flatrate?: Array<{ provider_id: number; provider_name: string; logo_path: string | null }>; rent?: Array<{ provider_id: number; provider_name: string; logo_path: string | null }>; buy?: Array<{ provider_id: number; provider_name: string; logo_path: string | null }>; link?: string } } | undefined)?.US;
+  const mapProviders = (list: Array<{ provider_id: number; provider_name: string; logo_path: string | null }> | undefined): Provider[] =>
+    (list || []).map((p) => ({
+      id: p.provider_id,
+      name: p.provider_name,
+      logoPath: logoUrl(p.logo_path),
+    }));
+
+  return us
+    ? {
+        flatrate: mapProviders(us.flatrate),
+        rent: mapProviders(us.rent),
+        buy: mapProviders(us.buy),
+        link: us.link || null,
+      }
+    : { flatrate: [], rent: [], buy: [], link: null };
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
@@ -13,6 +32,20 @@ export async function GET(req: Request) {
   try {
     const catalogFilm = getCatalogFilmDetail(Number(id));
     if (catalogFilm) {
+      if (Number(id) < 900000) {
+        try {
+          const providersRes = await tmdbFetch(`/movie/${id}/watch/providers`);
+          const providersData = await providersRes.json();
+          return Response.json({
+            film: {
+              ...catalogFilm,
+              providers: mapStreamingProviders(providersData),
+            },
+          });
+        } catch {
+          // fall through to catalog-only data
+        }
+      }
       return Response.json({ film: catalogFilm });
     }
 
@@ -62,22 +95,7 @@ export async function GET(req: Request) {
     }));
 
     // Streaming providers
-    const us = providersData.results?.US;
-    const mapProviders = (list: Array<{ provider_id: number; provider_name: string; logo_path: string | null }> | undefined): Provider[] =>
-      (list || []).map((p) => ({
-        id: p.provider_id,
-        name: p.provider_name,
-        logoPath: logoUrl(p.logo_path),
-      }));
-
-    const providers: StreamingProviders = us
-      ? {
-          flatrate: mapProviders(us.flatrate),
-          rent: mapProviders(us.rent),
-          buy: mapProviders(us.buy),
-          link: us.link || null,
-        }
-      : { flatrate: [], rent: [], buy: [], link: null };
+    const providers: StreamingProviders = mapStreamingProviders(providersData);
 
     const film: FilmDetail = {
       id: detail.id,

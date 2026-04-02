@@ -22,7 +22,8 @@ import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { mobileInput } from "@/components/game3d/MobileControls";
-import type { EraId } from "@/lib/curated-movie-catalog";
+import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
+import { STORE_LAYOUT } from "@/lib/store-layout";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -57,6 +58,7 @@ function formatGameTime(hours: number): string {
 type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout";
 
 export default function GamePage() {
+  type ShelfBrowseState = { genre: string; shelfId?: string; count?: number; label?: string };
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -88,7 +90,7 @@ export default function GamePage() {
   }, []);
   const [overlay, setOverlay] = useState<Overlay>("none");
   const [topDown, setTopDown] = useState(false);
-  const [shelfGenre, setShelfGenre] = useState("");
+  const [shelfBrowse, setShelfBrowse] = useState<ShelfBrowseState | null>(null);
   const [filmId, setFilmId] = useState<number | null>(null);
 
   // Vinny's Five state
@@ -113,6 +115,8 @@ export default function GamePage() {
   type HeldMovie = { id: number; title: string; posterUrl: string; genre: string; slotKey?: string };
   const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
   const [pendingPickup, setPendingPickup] = useState<{ id: number; title: string; posterUrl: string; slotKey?: string } | null>(null);
+  const [spawnedMissingSlotKeys, setSpawnedMissingSlotKeys] = useState<string[]>([]);
+  const [recentReturns, setRecentReturns] = useState<HeldMovie[]>([]);
   // Snack inventory (separate from movies)
   type HeldSnack = { name: string; emoji: string };
   const [heldSnacks, setHeldSnacks] = useState<HeldSnack[]>([]);
@@ -177,6 +181,61 @@ export default function GamePage() {
     setNotifications(prev => [...prev.slice(-2), { id, text }]); // max 3
     setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 4000);
   }, []);
+
+  const resumePointerLock = useCallback(() => {
+    if (isMobile || topDown) return;
+    requestAnimationFrame(() => {
+      const canvas = document.querySelector("canvas");
+      if (canvas instanceof HTMLCanvasElement && document.pointerLockElement !== canvas) {
+        canvas.requestPointerLock?.();
+      }
+    });
+  }, [isMobile, topDown]);
+
+  const removeHeldMovie = useCallback((movieId: number) => {
+    setHeldMovies((prev) => {
+      const removeIndex = prev.findIndex((movie) => movie.id === movieId);
+      if (removeIndex === -1) return prev;
+      const [removed] = prev.slice(removeIndex, removeIndex + 1);
+      if (removed?.slotKey && spawnedMissingSlotKeys.includes(removed.slotKey)) {
+        setRecentReturns((existing) => existing.some((movie) => movie.slotKey === removed.slotKey) ? existing : [removed, ...existing].slice(0, 8));
+      }
+      return prev.filter((_, index) => index !== removeIndex);
+    });
+  }, [spawnedMissingSlotKeys]);
+
+  useEffect(() => {
+    const eraId = getEraIdFromYears(selectedEra.years);
+    const gondolaCandidates = STORE_LAYOUT.objects.flatMap((obj) => {
+      if (obj.prefab !== "shelf/gondola") return [];
+      const frontGenre = typeof obj.meta?.genre === "string" ? obj.meta.genre : null;
+      const backGenre = typeof obj.meta?.backGenre === "string" ? obj.meta.backGenre : null;
+      const frontMovies = frontGenre
+        ? getCuratedShelfPosterData(frontGenre, eraId, `${obj.id}:front`, 18).map((movie, index) => ({
+            id: movie.id,
+            title: movie.title,
+            posterUrl: movie.url,
+            genre: frontGenre,
+            slotKey: `${obj.id}:front:${index}`,
+          }))
+        : [];
+      const backMovies = backGenre
+        ? getCuratedShelfPosterData(backGenre, eraId, `${obj.id}:back`, 18).map((movie, index) => ({
+            id: movie.id,
+            title: movie.title,
+            posterUrl: movie.url,
+            genre: backGenre,
+            slotKey: `${obj.id}:back:${index}`,
+          }))
+        : [];
+      return [...frontMovies, ...backMovies];
+    }).filter((movie) => movie.posterUrl);
+
+    const shuffled = [...gondolaCandidates].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, 8);
+    setSpawnedMissingSlotKeys(picked.flatMap((movie) => movie.slotKey ? [movie.slotKey] : []));
+    setRecentReturns(picked.slice(0, 4));
+  }, [selectedEra.years]);
 
   // Side quest state (uses existing showQuestNotif for notifications)
 
@@ -786,11 +845,24 @@ export default function GamePage() {
     } else if (type === "trophy") {
       setOverlay("trophy");
     } else if (type === "shelf") {
-      const genre = data || "horror";
-      setShelfGenre(genre);
+      let browseState: ShelfBrowseState = { genre: "horror" };
+      if (data) {
+        try {
+          const parsed = JSON.parse(data) as ShelfBrowseState;
+          browseState = {
+            genre: parsed.genre || "horror",
+            shelfId: parsed.shelfId,
+            count: parsed.count,
+            label: parsed.label,
+          };
+        } catch {
+          browseState = { genre: data };
+        }
+      }
+      setShelfBrowse(browseState);
       setOverlay("shelf");
       // Track genre visit for quest objectives
-      trackQuestGenreVisit(genre);
+      trackQuestGenreVisit(browseState.genre);
     } else if (type === "tv") {
       startPuzzle();
     }
@@ -910,13 +982,20 @@ export default function GamePage() {
 
   // Rent a movie from the film detail modal (back-of-box view)
   const handleRentMovie = useCallback((movie: { id: number; title: string; posterUrl: string; genre: string }) => {
+    if (heldMovies.length >= 5) {
+      addNotification("Your stack is full. Put one back before grabbing another.");
+      setOverlay("checkout");
+      return;
+    }
     const slotKey = pendingPickup?.id === movie.id ? pendingPickup.slotKey : undefined;
     // Add to held stack (no duplicates, max 5 movies)
     setHeldMovies(prev => {
       if (prev.some(m => m.id === movie.id)) return prev;
-      if (prev.length >= 5) return prev;
       return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl, genre: movie.genre, slotKey }];
     });
+    if (slotKey) {
+      setRecentReturns((prev) => prev.filter((entry) => entry.slotKey !== slotKey));
+    }
     setPendingPickup(null);
     setPickupFlash(true);
     setPickupTitle(movie.title);
@@ -928,7 +1007,8 @@ export default function GamePage() {
     // Close modal and resume
     setOverlay("none");
     setFilmId(null);
-  }, [pendingPickup, trackQuestMoviePickup]);
+    resumePointerLock();
+  }, [addNotification, heldMovies.length, pendingPickup, resumePointerLock, trackQuestMoviePickup]);
 
   const closeOverlay = useCallback(() => {
     // Track NPC relationship when ending a dialogue
@@ -946,6 +1026,7 @@ export default function GamePage() {
     setRpgHistory([]);
     setFilmId(null);
     setPendingPickup(null);
+    setShelfBrowse(null);
   }, [overlay, rpgDialogue]);
 
   const minutesUntilClose = Math.max(0, Math.round((23 - gameTime) * 60));
@@ -1082,7 +1163,11 @@ export default function GamePage() {
             isMobile={isMobile}
             eraYears={selectedEra.years}
             heldMovieIds={heldMovies.map((movie) => movie.id)}
-            heldMovieSlotKeys={heldMovies.flatMap((movie) => movie.slotKey ? [movie.slotKey] : [])}
+            heldMovieSlotKeys={[
+              ...spawnedMissingSlotKeys,
+              ...heldMovies.flatMap((movie) => movie.slotKey ? [movie.slotKey] : []),
+            ]}
+            recentReturnMovies={recentReturns}
             maxNpcs={maxNpcs}
             topDown={topDown}
           />
@@ -1152,22 +1237,6 @@ export default function GamePage() {
       )}
 
       {/* Top-down toggle button (always visible when no overlay) */}
-      {!hasOverlay && !topDown && (
-        <button
-          onClick={() => setTopDown(true)}
-          style={{
-            position: 'fixed', top: 16, right: 16, zIndex: 40,
-            background: 'rgba(10, 14, 24, 0.85)', border: '2px solid rgba(255, 215, 0, 0.4)',
-            borderRadius: 8, padding: isMobile ? '10px 18px' : '6px 12px', cursor: 'pointer',
-            fontFamily: "'Courier New', monospace", color: '#ffd700', fontSize: isMobile ? '1rem' : '0.7rem',
-            fontWeight: 'bold',
-          }}
-          title="Toggle top-down view (T)"
-        >
-          🗺 MAP
-        </button>
-      )}
-
       {/* Hover label near crosshair */}
       {!hasOverlay && hoverLabel && (
         <div className="g3-hover-label">{isMobile ? <span className="g3-hover-tap">TAP</span> : <span className="g3-hover-key">E</span>} {hoverLabel?.replace(/^\[E\] /, '').replace(/^\[F\] /, '')}</div>
@@ -1336,7 +1405,7 @@ export default function GamePage() {
 
       {!hasOverlay && !topDown && heldMovies.length > 0 && (
         <div className="g3-held-viewmodel" aria-hidden="true">
-          {heldMovies.slice(0, 5).map((movie, index) => (
+          {[...heldMovies].slice(-5).reverse().map((movie, index) => (
             <div
               key={`held-vhs-${movie.slotKey ?? movie.id}-${index}`}
               className="g3-held-vhs"
@@ -1387,16 +1456,15 @@ export default function GamePage() {
            challenge ? "" : ""}
         </span>
         <div className="g3-hud-right">
-          <span className="g3-game-clock" style={{
-            fontFamily: 'var(--font-pixel, monospace)',
-            color: gameTime >= 22.5 ? '#ff3333' : gameTime >= 22 ? '#ffaa00' : '#ffd700',
-            fontSize: '0.55rem',
-            fontWeight: '400',
-            textShadow: gameTime >= 22.5 ? '2px 2px 0 #000, 0 0 8px rgba(255, 51, 51, 0.6)' : '2px 2px 0 #000',
-            letterSpacing: '0.1em',
-          }}>
-            {formatGameTime(gameTime)}
-          </span>
+          {!hasOverlay && !topDown && (
+            <button
+              className="g3-screenshot-btn"
+              onClick={() => setTopDown(true)}
+              title="Toggle top-down view (T)"
+            >
+              🗺
+            </button>
+          )}
           <div className="g3-tier-badge" style={{
             border: `2px solid ${currentTier.color}`,
             color: currentTier.color,
@@ -1423,13 +1491,18 @@ export default function GamePage() {
             <span className="g3-status-value">{closeCountdownLabel}</span>
           </div>
           <div className="g3-status-row">
-            <span className="g3-status-label">STACK</span>
+              <span className="g3-status-label">STACK</span>
             <span className="g3-status-value">{heldStackLabel}</span>
           </div>
           <div className="g3-status-row">
             <span className="g3-status-label">XP</span>
             <span className="g3-status-value">{nextTier ? `${totalXP}/${nextTier.minXP}` : `${totalXP} MAX`}</span>
           </div>
+          {heldMovies.length > 0 && (
+            <button className="g3-status-button" onClick={() => { document.exitPointerLock(); setOverlay("checkout"); }}>
+              View Stack
+            </button>
+          )}
           {challenge && (
             <div className="g3-status-row">
               <span className="g3-status-label">{challenge.timeLimit ? "LEFT" : "ELAPSED"}</span>
@@ -1510,7 +1583,16 @@ export default function GamePage() {
 
       {/* Shelf Browser */}
       {overlay === "shelf" && (
-        <ShelfBrowser genre={shelfGenre} eraId={era as EraId} open onClose={closeOverlay} onFilmClick={(id) => { setPendingPickup(null); setFilmId(id); setOverlay("film_detail"); }} />
+        <ShelfBrowser
+          genre={shelfBrowse?.genre || ""}
+          shelfId={shelfBrowse?.shelfId}
+          shelfCount={shelfBrowse?.count}
+          label={shelfBrowse?.label}
+          eraId={era as EraId}
+          open
+          onClose={closeOverlay}
+          onFilmClick={(id) => { setPendingPickup(null); setFilmId(id); setOverlay("film_detail"); }}
+        />
       )}
 
       {/* Film Detail (VHS back-of-box) */}
@@ -1672,7 +1754,10 @@ export default function GamePage() {
                 {heldMovies.map((movie, i) => (
                   <div key={i} className="g3-receipt-item">
                     <span>🎬 {movie.title}</span>
-                    <span>$2.99</span>
+                    <span className="g3-receipt-item-actions">
+                      <span>$2.99</span>
+                      <button className="g3-receipt-remove" onClick={() => removeHeldMovie(movie.id)}>PUT BACK</button>
+                    </span>
                   </div>
                 ))}
                 {heldSnacks.map((snack, i) => (

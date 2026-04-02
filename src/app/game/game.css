@@ -478,10 +478,10 @@
   position: absolute;
   right: 0;
   top: 0;
-  width: 12px;
+  width: 8px;
   height: 100%;
-  background: linear-gradient(180deg, #d9d9d9 0%, #b3b3b3 100%);
-  opacity: 0.9;
+  background: linear-gradient(180deg, #14161a 0%, #06080b 100%);
+  opacity: 0.95;
 }
 
 .g3-held-vhs-count {
@@ -647,6 +647,22 @@
   color: #ffd700;
   font-size: 0.5rem;
   text-align: right;
+}
+
+.g3-status-button {
+  margin-top: 4px;
+  border: 2px solid rgba(255, 215, 0, 0.45);
+  background: rgba(255, 215, 0, 0.08);
+  color: #ffd700;
+  font-family: var(--fnv-font-pixel);
+  font-size: 0.45rem;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.g3-status-button:hover {
+  background: rgba(255, 215, 0, 0.18);
 }
 
 /* ── Membership badge — retro XP bar ─────────────────────── */
@@ -2769,12 +2785,12 @@
 
 .vhs-back {
   position: relative;
-  width: 520px;
+  width: min(520px, calc(100vw - 32px));
   max-height: 85vh;
   background: #1a1a2a;
   border: 3px solid #444;
   border-left: 10px solid var(--genre-color, #ffd700);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 28px 28px 20px;
   color: #e0e0e0;
   font-family: 'Courier New', Courier, monospace;
@@ -2799,7 +2815,7 @@
     rgba(255, 255, 255, 0.01) 4px
   );
   pointer-events: none;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 /* VHS Tape Window — the iconic cassette reel graphic */
@@ -2976,9 +2992,15 @@
 }
 
 /* Streaming providers */
+.vhs-back-provider-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .vhs-back-providers {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-top: 10px;
   font-size: 0.75em;
@@ -3214,6 +3236,27 @@
   font-size: 1rem;
   padding: 8px 0;
   border-bottom: 1px dotted #ccc;
+}
+
+.g3-receipt-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.g3-receipt-remove {
+  border: 1px solid #1a1a1a;
+  background: transparent;
+  color: #1a1a1a;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.g3-receipt-remove:hover {
+  background: #1a1a1a;
+  color: #f5f0e0;
 }
 
 .g3-receipt-item:last-child {

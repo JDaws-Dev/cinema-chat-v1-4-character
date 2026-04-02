@@ -126,27 +126,27 @@ export function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Textu
   processQueue();
 }
 
-function wrapCardTitle(title: string): string[] {
+function wrapCardTitle(ctx: CanvasRenderingContext2D, title: string, maxWidth: number, maxLines: number): string[] {
   const words = title.trim().toUpperCase().split(/\s+/);
   const lines: string[] = [];
 
   for (const word of words) {
-    if (lines.length === 0) {
-      lines.push(word);
+    const current = lines[lines.length - 1];
+    const candidate = current ? `${current} ${word}` : word;
+    if (!current || ctx.measureText(candidate).width <= maxWidth) {
+      if (current) lines[lines.length - 1] = candidate;
+      else lines.push(candidate);
       continue;
     }
 
-    const candidate = `${lines[lines.length - 1]} ${word}`;
-    if (candidate.length <= 16 && lines.length < 3) {
-      lines[lines.length - 1] = candidate;
-    } else if (lines.length < 3) {
+    if (lines.length < maxLines) {
       lines.push(word);
     } else {
-      lines[lines.length - 1] = `${lines[lines.length - 1]} ${word}`;
+      lines[maxLines - 1] = `${lines[maxLines - 1]} ${word}`;
     }
   }
 
-  return lines.slice(0, 3);
+  return lines.slice(0, maxLines);
 }
 
 function getCheckedOutCardTexture(title: string): THREE.Texture | null {
@@ -174,10 +174,15 @@ function getCheckedOutCardTexture(title: string): THREE.Texture | null {
   ctx.fillText("CHECKED OUT", canvas.width / 2, 58);
 
   ctx.fillStyle = "#161616";
-  ctx.font = "bold 34px Arial";
-  const lines = wrapCardTitle(title);
+  let fontSize = 34;
+  let lines: string[] = [];
+  for (; fontSize >= 22; fontSize -= 2) {
+    ctx.font = `bold ${fontSize}px Arial`;
+    lines = wrapCardTitle(ctx, title, 216, 4);
+    if (lines.every((line) => ctx.measureText(line).width <= 216)) break;
+  }
   lines.forEach((line, index) => {
-    ctx.fillText(line, canvas.width / 2, 190 + index * 72);
+    ctx.fillText(line, canvas.width / 2, 180 + index * (fontSize + 18));
   });
 
   ctx.strokeStyle = "#563c2b";
@@ -405,6 +410,7 @@ export function PosterBox({
   movieId,
   genreColor,
   slotKey,
+  hideWithSlotKey = true,
 }: {
   url: string;
   position: [number, number, number];
@@ -413,11 +419,12 @@ export function PosterBox({
   movieId?: number;
   genreColor?: string;
   slotKey?: string;
+  hideWithSlotKey?: boolean;
 }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
   const loadedRef = useRef(false);
   const isUnavailable = slotKey
-    ? heldMovieSlotKeys.has(slotKey)
+    ? (hideWithSlotKey && heldMovieSlotKeys.has(slotKey))
     : typeof movieId === "number" && heldMovieIds.has(movieId);
   const checkedOutTexture = useMemo(
     () => (isUnavailable && movieTitle ? getCheckedOutCardTexture(movieTitle) : null),

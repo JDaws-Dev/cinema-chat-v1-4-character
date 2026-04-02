@@ -38,6 +38,9 @@ const SPINE_COLORS: Record<string, string> = {
 interface ShelfBrowserProps {
   genre: string;
   eraId: EraId;
+  shelfId?: string;
+  shelfCount?: number;
+  label?: string;
   open: boolean;
   onClose: () => void;
   onFilmClick: (id: number) => void;
@@ -45,9 +48,10 @@ interface ShelfBrowserProps {
 
 type Film = { id: number; title: string; year: number | null; posterUrl: string | null };
 
-export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: ShelfBrowserProps) {
+export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, onClose, onFilmClick }: ShelfBrowserProps) {
   const [films, setFilms] = useState<Film[]>([]);
   const [loading, setLoading] = useState(false);
+  const limit = shelfCount ?? (genre === "new_releases" || genre === "new" ? 10 : 18);
 
   useEffect(() => {
     if (!open || !genre) return;
@@ -55,7 +59,7 @@ export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: Shelf
     setFilms([]);
 
     if (eraId !== "present") {
-      setFilms(getShelfBrowserMovies(genre, eraId));
+      setFilms(getShelfBrowserMovies(genre, eraId, shelfId, limit));
       setLoading(false);
       return;
     }
@@ -64,7 +68,7 @@ export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: Shelf
       fetchTrending("week")
         .then((data) => {
           setFilms(
-            data.movies.map((m: TrendingMovie) => ({
+            data.movies.slice(0, limit).map((m: TrendingMovie) => ({
               id: m.id,
               title: m.title,
               year: m.year,
@@ -78,7 +82,7 @@ export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: Shelf
       // Classics: pre-1980 highly rated films
       fetchSearch({ decade: "1960", ratingMin: 7 })
         .then((data) => {
-          setFilms(data.results.map((r: SearchResult) => ({
+          setFilms(data.results.slice(0, limit).map((r: SearchResult) => ({
             id: r.id, title: r.title, year: r.year, posterUrl: r.posterUrl,
           })));
         })
@@ -93,7 +97,7 @@ export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: Shelf
       fetchSearch({ genreId, ratingMin: 6 })
         .then((data) => {
           setFilms(
-            data.results.map((r: SearchResult) => ({
+            data.results.slice(0, limit).map((r: SearchResult) => ({
               id: r.id,
               title: r.title,
               year: r.year,
@@ -104,7 +108,7 @@ export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: Shelf
         .catch(() => {})
         .finally(() => setLoading(false));
     }
-  }, [open, genre, eraId]);
+  }, [open, genre, eraId, shelfId, limit]);
 
   // Q or Backspace to close
   useEffect(() => {
@@ -119,19 +123,19 @@ export function ShelfBrowser({ genre, eraId, open, onClose, onFilmClick }: Shelf
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  const label =
-    genre === "new_releases"
+  const shelfLabel = label ||
+    (genre === "new_releases"
       ? "NEW RELEASES"
       : genre === "staff_picks"
         ? "STAFF PICKS"
-        : genre.toUpperCase();
+        : genre.toUpperCase());
 
   const spineColor = SPINE_COLORS[genre] || "#888";
 
   return (
     <div className={`game-panel panel-bottom ${open ? "panel-open" : ""}`}>
       <div className="panel-header">
-        <div className="panel-title">{label}</div>
+        <div className="panel-title">{shelfLabel}</div>
         <button className="panel-close" onClick={onClose}>
           ✕ CLOSE
         </button>

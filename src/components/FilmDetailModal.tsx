@@ -115,6 +115,11 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
   };
 
   const topCast = film?.cast.slice(0, 4).map((c) => c.name).join(", ") ?? null;
+  const providerSections = film ? [
+    { label: "STREAM", items: film.providers.flatrate },
+    { label: "RENT", items: film.providers.rent },
+    { label: "BUY", items: film.providers.buy },
+  ].filter((section) => section.items.length > 0) : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -175,18 +180,22 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
             </div>
 
             {/* Streaming */}
-            {film.providers.flatrate.length > 0 && (
-              <div className="vhs-back-providers">
-                <span className="vhs-back-label">STREAM:</span>
-                <span className="vhs-back-provider-logos">
-                  {film.providers.flatrate.map((p) =>
-                    p.logoPath ? (
-                      <img key={p.id} src={p.logoPath} alt={p.name} title={p.name} className="vhs-back-provider-icon" />
-                    ) : (
-                      <span key={p.id} className="vhs-back-provider-text">{p.name}</span>
-                    )
-                  )}
-                </span>
+            {providerSections.length > 0 && (
+              <div className="vhs-back-provider-stack">
+                {providerSections.map((section) => (
+                  <div key={section.label} className="vhs-back-providers">
+                    <span className="vhs-back-label">{section.label}:</span>
+                    <span className="vhs-back-provider-logos">
+                      {section.items.map((p) =>
+                        p.logoPath ? (
+                          <img key={`${section.label}-${p.id}`} src={p.logoPath} alt={p.name} title={p.name} className="vhs-back-provider-icon" />
+                        ) : (
+                          <span key={`${section.label}-${p.id}`} className="vhs-back-provider-text">{p.name}</span>
+                        )
+                      )}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
 

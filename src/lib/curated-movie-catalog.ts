@@ -409,8 +409,10 @@ export function getCuratedShelfPosterData(
 export function getShelfBrowserMovies(
   genreInput: string,
   eraId: EraId,
+  placementKey?: string,
+  count?: number,
 ): Array<{ id: number; title: string; year: number; posterUrl: string }> {
-  return getCuratedShelfPosterData(genreInput, eraId).flatMap((movie) => {
+  return getCuratedShelfPosterData(genreInput, eraId, placementKey, count).flatMap((movie) => {
     const full = MOVIE_BY_ID.get(movie.id);
     if (!full) return [];
     return {
