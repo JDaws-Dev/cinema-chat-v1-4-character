@@ -1140,22 +1140,7 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay]);
 
-  // C to take screenshot
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
-      if ((e.key === "c" || e.key === "C") && overlay === "none") {
-        const canvas = document.querySelector("canvas");
-        if (!canvas) return;
-        const link = document.createElement("a");
-        link.download = `friday-night-video-${Date.now()}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [overlay]);
+  // (Screenshot feature removed)
 
   // J to open quest log
   useEffect(() => {
@@ -1599,8 +1584,6 @@ export default function GamePage() {
           <span className="g3-key">T</span> map
           <span className="g3-sep">|</span>
           <span className="g3-key">J</span> quests
-          <span className="g3-sep">|</span>
-          <span className="g3-key">C</span> screenshot
         </div>
       )}
 
