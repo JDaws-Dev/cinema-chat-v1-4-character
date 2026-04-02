@@ -31,6 +31,7 @@ const Canvas = dynamic(() => import("@react-three/fiber").then(m => ({ default: 
 const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ default: m.Store })), { ssr: false });
 const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerson").then(m => ({ default: m.FirstPersonControls })), { ssr: false });
 const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction").then(m => ({ default: m.InteractionSystem })), { ssr: false });
+const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
 
 const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
 const STATS_KEY = "vnv_stats";
@@ -1046,6 +1047,7 @@ export default function GamePage() {
           {topDown && <TopDownCamera />}
           {!hasOverlay && !topDown && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
+          <PostEffects mobile={isMobile} />
         </Suspense>
       </Canvas>
       </div>
@@ -1058,26 +1060,27 @@ export default function GamePage() {
             <div className="g3-logo-right" />
           </div>
         </div>
-        <h1 style={{ fontSize: "1.4rem", fontWeight: 900, color: "#ffd700", letterSpacing: "0.05em" }}>FRIDAY NIGHT VIDEO</h1>
+        <h1 style={{ fontSize: "0.8rem", fontWeight: 400, color: "#ffd700", letterSpacing: "0.1em", fontFamily: "var(--font-pixel, monospace)", textShadow: "2px 2px 0 #000" }}>FRIDAY NIGHT VIDEO</h1>
         <p className="g3-loading-text">Opening the store...</p>
       </div>
 
       {/* Crosshair */}
       {/* Era selector — shows after loading, before gameplay */}
       {!loading && !eraChosen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10, 14, 24, 0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, backdropFilter: 'blur(4px)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
           <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 20px' }}>
-            <h2 style={{ color: '#ffd700', fontFamily: "'Courier New', monospace", fontSize: '1.4rem', marginBottom: 8 }}>CHOOSE YOUR ERA</h2>
-            <p style={{ color: '#888', fontSize: '0.8rem', marginBottom: 20 }}>What year is it tonight?</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h2 style={{ color: '#ffd700', fontFamily: 'var(--font-pixel, monospace)', fontSize: '0.8rem', marginBottom: 12, letterSpacing: '0.1em', textShadow: '2px 2px 0 #000' }}>CHOOSE YOUR ERA</h2>
+            <p style={{ color: '#888', fontSize: '0.45rem', marginBottom: 20, fontFamily: 'var(--font-pixel, monospace)' }}>What year is it tonight?</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {ERA_OPTIONS.map(opt => (
                 <button key={opt.id} onClick={() => { setEra(opt.id); setEraChosen(true); }}
                   style={{
-                    padding: '12px 20px', fontSize: '1rem', fontFamily: "'Courier New', monospace",
-                    border: '1px solid #ffd700', background: 'transparent', color: '#ffd700',
-                    borderRadius: 6, cursor: 'pointer', textAlign: 'left',
+                    padding: '12px 16px', fontSize: '0.5rem', fontFamily: 'var(--font-pixel, monospace)',
+                    border: '3px solid #ffd700', background: 'transparent', color: '#ffd700',
+                    borderRadius: 0, cursor: 'pointer', textAlign: 'left',
+                    boxShadow: '4px 4px 0 rgba(0,0,0,0.6)', transition: 'all 0.1s steps(2)',
                   }}>
-                  <strong>{opt.label}</strong> <span style={{ opacity: 0.5, fontSize: '0.8rem' }}>({opt.years})</span>
+                  <strong>{opt.label}</strong> <span style={{ opacity: 0.5, fontSize: '0.4rem' }}>({opt.years})</span>
                 </button>
               ))}
             </div>
@@ -1337,11 +1340,12 @@ export default function GamePage() {
         </span>
         <div className="g3-hud-right">
           <span className="g3-game-clock" style={{
-            fontFamily: "'Courier New', monospace",
-            color: gameTime >= 22.5 ? '#ff4444' : gameTime >= 22 ? '#ffa500' : '#ffd700',
-            fontSize: '0.95rem',
-            fontWeight: 'bold',
-            textShadow: gameTime >= 22.5 ? '0 0 8px rgba(255, 68, 68, 0.6)' : '0 0 6px rgba(255, 215, 0, 0.2)',
+            fontFamily: 'var(--font-pixel, monospace)',
+            color: gameTime >= 22.5 ? '#ff3333' : gameTime >= 22 ? '#ffaa00' : '#ffd700',
+            fontSize: '0.55rem',
+            fontWeight: '400',
+            textShadow: gameTime >= 22.5 ? '2px 2px 0 #000, 0 0 8px rgba(255, 51, 51, 0.6)' : '2px 2px 0 #000',
+            letterSpacing: '0.1em',
           }}>
             {formatGameTime(gameTime)}
           </span>
