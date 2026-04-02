@@ -21,6 +21,7 @@ import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, i
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
+import { buildCustomerDialogue } from "@/lib/npc-customer-dialogues";
 import { mobileInput } from "@/components/game3d/MobileControls";
 import { analyzeSentiment, getXPDelta, updateNpcRapport, isNpcHostile } from "@/lib/sentiment";
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
@@ -845,65 +846,14 @@ export default function GamePage() {
       }
 
       const personality = (personalityType && PERSONALITIES[personalityType]) || getRandomPersonality();
-      const greeting = getPersonalityGreeting(personality);
       const relLevel = getNpcRelationship(npcManagerId || "customer");
-      const relGreeting = getRelationshipGreeting("customer", relLevel);
-      const fullGreeting = relGreeting ? `${relGreeting} ${greeting}` : greeting;
       npcName = personality.name;
+      const canFreeChat = totalXP >= 500; // Gold membership unlocks freeform chat
 
-      // Build RPG dialogue with freeform chat option
-      const personalityOpener: DialogueNode = {
-        speaker: npcName,
-        portrait: personality.type[0].toUpperCase(),
-        text: fullGreeting,
-        responses: [
-          {
-            text: "What are you looking for?",
-            next: {
-              speaker: npcName,
-              portrait: personality.type[0].toUpperCase(),
-              text: personality.reactions.HORROR?.[0]
-                || personality.reactions.COMEDY?.[0]
-                || "Just browsing, really. There's so much to choose from.",
-            },
-          },
-          {
-            text: "Any recommendations?",
-            next: {
-              speaker: npcName,
-              portrait: personality.type[0].toUpperCase(),
-              text: personality.reactions.ACTION?.[0]
-                || personality.reactions.DRAMA?.[0]
-                || "You should check out the new releases wall!",
-            },
-          },
-          {
-            text: "Chat with them...",
-            next: {
-              speaker: npcName,
-              portrait: personality.type[0].toUpperCase(),
-              text: "__OPEN_FREEFORM_CHAT__",
-            },
-          },
-          {
-            text: "See you around.",
-            next: {
-              speaker: npcName,
-              portrait: personality.type[0].toUpperCase(),
-              text: "Happy browsing!",
-            },
-          },
-        ],
-      };
+      // Build rich personality-driven dialogue tree
+      const personalityTree = buildCustomerDialogue(personality, npcName, relLevel, canFreeChat);
 
-      const personalityTree: DialogueTree = {
-        id: `personality_${personality.type}_${Date.now()}`,
-        npc: npcName,
-        portrait: personality.type[0].toUpperCase(),
-        opener: personalityOpener,
-      };
-
-      // Store NPC chat target info for freeform chat
+      // Store NPC chat target info for freeform chat (if unlocked)
       setNpcChatTarget({
         name: npcName,
         personalityType: personality.type,
@@ -911,8 +861,8 @@ export default function GamePage() {
       });
 
       setRpgDialogue(personalityTree);
-      setRpgNode(personalityOpener);
-      setRpgHistory([{ speaker: personalityOpener.speaker, portrait: personalityOpener.portrait, text: personalityOpener.text }]);
+      setRpgNode(personalityTree.opener);
+      setRpgHistory([{ speaker: personalityTree.opener.speaker, portrait: personalityTree.opener.portrait, text: personalityTree.opener.text }]);
       setOverlay("rpg_dialogue");
     } else if (type === "return_slot") {
       // Complete "return_run" side quest objective if active
