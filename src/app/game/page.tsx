@@ -22,6 +22,7 @@ import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { mobileInput } from "@/components/game3d/MobileControls";
+import { analyzeSentiment, getXPDelta, updateNpcRapport, isNpcHostile } from "@/lib/sentiment";
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 import { STORE_LAYOUT } from "@/lib/store-layout";
 import "./game.css";
@@ -55,7 +56,7 @@ function formatGameTime(hours: number): string {
   return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
-type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout";
+type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout" | "npc_chat";
 
 export default function GamePage() {
   type ShelfBrowseState = { genre: string; shelfId?: string; count?: number; label?: string };
@@ -148,6 +149,12 @@ export default function GamePage() {
   const [rpgDialogue, setRpgDialogue] = useState<DialogueTree | null>(null);
   const [rpgNode, setRpgNode] = useState<DialogueNode | null>(null);
   const [rpgHistory, setRpgHistory] = useState<{ speaker: string; portrait?: string; text: string }[]>([]);
+
+  // NPC freeform chat state
+  const [npcChatTarget, setNpcChatTarget] = useState<{ name: string; personalityType: string; npcManagerId: string } | null>(null);
+  const [npcChatMessages, setNpcChatMessages] = useState<{ role: 'player' | 'npc'; text: string }[]>([]);
+  const [npcChatInput, setNpcChatInput] = useState('');
+  const [npcChatLoading, setNpcChatLoading] = useState(false);
 
   // Typewriter effect for RPG dialogue
   const [displayedText, setDisplayedText] = useState('');
@@ -490,18 +497,79 @@ export default function GamePage() {
         }
       }
     }
+    // Intercept freeform chat sentinel
+    if (resp.next.text === "__OPEN_FREEFORM_CHAT__" && npcChatTarget) {
+      setNpcChatMessages([{ role: 'npc', text: `Hey! What's on your mind?` }]);
+      setNpcChatInput('');
+      setOverlay("npc_chat");
+      return;
+    }
+
     setRpgHistory(prev => [
       ...prev,
       { speaker: "You", text: resp.text },
       { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
     ]);
     setRpgNode(resp.next);
-  }, [showQuestNotif, handleTierUp]);
+  }, [showQuestNotif, handleTierUp, npcChatTarget]);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
     setHoverLabel(label);
   }, []);
+
+  // ── NPC freeform chat send ────────────────────────────
+  const handleNpcChatSend = useCallback(async () => {
+    if (!npcChatInput.trim() || !npcChatTarget || npcChatLoading) return;
+    const text = npcChatInput.trim();
+    setNpcChatInput('');
+    setNpcChatMessages(prev => [...prev, { role: 'player', text }]);
+    setNpcChatLoading(true);
+
+    // Sentiment scoring (client-side, instant)
+    const { tone } = analyzeSentiment(text);
+    const xpDelta = getXPDelta(tone);
+    if (xpDelta !== 0) {
+      const result = addXP(xpDelta);
+      setTotalXP(result.newTotal);
+      setCurrentTier(getMembershipTier(result.newTotal));
+      if (result.tierUp) handleTierUp({ tierUp: true, newTier: result.newTier });
+    }
+    updateNpcRapport(npcChatTarget.npcManagerId, xpDelta);
+
+    try {
+      const res = await fetch('/api/npc-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          npcName: npcChatTarget.name,
+          personalityType: npcChatTarget.personalityType,
+          eraId: era,
+          playerMessage: text,
+          history: npcChatMessages.slice(-6),
+          playerXP: totalXP,
+        }),
+      });
+      const data = await res.json();
+
+      // Also apply LLM sentiment if different from keyword
+      if (data.sentiment && data.sentiment !== 'neutral' && data.source === 'llm') {
+        const llmXp = getXPDelta(data.sentiment);
+        if (llmXp !== 0 && tone === 'neutral') {
+          const result2 = addXP(llmXp);
+          setTotalXP(result2.newTotal);
+          setCurrentTier(getMembershipTier(result2.newTotal));
+          updateNpcRapport(npcChatTarget.npcManagerId, llmXp);
+        }
+      }
+
+      setNpcChatMessages(prev => [...prev, { role: 'npc', text: data.reply }]);
+    } catch {
+      setNpcChatMessages(prev => [...prev, { role: 'npc', text: "Sorry, I spaced out. What?" }]);
+    } finally {
+      setNpcChatLoading(false);
+    }
+  }, [npcChatInput, npcChatTarget, npcChatLoading, npcChatMessages, era, totalXP, handleTierUp]);
 
   // ── Movie Night Score Calculation ──────────────────────
   type ScoreItem = { label: string; points: number };
@@ -726,8 +794,39 @@ export default function GamePage() {
         setOverlay("synopsis");
       }
     } else if (type === "customer") {
+      // Parse customer data — may be JSON from dynamic NPCs or plain string from legacy
+      let personalityType: PersonalityType | undefined;
+      let npcManagerId: string | undefined;
+      let npcName: string | undefined;
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          personalityType = parsed.personalityType;
+          npcManagerId = parsed.npcManagerId;
+        } catch {
+          personalityType = data as PersonalityType;
+        }
+      }
+
+      // Check if NPC is hostile (rapport below -50)
+      if (npcManagerId && isNpcHostile(npcManagerId)) {
+        playVinnyLine("...", npcName || "Customer");
+        setSubtitleHandler((text: string) => { /* already handled */ });
+        // Show a brief subtitle that the NPC won't talk
+        const refusalNode: DialogueNode = {
+          speaker: npcName || "Customer",
+          portrait: "?",
+          text: "I don't really feel like talking to you.",
+        };
+        const refusalTree: DialogueTree = { id: `refusal_${Date.now()}`, npc: npcName || "Customer", portrait: "?", opener: refusalNode };
+        setRpgDialogue(refusalTree);
+        setRpgNode(refusalNode);
+        setRpgHistory([{ speaker: refusalNode.speaker, portrait: refusalNode.portrait, text: refusalNode.text }]);
+        setOverlay("rpg_dialogue");
+        return;
+      }
+
       // Customer side quest dialogue
-      // If a side quest needs "talk to customer" objective, complete it
       const activeSide = getActiveSideQuests();
       for (const q of activeSide) {
         for (const obj of q.objectives) {
@@ -744,75 +843,77 @@ export default function GamePage() {
           }
         }
       }
-      // Side quest (50%) or normal dialogue
-      const completedIds = getQuestState().completedQuests;
-      const questTree = Math.random() < 0.5 ? getRandomQuestDialogue(completedIds) : null;
-      if (questTree) {
-        setRpgDialogue(questTree);
-        setRpgNode(questTree.opener);
-        setRpgHistory([{ speaker: questTree.opener.speaker, portrait: questTree.opener.portrait, text: questTree.opener.text }]);
-        setOverlay("rpg_dialogue");
-      } else {
-        // Use personality-driven dialogue — data contains the personalityType string from Store.tsx
-        const personalityType = data as PersonalityType | undefined;
-        const personality = (personalityType && PERSONALITIES[personalityType]) || getRandomPersonality();
-        const greeting = getPersonalityGreeting(personality);
 
-        // Apply relationship-aware prefix if returning customer
-        const relLevel = getNpcRelationship("customer");
-        const relGreeting = getRelationshipGreeting("customer", relLevel);
-        const fullGreeting = relGreeting ? `${relGreeting} ${greeting}` : greeting;
+      const personality = (personalityType && PERSONALITIES[personalityType]) || getRandomPersonality();
+      const greeting = getPersonalityGreeting(personality);
+      const relLevel = getNpcRelationship(npcManagerId || "customer");
+      const relGreeting = getRelationshipGreeting("customer", relLevel);
+      const fullGreeting = relGreeting ? `${relGreeting} ${greeting}` : greeting;
+      npcName = personality.name;
 
-        // Build personality-driven RPG dialogue node
-        const personalityOpener: DialogueNode = {
-          speaker: personality.name,
-          portrait: personality.type[0].toUpperCase(),
-          text: fullGreeting,
-          responses: [
-            {
-              text: "What are you looking for?",
-              next: {
-                speaker: personality.name,
-                portrait: personality.type[0].toUpperCase(),
-                text: personality.reactions.HORROR?.[0]
-                  || personality.reactions.COMEDY?.[0]
-                  || "Just browsing, really. There's so much to choose from.",
-              },
+      // Build RPG dialogue with freeform chat option
+      const personalityOpener: DialogueNode = {
+        speaker: npcName,
+        portrait: personality.type[0].toUpperCase(),
+        text: fullGreeting,
+        responses: [
+          {
+            text: "What are you looking for?",
+            next: {
+              speaker: npcName,
+              portrait: personality.type[0].toUpperCase(),
+              text: personality.reactions.HORROR?.[0]
+                || personality.reactions.COMEDY?.[0]
+                || "Just browsing, really. There's so much to choose from.",
             },
-            {
-              text: "Any recommendations?",
-              next: {
-                speaker: personality.name,
-                portrait: personality.type[0].toUpperCase(),
-                text: personality.reactions.ACTION?.[0]
-                  || personality.reactions.DRAMA?.[0]
-                  || "You should check out the new releases wall!",
-              },
+          },
+          {
+            text: "Any recommendations?",
+            next: {
+              speaker: npcName,
+              portrait: personality.type[0].toUpperCase(),
+              text: personality.reactions.ACTION?.[0]
+                || personality.reactions.DRAMA?.[0]
+                || "You should check out the new releases wall!",
             },
-            {
-              text: "See you around.",
-              next: {
-                speaker: personality.name,
-                portrait: personality.type[0].toUpperCase(),
-                text: "Happy browsing!",
-              },
+          },
+          {
+            text: "Chat with them...",
+            next: {
+              speaker: npcName,
+              portrait: personality.type[0].toUpperCase(),
+              text: "__OPEN_FREEFORM_CHAT__",
             },
-          ],
-        };
+          },
+          {
+            text: "See you around.",
+            next: {
+              speaker: npcName,
+              portrait: personality.type[0].toUpperCase(),
+              text: "Happy browsing!",
+            },
+          },
+        ],
+      };
 
-        // Wrap in a DialogueTree for consistency
-        const personalityTree: DialogueTree = {
-          id: `personality_${personality.type}_${Date.now()}`,
-          npc: personality.name,
-          portrait: personality.type[0].toUpperCase(),
-          opener: personalityOpener,
-        };
+      const personalityTree: DialogueTree = {
+        id: `personality_${personality.type}_${Date.now()}`,
+        npc: npcName,
+        portrait: personality.type[0].toUpperCase(),
+        opener: personalityOpener,
+      };
 
-        setRpgDialogue(personalityTree);
-        setRpgNode(personalityOpener);
-        setRpgHistory([{ speaker: personalityOpener.speaker, portrait: personalityOpener.portrait, text: personalityOpener.text }]);
-        setOverlay("rpg_dialogue");
-      }
+      // Store NPC chat target info for freeform chat
+      setNpcChatTarget({
+        name: npcName,
+        personalityType: personality.type,
+        npcManagerId: npcManagerId || `anon-${Date.now()}`,
+      });
+
+      setRpgDialogue(personalityTree);
+      setRpgNode(personalityOpener);
+      setRpgHistory([{ speaker: personalityOpener.speaker, portrait: personalityOpener.portrait, text: personalityOpener.text }]);
+      setOverlay("rpg_dialogue");
     } else if (type === "return_slot") {
       // Complete "return_run" side quest objective if active
       const activeSide = getActiveSideQuests();
@@ -1737,6 +1838,64 @@ export default function GamePage() {
       </div>
 
       {/* Checkout Overlay */}
+      {/* NPC Freeform Chat */}
+      {overlay === "npc_chat" && npcChatTarget && (
+        <div className="g3-overlay">
+          <div className="g3-overlay-header">
+            <span className="g3-overlay-title">{npcChatTarget.name.toUpperCase()}</span>
+            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
+          </div>
+          <div className="g3-overlay-body" style={{ display: 'flex', flexDirection: 'column', maxHeight: '50vh' }}>
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 8 }}>
+              {npcChatMessages.map((m, i) => (
+                <div key={i} style={{
+                  alignSelf: m.role === 'player' ? 'flex-end' : 'flex-start',
+                  background: m.role === 'player' ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  border: `2px solid ${m.role === 'player' ? '#ffd700' : 'rgba(255,255,255,0.15)'}`,
+                  padding: '8px 12px',
+                  maxWidth: '80%',
+                  fontSize: '0.5rem',
+                  fontFamily: 'var(--font-pixel, monospace)',
+                  color: '#e0e0e0',
+                }}>
+                  {m.role === 'npc' && <span style={{ color: '#ffd700', display: 'block', marginBottom: 4, fontSize: '0.4rem' }}>{npcChatTarget.name}</span>}
+                  {m.text}
+                </div>
+              ))}
+              {npcChatLoading && <div style={{ color: '#888', fontSize: '0.4rem', fontFamily: 'var(--font-pixel, monospace)' }}>...</div>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, paddingTop: 8, borderTop: '2px solid rgba(255,215,0,0.2)' }}>
+              <input
+                type="text"
+                value={npcChatInput}
+                onChange={e => setNpcChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleNpcChatSend(); }}
+                placeholder={`Say something to ${npcChatTarget.name}...`}
+                disabled={npcChatLoading}
+                autoFocus
+                style={{
+                  flex: 1, padding: '8px 12px', fontSize: '16px',
+                  fontFamily: 'var(--font-pixel, monospace)',
+                  background: 'rgba(0,0,0,0.8)', color: '#e0e0e0',
+                  border: '2px solid rgba(255,215,0,0.3)',
+                  outline: 'none',
+                }}
+              />
+              <button
+                onClick={handleNpcChatSend}
+                disabled={npcChatLoading || !npcChatInput.trim()}
+                style={{
+                  padding: '8px 16px', fontSize: '0.5rem',
+                  fontFamily: 'var(--font-pixel, monospace)',
+                  background: '#ffd700', color: '#000', border: 'none',
+                  cursor: 'pointer', fontWeight: 'bold',
+                }}
+              >SEND</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {overlay === "checkout" && (() => {
         const { score: movieNightScore, breakdown: scoreBreakdown } = calculateMovieNightScore(heldMovies, heldSnacks);
         const prevHigh = parseInt(localStorage.getItem("fnv_high_score") || "0");

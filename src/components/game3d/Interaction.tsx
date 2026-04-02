@@ -28,10 +28,13 @@ export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
       const obj = hit.object;
       const type = obj.userData?.interactType || findParentData(obj);
       let data = obj.userData?.interactData || findParentInteractData(obj);
-      // For customer NPCs, attach personality type so dialogue handler can use it
+      // For customer NPCs, attach personality type + NPC manager ID as JSON
       if (type === "customer") {
         const pType = obj.userData?.personalityType || findParentPersonalityType(obj);
-        if (pType) data = pType;
+        const managerId = obj.userData?.npcManagerId || findParentField(obj, "npcManagerId");
+        if (pType || managerId) {
+          data = JSON.stringify({ personalityType: pType, npcManagerId: managerId });
+        }
       }
       if (type) {
         onInteract(type, data);
@@ -148,6 +151,15 @@ function findParentPersonalityType(obj: THREE.Object3D): string | undefined {
   let current: THREE.Object3D | null = obj;
   while (current) {
     if (current.userData?.personalityType) return current.userData.personalityType;
+    current = current.parent;
+  }
+  return undefined;
+}
+
+function findParentField(obj: THREE.Object3D, field: string): string | undefined {
+  let current: THREE.Object3D | null = obj;
+  while (current) {
+    if (current.userData?.[field]) return current.userData[field];
     current = current.parent;
   }
   return undefined;
