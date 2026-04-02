@@ -127,8 +127,63 @@ export default function EditorPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [filterCategory, setFilterCategory] = useState<ObjCategory | "all">("all");
+  const [snapToGrid, setSnapToGrid] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const originalObjectsRef = useRef<StoreObject[]>([]);
+  const undoStack = useRef<StoreObject[][]>([]);
+  const redoStack = useRef<StoreObject[][]>([]);
+
+  // Push current state to undo stack (call before making changes)
+  const pushUndo = useCallback(() => {
+    undoStack.current.push(objects.map((o) => ({ ...o })));
+    if (undoStack.current.length > 30) undoStack.current.shift();
+    redoStack.current = [];
+  }, [objects]);
+
+  const undo = useCallback(() => {
+    if (undoStack.current.length === 0) return;
+    redoStack.current.push(objects.map((o) => ({ ...o })));
+    setObjects(undoStack.current.pop()!);
+  }, [objects]);
+
+  const redo = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    undoStack.current.push(objects.map((o) => ({ ...o })));
+    setObjects(redoStack.current.pop()!);
+  }, [objects]);
+
+  // Keyboard shortcuts: undo/redo, arrow nudge, delete, duplicate
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
+      // Undo: Ctrl+Z
+      if (e.key === "z" && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      // Redo: Ctrl+Shift+Z
+      if (e.key === "z" && (e.metaKey || e.ctrlKey) && e.shiftKey) { e.preventDefault(); redo(); return; }
+      if (!selectedId) return;
+      const nudge = e.shiftKey ? 0.5 : 0.1;
+      // Arrow nudge
+      if (e.key === "ArrowLeft") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, x: Math.round((o.x - nudge) * 100) / 100 } : o)); }
+      if (e.key === "ArrowRight") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, x: Math.round((o.x + nudge) * 100) / 100 } : o)); }
+      if (e.key === "ArrowUp") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, z: Math.round((o.z - nudge) * 100) / 100 } : o)); }
+      if (e.key === "ArrowDown") { e.preventDefault(); pushUndo(); setObjects(prev => prev.map(o => o.id === selectedId ? { ...o, z: Math.round((o.z + nudge) * 100) / 100 } : o)); }
+      // Delete
+      if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); pushUndo(); setObjects(prev => prev.filter(o => o.id !== selectedId)); setSelectedId(null); }
+      // Duplicate: Ctrl+D
+      if (e.key === "d" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        pushUndo();
+        const obj = objects.find(o => o.id === selectedId);
+        if (obj) {
+          const dup = { ...obj, id: `${obj.id}-copy-${Date.now()}`, x: obj.x + 0.5, z: obj.z + 0.5 };
+          setObjects(prev => [...prev, dup]);
+          setSelectedId(dup.id);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectedId, objects, undo, redo, pushUndo]);
 
   // Fetch layout from API on mount
   useEffect(() => {
@@ -166,22 +221,27 @@ export default function EditorPage() {
     (id: string, e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      pushUndo();
       setDragId(id);
       setSelectedId(id);
     },
-    []
+    [pushUndo]
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!dragId) return;
       const { sx, sy } = getSvgPoint(e);
-      const store = svgToStore(sx, sy);
+      let store = svgToStore(sx, sy);
+      if (snapToGrid) {
+        store.x = Math.round(store.x * 2) / 2; // snap to 0.5
+        store.z = Math.round(store.z * 2) / 2;
+      }
       setObjects((prev) =>
         prev.map((o) => (o.id === dragId ? { ...o, x: store.x, z: store.z } : o))
       );
     },
-    [dragId, getSvgPoint]
+    [dragId, getSvgPoint, snapToGrid]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -266,8 +326,12 @@ export default function EditorPage() {
             Friday Night Video -- Store Layout Editor
           </h1>
           <span style={{ fontSize: 12, color: "#888" }}>
-            {ROOM_W}x{ROOM_D} units | Click + drag objects | Coordinates shown in real-time
+            {ROOM_W}x{ROOM_D} | Drag objects | Arrows nudge | Ctrl+Z undo | Del remove
           </span>
+          <button onClick={undo} style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #555", borderRadius: 4, background: "#1a1a24", color: "#ccc", cursor: "pointer" }}>↩ Undo</button>
+          <button onClick={redo} style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #555", borderRadius: 4, background: "#1a1a24", color: "#ccc", cursor: "pointer" }}>↪ Redo</button>
+          <button onClick={() => setSnapToGrid(s => !s)} style={{ padding: "4px 8px", fontSize: 11, border: snapToGrid ? "1px solid #ffd700" : "1px solid #555", borderRadius: 4, background: snapToGrid ? "#2a2a3a" : "#1a1a24", color: snapToGrid ? "#ffd700" : "#888", cursor: "pointer" }}>{snapToGrid ? "⊞ Snap ON" : "⊞ Snap OFF"}</button>
+          <a href="/editor/3d" style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #3b82f6", borderRadius: 4, background: "#1a1a24", color: "#3b82f6", textDecoration: "none" }}>3D Editor →</a>
           <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             {(["all", "shelf", "counter", "npc", "prop", "wall", "door", "exterior"] as const).map((cat) => (
               <button
@@ -650,8 +714,26 @@ export default function EditorPage() {
                   style={{ width: 24, height: 24, background: "#333", color: "#fff", border: "1px solid #555", borderRadius: 4, cursor: "pointer", fontSize: 14, lineHeight: 1 }}
                 >+</button>
               </div>
-              <div style={{ marginTop: 4 }}>
-                Size: {selectedObj.w} x {selectedObj.d}
+              {/* Quick rotation: ±5° and ±45° */}
+              <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                {[-45, -5, 5, 45].map(deg => (
+                  <button key={deg} onClick={() => { pushUndo(); const rad = Math.round(((selectedObj._rotY ?? 0) + deg * Math.PI / 180) * 1000) / 1000; setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, _rotY: rad } : o)); }}
+                    style={{ flex: 1, padding: "3px 0", fontSize: 10, background: "#333", color: "#ccc", border: "1px solid #555", borderRadius: 3, cursor: "pointer" }}
+                  >{deg > 0 ? `+${deg}°` : `${deg}°`}</button>
+                ))}
+              </div>
+              {/* Editable size */}
+              <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+                <span style={{ fontSize: 11 }}>W:</span>
+                <input type="number" step={0.1} value={selectedObj.w}
+                  onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) { pushUndo(); setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, w: Math.round(v * 100) / 100 } : o)); }}}
+                  style={{ width: 50, background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                />
+                <span style={{ fontSize: 11 }}>D:</span>
+                <input type="number" step={0.1} value={selectedObj.d}
+                  onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) { pushUndo(); setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, d: Math.round(v * 100) / 100 } : o)); }}}
+                  style={{ width: 50, background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                />
               </div>
               {selectedObj.genre && (
                 <div>
