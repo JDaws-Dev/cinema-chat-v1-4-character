@@ -74,10 +74,15 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   // Back wall of pizza place (z=4.5 — interior back)
   colliders.push({ x: -13, z: 4.3, hw: 3, hd: 0.2 });
 
-  // ── Laundromat walls (x=10 to x=16) — can't enter ──
-  colliders.push({ x: 13, z: 7.2, hw: 3, hd: 0.2 });
-  // Right wall of laundromat
-  colliders.push({ x: 16.2, z: 4, hw: 0.2, hd: 3.5 });
+  // ── Laundromat walls (x=10 to x=16) — walkable interior ──
+  // Front wall — left of door (x=10 to x=12.85, z=7)
+  colliders.push({ x: 11.5, z: 7.2, hw: 1.5, hd: 0.2 });
+  // Front wall — right of door (x=14.15 to x=16, z=7)
+  colliders.push({ x: 15.1, z: 7.2, hw: 0.9, hd: 0.2 });
+  // Right wall of laundromat (x=16)
+  colliders.push({ x: 16.2, z: 5.75, hw: 0.2, hd: 1.5 });
+  // Back wall of laundromat (z=4.5)
+  colliders.push({ x: 13, z: 4.3, hw: 3, hd: 0.2 });
 
   return colliders;
 }
