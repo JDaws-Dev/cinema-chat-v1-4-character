@@ -189,7 +189,7 @@ export function NPCManager({
   isMobile: boolean;
   onRef?: (handle: NPCManagerHandle) => void;
 }) {
-  const stateRef = useRef<NPCManagerState>(createInitialManagerState());
+  const stateRef = useRef<NPCManagerState>(createInitialManagerState(isMobile));
   // Force re-render when NPC count changes
   const [, setNpcCount] = React.useState(0);
   const lastCount = useRef(0);

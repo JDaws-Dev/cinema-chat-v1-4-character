@@ -719,14 +719,65 @@ export interface NPCManagerState {
   nextConversationId: number;
 }
 
-export function createInitialManagerState(): NPCManagerState {
-  return {
+export function createInitialManagerState(isMobile: boolean = false): NPCManagerState {
+  const state: NPCManagerState = {
     activeNPCs: new Map(),
     activeConversations: new Map(),
     usedConfigIndices: new Set(),
-    spawnTimer: 5, // first NPC spawns after 5 seconds
+    spawnTimer: 15, // next dynamic spawn after 15 seconds (store already has people)
     nextConversationId: 0,
   };
+  // Pre-populate the strip mall so it feels alive from the start
+  prePopulateNPCs(state, isMobile);
+  return state;
+}
+
+/** Place NPCs already inside the stores when the game starts — it's Friday night, the store should be busy. */
+function prePopulateNPCs(state: NPCManagerState, isMobile: boolean): void {
+  const maxPrepop = isMobile ? 3 : 6;
+
+  // Pre-placed NPC definitions: waypoint to place at, state, goal, goalStep to resume from
+  const placements: { waypointId: string; npcState: NPCState; goal: GoalType; goalStepIndex: number; timerRange: [number, number] }[] = [
+    // 2-3 browsing shelves in the video store
+    { waypointId: 'vs-shelf-row1-left',  npcState: 'browsing', goal: 'rent_movie',    goalStepIndex: 1, timerRange: [5, 12] },
+    { waypointId: 'vs-shelf-row2-right', npcState: 'browsing', goal: 'just_browsing',  goalStepIndex: 2, timerRange: [4, 10] },
+    { waypointId: 'vs-shelf-row3-left',  npcState: 'browsing', goal: 'rent_movie',    goalStepIndex: 2, timerRange: [3, 8] },
+    // 1 eating pizza
+    { waypointId: 'pp-booth-1',          npcState: 'eating',   goal: 'grab_pizza',     goalStepIndex: 2, timerRange: [30, 60] },
+    // 1 waiting for laundry
+    { waypointId: 'lm-chair-1',          npcState: 'waiting',  goal: 'do_laundry',     goalStepIndex: 2, timerRange: [30, 60] },
+    // 1 at the new releases wall
+    { waypointId: 'vs-new-releases',     npcState: 'browsing', goal: 'just_browsing',  goalStepIndex: 1, timerRange: [6, 15] },
+  ];
+
+  for (let i = 0; i < Math.min(maxPrepop, placements.length); i++) {
+    const p = placements[i];
+    const config = pickUnusedConfig(state);
+    if (!config) break;
+
+    const wp = WAYPOINTS[p.waypointId];
+    if (!wp) continue;
+
+    const npc: ActiveNPC = {
+      config,
+      position: [...wp.position],
+      facing: wp.facingAngle ?? 0,
+      opacity: 1, // already visible
+      state: p.npcState,
+      stateTimer: p.timerRange[0] + Math.random() * (p.timerRange[1] - p.timerRange[0]),
+      prevState: 'walking',
+      goal: p.goal,
+      goalStepIndex: p.goalStepIndex,
+      currentPath: [],
+      pathIndex: 0,
+      conversationPartnerId: null,
+      spawnWaypointId: 'parking-center', // will leave via parking when done
+      lifetime: 30 + Math.random() * 60, // pretend they've been here a while
+      goalComplete: false,
+    };
+
+    state.activeNPCs.set(config.id, npc);
+  }
 }
 
 // ── Spawn logic ──────────────────────────────────────────────
