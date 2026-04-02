@@ -12,45 +12,17 @@ const ROOM_BOUNDS = { minX: -17, maxX: 17, minZ: -6.5, maxZ: 20 }; // full strip
 const PLAYER_RADIUS = 0.4;
 
 // Collision boxes derived from layout data — positions stay in sync with editor
-import { getObjectById, getShelfRows } from "@/lib/store-layout";
+import { getLayoutColliders } from "@/lib/store-layout";
 
-// COLLISION AUDIT (2026-03-29): Every collider below maps to a rendered object in Store.tsx.
-// Removed objects (return-chute, cooler, side wall shelves, kids-corner, video-games) have NO colliders.
-// Verified: 12 gondolas + counter + new-releases-wall + wallshelf-back + trophy + return-bin + bargain-crate = all rendered.
 function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
-  const colliders: { x: number; z: number; hw: number; hd: number }[] = [];
+  const colliders = getLayoutColliders().map((collider) => ({
+    x: collider.x,
+    z: collider.z,
+    hw: collider.hw,
+    hd: collider.hd,
+  }));
 
-  // ── 12 Gondola shelves (from store-layout.ts) ──
-  // Use un-rotated dimensions so collision boxes stay tight axis-aligned rectangles.
-  // Slightly undersized vs visual (2.8w) for walkability between angled shelves.
-  for (const row of getShelfRows()) {
-    colliders.push({ x: row.x, z: row.z, hw: 1.3, hd: 0.2 });
-  }
-
-  // ── Counter (rendered in store-counter.tsx) ──
-  const counter = getObjectById("counter");
-  if (counter) colliders.push({ x: counter.x, z: counter.z, hw: 3.2, hd: 0.8 });
-
-  // ── New Releases back wall display (rendered in store-shelves.tsx) ──
-  const nr = getObjectById("new-releases-wall");
-  if (nr) colliders.push({ x: nr.x, z: nr.z, hw: 9.5, hd: 0.4 });
-
-  // ── Wall shelf on back wall (rendered in Store.tsx <WallShelf>) ──
-  const dramWall = getObjectById("wallshelf-back-drama");
-  if (dramWall) colliders.push({ x: dramWall.x, z: dramWall.z, hw: 9, hd: 0.3 });
-
-  // ── Trophy shelf (rendered in Store.tsx <TrophyShelf>) ──
-  const trophy = getObjectById("trophy-shelf");
-  if (trophy) colliders.push({ x: trophy.x, z: trophy.z, hw: 0.4, hd: 1.4 });
-
-  // ── Return bin (rendered in Store.tsx) ──
-  const returnBin = getObjectById("return-bin");
-  if (returnBin) colliders.push({ x: returnBin.x, z: returnBin.z, hw: 0.5, hd: 0.4 });
-
-  // ── Bargain crate (rendered in Store.tsx) ──
-  const bargainCrate = getObjectById("bargain-crate");
-  if (bargainCrate) colliders.push({ x: bargainCrate.x, z: bargainCrate.z, hw: 0.55, hd: 0.45 });
-
+  // Structural shell colliders remain fixed until the shell itself becomes layout-driven.
   // ── Video Store walls ──
   // Left wall (x=-10) — gap at z=-5.19 for employees door
   colliders.push({ x: -10.2, z: 0, hw: 0.2, hd: 7 });

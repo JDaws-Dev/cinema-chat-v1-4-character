@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { StoreLayout, LayoutObject, ObjCategory } from "@/lib/store-layout";
+import type {
+  StoreLayout,
+  LayoutObject,
+  ObjCategory,
+  LayoutCollider,
+  LayoutInteraction,
+} from "@/lib/store-layout";
+import {
+  STORE_PREFABS,
+  inferPrefabId,
+  getPrefabDefinition,
+} from "@/lib/store-prefabs";
 
 // ── Store dimensions (from Store.tsx) ──
 // Interior: 20x14. Exterior extends to ~z=14 (parking lot) and x=-16..+16 (neighbors)
@@ -43,6 +54,12 @@ interface StoreObject {
   id: string;
   label: string;
   category: ObjCategory;
+  prefab?: string;
+  layer?: string;
+  hidden?: boolean;
+  locked?: boolean;
+  interaction?: LayoutInteraction;
+  collider?: LayoutCollider;
   x: number;
   z: number;
   w: number;
@@ -71,16 +88,24 @@ const CATEGORY_COLORS: Record<ObjCategory, string> = {
 
 /** Convert a LayoutObject from the API into the editor's StoreObject format */
 function layoutToEditor(obj: LayoutObject): StoreObject {
-  const isCircle = obj.category === "npc" || obj.id.includes("lamp") || obj.id === "plant" || obj.id === "pizza-slice-sign" || obj.id.includes("hydrant") || obj.id.includes("puddle");
+  const prefabId = obj.prefab || inferPrefabId(obj);
+  const prefab = getPrefabDefinition(prefabId);
+  const isCircle = prefabId === "exterior/lamp-post" || obj.category === "npc" || obj.id === "plant" || obj.id === "pizza-slice-sign" || obj.id.includes("hydrant") || obj.id.includes("puddle");
   return {
     id: obj.id,
     label: obj.label,
     category: obj.category,
+    prefab: prefabId,
+    layer: obj.layer ?? prefab?.defaultLayer ?? obj.category,
+    hidden: obj.hidden ?? false,
+    locked: obj.locked ?? false,
+    interaction: obj.interaction ?? prefab?.defaultInteraction,
+    collider: obj.collider ?? prefab?.defaultCollider,
     x: obj.x,
     z: obj.z,
     w: obj.w ?? 0.5,
     d: obj.d ?? 0.5,
-    color: (obj.meta?.color as string) || CATEGORY_COLORS[obj.category] || "#888",
+    color: (obj.meta?.color as string) || prefab?.editorColor || CATEGORY_COLORS[obj.category] || "#888",
     shape: isCircle ? "circle" : "rect",
     genre: obj.meta ? `${obj.meta.genre || ""}${obj.meta.backGenre ? " / " + obj.meta.backGenre : ""}`.trim() || undefined : undefined,
     _y: obj.y,
@@ -99,11 +124,51 @@ function editorToLayout(obj: StoreObject): LayoutObject {
     y: obj._y ?? 0,
     z: obj.z,
   };
+  if (obj.prefab) lo.prefab = obj.prefab;
   if (obj._rotY !== undefined && obj._rotY !== 0) lo.rotY = obj._rotY;
   if (obj.w !== undefined) lo.w = obj.w;
   if (obj.d !== undefined) lo.d = obj.d;
+  if (obj.hidden) lo.hidden = true;
+  if (obj.locked) lo.locked = true;
+  if (obj.layer) lo.layer = obj.layer;
+  if (obj.interaction?.type && obj.interaction?.label) lo.interaction = obj.interaction;
+  if (obj.collider) lo.collider = obj.collider;
   if (obj._meta && Object.keys(obj._meta).length > 0) lo.meta = obj._meta;
   return lo;
+}
+
+function buildObjectId(prefabId: string): string {
+  return `${prefabId.replace(/[/:]/g, "-")}-${Date.now()}`;
+}
+
+function createObjectFromPrefab(prefabId: string, base?: Partial<StoreObject>): StoreObject {
+  const prefab = getPrefabDefinition(prefabId);
+  if (!prefab) {
+    throw new Error(`Unknown prefab: ${prefabId}`);
+  }
+
+  const isCircle = prefabId === "exterior/lamp-post";
+
+  return {
+    id: buildObjectId(prefabId),
+    label: prefab.label,
+    category: prefab.category,
+    prefab: prefab.id,
+    layer: prefab.defaultLayer,
+    hidden: false,
+    locked: false,
+    interaction: prefab.defaultInteraction,
+    collider: prefab.defaultCollider,
+    x: base?.x ?? 0,
+    z: base?.z ?? 0,
+    w: base?.w ?? prefab.defaultWidth,
+    d: base?.d ?? prefab.defaultDepth,
+    color: prefab.editorColor,
+    shape: isCircle ? "circle" : "rect",
+    _y: base?._y ?? 0,
+    _rotY: base?._rotY ?? 0,
+    _meta: base?._meta ?? {},
+  };
 }
 
 // ── Category colors for legend ──
@@ -128,6 +193,7 @@ export default function EditorPage() {
   const [copied, setCopied] = useState(false);
   const [filterCategory, setFilterCategory] = useState<ObjCategory | "all">("all");
   const [snapToGrid, setSnapToGrid] = useState(false);
+  const [createPrefabId, setCreatePrefabId] = useState("wall/poster");
   const svgRef = useRef<SVGSVGElement>(null);
   const originalObjectsRef = useRef<StoreObject[]>([]);
   const undoStack = useRef<StoreObject[][]>([]);
@@ -221,11 +287,16 @@ export default function EditorPage() {
     (id: string, e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      const obj = objects.find((item) => item.id === id);
+      if (obj?.locked) {
+        setSelectedId(id);
+        return;
+      }
       pushUndo();
       setDragId(id);
       setSelectedId(id);
     },
-    [pushUndo]
+    [objects, pushUndo]
   );
 
   const handleMouseMove = useCallback(
@@ -247,6 +318,19 @@ export default function EditorPage() {
   const handleMouseUp = useCallback(() => {
     setDragId(null);
   }, []);
+
+  const createObject = useCallback(() => {
+    pushUndo();
+    const anchor = selectedId ? objects.find((obj) => obj.id === selectedId) : null;
+    const next = createObjectFromPrefab(createPrefabId, anchor ? {
+      x: anchor.x + 0.6,
+      z: anchor.z + 0.6,
+      _y: anchor._y,
+      _rotY: anchor._rotY,
+    } : undefined);
+    setObjects((prev) => [...prev, next]);
+    setSelectedId(next.id);
+  }, [createPrefabId, objects, pushUndo, selectedId]);
 
   // Global mouse up to handle drag release outside SVG
   useEffect(() => {
@@ -333,6 +417,38 @@ export default function EditorPage() {
           <button onClick={undo} style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #555", borderRadius: 4, background: "#1a1a24", color: "#ccc", cursor: "pointer" }}>↩ Undo</button>
           <button onClick={redo} style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #555", borderRadius: 4, background: "#1a1a24", color: "#ccc", cursor: "pointer" }}>↪ Redo</button>
           <button onClick={() => setSnapToGrid(s => !s)} style={{ padding: "4px 8px", fontSize: 11, border: snapToGrid ? "1px solid #ffd700" : "1px solid #555", borderRadius: 4, background: snapToGrid ? "#2a2a3a" : "#1a1a24", color: snapToGrid ? "#ffd700" : "#888", cursor: "pointer" }}>{snapToGrid ? "⊞ Snap ON" : "⊞ Snap OFF"}</button>
+          <select
+            value={createPrefabId}
+            onChange={(e) => setCreatePrefabId(e.target.value)}
+            style={{
+              padding: "4px 8px",
+              fontSize: 11,
+              border: "1px solid #555",
+              borderRadius: 4,
+              background: "#111118",
+              color: "#ddd",
+            }}
+          >
+            {STORE_PREFABS.map((prefab) => (
+              <option key={prefab.id} value={prefab.id}>
+                {prefab.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={createObject}
+            style={{
+              padding: "4px 8px",
+              fontSize: 11,
+              border: "1px solid #22c55e",
+              borderRadius: 4,
+              background: "#1a1a24",
+              color: "#22c55e",
+              cursor: "pointer",
+            }}
+          >
+            + Add Prefab
+          </button>
           <a href="/editor/3d" style={{ padding: "4px 8px", fontSize: 11, border: "1px solid #3b82f6", borderRadius: 4, background: "#1a1a24", color: "#3b82f6", textDecoration: "none" }}>3D Editor →</a>
           <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             {(["all", "shelf", "counter", "npc", "prop", "wall", "door", "exterior"] as const).map((cat) => (
@@ -537,8 +653,8 @@ export default function EditorPage() {
               const isHovered = hoverId === obj.id;
               const isSelected = selectedId === obj.id;
               const isDragging = dragId === obj.id;
-              const opacity = isDragging ? 0.9 : isHovered ? 0.85 : 0.7;
-              const strokeColor = isSelected ? "#ffd700" : isHovered ? "#fff" : "transparent";
+              const opacity = obj.hidden ? 0.25 : isDragging ? 0.9 : isHovered ? 0.85 : 0.7;
+              const strokeColor = obj.locked ? "#ef4444" : isSelected ? "#ffd700" : isHovered ? "#fff" : "transparent";
               // Y-axis rotation in 3D = rotation around center in 2D top-down view
               // Convert radians to degrees, negate because SVG Y is flipped
               const rotDeg = (obj._rotY ?? 0) !== 0 ? -(obj._rotY! * 180 / Math.PI) : 0;
@@ -550,7 +666,7 @@ export default function EditorPage() {
                   onMouseDown={(e) => handleMouseDown(obj.id, e)}
                   onMouseEnter={() => setHoverId(obj.id)}
                   onMouseLeave={() => setHoverId(null)}
-                  style={{ cursor: isDragging ? "grabbing" : "grab" }}
+                  style={{ cursor: obj.locked ? "not-allowed" : isDragging ? "grabbing" : "grab" }}
                   transform={rotTransform}
                 >
                   {obj.shape === "circle" ? (
@@ -653,6 +769,61 @@ export default function EditorPage() {
                 <strong>{selectedObj.label}</strong>{" "}
                 <span style={{ color: "#888" }}>({selectedObj.category})</span>
               </div>
+              <div style={{ color: "#666", fontSize: 11 }}>id: {selectedObj.id}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedObj.hidden)}
+                    onChange={(e) => setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? { ...o, hidden: e.target.checked } : o))}
+                  />
+                  Hidden
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedObj.locked)}
+                    onChange={(e) => setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? { ...o, locked: e.target.checked } : o))}
+                  />
+                  Locked
+                </label>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                <label style={{ fontSize: 11, color: "#aaa" }}>Prefab</label>
+                <select
+                  value={selectedObj.prefab ?? ""}
+                  onChange={(e) => {
+                    const prefabId = e.target.value;
+                    const prefab = getPrefabDefinition(prefabId);
+                    setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? {
+                      ...o,
+                      prefab: prefabId,
+                      category: prefab?.category ?? o.category,
+                      color: prefab?.editorColor ?? o.color,
+                      layer: prefab?.defaultLayer ?? o.layer,
+                      interaction: o.interaction ?? prefab?.defaultInteraction,
+                      collider: o.collider ?? prefab?.defaultCollider,
+                    } : o));
+                  }}
+                  style={{ background: "#222", color: "#ddd", border: "1px solid #444", borderRadius: 4, padding: "4px 6px", fontSize: 12 }}
+                >
+                  <option value="">None</option>
+                  {STORE_PREFABS.map((prefab) => (
+                    <option key={prefab.id} value={prefab.id}>
+                      {prefab.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                <label style={{ fontSize: 11, color: "#aaa" }}>Layer</label>
+                <input
+                  type="text"
+                  value={selectedObj.layer ?? ""}
+                  onChange={(e) => setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? { ...o, layer: e.target.value } : o))}
+                  style={{ background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 4, padding: "4px 6px", fontSize: 12, fontFamily: "monospace" }}
+                />
+              </div>
               <div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span>X:</span>
@@ -736,6 +907,88 @@ export default function EditorPage() {
                   onChange={(e) => { const v = parseFloat(e.target.value); if (!isNaN(v)) { pushUndo(); setObjects(prev => prev.map(o => o.id === selectedObj.id ? { ...o, d: Math.round(v * 100) / 100 } : o)); }}}
                   style={{ width: 50, background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
                 />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: "#aaa", display: "block" }}>Interaction Type</label>
+                  <input
+                    type="text"
+                    value={selectedObj.interaction?.type ?? ""}
+                    onChange={(e) => setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? {
+                      ...o,
+                      interaction: {
+                        type: e.target.value,
+                        label: o.interaction?.label ?? o.label,
+                        data: o.interaction?.data,
+                      },
+                    } : o))}
+                    style={{ width: "100%", background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: "#aaa", display: "block" }}>Interaction Label</label>
+                  <input
+                    type="text"
+                    value={selectedObj.interaction?.label ?? ""}
+                    onChange={(e) => setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? {
+                      ...o,
+                      interaction: {
+                        type: o.interaction?.type ?? "",
+                        label: e.target.value,
+                        data: o.interaction?.data,
+                      },
+                    } : o))}
+                    style={{ width: "100%", background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 8 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: "#aaa", display: "block" }}>Collider Width</label>
+                  <input
+                    type="number"
+                    step={0.1}
+                    value={selectedObj.collider?.width ?? 0}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? {
+                        ...o,
+                        collider: {
+                          type: "box",
+                          enabled: true,
+                          width: Number.isFinite(value) ? value : 0,
+                          depth: o.collider?.depth ?? o.d,
+                          offsetX: o.collider?.offsetX,
+                          offsetZ: o.collider?.offsetZ,
+                        },
+                      } : o));
+                    }}
+                    style={{ width: "100%", background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: "#aaa", display: "block" }}>Collider Depth</label>
+                  <input
+                    type="number"
+                    step={0.1}
+                    value={selectedObj.collider?.depth ?? 0}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      setObjects((prev) => prev.map((o) => o.id === selectedObj.id ? {
+                        ...o,
+                        collider: {
+                          type: "box",
+                          enabled: true,
+                          width: o.collider?.width ?? o.w,
+                          depth: Number.isFinite(value) ? value : 0,
+                          offsetX: o.collider?.offsetX,
+                          offsetZ: o.collider?.offsetZ,
+                        },
+                      } : o));
+                    }}
+                    style={{ width: "100%", background: "#222", color: "#0f0", border: "1px solid #444", borderRadius: 3, padding: "2px 4px", fontSize: 12, fontFamily: "monospace" }}
+                  />
+                </div>
               </div>
               {selectedObj.genre && (
                 <div>

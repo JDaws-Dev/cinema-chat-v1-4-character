@@ -51,8 +51,10 @@ function StoreBox({
   const meshRef = useRef<THREE.Mesh>(null);
   const w = obj.w ?? 0.5;
   const d = obj.d ?? 0.5;
-  const h = CAT_HEIGHTS[obj.category] ?? 1.0;
-  const color = CAT_COLORS[obj.category] ?? "#888";
+  const h = obj._height ?? CAT_HEIGHTS[obj.category] ?? 1.0;
+  const color = obj._color ?? CAT_COLORS[obj.category] ?? "#888";
+  const opacity = obj.hidden ? 0.22 : isSelected ? 0.9 : 0.7;
+  const outlineColor = obj.locked ? "#ef4444" : "#ffffff";
 
   return (
     <group
@@ -65,7 +67,7 @@ function StoreBox({
         <meshStandardMaterial
           color={color}
           transparent
-          opacity={isSelected ? 0.9 : 0.7}
+          opacity={opacity}
         />
       </mesh>
 
@@ -73,7 +75,7 @@ function StoreBox({
       {isSelected && (
         <lineSegments>
           <edgesGeometry args={[new THREE.BoxGeometry(w, h, d)]} />
-          <lineBasicMaterial color="#ffffff" linewidth={2} />
+          <lineBasicMaterial color={outlineColor} linewidth={2} />
         </lineSegments>
       )}
 
@@ -178,7 +180,7 @@ function SelectedTransform({
   const groupRef = useRef<THREE.Group>(null);
   const w = obj.w ?? 0.5;
   const d = obj.d ?? 0.5;
-  const h = CAT_HEIGHTS[obj.category] ?? 1.0;
+  const h = obj._height ?? CAT_HEIGHTS[obj.category] ?? 1.0;
   const [dragging, setDragging] = useState(false);
 
   // Disable orbit controls while dragging transform
@@ -217,14 +219,14 @@ function SelectedTransform({
         <mesh>
           <boxGeometry args={[w, h, d]} />
           <meshStandardMaterial
-            color={CAT_COLORS[obj.category] ?? "#888"}
+            color={obj._color ?? CAT_COLORS[obj.category] ?? "#888"}
             transparent
-            opacity={0.9}
+            opacity={obj.hidden ? 0.3 : 0.9}
           />
         </mesh>
         <lineSegments>
           <edgesGeometry args={[new THREE.BoxGeometry(w, h, d)]} />
-          <lineBasicMaterial color="#ffffff" linewidth={2} />
+          <lineBasicMaterial color={obj.locked ? "#ef4444" : "#ffffff"} linewidth={2} />
         </lineSegments>
         <Text
           position={[0, h / 2 + 0.3, 0]}

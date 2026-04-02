@@ -7,59 +7,15 @@ import * as THREE from "three";
 import { hasProp, PROPS } from "@/lib/game-state";
 import { playSFX } from "@/lib/audio";
 import { getObjectById } from "@/lib/store-layout";
+import { LayoutDrivenPrefabs } from "./prefabs";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
 import { Mat, setEraYears, getShelfMovies } from "./store-materials";
 import { ShelfUnit, WallShelf, NewReleasesWall } from "./store-shelves";
 import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyModel, getRandomAdultPersonality } from "./store-characters";
-
-// ── Simple box-geometry car ──
-function BoxCar({ position, rotation = [0, 0, 0], color, cabinColor }: {
-  position: [number, number, number];
-  rotation?: [number, number, number];
-  color: string;
-  cabinColor?: string;
-}) {
-  const cb = cabinColor ?? "#222233";
-  return (
-    <group position={position} rotation={rotation} scale={1.4}>
-      {/* Body — lower half with slight taper */}
-      <mesh position={[0, 0.3, 0]}><boxGeometry args={[0.95, 0.4, 2.1]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-      {/* Hood — slopes down at front */}
-      <mesh position={[0, 0.42, 0.7]} rotation={[-0.15, 0, 0]}><boxGeometry args={[0.9, 0.12, 0.6]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-      {/* Trunk — slight slope at back */}
-      <mesh position={[0, 0.42, -0.75]} rotation={[0.1, 0, 0]}><boxGeometry args={[0.9, 0.1, 0.5]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
-      {/* Cabin — windowed area */}
-      <mesh position={[0, 0.65, -0.05]}><boxGeometry args={[0.82, 0.3, 1.0]} /><meshStandardMaterial color={cb} roughness={0.3} metalness={0.15} /></mesh>
-      {/* Windshield */}
-      <mesh position={[0, 0.68, 0.5]} rotation={[-0.3, 0, 0]}><boxGeometry args={[0.78, 0.28, 0.02]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.4} roughness={0.05} metalness={0.3} /></mesh>
-      {/* Rear window */}
-      <mesh position={[0, 0.68, -0.55]} rotation={[0.25, 0, 0]}><boxGeometry args={[0.72, 0.24, 0.02]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.35} roughness={0.05} metalness={0.3} /></mesh>
-      {/* Side windows */}
-      <mesh position={[0.42, 0.68, -0.05]}><boxGeometry args={[0.02, 0.22, 0.85]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.3} roughness={0.05} metalness={0.3} /></mesh>
-      <mesh position={[-0.42, 0.68, -0.05]}><boxGeometry args={[0.02, 0.22, 0.85]} /><meshStandardMaterial color="#88aacc" transparent opacity={0.3} roughness={0.05} metalness={0.3} /></mesh>
-      {/* Bumpers */}
-      <mesh position={[0, 0.18, 1.06]}><boxGeometry args={[0.8, 0.1, 0.06]} /><meshStandardMaterial color="#444444" roughness={0.3} metalness={0.6} /></mesh>
-      <mesh position={[0, 0.18, -1.06]}><boxGeometry args={[0.8, 0.1, 0.06]} /><meshStandardMaterial color="#444444" roughness={0.3} metalness={0.6} /></mesh>
-      {/* Headlights */}
-      <mesh position={[-0.32, 0.32, 1.06]}><boxGeometry args={[0.18, 0.1, 0.03]} /><meshBasicMaterial color="#ffffaa" /></mesh>
-      <mesh position={[0.32, 0.32, 1.06]}><boxGeometry args={[0.18, 0.1, 0.03]} /><meshBasicMaterial color="#ffffaa" /></mesh>
-      {/* Tail lights */}
-      <mesh position={[-0.35, 0.32, -1.06]}><boxGeometry args={[0.14, 0.08, 0.03]} /><meshBasicMaterial color="#cc2222" /></mesh>
-      <mesh position={[0.35, 0.32, -1.06]}><boxGeometry args={[0.14, 0.08, 0.03]} /><meshBasicMaterial color="#cc2222" /></mesh>
-      {/* Wheels + wheel wells */}
-      {[[0.45, 0.12, -0.6], [-0.45, 0.12, -0.6], [0.45, 0.12, 0.6], [-0.45, 0.12, 0.6]].map(([wx, wy, wz], i) => (
-        <group key={i}>
-          <mesh position={[wx, wy, wz]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.14, 0.14, 0.1, 10]} /><meshStandardMaterial color="#1a1a1a" roughness={0.8} /></mesh>
-          <mesh position={[wx > 0 ? wx + 0.01 : wx - 0.01, wy, wz]} rotation={[0, 0, Math.PI / 2]}><cylinderGeometry args={[0.08, 0.08, 0.12, 8]} /><meshStandardMaterial color="#555555" roughness={0.3} metalness={0.5} /></mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
 import { Counter } from "./store-counter";
-import { WallPoster, WallCrtTv, AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
+import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
 
 // Re-export for external consumers
 export { setEraYears, getShelfMovies };
@@ -232,80 +188,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <NewReleasesWall />
       <NeonSign />
 
-      {/* ── CRT TVs ── */}
-      <WallCrtTv position={[getObjectById("tv-left")?.x ?? -9.05, getObjectById("tv-left")?.y ?? 2.2, getObjectById("tv-left")?.z ?? 0]} yaw={Math.PI / 2 - 0.18} tilt={0.12} scale={0.84} pipeDrop={0.96} />
-      <WallCrtTv position={[getObjectById("tv-right")?.x ?? (ROOM_W / 2 - 0.72), getObjectById("tv-right")?.y ?? 2.26, getObjectById("tv-right")?.z ?? 0]} yaw={-Math.PI / 2 + 0.18} tilt={0.12} scale={0.7} pipeDrop={1.16} />
-
-      {/* ── WALL POSTERS ── */}
-      <WallPoster x={getObjectById("poster-jaws")?.x ?? -7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#b91c1c" title="JAWS" />
-      <WallPoster x={getObjectById("poster-alien")?.x ?? -9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#1d4ed8" title="ALIEN" />
-      <WallPoster x={getObjectById("poster-blade")?.x ?? 7} y={1.8} z={-ROOM_D / 2 + 0.05} color="#7c3aed" title="BLADE RUNNER" />
-      <WallPoster x={getObjectById("poster-raiders")?.x ?? 9} y={1.8} z={-ROOM_D / 2 + 0.05} color="#059669" title="RAIDERS" />
-      <WallPoster x={-ROOM_W / 2 + 0.1} y={2.0} z={getObjectById("poster-shining")?.z ?? -2.78} rotY={Math.PI / 2} color="#dc2626" title="THE SHINING" />
-      <WallPoster x={-ROOM_W / 2 + 0.04} y={2.0} z={getObjectById("poster-starwars")?.z ?? 1.32} rotY={Math.PI / 2} color="#f59e0b" title="STAR WARS" />
-      <WallPoster x={ROOM_W / 2 - 0.16} y={2.0} z={getObjectById("poster-bttf")?.z ?? 1.5} rotY={-Math.PI / 2} color="#ec4899" title="BACK TO THE FUTURE" />
-      <WallPoster x={ROOM_W / 2 - 0.13} y={2.0} z={getObjectById("poster-et")?.z ?? 6.0} rotY={-Math.PI / 2} color="#14b8a6" title="E.T." />
-
-      {/* ── WALL-MOUNTED ITEMS ── */}
-      {/* BE KIND REWIND */}
-      <group position={[-ROOM_W / 2 + 0.12, 2.0, getObjectById("be-kind-sign")?.z ?? 2.5]} rotation={[0, Math.PI / 2, 0]}>
-        <mesh><boxGeometry args={[1.5, 0.35, 0.03]} /><Mat color="#0a1a3a" roughness={0.6} /></mesh>
-        <Text position={[0, 0, 0.025]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
-        <Text position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>BE KIND, REWIND</Text>
-      </group>
-
-      {/* OPEN sign */}
-      <group position={[getObjectById("open-sign")?.x ?? -4, getObjectById("open-sign")?.y ?? 2.3, ROOM_D / 2]}>
-        <mesh><boxGeometry args={[1.0, 0.45, 0.03]} /><Mat color="#0a0a18" roughness={0.5} /></mesh>
-        <mesh position={[0, 0, 0.02]}><boxGeometry args={[1.1, 0.55, 0.01]} /><Mat color="#ff3e7a" emissive="#ff3e7a" emissiveIntensity={0.2} transparent opacity={0.5} /></mesh>
-        <Text position={[0, 0, 0.03]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>OPEN<meshBasicMaterial color="#ff3e7a" toneMapped={false} /></Text>
-        <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.22} color="#ff3e7a" anchorX="center" font={undefined}>OPEN<meshBasicMaterial color="#ff3e7a" toneMapped={false} /></Text>
-      </group>
-
-      {/* Store hours */}
-      <group position={[getObjectById("store-hours")?.x ?? 4, getObjectById("store-hours")?.y ?? 1.8, getObjectById("store-hours")?.z ?? ROOM_D / 2 + 0.05]}>
-        <mesh position={[0, 0, -0.005]}><boxGeometry args={[1.3, 0.9, 0.03]} /><Mat color="#1a3a6a" roughness={0.5} /></mesh>
-        <mesh><boxGeometry args={[1.2, 0.8, 0.03]} /><Mat color="#f0f0e8" roughness={0.7} /></mesh>
-        <Text position={[0, 0.25, 0.025]} fontSize={0.08} color="#1a3a6a" anchorX="center" font={undefined}>STORE HOURS</Text>
-        <Text position={[0, 0.05, 0.025]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>MON-SAT 10AM - 11PM</Text>
-        <Text position={[0, -0.1, 0.025]} fontSize={0.05} color="#333333" anchorX="center" font={undefined}>SUN 11AM - 9PM</Text>
-        <Text position={[0, -0.28, 0.025]} fontSize={0.035} color="#cc3333" anchorX="center" font={undefined}>OPEN LATE FRIDAYS!</Text>
-      </group>
-
-      {/* Clock near counter */}
-      <group position={[getObjectById("clock-counter")?.x ?? ROOM_W / 2 - 0.1, getObjectById("clock-counter")?.y ?? 2.8, getObjectById("clock-counter")?.z ?? 6.2]} rotation={[0, -Math.PI / 2, 0]}>
-        <mesh><circleGeometry args={[0.25, 24]} /><Mat color="#ffffff" roughness={0.4} /></mesh>
-        <mesh position={[0, 0, -0.03]}><cylinderGeometry args={[0.27, 0.27, 0.04, 24]} /><Mat color="#333" roughness={0.5} /></mesh>
-        <mesh position={[0, 0.06, 0.01]} rotation={[0, 0, -0.5]}><boxGeometry args={[0.02, 0.12, 0.005]} /><meshBasicMaterial color="#111" /></mesh>
-        <mesh position={[0.04, 0.06, 0.01]} rotation={[0, 0, -1.2]}><boxGeometry args={[0.015, 0.18, 0.005]} /><meshBasicMaterial color="#111" /></mesh>
-      </group>
-
-      {/* Late fees sign */}
-      <group position={[ROOM_W / 2 - 0.1, getObjectById("late-fees-sign")?.y ?? 1.5, getObjectById("late-fees-sign")?.z ?? 5.2]} rotation={[0, -Math.PI / 2, 0]}>
-        <mesh><boxGeometry args={[1.0, 0.6, 0.02]} /><Mat color="#0a1a3a" roughness={0.6} /></mesh>
-        <Text position={[0, 0.15, 0.02]} fontSize={0.08} color="#ef4444" anchorX="center" font={undefined}>LATE FEES</Text>
-        <Text position={[0, 0, 0.02]} fontSize={0.04} color="#ffffff" anchorX="center" font={undefined}>1-DAY: $1.50 | 2-DAY: $3.00</Text>
-        <Text position={[0, -0.12, 0.02]} fontSize={0.04} color="#ffd700" anchorX="center" font={undefined}>BE KIND, RETURN ON TIME!</Text>
-      </group>
-
-      {/* Bulletin board */}
-      <group position={[-ROOM_W / 2 + 0.08, getObjectById("bulletin-board")?.y ?? 1.6, getObjectById("bulletin-board")?.z ?? 4.8]} rotation={[0, Math.PI / 2, 0]}>
-        <mesh><boxGeometry args={[1.2, 0.8, 0.05]} /><Mat color="#7a5a30" roughness={0.85} /></mesh>
-        {[[-0.3, 0.15, "#ffd700"], [0.1, 0.2, "#ef4444"], [-0.15, -0.1, "#22c55e"], [0.25, -0.05, "#3b82f6"]].map(([dx, dy, c], i) => (<mesh key={`note${i}`} position={[dx as number, dy as number, 0.04]} rotation={[0, 0, (i - 1.5) * 0.1]}><planeGeometry args={[0.2, 0.2]} /><Mat color={c as string} roughness={0.7} /></mesh>))}
-      </group>
-
-      {/* Specials chalkboard */}
-      <group position={[getObjectById("promo-board")?.x ?? 9.84, getObjectById("promo-board")?.y ?? 1.72, getObjectById("promo-board")?.z ?? 3.05]} rotation={[0, getObjectById("promo-board")?.rotY ?? -Math.PI / 2, 0]}>
-        <mesh><boxGeometry args={[1.02, 0.78, 0.04]} /><Mat color="#1a2f58" roughness={0.7} /></mesh>
-        <mesh position={[0, 0, 0.012]}><boxGeometry args={[1.12, 0.88, 0.02]} /><Mat color="#d4a514" roughness={0.45} metalness={0.1} /></mesh>
-        <mesh position={[0, 0, 0.02]}><boxGeometry args={[0.98, 0.74, 0.012]} /><Mat color="#10203e" roughness={0.78} /></mesh>
-        <mesh position={[0, 0.23, 0.028]}><boxGeometry args={[0.7, 0.14, 0.008]} /><meshBasicMaterial color="#ffd700" /></mesh>
-        <Text position={[0, 0.23, 0.034]} fontSize={0.075} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>STORE SPECIALS</Text>
-        <Text position={[0, 0.04, 0.03]} fontSize={0.065} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>RENT 2 GET 1 FREE</Text>
-        <Text position={[0, -0.11, 0.03]} fontSize={0.055} color="#ffe88a" anchorX="center" anchorY="middle" font={undefined}>KIDS FAVORITES $0.99</Text>
-        <Text position={[0, -0.25, 0.03]} fontSize={0.042} color="#7ec8ff" anchorX="center" anchorY="middle" font={undefined}>NEW RELEASES TUESDAY</Text>
-      </group>
-
       {/* Employees only door */}
       <group position={[-ROOM_W / 2 + 0.07, 0, getObjectById("employees-door")?.z ?? -5.19]} rotation={[0, Math.PI / 2, 0]}>
         <AnimatedEmployeeDoor open={false}>
@@ -321,17 +203,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
         <mesh position={[0, 2.37, 0]}><boxGeometry args={[1.0, 0.04, 0.06]} /><Mat color="#3a2010" roughness={0.7} /></mesh>
       </group>
 
-      {/* Challenge board */}
-      <group position={[getObjectById("challenge-board")?.x ?? (ROOM_W / 2 - 0.08), getObjectById("challenge-board")?.y ?? 1.62, getObjectById("challenge-board")?.z ?? 2.65]} rotation={[0, getObjectById("challenge-board")?.rotY ?? -Math.PI / 2, 0]} userData={{ interactType: "challenge", label: "Challenge Board" }}>
-        <mesh position={[0, 0, -0.02]} userData={{ interactType: "challenge", label: "Challenge Board" }}><boxGeometry args={[0.82, 0.6, 0.04]} /><Mat color="#d4a514" emissive="#ffd700" emissiveIntensity={0.08} roughness={0.55} /></mesh>
-        <mesh position={[0, 0, 0.01]}><boxGeometry args={[0.68, 0.46, 0.02]} /><Mat color="#0f1a33" roughness={0.5} /></mesh>
-        <Text position={[0, 0.115, 0.03]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>MOVIE NIGHT</Text>
-        <Text position={[0, 0.03, 0.03]} fontSize={0.038} color="#7ec8ff" anchorX="center" anchorY="middle" font={undefined}>CHALLENGE</Text>
-        <Text position={[0, -0.045, 0.03]} fontSize={0.021} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>Pick tonight's theme</Text>
-        <Text position={[0, -0.115, 0.03]} fontSize={0.02} color="#d4c28a" anchorX="center" anchorY="middle" font={undefined}>Click to open</Text>
-      </group>
-
       <TrophyShelf />
+      <LayoutDrivenPrefabs />
 
       {/* Neon accent strips (removed — looked like weird colored bars) */}
 
@@ -353,9 +226,6 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, ROOM_D / 2 + 0.5]}><planeGeometry args={[36, 1.5]} /><meshBasicMaterial color="#2a2520" /></mesh>
       {/* Parking lines — spread across full lot */}
       {[-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
-
-      {/* Parking lot lamps */}
-      {[getObjectById("lamp-1")?.x ?? -6, getObjectById("lamp-2")?.x ?? 0, getObjectById("lamp-3")?.x ?? 6].map((lx, i) => (<group key={`lamp-${i}`} position={[lx, 0, [getObjectById("lamp-1")?.z, getObjectById("lamp-2")?.z, getObjectById("lamp-3")?.z][i] ?? ROOM_D / 2 + 7]}><mesh position={[0, 1.5, 0]}><cylinderGeometry args={[0.03, 0.04, 3, 8]} /><meshBasicMaterial color="#444" /></mesh><mesh position={[0, 3.1, 0]}><boxGeometry args={[0.3, 0.08, 0.15]} /><meshBasicMaterial color="#555" /></mesh><mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}><circleGeometry args={[1.5, 12]} /><meshBasicMaterial color="#332a15" transparent opacity={0.3} /></mesh></group>))}
 
       {/* Fascia + signage (hidden in top-down) */}
       {!topDown && <>
@@ -599,16 +469,8 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       </group>
       <group position={[ROOM_W / 2 + 1.2, 2.0, ROOM_D / 2 + 0.25]}><mesh><boxGeometry args={[0.7, 0.35, 0.04]} /><meshBasicMaterial color="#111111" /></mesh><Text position={[0, 0, 0.03]} fontSize={0.16} color="#33ff66" anchorX="center" anchorY="middle">OPEN<meshBasicMaterial color="#33ff66" toneMapped={false} /></Text></group>
 
-      {/* Curb + Cars */}
+      {/* Curb */}
       <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}><boxGeometry args={[36, 0.1, 0.15]} /><meshBasicMaterial color="#555555" /></mesh>
-      <BoxCar color="#4466aa" cabinColor="#223355" position={[getObjectById("car-sedan")?.x ?? 5, 0, getObjectById("car-sedan")?.z ?? ROOM_D/2 + 4]} />
-      <BoxCar color="#cc4444" cabinColor="#222233" position={[getObjectById("car-van")?.x ?? -4, 0, getObjectById("car-van")?.z ?? ROOM_D/2 + 4]} rotation={[0, Math.PI, 0]} />
-      <BoxCar color="#338833" cabinColor="#1a331a" position={[getObjectById("car-suv")?.x ?? 1, 0, getObjectById("car-suv")?.z ?? ROOM_D/2 + 5.5]} />
-      <BoxCar color="#ddaa22" cabinColor="#222233" position={[getObjectById("car-hatchback")?.x ?? -7, 0, getObjectById("car-hatchback")?.z ?? ROOM_D/2 + 5.5]} rotation={[0, Math.PI, 0]} />
-      <BoxCar color="#eecc33" cabinColor="#222233" position={[getObjectById("car-taxi")?.x ?? 8, 0, getObjectById("car-taxi")?.z ?? ROOM_D/2 + 5.5]} />
-      <BoxCar color="#777777" cabinColor="#333333" position={[getObjectById("car-sedan2")?.x ?? -10, 0, getObjectById("car-sedan2")?.z ?? ROOM_D / 2 + 4]} rotation={[0, Math.PI, 0]} />
-      <BoxCar color="#222244" cabinColor="#111122" position={[getObjectById("car-police")?.x ?? 10, 0, getObjectById("car-police")?.z ?? ROOM_D / 2 + 4]} />
-      <BoxCar color="#aa6633" cabinColor="#663311" position={[getObjectById("car-delivery")?.x ?? -2, 0, getObjectById("car-delivery")?.z ?? ROOM_D / 2 + 5.5]} rotation={[0, Math.PI, 0]} />
 
       {/* Road — full width */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, ROOM_D / 2 + 13]}><planeGeometry args={[40, 6]} /><meshBasicMaterial color="#111116" /></mesh>
@@ -661,40 +523,11 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
 
       <FloorRug />
 
-      {/* Trash can */}
-      <KenneyModel model="trashcan" position={[getObjectById("trash-can")?.x ?? -1.5, 0, getObjectById("trash-can")?.z ?? (ROOM_D / 2 - 1)]} scale={0.5} />
-
-
-      {/* Rewards sign */}
-      <group position={[getObjectById("rewards-sign")?.x ?? 7, getObjectById("rewards-sign")?.y ?? 2.8, getObjectById("rewards-sign")?.z ?? 5]}>
-        <mesh><boxGeometry args={[2.5, 0.4, 0.03]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.2} roughness={0.5} /></mesh>
-        <Text position={[0, 0, 0.025]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>REWARDS MEMBER? ASK!</Text>
-        <Text position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.12} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>REWARDS MEMBER? ASK!</Text>
-      </group>
-
-
       {/* Security mirror */}
       <group position={[-9.2, 3.3, -6.2]}><mesh rotation={[Math.PI / 4, 0, 0]}><circleGeometry args={[0.45, 24]} /><Mat color="#c0c8d0" roughness={0.8} metalness={0.3} /></mesh><mesh position={[0, 0.15, 0.05]}><cylinderGeometry args={[0.06, 0.06, 0.15, 8]} /><Mat color="#444444" roughness={0.8} /></mesh></group>
 
       {/* Ceiling speaker */}
       <group position={[-3, ROOM_H - 0.05, 3]}><mesh><boxGeometry args={[0.35, 0.08, 0.35]} /><Mat color="#2a2a2a" roughness={0.6} /></mesh></group>
-
-      {/* Return bin */}
-      <group position={[getObjectById("return-bin")?.x ?? 3.5, 0, getObjectById("return-bin")?.z ?? 5.2]} userData={{ interactType: "return_slot", label: "Drop Returns Here" }}>
-        <mesh position={[0, 0.5, 0]}><boxGeometry args={[0.8, 1.0, 0.6]} /><Mat color="#1a3a6a" roughness={0.7} /></mesh>
-        <mesh position={[0, 0.8, 0.28]}><boxGeometry args={[0.5, 0.1, 0.06]} /><meshBasicMaterial color="#0a0a1a" /></mesh>
-        <Text position={[0, 1.1, 0.32]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>DROP RETURNS HERE</Text>
-        <Text position={[0, 1.1, -0.32]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" font={undefined}>DROP RETURNS HERE</Text>
-      </group>
-
-      {/* Bargain bin */}
-      <group position={[getObjectById("bargain-crate")?.x ?? -1.5, getObjectById("bargain-crate")?.y ?? 0, getObjectById("bargain-crate")?.z ?? 4.5]}>
-        <mesh position={[0, 0.25, 0]}><boxGeometry args={[0.9, 0.5, 0.7]} /><Mat color="#6a4a20" roughness={0.9} /></mesh>
-        <mesh position={[0, 0.35, 0]}><boxGeometry args={[0.8, 0.35, 0.6]} /><Mat color="#3a2a10" roughness={0.9} /></mesh>
-        <mesh position={[0, 0.6, -0.36]}><boxGeometry args={[0.6, 0.22, 0.02]} /><Mat color="#ef4444" roughness={0.5} /></mesh>
-        <Text position={[0, 0.6, -0.39]} rotation={[0, Math.PI, 0]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
-        <Text position={[0, 0.6, -0.34]} fontSize={0.08} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>2 FOR $1</Text>
-      </group>
 
       {/* Welcome mat outside */}
       <mesh position={[0, 0.005, 6.3]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[3.5, 1.2]} /><Mat color="#1a1a1a" roughness={0.8} /></mesh>

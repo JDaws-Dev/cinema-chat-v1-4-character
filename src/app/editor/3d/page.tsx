@@ -2,7 +2,18 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
-import type { StoreLayout, LayoutObject, ObjCategory } from "@/lib/store-layout";
+import type {
+  StoreLayout,
+  LayoutObject,
+  ObjCategory,
+  LayoutCollider,
+  LayoutInteraction,
+} from "@/lib/store-layout";
+import {
+  STORE_PREFABS,
+  inferPrefabId,
+  getPrefabDefinition,
+} from "@/lib/store-prefabs";
 
 // ── Dynamic imports (no SSR for R3F) ──
 const Canvas = dynamic(
@@ -33,19 +44,56 @@ const CAT_HEIGHTS: Record<ObjCategory, number> = {
   exterior: 2.5,
 };
 
+const PREFAB_HEIGHTS: Record<string, number> = {
+  "wall/poster": 1.4,
+  "sign/neon": 0.4,
+  "sign/plastic-store": 0.35,
+  "sign/open": 0.45,
+  "sign/store-hours": 0.9,
+  "sign/promo-board": 0.8,
+  "sign/challenge-board": 0.6,
+  "prop/bulletin-board": 0.8,
+  "prop/wall-clock": 0.5,
+  "prop/return-bin": 1.0,
+  "prop/bargain-bin": 0.6,
+  "prop/trash-can": 0.7,
+  "prop/crt-tv": 1.2,
+  "exterior/car": 1.0,
+  "exterior/lamp-post": 3.2,
+};
+
 // ── Editor object (superset of LayoutObject with editor state) ──
 export interface EditorObject extends LayoutObject {
+  prefab?: string;
+  layer?: string;
+  hidden?: boolean;
+  locked?: boolean;
+  interaction?: LayoutInteraction;
+  collider?: LayoutCollider;
+  _prefabId?: string;
   _color: string;
   _height: number;
 }
 
 function layoutToEditor(obj: LayoutObject): EditorObject {
+  const prefabId = obj.prefab || inferPrefabId(obj);
+  const prefab = getPrefabDefinition(prefabId);
   return {
     ...obj,
+    prefab: prefabId,
+    layer: obj.layer ?? prefab?.defaultLayer ?? obj.category,
+    hidden: obj.hidden ?? false,
+    locked: obj.locked ?? false,
+    interaction: obj.interaction ?? prefab?.defaultInteraction,
+    collider: obj.collider ?? prefab?.defaultCollider,
     w: obj.w ?? 0.5,
     d: obj.d ?? 0.5,
-    _color: CAT_COLORS[obj.category] || "#888",
-    _height: CAT_HEIGHTS[obj.category] || 1.0,
+    _prefabId: prefabId,
+    _color: prefab?.editorColor ?? CAT_COLORS[obj.category] ?? "#888",
+    _height:
+      (prefabId ? PREFAB_HEIGHTS[prefabId] : undefined) ??
+      CAT_HEIGHTS[obj.category] ??
+      1.0,
   };
 }
 
@@ -58,12 +106,54 @@ function editorToLayout(obj: EditorObject): LayoutObject {
     y: Math.round(obj.y * 100) / 100,
     z: Math.round(obj.z * 100) / 100,
   };
+  if (obj.prefab) lo.prefab = obj.prefab;
   if (obj.rotY !== undefined && obj.rotY !== 0)
     lo.rotY = Math.round(obj.rotY * 1000) / 1000;
   if (obj.w !== undefined) lo.w = Math.round(obj.w * 100) / 100;
   if (obj.d !== undefined) lo.d = Math.round(obj.d * 100) / 100;
+  if (obj.hidden) lo.hidden = true;
+  if (obj.locked) lo.locked = true;
+  if (obj.layer) lo.layer = obj.layer;
+  if (obj.interaction?.type && obj.interaction?.label) lo.interaction = obj.interaction;
+  if (obj.collider) lo.collider = obj.collider;
   if (obj.meta && Object.keys(obj.meta).length > 0) lo.meta = obj.meta;
   return lo;
+}
+
+function buildObjectId(prefabId: string): string {
+  return `${prefabId.replace(/[/:]/g, "-")}-${Date.now()}`;
+}
+
+function createObjectFromPrefab(
+  prefabId: string,
+  base?: Partial<EditorObject>
+): EditorObject {
+  const prefab = getPrefabDefinition(prefabId);
+  if (!prefab) {
+    throw new Error(`Unknown prefab: ${prefabId}`);
+  }
+
+  return {
+    id: buildObjectId(prefabId),
+    label: prefab.label,
+    category: prefab.category,
+    prefab: prefab.id,
+    layer: prefab.defaultLayer,
+    hidden: false,
+    locked: false,
+    interaction: prefab.defaultInteraction,
+    collider: prefab.defaultCollider,
+    x: base?.x ?? 0,
+    y: base?.y ?? 0,
+    z: base?.z ?? 0,
+    rotY: base?.rotY ?? 0,
+    w: base?.w ?? prefab.defaultWidth,
+    d: base?.d ?? prefab.defaultDepth,
+    meta: base?.meta ?? {},
+    _prefabId: prefab.id,
+    _color: prefab.editorColor,
+    _height: PREFAB_HEIGHTS[prefab.id] ?? CAT_HEIGHTS[prefab.category] ?? 1.0,
+  };
 }
 
 // ── Number input component ──
@@ -123,6 +213,7 @@ export default function Editor3DPage() {
     "idle" | "saving" | "saved" | "error"
   >("idle");
   const [cameraPos, setCameraPos] = useState<string>("--");
+  const [createPrefabId, setCreatePrefabId] = useState("wall/poster");
   const originalRef = useRef<EditorObject[]>([]);
 
   // Fetch layout
@@ -172,6 +263,35 @@ export default function Editor3DPage() {
     },
     []
   );
+
+  const createObject = useCallback(() => {
+    const anchor = selectedId ? objects.find((o) => o.id === selectedId) : null;
+    const next = createObjectFromPrefab(
+      createPrefabId,
+      anchor
+        ? {
+            x: anchor.x + 0.6,
+            y: anchor.y,
+            z: anchor.z + 0.6,
+            rotY: anchor.rotY,
+          }
+        : undefined
+    );
+    setObjects((prev) => [...prev, next]);
+    setSelectedId(next.id);
+  }, [createPrefabId, objects, selectedId]);
+
+  const duplicateSelected = useCallback(() => {
+    if (!selectedObj) return;
+    const duplicate: EditorObject = {
+      ...selectedObj,
+      id: `${selectedObj.id}-copy-${Date.now()}`,
+      x: Math.round((selectedObj.x + 0.5) * 100) / 100,
+      z: Math.round((selectedObj.z + 0.5) * 100) / 100,
+    };
+    setObjects((prev) => [...prev, duplicate]);
+    setSelectedId(duplicate.id);
+  }, [selectedObj]);
 
   const handleTransformEnd = useCallback(
     (id: string, pos: [number, number, number], rotY: number) => {
@@ -290,6 +410,53 @@ export default function Editor3DPage() {
               {mode === "translate" ? "G" : mode === "rotate" ? "R" : "S"})
             </button>
           ))}
+          <select
+            value={createPrefabId}
+            onChange={(e) => setCreatePrefabId(e.target.value)}
+            style={{
+              padding: "4px 8px",
+              fontSize: 11,
+              border: "1px solid #555",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: "#ddd",
+            }}
+          >
+            {STORE_PREFABS.map((prefab) => (
+              <option key={prefab.id} value={prefab.id}>
+                {prefab.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={createObject}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: "1px solid #22c55e",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: "#22c55e",
+              cursor: "pointer",
+            }}
+          >
+            + Add Prefab
+          </button>
+          <button
+            onClick={duplicateSelected}
+            disabled={!selectedObj}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: "1px solid #3b82f6",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: selectedObj ? "#93c5fd" : "#666",
+              cursor: selectedObj ? "pointer" : "not-allowed",
+            }}
+          >
+            Duplicate
+          </button>
         </div>
 
         {/* Camera position */}
@@ -371,6 +538,79 @@ export default function Editor3DPage() {
               <div style={{ fontSize: 11, color: "#666" }}>
                 id: {selectedObj.id}
               </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedObj.hidden)}
+                    onChange={(e) => updateObject(selectedObj.id, { hidden: e.target.checked })}
+                  />
+                  Hidden
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedObj.locked)}
+                    onChange={(e) => updateObject(selectedObj.id, { locked: e.target.checked })}
+                  />
+                  Locked
+                </label>
+              </div>
+              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "#aaa" }}>
+                <span>Prefab</span>
+                <select
+                  value={selectedObj.prefab ?? ""}
+                  onChange={(e) => {
+                    const prefabId = e.target.value;
+                    const prefab = getPrefabDefinition(prefabId);
+                    updateObject(selectedObj.id, {
+                      prefab: prefabId || undefined,
+                      _prefabId: prefabId || undefined,
+                      category: prefab?.category ?? selectedObj.category,
+                      layer: prefab?.defaultLayer ?? selectedObj.layer,
+                      interaction: selectedObj.interaction ?? prefab?.defaultInteraction,
+                      collider: selectedObj.collider ?? prefab?.defaultCollider,
+                      _color: prefab?.editorColor ?? CAT_COLORS[selectedObj.category],
+                      _height:
+                        (prefabId ? PREFAB_HEIGHTS[prefabId] : undefined) ??
+                        CAT_HEIGHTS[prefab?.category ?? selectedObj.category] ??
+                        selectedObj._height,
+                    });
+                  }}
+                  style={{
+                    background: "#222",
+                    color: "#ddd",
+                    border: "1px solid #444",
+                    borderRadius: 4,
+                    padding: "4px 6px",
+                    fontSize: 12,
+                  }}
+                >
+                  <option value="">None</option>
+                  {STORE_PREFABS.map((prefab) => (
+                    <option key={prefab.id} value={prefab.id}>
+                      {prefab.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "#aaa" }}>
+                <span>Layer</span>
+                <input
+                  type="text"
+                  value={selectedObj.layer ?? ""}
+                  onChange={(e) => updateObject(selectedObj.id, { layer: e.target.value })}
+                  style={{
+                    background: "#222",
+                    color: "#0f0",
+                    border: "1px solid #444",
+                    borderRadius: 4,
+                    padding: "4px 6px",
+                    fontSize: 12,
+                    fontFamily: "monospace",
+                  }}
+                />
+              </label>
               <div
                 style={{
                   display: "grid",
@@ -417,6 +657,104 @@ export default function Editor3DPage() {
                   label="D"
                   value={selectedObj.d ?? 0.5}
                   onChange={(v) => updateObject(selectedObj.id, { d: v })}
+                />
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 6,
+                }}
+              >
+                <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "#aaa" }}>
+                  <span>Interaction Type</span>
+                  <input
+                    type="text"
+                    value={selectedObj.interaction?.type ?? ""}
+                    onChange={(e) =>
+                      updateObject(selectedObj.id, {
+                        interaction: {
+                          type: e.target.value,
+                          label: selectedObj.interaction?.label ?? selectedObj.label,
+                          data: selectedObj.interaction?.data,
+                        },
+                      })
+                    }
+                    style={{
+                      background: "#222",
+                      color: "#0f0",
+                      border: "1px solid #444",
+                      borderRadius: 4,
+                      padding: "4px 6px",
+                      fontSize: 12,
+                      fontFamily: "monospace",
+                    }}
+                  />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, color: "#aaa" }}>
+                  <span>Interaction Label</span>
+                  <input
+                    type="text"
+                    value={selectedObj.interaction?.label ?? ""}
+                    onChange={(e) =>
+                      updateObject(selectedObj.id, {
+                        interaction: {
+                          type: selectedObj.interaction?.type ?? "",
+                          label: e.target.value,
+                          data: selectedObj.interaction?.data,
+                        },
+                      })
+                    }
+                    style={{
+                      background: "#222",
+                      color: "#0f0",
+                      border: "1px solid #444",
+                      borderRadius: 4,
+                      padding: "4px 6px",
+                      fontSize: 12,
+                      fontFamily: "monospace",
+                    }}
+                  />
+                </label>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 6,
+                }}
+              >
+                <NumInput
+                  label="CW"
+                  value={selectedObj.collider?.width ?? 0}
+                  onChange={(v) =>
+                    updateObject(selectedObj.id, {
+                      collider: {
+                        type: "box",
+                        enabled: true,
+                        width: v,
+                        depth: selectedObj.collider?.depth ?? selectedObj.d,
+                        offsetX: selectedObj.collider?.offsetX,
+                        offsetZ: selectedObj.collider?.offsetZ,
+                      },
+                    })
+                  }
+                />
+                <NumInput
+                  label="CD"
+                  value={selectedObj.collider?.depth ?? 0}
+                  onChange={(v) =>
+                    updateObject(selectedObj.id, {
+                      collider: {
+                        type: "box",
+                        enabled: true,
+                        width: selectedObj.collider?.width ?? selectedObj.w,
+                        depth: v,
+                        offsetX: selectedObj.collider?.offsetX,
+                        offsetZ: selectedObj.collider?.offsetZ,
+                      },
+                    })
+                  }
                 />
               </div>
             </div>
@@ -561,6 +899,7 @@ export default function Editor3DPage() {
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
+                  opacity: obj.hidden ? 0.45 : 1,
                 }}
               >
                 <div
@@ -568,13 +907,13 @@ export default function Editor3DPage() {
                     width: 8,
                     height: 8,
                     borderRadius: 1,
-                    background: CAT_COLORS[obj.category],
+                    background: obj._color,
                     flexShrink: 0,
                   }}
                 />
                 <span style={{ color: "#ccc" }}>{obj.label}</span>
                 <span style={{ color: "#555", marginLeft: "auto" }}>
-                  {obj.id}
+                  {obj.prefab ?? obj.id}
                 </span>
               </div>
             ))}
