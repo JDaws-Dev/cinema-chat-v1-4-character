@@ -12,9 +12,35 @@ export interface StoreMovieSlot {
   placementKey: string;
 }
 
+export interface ReturnableMovieSlot {
+  id: number;
+  title: string;
+  posterUrl: string;
+  genre: string;
+  slotKey: string;
+}
+
 export interface SeededStoreMovieState {
   missingSlotKeys: string[];
-  recentReturns: StoreMovieSlot[];
+  recentReturns: ReturnableMovieSlot[];
+}
+
+export interface SlotBackedMovie {
+  slotKey?: string;
+}
+
+export interface ReturnableMovieLike extends SlotBackedMovie {
+  id: number;
+  title: string;
+  posterUrl: string;
+  genre: string;
+}
+
+export interface StoreMovieSlotBuckets {
+  heldSlotKeys: string[];
+  recentReturnSlotKeys: string[];
+  checkedOutSlotKeys: string[];
+  unavailableSlotKeys: string[];
 }
 
 function createSeededRandom(seed: string): () => number {
@@ -108,5 +134,111 @@ export function seedStoreMovieState(
   return {
     missingSlotKeys: picked.map((movie) => movie.slotKey),
     recentReturns: picked.slice(0, recentReturnCount),
+  };
+}
+
+export function getMovieSlotKeys<T extends SlotBackedMovie>(movies: T[]): string[] {
+  return movies.flatMap((movie) => (movie.slotKey ? [movie.slotKey] : []));
+}
+
+export function mergeRecentReturnMovies<T extends ReturnableMovieLike>(
+  existing: ReturnableMovieSlot[],
+  incoming: T[],
+  limit = 8,
+): ReturnableMovieSlot[] {
+  const merged: ReturnableMovieSlot[] = [];
+  const seen = new Set<string>();
+
+  const normalizedIncoming = incoming.flatMap((movie) => (
+    movie.slotKey
+      ? [{
+          id: movie.id,
+          title: movie.title,
+          posterUrl: movie.posterUrl,
+          genre: movie.genre,
+          slotKey: movie.slotKey,
+        }]
+      : []
+  ));
+
+  for (const movie of [...normalizedIncoming, ...existing]) {
+    if (seen.has(movie.slotKey)) continue;
+    seen.add(movie.slotKey);
+    merged.push(movie);
+    if (merged.length >= limit) break;
+  }
+
+  return merged;
+}
+
+export function removeRecentReturnMovie<T extends SlotBackedMovie>(
+  existing: T[],
+  slotKey?: string,
+): T[] {
+  if (!slotKey) return existing;
+  return existing.filter((movie) => movie.slotKey !== slotKey);
+}
+
+export function getStoreMovieSlotBuckets<T extends SlotBackedMovie>(
+  state: SeededStoreMovieState,
+  heldMovies: T[],
+): StoreMovieSlotBuckets {
+  const heldSlotKeys = getMovieSlotKeys(heldMovies);
+  const recentReturnSlotKeys = getMovieSlotKeys(state.recentReturns);
+  const checkedOutSlotKeys = [...state.missingSlotKeys];
+
+  return {
+    heldSlotKeys,
+    recentReturnSlotKeys,
+    checkedOutSlotKeys,
+    unavailableSlotKeys: Array.from(new Set([...checkedOutSlotKeys, ...heldSlotKeys])),
+  };
+}
+
+export function putBackHeldMovies<T extends ReturnableMovieLike>(
+  state: SeededStoreMovieState,
+  heldMovies: T[],
+  limit = 8,
+): SeededStoreMovieState {
+  const checkedOut = new Set(state.missingSlotKeys);
+  const returningToRecent = heldMovies.filter(
+    (movie): movie is T & { slotKey: string } => Boolean(movie.slotKey && checkedOut.has(movie.slotKey))
+  );
+
+  if (returningToRecent.length === 0) return state;
+
+  return {
+    ...state,
+    recentReturns: mergeRecentReturnMovies(state.recentReturns, returningToRecent, limit),
+  };
+}
+
+export function returnHeldMovies<T extends ReturnableMovieLike>(
+  state: SeededStoreMovieState,
+  heldMovies: T[],
+  limit = 8,
+): SeededStoreMovieState {
+  const slotMovies = heldMovies.filter(
+    (movie): movie is T & { slotKey: string } => Boolean(movie.slotKey)
+  );
+
+  if (slotMovies.length === 0) return state;
+
+  return {
+    missingSlotKeys: Array.from(new Set([...state.missingSlotKeys, ...slotMovies.map((movie) => movie.slotKey)])),
+    recentReturns: mergeRecentReturnMovies(state.recentReturns, slotMovies, limit),
+  };
+}
+
+export function checkoutHeldMovies<T extends SlotBackedMovie>(
+  state: SeededStoreMovieState,
+  heldMovies: T[],
+): SeededStoreMovieState {
+  const slotKeys = getMovieSlotKeys(heldMovies);
+  if (slotKeys.length === 0) return state;
+
+  return {
+    missingSlotKeys: Array.from(new Set([...state.missingSlotKeys, ...slotKeys])),
+    recentReturns: state.recentReturns.filter((movie) => !slotKeys.includes(movie.slotKey)),
   };
 }

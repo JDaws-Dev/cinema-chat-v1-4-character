@@ -36,10 +36,13 @@
 - **Spawn-time missing-copy logic has started**: some shelf homes now spawn empty, and a subset of those missing copies appear in a rentable `RECENT RETURNS` stack near the return bin.
 - **Returns stack is now a real pickup source**: players can rent directly from recent returns, which creates the foundation for later “race to returns” and “find the missing copy” gameplay.
 - **Historical shelf rendering is now placement-driven**: for non-present eras, the in-world shelf meshes and the shelf browser now read from the same canonical placement-slot assignments, and wall shelves request their true physical slot counts instead of a stale fixed `20`.
+- **Slot-state transitions are more centralized now**: challenge resets, checkout, return-bin drops, and put-backs are now routed through shared helpers in `src/lib/store-movie-state.ts` instead of each path mutating recent returns and checked-out slots separately.
+- **Store movie state is moving behind shared helpers**: checkout, put-back, challenge reset, timeout, and return-bin flows are now being routed through `src/lib/store-movie-state.ts` instead of each path mutating separate slot arrays by hand.
 
 #### Current known issues / active work
 - **VHS artwork path is still the top priority**: most poster requests are now succeeding through `/api/catalog-poster`, but the full in-game VHS flow still needs more hardening so shelf art, shelf browser art, HUD inventory art, held-in-hand tapes, and missing/checked-out states all stay consistent.
 - **Shelf/browser/state unification is still incomplete**: historical shelf browsing and shelf rendering now share placement-slot data, but the full canonical movie-slot model across held stack, returns stack, checkout, and present-day shelves still needs more hardening.
+- **Present-day shelves are still the big holdout**: historical eras now use the stronger placement-slot path, but the live/present-day movie pipeline still needs to be pulled into the same model.
 - **Historical catalog quality still needs tuning**: the generated era catalogs are large enough now, but the selection rules still need to skew harder toward mainstream, high-recognition rental-store movies rather than odd TMDB long-tail results.
 - **Returns gameplay is only at Phase 1**: spawn-time missing copies and rentable recent returns exist now, but routing returned movies back to their canonical shelf homes and building competitive/customer race logic still remains.
 

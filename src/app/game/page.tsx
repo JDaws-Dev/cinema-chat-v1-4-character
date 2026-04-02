@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { DialogueBox } from "@/components/game3d/DialogueOverlay";
 import { ShelfBrowser } from "@/components/game/ShelfBrowser";
@@ -23,7 +23,15 @@ import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, genera
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { mobileInput } from "@/components/game3d/MobileControls";
 import { getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
-import { seedStoreMovieState } from "@/lib/store-movie-state";
+import {
+  checkoutHeldMovies,
+  getStoreMovieSlotBuckets,
+  putBackHeldMovies,
+  removeRecentReturnMovie,
+  returnHeldMovies,
+  seedStoreMovieState,
+  type SeededStoreMovieState,
+} from "@/lib/store-movie-state";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -115,8 +123,7 @@ export default function GamePage() {
   type HeldMovie = { id: number; title: string; posterUrl: string; genre: string; slotKey?: string };
   const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
   const [pendingPickup, setPendingPickup] = useState<{ id: number; title: string; posterUrl: string; slotKey?: string } | null>(null);
-  const [spawnedMissingSlotKeys, setSpawnedMissingSlotKeys] = useState<string[]>([]);
-  const [recentReturns, setRecentReturns] = useState<HeldMovie[]>([]);
+  const [storeMovieState, setStoreMovieState] = useState<SeededStoreMovieState>({ missingSlotKeys: [], recentReturns: [] });
   // Snack inventory (separate from movies)
   type HeldSnack = { name: string; emoji: string };
   const [heldSnacks, setHeldSnacks] = useState<HeldSnack[]>([]);
@@ -152,6 +159,13 @@ export default function GamePage() {
   // Typewriter effect for RPG dialogue
   const [displayedText, setDisplayedText] = useState('');
   const [typewriterDone, setTypewriterDone] = useState(false);
+
+  const storeMovieBuckets = useMemo(
+    () => getStoreMovieSlotBuckets(storeMovieState, heldMovies),
+    [storeMovieState, heldMovies]
+  );
+  const spawnedMissingSlotKeys = storeMovieBuckets.checkedOutSlotKeys;
+  const recentReturns = storeMovieState.recentReturns;
 
   const getHudPosterSrc = useCallback((posterUrl: string) => {
     if (!posterUrl) return "";
@@ -193,25 +207,18 @@ export default function GamePage() {
   }, [isMobile, topDown]);
 
   const removeHeldMovie = useCallback((movieId: number) => {
-    setHeldMovies((prev) => {
-      const removeIndex = prev.findIndex((movie) => movie.id === movieId);
-      if (removeIndex === -1) return prev;
-      const [removed] = prev.slice(removeIndex, removeIndex + 1);
-      if (removed?.slotKey && spawnedMissingSlotKeys.includes(removed.slotKey)) {
-        setRecentReturns((existing) => existing.some((movie) => movie.slotKey === removed.slotKey) ? existing : [removed, ...existing].slice(0, 8));
-      }
-      return prev.filter((_, index) => index !== removeIndex);
-    });
-  }, [spawnedMissingSlotKeys]);
+    const removed = heldMovies.find((movie) => movie.id === movieId);
+    if (!removed) return;
+    setHeldMovies((prev) => prev.filter((movie) => movie.id !== movieId));
+    setStoreMovieState((prev) => putBackHeldMovies(prev, [removed]));
+  }, [heldMovies]);
 
   useEffect(() => {
     const eraId = getEraIdFromYears(selectedEra.years);
-    const seeded = seedStoreMovieState(eraId, selectedEra.years, {
+    setStoreMovieState(seedStoreMovieState(eraId, selectedEra.years, {
       missingCount: 8,
       recentReturnCount: 4,
-    });
-    setSpawnedMissingSlotKeys(seeded.missingSlotKeys);
-    setRecentReturns(seeded.recentReturns);
+    }));
   }, [selectedEra.years]);
 
   // Side quest state (uses existing showQuestNotif for notifications)
@@ -252,6 +259,7 @@ export default function GamePage() {
       // Speed run timeout
       if (challenge.timeLimit && elapsed >= challenge.timeLimit) {
         setChallenge(null);
+        setStoreMovieState((prev) => putBackHeldMovies(prev, heldMovies));
         setHeldMovies([]);
         setChallengeComplete(-1); // -1 signals timeout/failure
         playSFX("challenge_fail");
@@ -259,7 +267,7 @@ export default function GamePage() {
       }
     }, 1000);
     return () => clearInterval(iv);
-  }, [challenge]);
+  }, [challenge, heldMovies]);
 
   useEffect(() => { setStats(loadStats()); }, []);
 
@@ -622,6 +630,7 @@ export default function GamePage() {
           // Correct! Clear mystery and reward
           setMysteryClue(null);
           setMysteryWrongMsg(null);
+          setStoreMovieState((prev) => checkoutHeldMovies(prev, heldMovies));
           setHeldMovies([]);
           recordChallengeCompletion("vinnys_mystery", 0);
           const state = loadGameState();
@@ -646,6 +655,7 @@ export default function GamePage() {
           const elapsed = Math.round((Date.now() - challenge.startTime) / 1000);
           setChallengeComplete(elapsed);
           setChallenge(null);
+          setStoreMovieState((prev) => checkoutHeldMovies(prev, heldMovies));
           setHeldMovies([]);
           // Record completion and check for prop unlocks
           const cType = challenge.type || "movie_night";
@@ -792,16 +802,7 @@ export default function GamePage() {
       }
     } else if (type === "return_slot") {
       if (heldMovies.length > 0) {
-        const returnableMovies = heldMovies.filter((movie) => Boolean(movie.slotKey));
-        if (returnableMovies.length > 0) {
-          setRecentReturns((existing) => {
-            const bySlot = new Map(existing.map((movie) => [movie.slotKey, movie]));
-            for (const movie of returnableMovies) {
-              if (movie.slotKey) bySlot.set(movie.slotKey, movie);
-            }
-            return Array.from(bySlot.values()).slice(0, 8);
-          });
-        }
+        setStoreMovieState((prev) => returnHeldMovies(prev, heldMovies));
         setHeldMovies([]);
         setPickupTitle(`Returned ${heldMovies.length} tape${heldMovies.length === 1 ? "" : "s"}`);
         setTimeout(() => setPickupTitle(null), 1500);
@@ -887,6 +888,7 @@ export default function GamePage() {
       picks.push({ title: m.title, genre: m.genre });
     }
     if (picks.length < 3) return;
+    setStoreMovieState((prev) => putBackHeldMovies(prev, heldMovies));
     setHeldMovies([]);
     setHeldSnacks([]);
     playSFX("challenge_start");
@@ -899,7 +901,7 @@ export default function GamePage() {
       timeLimit: challengeType === "speed_run" ? 60 : undefined,
     });
     setOverlay("none");
-  }, [challenge]);
+  }, [challenge, heldMovies]);
 
   // ── Start Vinny's Mystery ──────────────────────────────
   const startMystery = useCallback(() => {
@@ -912,10 +914,11 @@ export default function GamePage() {
     setMysteryClue(clue);
     setMysteryHintsUsed(0);
     setMysteryWrongMsg(null);
+    setStoreMovieState((prev) => putBackHeldMovies(prev, heldMovies));
     setHeldMovies([]);
     setOverlay("none");
     playRandomLine("challenge_start");
-  }, []);
+  }, [heldMovies]);
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
   const startPuzzle = useCallback(async () => {
@@ -990,7 +993,10 @@ export default function GamePage() {
       return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl, genre: movie.genre, slotKey }];
     });
     if (slotKey) {
-      setRecentReturns((prev) => prev.filter((entry) => entry.slotKey !== slotKey));
+      setStoreMovieState((prev) => ({
+        ...prev,
+        recentReturns: removeRecentReturnMovie(prev.recentReturns, slotKey),
+      }));
     }
     setPendingPickup(null);
     setPickupFlash(true);
@@ -1159,10 +1165,7 @@ export default function GamePage() {
             isMobile={isMobile}
             eraYears={selectedEra.years}
             heldMovieIds={heldMovies.map((movie) => movie.id)}
-            heldMovieSlotKeys={[
-              ...spawnedMissingSlotKeys,
-              ...heldMovies.flatMap((movie) => movie.slotKey ? [movie.slotKey] : []),
-            ]}
+            heldMovieSlotKeys={storeMovieBuckets.unavailableSlotKeys}
             recentReturnMovies={recentReturns}
             maxNpcs={maxNpcs}
             topDown={topDown}
@@ -1586,9 +1589,9 @@ export default function GamePage() {
           shelfCount={shelfBrowse?.count}
           label={shelfBrowse?.label}
           eraId={era as EraId}
-          heldSlotKeys={heldMovies.flatMap((movie) => movie.slotKey ? [movie.slotKey] : [])}
-          recentReturnSlotKeys={recentReturns.flatMap((movie) => movie.slotKey ? [movie.slotKey] : [])}
-          checkedOutSlotKeys={spawnedMissingSlotKeys}
+          heldSlotKeys={storeMovieBuckets.heldSlotKeys}
+          recentReturnSlotKeys={storeMovieBuckets.recentReturnSlotKeys}
+          checkedOutSlotKeys={storeMovieBuckets.checkedOutSlotKeys}
           open
           onClose={closeOverlay}
           onFilmClick={(movie) => {
@@ -1802,6 +1805,7 @@ export default function GamePage() {
                   state.totalMoviesFound += heldMovies.length;
                   saveGameState(state);
                   setOverlay("none");
+                  setStoreMovieState((prev) => checkoutHeldMovies(prev, heldMovies));
                   setHeldMovies([]);
                   setHeldSnacks([]);
                 }}>
