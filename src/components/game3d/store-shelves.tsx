@@ -193,17 +193,17 @@ export function WallShelf({
   color: string;
   interaction?: LayoutInteraction;
 }) {
-  const posters = usePosterUrls(genre, 20, shelfId);
+  const tapeCount = Math.max(1, Math.floor(width / 0.22));
+  const slotCount = tapeCount * 3;
+  const posters = usePosterUrls(genre, slotCount, shelfId);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const userData = buildInteractionUserData(interaction, {
     type: "shelf",
     label: `Browse ${genre}`,
-    data: JSON.stringify({ genre: genreKey, shelfId, placementKey: shelfId, count: 20, label: genre }),
+    data: JSON.stringify({ genre: genreKey, shelfId, placementKey: shelfId, count: slotCount, label: genre }),
   });
 
   // Wall shelves have 3 tiers, single-sided (face one direction)
-  const tapeCount = Math.floor(width / 0.22);
-
   return (
     <group position={position} rotation={rotation}
       userData={userData}>

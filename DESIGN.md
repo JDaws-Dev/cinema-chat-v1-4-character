@@ -35,10 +35,11 @@
 - **VHS back-of-box UI tightened**: the modal is now consistently rectangular again, and provider metadata is restored so catalog-backed titles can show `STREAM`, `RENT`, and `BUY` availability when TMDB has it.
 - **Spawn-time missing-copy logic has started**: some shelf homes now spawn empty, and a subset of those missing copies appear in a rentable `RECENT RETURNS` stack near the return bin.
 - **Returns stack is now a real pickup source**: players can rent directly from recent returns, which creates the foundation for later “race to returns” and “find the missing copy” gameplay.
+- **Historical shelf rendering is now placement-driven**: for non-present eras, the in-world shelf meshes and the shelf browser now read from the same canonical placement-slot assignments, and wall shelves request their true physical slot counts instead of a stale fixed `20`.
 
 #### Current known issues / active work
 - **VHS artwork path is still the top priority**: most poster requests are now succeeding through `/api/catalog-poster`, but the full in-game VHS flow still needs more hardening so shelf art, shelf browser art, HUD inventory art, held-in-hand tapes, and missing/checked-out states all stay consistent.
-- **Shelf/browser/state unification is still incomplete**: shelf browsing is now scoped to the clicked fixture, but the full canonical movie-slot model across shelves, held stack, returns stack, and checkout still needs more hardening.
+- **Shelf/browser/state unification is still incomplete**: historical shelf browsing and shelf rendering now share placement-slot data, but the full canonical movie-slot model across held stack, returns stack, checkout, and present-day shelves still needs more hardening.
 - **Historical catalog quality still needs tuning**: the generated era catalogs are large enough now, but the selection rules still need to skew harder toward mainstream, high-recognition rental-store movies rather than odd TMDB long-tail results.
 - **Returns gameplay is only at Phase 1**: spawn-time missing copies and rentable recent returns exist now, but routing returned movies back to their canonical shelf homes and building competitive/customer race logic still remains.
 
@@ -111,7 +112,7 @@
 ### TODO (Future Sessions)
 - [ ] InstancedMesh for VHS boxes (720 draw calls → 1)
 - [ ] Finish canonical VHS slot state across shelf, browser, HUD, and held-in-hand view
-- [ ] Make shelf browser and in-world shelf rendering use the exact same canonical movie instances
+- [ ] Push the same canonical placement-slot model into present-day shelves and the remaining HUD/returns surfaces
 - [ ] Tune generated era catalogs toward more mainstream/high-recognition titles
 - [ ] Complete return-bin / recent-returns gameplay loop
 - [ ] More Kenney model swaps (bookcases, desks, lamps from furniture kit)

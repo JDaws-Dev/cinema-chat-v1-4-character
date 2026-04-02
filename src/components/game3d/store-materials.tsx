@@ -3,7 +3,8 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Text } from "@react-three/drei";
 import * as THREE from "three";
-import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
+import { getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
+import { getShelfPlacementSlotsForEra } from "@/lib/store-movie-state";
 
 // Toon shading gradient — 3-step (shadow, mid, highlight) for cel-shaded look
 export const toonGradientTexture = (() => {
@@ -275,10 +276,15 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
     const [startYear, endYear] = currentEraYears.split("-");
 
     if (currentEraId !== "present") {
-      const localPosters = getCuratedShelfPosterData(genre, currentEraId, placementKey, count);
+      const localPosters = getShelfPlacementSlotsForEra(
+        currentEraId,
+        genre,
+        placementKey || `${genre}:${count}`,
+        count
+      );
       setPosters(
         localPosters.map((poster) => ({
-          url: poster.url,
+          url: poster.posterUrl,
           title: poster.title,
           id: poster.id,
         }))
