@@ -75,6 +75,14 @@ export interface EditorObject extends LayoutObject {
   _height: number;
 }
 
+interface EditorCollider {
+  id: string;
+  x: number;
+  z: number;
+  hw: number;
+  hd: number;
+}
+
 function layoutToEditor(obj: LayoutObject): EditorObject {
   const prefabId = obj.prefab || inferPrefabId(obj);
   const prefab = getPrefabDefinition(prefabId);
@@ -214,6 +222,8 @@ export default function Editor3DPage() {
   >("idle");
   const [cameraPos, setCameraPos] = useState<string>("--");
   const [createPrefabId, setCreatePrefabId] = useState("wall/poster");
+  const [showColliders, setShowColliders] = useState(true);
+  const [hiddenLayers, setHiddenLayers] = useState<string[]>([]);
   const originalRef = useRef<EditorObject[]>([]);
 
   // Fetch layout
@@ -253,6 +263,42 @@ export default function Editor3DPage() {
   const selectedObj = useMemo(
     () => objects.find((o) => o.id === selectedId) ?? null,
     [objects, selectedId]
+  );
+
+  const layers = useMemo(
+    () =>
+      Array.from(
+        new Set(objects.map((obj) => obj.layer ?? obj.category))
+      ).sort((a, b) => a.localeCompare(b)),
+    [objects]
+  );
+
+  const visibleObjects = useMemo(
+    () =>
+      objects.filter(
+        (obj) => !hiddenLayers.includes(obj.layer ?? obj.category)
+      ),
+    [hiddenLayers, objects]
+  );
+
+  const previewColliders = useMemo<EditorCollider[]>(
+    () =>
+      visibleObjects
+        .filter(
+          (obj) =>
+            !obj.hidden &&
+            obj.collider?.enabled !== false &&
+            Boolean(obj.collider?.width) &&
+            Boolean(obj.collider?.depth)
+        )
+        .map((obj) => ({
+          id: obj.id,
+          x: obj.x + (obj.collider?.offsetX ?? 0),
+          z: obj.z + (obj.collider?.offsetZ ?? 0),
+          hw: (obj.collider?.width ?? 0) / 2,
+          hd: (obj.collider?.depth ?? 0) / 2,
+        })),
+    [visibleObjects]
   );
 
   const updateObject = useCallback(
@@ -331,6 +377,14 @@ export default function Editor3DPage() {
   const resetLayout = useCallback(() => {
     setObjects(originalRef.current.map((o) => ({ ...o })));
     setSelectedId(null);
+  }, []);
+
+  const toggleLayerVisibility = useCallback((layer: string) => {
+    setHiddenLayers((prev) =>
+      prev.includes(layer)
+        ? prev.filter((entry) => entry !== layer)
+        : [...prev, layer]
+    );
   }, []);
 
   if (loading) {
@@ -457,6 +511,20 @@ export default function Editor3DPage() {
           >
             Duplicate
           </button>
+          <button
+            onClick={() => setShowColliders((value) => !value)}
+            style={{
+              padding: "4px 10px",
+              fontSize: 11,
+              border: showColliders ? "1px solid #f59e0b" : "1px solid #555",
+              borderRadius: 4,
+              background: "rgba(0,0,0,0.6)",
+              color: showColliders ? "#fbbf24" : "#aaa",
+              cursor: "pointer",
+            }}
+          >
+            {showColliders ? "Colliders On" : "Colliders Off"}
+          </button>
         </div>
 
         {/* Camera position */}
@@ -499,7 +567,9 @@ export default function Editor3DPage() {
           style={{ background: "#0a0a12" }}
         >
           <SceneContent
-            objects={objects}
+            objects={visibleObjects}
+            colliders={previewColliders}
+            showColliders={showColliders}
             selectedId={selectedId}
             transformMode={transformMode}
             onSelect={setSelectedId}
@@ -797,6 +867,36 @@ export default function Editor3DPage() {
           </div>
         </div>
 
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #333" }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 12, color: "#aaa" }}>
+            Layers
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {layers.map((layer) => {
+              const hidden = hiddenLayers.includes(layer);
+              return (
+                <label
+                  key={layer}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11,
+                    color: hidden ? "#666" : "#ccc",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!hidden}
+                    onChange={() => toggleLayerVisibility(layer)}
+                  />
+                  <span>{layer}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Actions */}
         <div
           style={{
@@ -876,10 +976,10 @@ export default function Editor3DPage() {
         {/* Object list */}
         <div style={{ flex: 1, overflow: "auto", padding: "8px 16px" }}>
           <h3 style={{ margin: "0 0 6px", fontSize: 12, color: "#aaa" }}>
-            Objects ({objects.length})
+            Objects ({visibleObjects.length}/{objects.length})
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {objects.map((obj) => (
+            {visibleObjects.map((obj) => (
               <div
                 key={obj.id}
                 onClick={() => setSelectedId(obj.id)}

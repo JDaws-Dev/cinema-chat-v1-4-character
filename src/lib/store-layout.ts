@@ -183,6 +183,33 @@ function mergeColliderDefaults(
   };
 }
 
+function resolveInteractionDefaults(
+  obj: LayoutObject,
+  prefab: ReturnType<typeof resolvePrefabDefinition>
+): LayoutInteraction | undefined {
+  if (obj.interaction) return obj.interaction;
+
+  if (prefab?.id === "shelf/gondola" || prefab?.id === "shelf/wall-run") {
+    const genre =
+      typeof obj.meta?.genre === "string" ? obj.meta.genre : obj.label;
+    return {
+      type: "shelf",
+      label: `Browse ${genre}`,
+      data: genre.toLowerCase().replace(/[- ]/g, ""),
+    };
+  }
+
+  if (prefab?.id === "shelf/new-releases-wall") {
+    return {
+      type: "shelf",
+      label: "Browse NEW RELEASES",
+      data: "new",
+    };
+  }
+
+  return prefab?.defaultInteraction;
+}
+
 export function resolveLayoutObject(obj: LayoutObject): ResolvedLayoutObject {
   const prefab = resolvePrefabDefinition(obj);
 
@@ -192,7 +219,7 @@ export function resolveLayoutObject(obj: LayoutObject): ResolvedLayoutObject {
     hidden: obj.hidden ?? false,
     locked: obj.locked ?? false,
     layer: obj.layer ?? prefab?.defaultLayer ?? obj.category,
-    interaction: obj.interaction ?? prefab?.defaultInteraction,
+    interaction: resolveInteractionDefaults(obj, prefab),
     collider: mergeColliderDefaults(obj, prefab?.defaultCollider),
   };
 }

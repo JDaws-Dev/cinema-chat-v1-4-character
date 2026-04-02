@@ -6,10 +6,17 @@ import { getObjectById } from "@/lib/store-layout";
 import { Mat } from "./store-materials";
 import { KenneyModel } from "./store-characters";
 
-export function Counter() {
+export function Counter({
+  position,
+  rotation = [0, 0, 0],
+}: {
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+}) {
   const pos = getObjectById("counter");
+  const resolvedPosition = position ?? [pos?.x ?? 7, pos?.y ?? 0, pos?.z ?? 5];
   return (
-    <group position={[pos?.x ?? 7, pos?.y ?? 0, pos?.z ?? 5]} rotation={[0, 0, 0]}>
+    <group position={resolvedPosition} rotation={rotation}>
       <RoundedBox args={[6, 0.85, 1.2]} radius={0.03} smoothness={3} position={[0, 0.425, 0]}><Mat color="#5a3820" roughness={0.8} /></RoundedBox>
       <RoundedBox args={[6.15, 0.06, 1.3]} radius={0.02} smoothness={2} position={[0, 0.87, 0]}><Mat color="#9a7850" roughness={0.35} metalness={0.08} /></RoundedBox>
       <mesh position={[0, 0.05, -0.55]}><boxGeometry args={[5.9, 0.1, 0.06]} /><Mat color="#3a2010" roughness={0.9} /></mesh>

@@ -11,6 +11,14 @@ import {
 import * as THREE from "three";
 import type { EditorObject } from "./page";
 
+interface EditorCollider {
+  id: string;
+  x: number;
+  z: number;
+  hw: number;
+  hd: number;
+}
+
 // ── Room dimensions ──
 const ROOM_W = 20;
 const ROOM_D = 14;
@@ -248,6 +256,8 @@ function SelectedTransform({
 // ── Main scene content (inside Canvas) ──
 export default function SceneContent({
   objects,
+  colliders,
+  showColliders,
   selectedId,
   transformMode,
   onSelect,
@@ -255,6 +265,8 @@ export default function SceneContent({
   onCameraMove,
 }: {
   objects: EditorObject[];
+  colliders: EditorCollider[];
+  showColliders: boolean;
   selectedId: string | null;
   transformMode: "translate" | "rotate" | "scale";
   onSelect: (id: string | null) => void;
@@ -328,6 +340,22 @@ export default function SceneContent({
             isSelected={false}
             onClick={() => onSelect(obj.id)}
           />
+        ))}
+
+      {showColliders &&
+        colliders.map((collider) => (
+          <mesh
+            key={`collider-${collider.id}`}
+            position={[collider.x, 0.5, collider.z]}
+          >
+            <boxGeometry args={[collider.hw * 2, 1, collider.hd * 2]} />
+            <meshStandardMaterial
+              color="#f59e0b"
+              transparent
+              opacity={0.18}
+              depthWrite={false}
+            />
+          </mesh>
         ))}
 
       {/* Selected object with transform gizmo */}

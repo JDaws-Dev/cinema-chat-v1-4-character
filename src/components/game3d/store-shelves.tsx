@@ -3,11 +3,24 @@
 import React, { useRef, useMemo, useEffect } from "react";
 import { Text, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
+import type { LayoutInteraction } from "@/lib/store-layout";
 import { getObjectById } from "@/lib/store-layout";
 import { ROOM_D, ROOM_W, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
 import { Mat, toonGradientTexture, PosterBox, usePosterUrls, getOrCreatePosterTexture } from "./store-materials";
 
 export { SHELF_ROWS };
+
+function buildInteractionUserData(
+  interaction: LayoutInteraction | undefined,
+  fallback: { type: string; label: string; data?: string }
+) {
+  const resolved = interaction ?? fallback;
+  return {
+    interactType: resolved.type,
+    label: resolved.label,
+    interactData: resolved.data,
+  };
+}
 
 /** Instanced fallback VHS boxes — one draw call for all solid-colored boxes on a side */
 export function InstancedVHSBoxes({ positions, color }: { positions: [number, number, number][]; color: string }) {
@@ -33,12 +46,35 @@ export function InstancedVHSBoxes({ positions, color }: { positions: [number, nu
   );
 }
 
-export function ShelfUnit({ x, z, genre, color, backGenre, backColor, rotY = 0 }: { x: number; z: number; genre: string; color: string; backGenre?: string; backColor?: string; rotY?: number }) {
+export function ShelfUnit({
+  x,
+  z,
+  genre,
+  color,
+  backGenre,
+  backColor,
+  rotY = 0,
+  interaction,
+}: {
+  x: number;
+  z: number;
+  genre: string;
+  color: string;
+  backGenre?: string;
+  backColor?: string;
+  rotY?: number;
+  interaction?: LayoutInteraction;
+}) {
   const frontPosters = usePosterUrls(genre, 18); // 6 tapes x 3 tiers = 18
   const backPosters = usePosterUrls(backGenre || genre, 18);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const backGenreKey = (backGenre || genre).toLowerCase().replace(/[- ]/g, "");
   const bColor = backColor || color;
+  const userData = buildInteractionUserData(interaction, {
+    type: "shelf",
+    label: `Browse ${genre}`,
+    data: genreKey,
+  });
 
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
@@ -58,10 +94,10 @@ export function ShelfUnit({ x, z, genre, color, backGenre, backColor, rotY = 0 }
   }, []);
 
   return (
-    <group position={[x, 0, z]} rotation={[0, rotY, 0]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
+    <group position={[x, 0, z]} rotation={[0, rotY, 0]} userData={userData}>
       {/* Gondola shelf — open frame with visible shelf boards, narrower (0.35 deep) */}
       {/* Back panel — thin vertical board running the length */}
-      <mesh position={[0, 0.75, 0]} userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
+      <mesh position={[0, 0.75, 0]} userData={userData}>
         <boxGeometry args={[2.8, 1.5, 0.04]} />
         <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
@@ -140,23 +176,29 @@ export function ShelfUnit({ x, z, genre, color, backGenre, backColor, rotY = 0 }
 }
 
 export function WallShelf({
-  position, rotation, width, genre, color
+  position, rotation, width, genre, color, interaction
 }: {
   position: [number, number, number];
   rotation: [number, number, number];
   width: number;
   genre: string;
   color: string;
+  interaction?: LayoutInteraction;
 }) {
   const posters = usePosterUrls(genre, 20);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
+  const userData = buildInteractionUserData(interaction, {
+    type: "shelf",
+    label: `Browse ${genre}`,
+    data: genreKey,
+  });
 
   // Wall shelves have 3 tiers, single-sided (face one direction)
   const tapeCount = Math.floor(width / 0.22);
 
   return (
     <group position={position} rotation={rotation}
-      userData={{ interactType: "shelf", interactData: genreKey, label: `Browse ${genre}` }}>
+      userData={userData}>
 
       {/* Back panel (against wall) */}
       <mesh position={[0, 0.9, 0]}>
@@ -316,9 +358,20 @@ export function StaffPicksShelf() {
   );
 }
 
-export function NewReleasesWall() {
+export function NewReleasesWall({
+  position = [0, 0, -ROOM_D / 2 + 0.17],
+  interaction,
+}: {
+  position?: [number, number, number];
+  interaction?: LayoutInteraction;
+}) {
   const posters = usePosterUrls("NEW", 10); // fewer unique movies, more copies of each
   const allPosters = posters;
+  const userData = buildInteractionUserData(interaction, {
+    type: "shelf",
+    label: "Browse NEW RELEASES",
+    data: "new",
+  });
 
   // Blockbuster style: each movie gets 3-4 copies side by side, then next movie
   // 20 cols x 3 rows = 60 slots. 10 unique movies = ~6 copies each across the wall.
@@ -338,7 +391,7 @@ export function NewReleasesWall() {
   }, []);
 
   return (
-    <group position={[0, 0, -ROOM_D / 2 + 0.17]}>
+    <group position={position} userData={userData}>
       {/* Shelf unit — centered, not full wall */}
       <mesh position={[0, 1.0, 0]}>
         <boxGeometry args={[8, 2.0, 0.3]} />

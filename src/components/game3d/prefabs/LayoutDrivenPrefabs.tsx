@@ -10,6 +10,8 @@ import {
 } from "@/lib/store-layout";
 import { Mat } from "../store-materials";
 import { KenneyModel } from "../store-characters";
+import { Counter } from "../store-counter";
+import { NewReleasesWall, ShelfUnit, WallShelf } from "../store-shelves";
 import { WallCrtTv, WallPoster } from "../store-walls";
 
 function getUserData(
@@ -397,6 +399,65 @@ function TrashCanPrefab({ obj }: { obj: ResolvedLayoutObject }) {
   return <KenneyModel model="trashcan" position={[obj.x, obj.y, obj.z]} scale={0.5} />;
 }
 
+function GondolaShelfPrefab({ obj }: { obj: ResolvedLayoutObject }) {
+  const genre = getMetaString(obj, "genre", obj.label);
+  const color = getMetaString(obj, "color", "#00006e");
+  const backGenre = getMetaString(obj, "backGenre", genre);
+  const backColor = getMetaString(obj, "backColor", color);
+  return (
+    <ShelfUnit
+      x={obj.x}
+      z={obj.z}
+      genre={genre}
+      color={color}
+      backGenre={backGenre}
+      backColor={backColor}
+      rotY={obj.rotY ?? 0}
+      interaction={obj.interaction}
+    />
+  );
+}
+
+function WallRunShelfPrefab({ obj }: { obj: ResolvedLayoutObject }) {
+  const isBackWallShelf = obj.id === "wallshelf-back-drama";
+  const width =
+    typeof obj.meta?.width === "number"
+      ? obj.meta.width
+      : isBackWallShelf
+        ? 6
+        : obj.w ?? 6;
+  const genre = isBackWallShelf ? "DRAMA" : getMetaString(obj, "genre", obj.label);
+  const color = isBackWallShelf ? "#6366f1" : getMetaString(obj, "color", "#6366f1");
+  return (
+    <WallShelf
+      position={[obj.x, obj.y, obj.z]}
+      rotation={[0, obj.rotY ?? 0, 0]}
+      width={width}
+      genre={genre}
+      color={color}
+      interaction={obj.interaction}
+    />
+  );
+}
+
+function NewReleasesWallPrefab({ obj }: { obj: ResolvedLayoutObject }) {
+  return (
+    <NewReleasesWall
+      position={[obj.x, obj.y, obj.z]}
+      interaction={obj.interaction}
+    />
+  );
+}
+
+function CounterPrefab({ obj }: { obj: ResolvedLayoutObject }) {
+  return (
+    <Counter
+      position={[obj.x, obj.y, obj.z]}
+      rotation={[0, obj.rotY ?? 0, 0]}
+    />
+  );
+}
+
 function CrtTvPrefab({ obj }: { obj: ResolvedLayoutObject }) {
   const yaw =
     typeof obj.meta?.yaw === "number"
@@ -425,6 +486,14 @@ function PosterPrefab({ obj }: { obj: ResolvedLayoutObject }) {
 
 function renderPrefab(obj: ResolvedLayoutObject): React.ReactNode {
   switch (obj.prefabId) {
+    case "shelf/gondola":
+      return <GondolaShelfPrefab key={obj.id} obj={obj} />;
+    case "shelf/wall-run":
+      return <WallRunShelfPrefab key={obj.id} obj={obj} />;
+    case "shelf/new-releases-wall":
+      return <NewReleasesWallPrefab key={obj.id} obj={obj} />;
+    case "fixture/counter":
+      return <CounterPrefab key={obj.id} obj={obj} />;
     case "wall/poster":
       return <PosterPrefab key={obj.id} obj={obj} />;
     case "sign/neon":

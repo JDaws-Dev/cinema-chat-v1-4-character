@@ -10,11 +10,10 @@ import { getObjectById } from "@/lib/store-layout";
 import { LayoutDrivenPrefabs } from "./prefabs";
 
 // ── Module imports ──
-import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
+import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
 import { Mat, setEraYears, getShelfMovies } from "./store-materials";
-import { ShelfUnit, WallShelf, NewReleasesWall } from "./store-shelves";
+import { StaffPicksShelf } from "./store-shelves";
 import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyModel, getRandomAdultPersonality } from "./store-characters";
-import { Counter } from "./store-counter";
 import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
 
 // Re-export for external consumers
@@ -173,19 +172,15 @@ export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { is
       {[-4.5, -0.5, 3.5].map((fx) => (<group key={`front-${fx}`} position={[fx, ROOM_H - 0.04, 4.9]}><mesh><boxGeometry args={[1.65, 0.05, 0.28]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.45, 0.03, 0.08]} /><meshBasicMaterial color="#fff6dd" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.55, 0.01, 0.22]} /><Mat color="#ece8da" roughness={0.22} /></mesh></group>))}
       </>}
 
-      {/* ── SHELVES ── */}
-      {SHELF_ROWS.map((s, i) => (<ShelfUnit key={i} x={s.x} z={s.z} genre={s.genre} color={s.color} backGenre={s.backGenre} backColor={s.backColor} rotY={s.rotY} />))}
-      <WallShelf position={[getObjectById("wallshelf-back-drama")?.x ?? -5, 0, -ROOM_D/2 + 0.15]} rotation={[0, 0, 0]} width={6} genre="DRAMA" color="#6366f1" />
       {AISLE_SIGNS.map((sign, i) => (<AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />))}
       <AisleFloorMarkings />
 
       {/* ── COUNTER + CHARACTERS ── */}
-      <Counter />
       <VinnyCharacter />
       {spawnedNpcs.slice(0, maxNpcs).map((npc, i) => (<NPCCustomer key={npc.id} id={npc.id} startPos={[NPC_WAYPOINTS[i % NPC_WAYPOINTS.length][0], -0.05, NPC_WAYPOINTS[i % NPC_WAYPOINTS.length][1]]} shirtColor={npc.shirtColor} hairColor={npc.hairColor} skinTone={npc.skinTone} hairStyle={npc.hairStyle} personality={npc.personality} />))}
       {maxNpcs >= 1 && <KidCustomer startPos={[getObjectById("kid")?.x ?? 0, -0.05, getObjectById("kid")?.z ?? 0.5]} shirtColor="#f0e020" hairColor="#6b3a10" skinTone="#e8c4a0" />}
       <CharlieCharacter />
-      <NewReleasesWall />
+      <StaffPicksShelf />
       <NeonSign />
 
       {/* Employees only door */}
