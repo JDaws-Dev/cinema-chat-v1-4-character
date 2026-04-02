@@ -1,4 +1,5 @@
 import { ERA_CONVERSATIONS, type EraConversationSet } from './era-conversations';
+import { getVoiceConfig, getNamedVoiceConfig, type VoiceConfig } from './npc-voices';
 
 let audioContext: AudioContext | null = null;
 let isPlaying = false;
@@ -544,6 +545,84 @@ export async function playVinnyLine(text: string, speaker = "Vinny"): Promise<vo
     source.start(0);
   } catch {
     isPlaying = false;
+  }
+}
+
+// ── Per-NPC voice playback (ElevenLabs TTS via /api/tts) ────
+const npcPlayingSet = new Set<string>();
+
+/**
+ * Play an ElevenLabs TTS line for a specific NPC with spatial audio.
+ * Falls back to subtitle-only if TTS fetch fails.
+ * Returns a Promise that resolves when playback (or subtitle timer) completes.
+ */
+export async function playNpcLine(
+  npcId: string,
+  text: string,
+  personalityType: string,
+): Promise<void> {
+  // Prevent overlapping playback for the same NPC
+  if (npcPlayingSet.has(npcId)) return;
+  npcPlayingSet.add(npcId);
+
+  const wordCount = text.split(/\s+/).length;
+  const fallbackDuration = Math.max(2000, wordCount * 400);
+
+  // Show subtitle immediately
+  // Show speaker name (strip npc- prefix if config id)
+  const displayName = npcId.startsWith("npc-") ? "" : npcId;
+  subtitleCallback?.(displayName ? `${displayName}: "${text}"` : text, fallbackDuration);
+
+  if (muted) {
+    await new Promise(r => setTimeout(r, fallbackDuration));
+    npcPlayingSet.delete(npcId);
+    return;
+  }
+
+  // Resolve voice config: try named NPC first, then personality type
+  const voice: VoiceConfig =
+    getNamedVoiceConfig(npcId.toLowerCase()) ??
+    getVoiceConfig(personalityType as Parameters<typeof getVoiceConfig>[0]);
+
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") await ctx.resume();
+
+    const params = new URLSearchParams({
+      text,
+      voice: voice.voiceId,
+      stability: String(voice.stability),
+      similarity: String(voice.similarityBoost),
+      model: voice.model,
+    });
+    if (voice.style !== undefined) params.set("style", String(voice.style));
+
+    const res = await fetch(`/api/tts?${params}`);
+    if (!res.ok) throw new Error(`TTS ${res.status}`);
+
+    const ab = await res.arrayBuffer();
+    const buffer = await ctx.decodeAudioData(ab);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = 0.45;
+
+    const npcPos = npcPositions.get(npcId) ?? pickRandomNPCPosition();
+    const panner = createSpatialPanner(ctx, npcPos);
+    source.connect(gain);
+    gain.connect(panner);
+    panner.connect(ctx.destination);
+
+    await new Promise<void>(resolve => {
+      source.onended = () => resolve();
+      source.start(0);
+    });
+  } catch {
+    // TTS failed — fall back to subtitle-only duration
+    await new Promise(r => setTimeout(r, fallbackDuration));
+  } finally {
+    npcPlayingSet.delete(npcId);
   }
 }
 

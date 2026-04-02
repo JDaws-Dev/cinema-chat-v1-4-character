@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Html, Billboard, Text } from "@react-three/drei";
 import * as THREE from "three";
 import {
@@ -18,7 +18,7 @@ import {
   CONVERSATION_TOPICS,
 } from "@/lib/npc-behavior";
 import { getEraConversationTopics } from "@/lib/era-npc-scripts";
-import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
+import { registerNPCPosition, unregisterNPCPosition, playNpcLine } from "@/lib/audio";
 import { getPersonalityLabel } from "@/lib/npc-personalities";
 
 // ── Speech bubble styles (inline — rendered via Html) ──────────
@@ -203,6 +203,8 @@ function useConversationDialogue(
   const lineTimers = useRef<Map<string, number>>(new Map());
   const lineIndices = useRef<Map<string, number>>(new Map());
   const [activeSpeech, setActiveSpeech] = useState<Map<string, string>>(new Map());
+  const playedLines = useRef<Set<string>>(new Set()); // track npcId:text already sent to TTS
+  const { camera } = useThree();
 
   // Get era-appropriate topics
   const topics = React.useMemo(
@@ -284,7 +286,34 @@ function useConversationDialogue(
       }
     }
 
-    if (changed) setActiveSpeech(newSpeech);
+    if (changed) {
+      setActiveSpeech(newSpeech);
+
+      // Trigger TTS for newly-speaking NPCs within earshot (~8 units)
+      for (const [npcId, line] of newSpeech) {
+        const key = `${npcId}:${line}`;
+        if (playedLines.current.has(key)) continue;
+        const npc = state.activeNPCs.get(npcId);
+        if (!npc) continue;
+        const dx = npc.position[0] - camera.position.x;
+        const dz = npc.position[2] - camera.position.z;
+        if (dx * dx + dz * dz > 64) continue; // 8^2 = 64
+        playedLines.current.add(key);
+        playNpcLine(npc.config.id, line, npc.config.personalityType);
+      }
+    }
+
+    // Prune played-lines cache for ended conversations
+    if (playedLines.current.size > 200) {
+      const activeIds = new Set<string>();
+      for (const conv of state.activeConversations.values()) {
+        for (const pid of conv.participantIds) activeIds.add(pid);
+      }
+      for (const key of playedLines.current) {
+        const npcId = key.split(":")[0];
+        if (!activeIds.has(npcId)) playedLines.current.delete(key);
+      }
+    }
   });
 
   return activeSpeech;
