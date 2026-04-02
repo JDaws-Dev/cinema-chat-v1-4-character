@@ -20,6 +20,16 @@ import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-w
 // Re-export for external consumers
 export { setEraYears, getShelfMovies };
 
+function eraYearsToId(years?: string): string {
+  if (!years) return "early90s";
+  if (years.startsWith("1987") || years.startsWith("1988") || years.startsWith("1989")) return "late80s";
+  if (years.startsWith("1990")) return "early90s";
+  if (years.startsWith("1994")) return "mid90s";
+  if (years.startsWith("1997")) return "late90s";
+  if (years.startsWith("202")) return "present";
+  return "early90s";
+}
+
 // ── Neon sign ──
 function NeonSign() {
   const pos = getObjectById("neon-sign");
@@ -228,7 +238,7 @@ export function Store({
 
       {/* ── COUNTER + CHARACTERS ── */}
       <VinnyCharacter />
-      <NPCManager isMobile={isMobile ?? false} />
+      <NPCManager isMobile={isMobile ?? false} eraId={eraYearsToId(eraYears)} />
       <CharlieCharacter />
       <StaffPicksShelf />
       <NeonSign />
