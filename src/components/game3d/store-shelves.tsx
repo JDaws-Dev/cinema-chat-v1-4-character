@@ -47,6 +47,7 @@ export function InstancedVHSBoxes({ positions, color }: { positions: [number, nu
 }
 
 export function ShelfUnit({
+  shelfId,
   x,
   z,
   genre,
@@ -56,6 +57,7 @@ export function ShelfUnit({
   rotY = 0,
   interaction,
 }: {
+  shelfId: string;
   x: number;
   z: number;
   genre: string;
@@ -65,8 +67,8 @@ export function ShelfUnit({
   rotY?: number;
   interaction?: LayoutInteraction;
 }) {
-  const frontPosters = usePosterUrls(genre, 18); // 6 tapes x 3 tiers = 18
-  const backPosters = usePosterUrls(backGenre || genre, 18);
+  const frontPosters = usePosterUrls(genre, 18, `${shelfId}:front`); // 6 tapes x 3 tiers = 18
+  const backPosters = usePosterUrls(backGenre || genre, 18, `${shelfId}:back`);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const backGenreKey = (backGenre || genre).toLowerCase().replace(/[- ]/g, "");
   const bColor = backColor || color;
@@ -140,8 +142,6 @@ export function ShelfUnit({
 
       {/* VHS Boxes — PosterBoxes rendered individually, fallbacks instanced for perf */}
       {(() => {
-        const frontFallbacks: [number, number, number][] = [];
-        const backFallbacks: [number, number, number][] = [];
         const posterElements: React.ReactNode[] = [];
 
         positions.forEach((pos) => {
@@ -149,24 +149,27 @@ export function ShelfUnit({
           const sidePosters = isBack ? backPosters : frontPosters;
           const sideColor = isBack ? bColor : color;
           const sideIdx = positions.filter(p => p.side === pos.side).indexOf(pos);
-          // Cycle posters to fill all slots — wrap around if fewer posters than slots
-          const poster = sidePosters.length > 0 ? sidePosters[sideIdx % sidePosters.length] : null;
+          const poster = sidePosters[sideIdx] ?? null;
           const flipRot = isBack ? Math.PI : 0;
           if (poster) {
             posterElements.push(
-              <PosterBox key={`${pos.side}-${pos.idx}`} url={poster.url} position={[pos.x, pos.y, pos.z]} rotation={flipRot} movieTitle={poster.title} movieId={poster.id} genreColor={sideColor} />
+              <PosterBox
+                key={`${pos.side}-${pos.idx}`}
+                url={poster.url}
+                position={[pos.x, pos.y, pos.z]}
+                rotation={flipRot}
+                movieTitle={poster.title}
+                movieId={poster.id}
+                genreColor={sideColor}
+                slotKey={`${shelfId}:${pos.side}:${sideIdx}`}
+              />
             );
-          } else {
-            if (isBack) backFallbacks.push([pos.x, pos.y, pos.z]);
-            else frontFallbacks.push([pos.x, pos.y, pos.z]);
           }
         });
 
         return (
           <>
             {posterElements}
-            <InstancedVHSBoxes positions={frontFallbacks} color={color} />
-            <InstancedVHSBoxes positions={backFallbacks} color={bColor} />
           </>
         );
       })()}
@@ -176,8 +179,10 @@ export function ShelfUnit({
 }
 
 export function WallShelf({
+  shelfId,
   position, rotation, width, genre, color, interaction
 }: {
+  shelfId: string;
   position: [number, number, number];
   rotation: [number, number, number];
   width: number;
@@ -185,7 +190,7 @@ export function WallShelf({
   color: string;
   interaction?: LayoutInteraction;
 }) {
-  const posters = usePosterUrls(genre, 20);
+  const posters = usePosterUrls(genre, 20, shelfId);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const userData = buildInteractionUserData(interaction, {
     type: "shelf",
@@ -232,7 +237,8 @@ export function WallShelf({
             <PosterBox key={`wt-${tier}-${i}`}
               url={poster.url}
               position={[startX + i * 0.22, ty, 0.12]}
-              movieTitle={poster.title} movieId={poster.id} genreColor={color} />
+              movieTitle={poster.title} movieId={poster.id} genreColor={color}
+              slotKey={`${shelfId}:tier-${tier}:slot-${i}`} />
           ) : null;
         });
       })}
@@ -306,10 +312,10 @@ export function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: 
 
 // ── Staff Picks wall shelf (right wall) ──
 const STAFF_PICK_MOVIES = [
-  { url: "https://image.tmdb.org/t/p/w342/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg", title: "Pulp Fiction", id: 680 },
-  { url: "https://image.tmdb.org/t/p/w342/rSPw7tgCH9c6NqICZef4kZjFOQ5.jpg", title: "The Godfather", id: 238 },
-  { url: "https://image.tmdb.org/t/p/w342/gpMR1hnEo0JLEW0oGOAkxRYrf7R.jpg", title: "The Princess Bride", id: 2493 },
-  { url: "https://image.tmdb.org/t/p/w342/3E52VpEVKhklKLLjqOGKpjEJBnM.jpg", title: "Ghostbusters", id: 620 },
+  { url: "/api/catalog-poster?id=900068&rev=2026-04-02c", title: "Pulp Fiction", id: 900068 },
+  { url: "/api/catalog-poster?id=900011&rev=2026-04-02c", title: "The Godfather", id: 900011 },
+  { url: "/api/catalog-poster?id=900034&rev=2026-04-02c", title: "The Princess Bride", id: 900034 },
+  { url: "/api/catalog-poster?id=900024&rev=2026-04-02c", title: "Ghostbusters", id: 900024 },
 ];
 
 export function StaffPicksShelf() {
@@ -350,7 +356,6 @@ export function StaffPicksShelf() {
             url={m.url}
             position={[dx, 0.15, 0.05]}
             movieTitle={m.title}
-            movieId={m.id}
           />
         );
       })}
@@ -359,13 +364,15 @@ export function StaffPicksShelf() {
 }
 
 export function NewReleasesWall({
+  shelfId = "new-releases-wall",
   position = [0, 0, -ROOM_D / 2 + 0.17],
   interaction,
 }: {
+  shelfId?: string;
   position?: [number, number, number];
   interaction?: LayoutInteraction;
 }) {
-  const posters = usePosterUrls("NEW", 10); // fewer unique movies, more copies of each
+  const posters = usePosterUrls("NEW", 10, shelfId); // fewer unique movies, more copies of each
   const allPosters = posters;
   const userData = buildInteractionUserData(interaction, {
     type: "shelf",
@@ -460,7 +467,16 @@ export function NewReleasesWall({
         const posterIdx = (row * moviesPerRow + movieIdx) % (allPosters.length || 1);
         const poster = allPosters.length > 0 ? allPosters[posterIdx] : null;
         return poster ? (
-          <PosterBox key={pos.idx} url={poster.url} position={[pos.x, pos.y, 0.15]} rotation={Math.PI} movieTitle={poster.title} movieId={poster.id} genreColor="#ec4899" />
+          <PosterBox
+            key={pos.idx}
+            url={poster.url}
+            position={[pos.x, pos.y, 0.15]}
+            rotation={Math.PI}
+            movieTitle={poster.title}
+            movieId={poster.id}
+            genreColor="#ec4899"
+            slotKey={`${shelfId}:copy-${pos.idx}`}
+          />
         ) : (
           <mesh key={pos.idx} position={[pos.x, pos.y, 0.15]}>
             <boxGeometry args={[0.15, 0.26, 0.025]} />

@@ -293,7 +293,7 @@
 /* ── Interaction prompt — retro game prompt ──────────────── */
 .g3-hover-label {
   position: fixed;
-  top: calc(50% - 50px);
+  top: calc(50% + 72px);
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.65rem;
@@ -426,6 +426,86 @@
 .g3-inv-empty { opacity: 0.15; cursor: default; border-style: dashed; }
 .g3-inv-empty:hover { transform: none; box-shadow: none; }
 
+.g3-held-viewmodel {
+  position: fixed;
+  left: 42px;
+  bottom: 90px;
+  width: 420px;
+  height: 320px;
+  pointer-events: none;
+  z-index: 14;
+  animation: g3-held-viewmodel-bob 2.4s ease-in-out infinite;
+}
+
+.g3-held-vhs {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 132px;
+  height: 202px;
+  background: #101216;
+  border: 3px solid #0b0e14;
+  border-radius: 6px;
+  box-shadow: 0 18px 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.g3-held-vhs-poster,
+.g3-held-vhs-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.g3-held-vhs-poster {
+  object-fit: cover;
+  display: block;
+}
+
+.g3-held-vhs-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: linear-gradient(180deg, #efe4bf 0%, #d8c690 100%);
+  color: #161616;
+  font-size: 0.48rem;
+  line-height: 1.25;
+  text-align: center;
+  font-family: var(--fnv-font-pixel);
+}
+
+.g3-held-vhs-spine {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  background: linear-gradient(180deg, #d9d9d9 0%, #b3b3b3 100%);
+  opacity: 0.9;
+}
+
+.g3-held-vhs-count {
+  position: absolute;
+  left: 108px;
+  bottom: 18px;
+  min-width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 24, 0.95);
+  color: #ffd700;
+  border: 3px solid #ffd700;
+  font-family: var(--fnv-font-pixel);
+  font-size: 0.68rem;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+}
+
+@keyframes g3-held-viewmodel-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
 /* ── Controls hint (always-visible bottom bar) ────────────── */
 .g3-hint {
   position: fixed;
@@ -532,6 +612,41 @@
   align-items: center;
   pointer-events: auto;
   flex-shrink: 0;
+}
+
+.g3-status-card {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.92);
+  border: 3px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  z-index: 12;
+  font-family: var(--fnv-font-pixel);
+}
+
+.g3-status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.g3-status-label {
+  color: rgba(255, 215, 0, 0.65);
+  font-size: 0.42rem;
+  letter-spacing: 0.1em;
+}
+
+.g3-status-value {
+  color: #ffd700;
+  font-size: 0.5rem;
+  text-align: right;
 }
 
 /* ── Membership badge — retro XP bar ─────────────────────── */
@@ -2019,17 +2134,24 @@
     min-height: 48px;
   }
 
-  /* Move inventory bar above mobile controls */
-  .g3-inventory-bar {
-    bottom: 160px;
-    right: 10px;
-    padding: 6px 8px;
+  .g3-held-viewmodel {
+    left: 14px;
+    bottom: 176px;
+    width: 290px;
+    height: 240px;
   }
 
-  .g3-inv-slot {
-    width: 44px;
-    height: 60px;
-    font-size: 0.45rem;
+  .g3-held-vhs {
+    width: 96px;
+    height: 146px;
+  }
+
+  .g3-held-vhs-count {
+    left: 78px;
+    bottom: 10px;
+    min-width: 38px;
+    height: 38px;
+    font-size: 0.56rem;
   }
 
   /* Compact challenge list */
@@ -2051,6 +2173,22 @@
   }
   .g3-challenge-indicator-name { font-size: 0.7rem; }
   .g3-challenge-indicator-progress { font-size: 0.6rem; }
+
+  .g3-status-card {
+    top: 48px;
+    right: 10px;
+    min-width: 146px;
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .g3-status-label {
+    font-size: 0.38rem;
+  }
+
+  .g3-status-value {
+    font-size: 0.44rem;
+  }
 
   /* Controls bar hidden on mobile */
   .g3-controls-bar { display: none; }
@@ -2078,6 +2216,7 @@
   }
 
   .g3-hover-label {
+    top: calc(50% + 96px);
     font-size: 0.9rem;
     padding: 8px 18px;
   }
@@ -2094,6 +2233,7 @@
 
   /* Smaller hover label */
   .g3-hover-label {
+    top: calc(50% + 96px);
     font-size: 0.65rem;
     padding: 4px 10px;
   }

@@ -467,6 +467,7 @@ function GondolaShelfPrefab({ obj }: { obj: ResolvedLayoutObject }) {
   const backColor = getMetaString(obj, "backColor", color);
   return (
     <ShelfUnit
+      shelfId={obj.id}
       x={obj.x}
       z={obj.z}
       genre={genre}
@@ -491,6 +492,7 @@ function WallRunShelfPrefab({ obj }: { obj: ResolvedLayoutObject }) {
   const color = isBackWallShelf ? "#6366f1" : getMetaString(obj, "color", "#6366f1");
   return (
     <WallShelf
+      shelfId={obj.id}
       position={[obj.x, obj.y, obj.z]}
       rotation={[0, obj.rotY ?? 0, 0]}
       width={width}
@@ -504,6 +506,7 @@ function WallRunShelfPrefab({ obj }: { obj: ResolvedLayoutObject }) {
 function NewReleasesWallPrefab({ obj }: { obj: ResolvedLayoutObject }) {
   return (
     <NewReleasesWall
+      shelfId={obj.id}
       position={[obj.x, obj.y, obj.z]}
       interaction={obj.interaction}
     />

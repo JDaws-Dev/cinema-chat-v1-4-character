@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
+import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 
@@ -36,6 +37,7 @@ const pendingCallbacks = new Map<string, { onTexture: (t: THREE.Texture) => void
 const pendingLoads: (() => void)[] = [];
 let activeLoads = 0;
 const MAX_CONCURRENT_LOADS = 6; // limit concurrent image fetches to avoid ERR_INSUFFICIENT_RESOURCES
+const checkedOutCardCache = new Map<string, THREE.Texture>();
 
 function processQueue() {
   while (activeLoads < MAX_CONCURRENT_LOADS && pendingLoads.length > 0) {
@@ -124,6 +126,73 @@ export function getOrCreatePosterTexture(url: string, onTexture: (t: THREE.Textu
   processQueue();
 }
 
+function wrapCardTitle(title: string): string[] {
+  const words = title.trim().toUpperCase().split(/\s+/);
+  const lines: string[] = [];
+
+  for (const word of words) {
+    if (lines.length === 0) {
+      lines.push(word);
+      continue;
+    }
+
+    const candidate = `${lines[lines.length - 1]} ${word}`;
+    if (candidate.length <= 16 && lines.length < 3) {
+      lines[lines.length - 1] = candidate;
+    } else if (lines.length < 3) {
+      lines.push(word);
+    } else {
+      lines[lines.length - 1] = `${lines[lines.length - 1]} ${word}`;
+    }
+  }
+
+  return lines.slice(0, 3);
+}
+
+function getCheckedOutCardTexture(title: string): THREE.Texture | null {
+  if (typeof document === "undefined") return null;
+  const key = title.trim().toUpperCase();
+  const cached = checkedOutCardCache.get(key);
+  if (cached) return cached;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 280;
+  canvas.height = 500;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  ctx.fillStyle = "#f7e7b7";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#7a0f0f";
+  ctx.fillRect(16, 20, canvas.width - 32, 74);
+
+  ctx.fillStyle = "#f8f1d4";
+  ctx.font = "bold 30px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("CHECKED OUT", canvas.width / 2, 58);
+
+  ctx.fillStyle = "#161616";
+  ctx.font = "bold 34px Arial";
+  const lines = wrapCardTitle(title);
+  lines.forEach((line, index) => {
+    ctx.fillText(line, canvas.width / 2, 190 + index * 72);
+  });
+
+  ctx.strokeStyle = "#563c2b";
+  ctx.lineWidth = 8;
+  ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  checkedOutCardCache.set(key, texture);
+  return texture;
+}
+
 // ── Poster texture loader ────────────────────────────────
 const GENRE_TMDB_IDS: Record<string, string> = {
   HORROR: "27", "SCI-FI": "878", COMEDY: "35", DRAMA: "18",
@@ -160,9 +229,19 @@ export function setEraYears(years: string) {
 
 // Global registry of movies actually loaded on shelves — challenge picks from this
 const shelfMovieRegistry: Map<string, { title: string; genre: string; id: number }> = new Map();
+let heldMovieIds = new Set<number>();
+let heldMovieSlotKeys = new Set<string>();
 
 export function getShelfMovies(): { title: string; genre: string; id: number }[] {
   return Array.from(shelfMovieRegistry.values());
+}
+
+export function setHeldMovieIds(ids: number[]) {
+  heldMovieIds = new Set(ids);
+}
+
+export function setHeldMovieSlotKeys(slotKeys: string[]) {
+  heldMovieSlotKeys = new Set(slotKeys);
 }
 
 // Cache all fetched posters per genre+era so duplicate shelves can take different slices
@@ -181,7 +260,7 @@ function buildFallbackPosters(count: number, cacheKey: string): PosterData[] {
 
 const sliceRefMap: Record<string, number> = {};
 
-export function usePosterUrls(genre: string, count: number): PosterData[] {
+export function usePosterUrls(genre: string, count: number, placementKey = ""): PosterData[] {
   const [posters, setPosters] = useState<PosterData[]>([]);
   // Each shelf instance gets the next slice of cached results
   const sliceRef = useRef<number>(-1);
@@ -191,31 +270,14 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
     const [startYear, endYear] = currentEraYears.split("-");
 
     if (currentEraId !== "present") {
-      const cacheKey = `${genre}_${currentEraId}`;
-      const localPosters = getCuratedShelfPosterData(genre, currentEraId);
-
-      const applyLocalSlice = () => {
-        if (sliceRef.current === -1) {
-          sliceRef.current = genreSliceCounter[cacheKey] || 0;
-          genreSliceCounter[cacheKey] = (genreSliceCounter[cacheKey] || 0) + 1;
-        }
-        const offset = sliceRef.current * count;
-        const rotated = localPosters.length > 0
-          ? localPosters.map((_, i) => localPosters[(i + offset) % localPosters.length])
-          : buildFallbackPosters(count, cacheKey);
-        setPosters(
-          Array.from({ length: count }, (_, i) => {
-            const poster = rotated[i % rotated.length];
-            return {
-              url: poster.url,
-              title: poster.title,
-              id: poster.id,
-            };
-          })
-        );
-      };
-
-      applyLocalSlice();
+      const localPosters = getCuratedShelfPosterData(genre, currentEraId, placementKey, count);
+      setPosters(
+        localPosters.map((poster) => ({
+          url: poster.url,
+          title: poster.title,
+          id: poster.id,
+        }))
+      );
       return;
     }
 
@@ -320,7 +382,7 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
         });
       }
     }
-  }, [genre, count]);
+  }, [genre, count, placementKey]);
 
   // Register loaded movies in global registry for challenge system
   useEffect(() => {
@@ -335,11 +397,35 @@ export function usePosterUrls(genre: string, count: number): PosterData[] {
   return posters;
 }
 
-export function PosterBox({ url, position, rotation = 0, movieTitle, movieId, genreColor }: { url: string; position: [number, number, number]; rotation?: number; movieTitle?: string; movieId?: number; genreColor?: string }) {
+export function PosterBox({
+  url,
+  position,
+  rotation = 0,
+  movieTitle,
+  movieId,
+  genreColor,
+  slotKey,
+}: {
+  url: string;
+  position: [number, number, number];
+  rotation?: number;
+  movieTitle?: string;
+  movieId?: number;
+  genreColor?: string;
+  slotKey?: string;
+}) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
   const loadedRef = useRef(false);
+  const isUnavailable = slotKey
+    ? heldMovieSlotKeys.has(slotKey)
+    : typeof movieId === "number" && heldMovieIds.has(movieId);
+  const checkedOutTexture = useMemo(
+    () => (isUnavailable && movieTitle ? getCheckedOutCardTexture(movieTitle) : null),
+    [isUnavailable, movieTitle]
+  );
 
   useEffect(() => {
+    if (isUnavailable) return;
     loadedRef.current = false;
     const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
     const imgUrl = url.startsWith("https://image.tmdb.org/")
@@ -371,25 +457,49 @@ export function PosterBox({ url, position, rotation = 0, movieTitle, movieId, ge
     });
 
     return () => clearTimeout(fallbackTimer);
-  }, [url, genreColor]);
+  }, [url, genreColor, isUnavailable]);
 
-  const vhsData = movieTitle && movieId ? JSON.stringify({ id: movieId, title: movieTitle, posterUrl: url }) : undefined;
+  const vhsData = movieTitle && movieId
+    ? JSON.stringify({ id: movieId, title: movieTitle, posterUrl: url, slotKey })
+    : undefined;
+  const userData = !isUnavailable && vhsData
+    ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` }
+    : undefined;
 
   return (
     <group
       position={position}
       rotation={[0, rotation, 0]}
-      userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}
+      userData={userData}
     >
-      <mesh userData={vhsData ? { interactType: "vhs", interactData: vhsData, label: `Pick up: ${movieTitle}` } : undefined}>
-        <boxGeometry args={[0.15, 0.26, 0.025]} />
-        <meshBasicMaterial color="#1a1a2a" />
-      </mesh>
-      {/* Poster plane — offset clearly in front, flipped to face camera */}
-      <mesh position={[0, 0, -0.0135]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[0.14, 0.25]} />
-        <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
-      </mesh>
+      {!isUnavailable && (
+        <mesh userData={userData}>
+          <boxGeometry args={[0.15, 0.26, 0.025]} />
+          <meshBasicMaterial color="#1a1a2a" />
+        </mesh>
+      )}
+      {isUnavailable && (
+        <>
+          <mesh position={[0, -0.115, 0]}>
+            <boxGeometry args={[0.16, 0.02, 0.03]} />
+            <meshBasicMaterial color="#3b2f2a" />
+          </mesh>
+          <mesh position={[0, 0, -0.001]} rotation={[0, Math.PI, 0]}>
+            <planeGeometry args={[0.14, 0.25]} />
+            <meshBasicMaterial
+              color="#f7e7b7"
+              map={checkedOutTexture}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        </>
+      )}
+      {!isUnavailable && (
+        <mesh position={[0, 0, -0.0135]} rotation={[0, Math.PI, 0]}>
+          <planeGeometry args={[0.14, 0.25]} />
+          <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
+        </mesh>
+      )}
     </group>
   );
 }

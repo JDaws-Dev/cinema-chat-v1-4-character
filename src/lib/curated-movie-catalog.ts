@@ -6,6 +6,8 @@ import type {
   StreamingProviders,
   TrendingMovie,
 } from "./types";
+import { GENERATED_ERA_CATALOG, type GeneratedCatalogMovie } from "./generated-era-catalog";
+import { STORE_LAYOUT } from "./store-layout";
 
 export type EraId = "late80s" | "early90s" | "mid90s" | "late90s" | "present";
 
@@ -52,6 +54,8 @@ const EMPTY_PROVIDERS: StreamingProviders = {
   buy: [],
   link: null,
 };
+
+const CATALOG_POSTER_REV = "2026-04-02c";
 
 const KNOWN_POSTERS: Record<string, string> = {
   "Jaws": "https://image.tmdb.org/t/p/w342/lxM6kqilAdpdhqUl2biYp5frUxE.jpg",
@@ -171,14 +175,6 @@ const MOVIES: CatalogMovie[] = [
   { id: 900100, title: "10 Things I Hate About You", year: 1999, overview: "A high-school romance-comedy with undeniable late-90s shelf identity.", genres: ["Romance", "Comedy"], shelfGenres: ["romance", "comedy"] },
 ];
 
-const MOVIE_BY_ID = new Map<number, CatalogMovie>();
-const MOVIE_BY_TITLE = new Map<string, CatalogMovie>();
-
-for (const movie of MOVIES) {
-  MOVIE_BY_ID.set(movie.id, movie);
-  MOVIE_BY_TITLE.set(movie.title.toLowerCase(), movie);
-}
-
 const GENRE_ID_TO_SHELF: Record<string, ShelfGenre> = {
   "28": "action",
   "12": "adventure",
@@ -229,7 +225,7 @@ function isHistoricalEra(eraId: EraId): boolean {
 }
 
 function getDisplayPosterUrl(movie: CatalogMovie): string {
-  return movie.posterUrl || `/api/catalog-poster?id=${movie.id}`;
+  return `/api/catalog-poster?id=${movie.id}&rev=${CATALOG_POSTER_REV}`;
 }
 
 function compareForShelf(a: CatalogMovie, b: CatalogMovie): number {
@@ -245,10 +241,80 @@ function dedupeById(movies: CatalogMovie[]): CatalogMovie[] {
   });
 }
 
+function dedupeByTitleYear(movies: CatalogMovie[]): CatalogMovie[] {
+  const seen = new Set<string>();
+  return movies.filter((movie) => {
+    const key = `${movie.title.trim().toLowerCase()}::${movie.year}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+const MANUAL_TITLE_YEAR_KEYS = new Set(
+  MOVIES.map((movie) => `${movie.title.trim().toLowerCase()}::${movie.year}`)
+);
+
+const GENERATED_MOVIES: CatalogMovie[] = dedupeByTitleYear(
+  dedupeById(
+    Object.values(GENERATED_ERA_CATALOG)
+      .flatMap((eraCatalog) => Object.values(eraCatalog))
+      .flat()
+      .map((movie: GeneratedCatalogMovie) => ({
+        id: movie.id,
+        title: movie.title,
+        year: movie.year,
+        overview: movie.overview,
+        genres: movie.genres,
+        shelfGenres: movie.shelfGenres as ShelfGenre[],
+        posterUrl: movie.posterUrl ?? null,
+      }))
+      .filter((movie) => !MANUAL_TITLE_YEAR_KEYS.has(`${movie.title.trim().toLowerCase()}::${movie.year}`))
+  )
+);
+
+const ALL_MOVIES: CatalogMovie[] = dedupeByTitleYear(dedupeById([...MOVIES, ...GENERATED_MOVIES]));
+
+const MOVIE_BY_ID = new Map<number, CatalogMovie>();
+const MOVIE_BY_TITLE = new Map<string, CatalogMovie>();
+
+for (const movie of ALL_MOVIES) {
+  MOVIE_BY_ID.set(movie.id, movie);
+  MOVIE_BY_TITLE.set(movie.title.toLowerCase(), movie);
+}
+
 function getEraVisibleMovies(eraId: EraId): CatalogMovie[] {
-  if (eraId === "present") return MOVIES;
+  if (eraId === "present") return ALL_MOVIES;
   const { end } = ERA_RANGES[eraId];
-  return MOVIES.filter((movie) => movie.year <= end);
+  return ALL_MOVIES.filter((movie) => movie.year <= end);
+}
+
+function getPrimaryShelfGenre(movie: CatalogMovie): ShelfGenre {
+  return movie.shelfGenres.find((genre) => genre !== "new") || movie.shelfGenres[0] || "drama";
+}
+
+function getPlacementKeysForGenre(genre: ShelfGenre): string[] {
+  const keys: string[] = [];
+
+  for (const obj of STORE_LAYOUT.objects) {
+    if (obj.prefab === "shelf/gondola") {
+      const front = typeof obj.meta?.genre === "string" ? normalizeGenreKey(obj.meta.genre) : null;
+      const back = typeof obj.meta?.backGenre === "string" ? normalizeGenreKey(obj.meta.backGenre) : null;
+      if (front === genre) keys.push(`${obj.id}:front`);
+      if (back === genre) keys.push(`${obj.id}:back`);
+    }
+
+    if (obj.prefab === "shelf/wall-run" && typeof obj.meta?.genre === "string") {
+      const wallGenre = normalizeGenreKey(obj.meta.genre);
+      if (wallGenre === genre) keys.push(obj.id);
+    }
+
+    if (obj.prefab === "shelf/new-releases-wall" && genre === "new") {
+      keys.push(obj.id);
+    }
+  }
+
+  return keys.sort();
 }
 
 export function getEraIdFromYears(years: string): EraId {
@@ -269,8 +335,37 @@ export function getEraIdFromYears(years: string): EraId {
 export function getCuratedShelfPosterData(
   genreInput: string,
   eraId: EraId,
+  placementKey?: string,
+  count?: number,
 ): Array<{ id: number; title: string; url: string }> {
   const genre = normalizeGenreKey(genreInput);
+  const generatedShelfMovies =
+    eraId !== "present"
+      ? GENERATED_ERA_CATALOG[eraId]?.[genre as keyof typeof GENERATED_ERA_CATALOG.late80s] ?? []
+      : [];
+  const generatedResults = generatedShelfMovies.map((movie) => {
+    const canonical = findCatalogMovieByTitle(movie.title, movie.year);
+    const resolved = canonical ?? movie;
+    return {
+      id: resolved.id,
+      title: resolved.title,
+      url: getDisplayPosterUrl(resolved),
+    };
+  });
+
+  if (generatedResults.length > 0) {
+    if (genre !== "new" && placementKey && count) {
+      const placementKeys = getPlacementKeysForGenre(genre);
+      const placementIndex = Math.max(placementKeys.indexOf(placementKey), 0);
+      const placementCount = Math.max(placementKeys.length, 1);
+      const start = Math.floor((placementIndex * generatedResults.length) / placementCount);
+      const end = Math.floor(((placementIndex + 1) * generatedResults.length) / placementCount);
+      return generatedResults.slice(start, Math.max(start + count, end));
+    }
+
+    return count ? generatedResults.slice(0, count) : generatedResults;
+  }
+
   const eraMovies = getEraVisibleMovies(eraId);
 
   const results =
@@ -284,10 +379,27 @@ export function getCuratedShelfPosterData(
           })
           .sort(compareForShelf)
       : eraMovies
-          .filter((movie) => movie.shelfGenres.includes(genre))
+          .filter((movie) => getPrimaryShelfGenre(movie) === genre)
           .sort(compareForShelf);
 
-  return dedupeById(results).map((movie) => ({
+  const unique = dedupeById(results);
+
+  if (genre !== "new" && placementKey && count) {
+    const placementKeys = getPlacementKeysForGenre(genre);
+    const placementIndex = Math.max(placementKeys.indexOf(placementKey), 0);
+    const placementCount = Math.max(placementKeys.length, 1);
+    const start = Math.floor((placementIndex * unique.length) / placementCount);
+    const end = Math.floor(((placementIndex + 1) * unique.length) / placementCount);
+    const assigned = unique.slice(start, Math.max(start + 1, end));
+
+    return assigned.map((movie) => ({
+      id: movie.id,
+      title: movie.title,
+      url: getDisplayPosterUrl(movie),
+    }));
+  }
+
+  return unique.map((movie) => ({
     id: movie.id,
     title: movie.title,
     url: getDisplayPosterUrl(movie),
@@ -298,8 +410,9 @@ export function getShelfBrowserMovies(
   genreInput: string,
   eraId: EraId,
 ): Array<{ id: number; title: string; year: number; posterUrl: string }> {
-  return getCuratedShelfPosterData(genreInput, eraId).map((movie) => {
-    const full = MOVIE_BY_ID.get(movie.id)!;
+  return getCuratedShelfPosterData(genreInput, eraId).flatMap((movie) => {
+    const full = MOVIE_BY_ID.get(movie.id);
+    if (!full) return [];
     return {
       id: full.id,
       title: full.title,
@@ -317,7 +430,7 @@ export function findCatalogMovieByTitle(title: string, year?: number | null): Ca
   const normalized = title.trim().toLowerCase();
   const exact = MOVIE_BY_TITLE.get(normalized);
   if (exact && (year == null || exact.year === year)) return exact;
-  return MOVIES.find((movie) =>
+  return ALL_MOVIES.find((movie) =>
     movie.title.toLowerCase() === normalized && (year == null || movie.year === year)
   );
 }
@@ -325,7 +438,7 @@ export function findCatalogMovieByTitle(title: string, year?: number | null): Ca
 export function searchCatalogMovies(query: string): SearchResult[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  return MOVIES
+  return ALL_MOVIES
     .filter((movie) => movie.title.toLowerCase().includes(q))
     .slice(0, 20)
     .map((movie) => ({
@@ -346,7 +459,7 @@ export function discoverCatalogMovies(filters: {
   releaseDateLte?: string | null;
   page?: number;
 }): SearchResponse {
-  let results = [...MOVIES];
+  let results = [...ALL_MOVIES];
   const page = filters.page || 1;
 
   if (filters.decade) {
@@ -393,7 +506,7 @@ export function discoverCatalogMovies(filters: {
 }
 
 export function getCatalogTrendingMovies(): TrendingMovie[] {
-  return MOVIES
+  return ALL_MOVIES
     .filter((movie) => movie.year >= 1997)
     .sort(compareForShelf)
     .slice(0, 20)
@@ -429,7 +542,7 @@ export function getCatalogFilmDetail(id: number): FilmDetail | null {
   const match = getCatalogMovieById(id);
   if (!match) return null;
 
-  const similar: MovieInfo[] = MOVIES
+  const similar: MovieInfo[] = ALL_MOVIES
     .filter((movie) => movie.id !== match.id && movie.shelfGenres.some((genre) => match.shelfGenres.includes(genre)))
     .slice(0, 8)
     .map((movie) => ({

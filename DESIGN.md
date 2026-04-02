@@ -4,7 +4,36 @@
 
 ---
 
-## 0. CURRENT 3D STORE STATE (Updated 2026-03-30)
+## 0. CURRENT 3D STORE STATE (Updated 2026-04-02)
+
+### Session Update -- 2026-04-02
+
+#### Major branch work completed
+- **Prefab/layout Phase 1**: large chunks of the store are now layout-driven instead of hardcoded scene-only JSX. Posters, signs, return bin, bargain bin, lamps, cars, trash cans, CRT TVs, shelves, the counter, and the new releases wall all moved further onto the prefab path.
+- **Collision and interaction sync**: gameplay collision now comes from layout/prefab data instead of relying only on a hand-maintained list. Shelf, sign, TV, and prop interactions are being resolved from the same object data used to render them.
+- **3D editor overhaul**: selection, transform gizmos, focus-selected, local/world transform mode, angle snap, layer toggles, delete, undo/redo, collision preview, and better prefab visibility are in place in the 3D editor.
+- **2D editor overhaul**: multi-select, group dragging, align/distribute, duplicate, and layer hide/lock controls are now in the 2D editor.
+- **Exterior/storefront authoring**: the large exterior `FRIDAY NIGHT VIDEO` sign is now a layout object, Pizza Palace and storefront details are visible in the 3D editor, and car footprints/colliders were brought back into alignment with their visible meshes.
+- **Security camera QA path verified**: the built-in 10-camera review system is still mounted in `/game` via `SecurityCameras.tsx` and remains the intended visual QA workflow.
+
+#### VHS catalog and poster system updates
+- **Historical eras moved off the tiny hand-curated fallback**: a generated per-era catalog snapshot now exists in `src/lib/generated-era-catalog.ts` and feeds historical shelf stocking through `src/lib/curated-movie-catalog.ts`.
+- **Poster cache expanded**: real poster files are being cached locally in `public/images/posters/` and served through `/api/catalog-poster`.
+- **Catalog generation tooling added**:
+  - `scripts/generate-era-catalog.mjs`
+  - `scripts/cache-catalog-posters.mjs`
+- **Canonical shelf rule in progress**: the codebase is moving toward one canonical shelf home per movie, with `new releases` as the only place where multiple physical copies should appear.
+- **Checked-out home slots improved**: when a movie is no longer on the shelf, its slot now renders as a readable checked-out card showing the title that belongs there instead of a blank placeholder.
+- **Held VHS viewmodel is now in the main viewport**: the fragile in-canvas version was replaced with a reliable first-person overlay, and it now supports a larger lower-left left-handed stack instead of a tiny HUD-only representation.
+- **Slot-level pickup state now exists**: physical shelf slots can now disappear per copy, which fixes the `new releases` bug where grabbing one copy incorrectly removed every copy of that title from the wall.
+- **Staff Picks is display-only again**: that shelf now behaves like a recommendation display instead of extra rentable duplicates, which better matches the one-home-per-movie rule.
+- **Gameplay HUD readability improved**: the game now exposes a clearer in-world status readout for store time, time until close, carried tape count, XP progress, and challenge timing.
+
+#### Current known issues / active work
+- **VHS artwork path is still the top priority**: most poster requests are now succeeding through `/api/catalog-poster`, but the full in-game VHS flow still needs more hardening so shelf art, shelf browser art, HUD inventory art, held-in-hand tapes, and missing/checked-out states all stay consistent.
+- **Shelf browser still needs stabilization**: the overlay path is being aligned to the same canonical movie ids used by the shelf renderer so it does not error when browsing historical shelves.
+- **Historical catalog quality still needs tuning**: the generated era catalogs are large enough now, but the selection rules still need to skew harder toward mainstream, high-recognition rental-store movies rather than odd TMDB long-tail results.
+- **Returns gameplay is not complete yet**: the design direction is now clear -- poster stays visible in the home slot, the physical tape may be missing, and the missing copy can later participate in returns-pile gameplay.
 
 ### Architecture
 - **React Three Fiber** with first-person controls (WASD + mouse look)
@@ -55,7 +84,9 @@
 
 ### What's Built
 - **12 gondola shelves**: Open frame design (0.35m deep), visible shelf boards, different genres front/back (24 total). VHS tapes 0.15x0.26x0.025 with TMDB poster art. No repeats per side.
+- **Prefab-aware layout system**: reusable prefab renderers plus layout metadata now drive more of the store scene and editor behavior.
 - **Era selector**: Late 80s, Early 90s, Mid 90s, Late 90s, Present Day — filters all movie posters
+- **Generated era catalog snapshot**: historical shelves now draw from a stored per-era movie database rather than only the original hand-built list.
 - **RPG quest system**: 5 Vinny main quests (sequential unlock), 5 customer side quests (50% chance on NPC talk). Quest log UI (J key). Props as rewards.
 - **NPC system**: 4 adults (distinct hair/outfits/faces), 1 kid (backpack, sneakers), Charlie (vest, name tag), Tarantino easter egg (30% spawn). Shelf collision avoidance, NPC-to-NPC avoidance, walk animation (leg+arm swing), browse behavior (face shelves).
 - **Audio**: 65 clips total — 20 adult customer lines, 6 kid lines, 5 Tarantino rants, 6 multi-voice conversations (24 clips), 3 ambient tracks, 7 SFX. Spatial PannerNode tied to NPC positions.
@@ -67,9 +98,15 @@
 - **PWA**: manifest.json, Apple meta tags, landscape orientation, safe area CSS
 - **Performance**: Poster throttle (6 concurrent), w154/w92 images, RoundedBox on key furniture
 - **Security cameras**: 10 angles for AI-assisted visual QA (verified by o3 vision)
+- **3D editor controls**: focus, local/world transforms, angle snap, delete, undo/redo, layer toggles, and collision preview
+- **2D editor controls**: multi-select, align/distribute, duplicate, and layer hide/lock
 
 ### TODO (Future Sessions)
 - [ ] InstancedMesh for VHS boxes (720 draw calls → 1)
+- [ ] Finish canonical VHS slot state across shelf, browser, HUD, and held-in-hand view
+- [ ] Make shelf browser and in-world shelf rendering use the exact same canonical movie instances
+- [ ] Tune generated era catalogs toward more mainstream/high-recognition titles
+- [ ] Complete return-bin / recent-returns gameplay loop
 - [ ] More Kenney model swaps (bookcases, desks, lamps from furniture kit)
 - [ ] Arcade cabinet (Prop Hunt game mode)
 - [ ] Door animation + bell sound

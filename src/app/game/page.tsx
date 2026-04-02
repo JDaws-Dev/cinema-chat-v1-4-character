@@ -15,7 +15,7 @@ import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNextTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
+import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
@@ -33,7 +33,6 @@ const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ def
 const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerson").then(m => ({ default: m.FirstPersonControls })), { ssr: false });
 const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction").then(m => ({ default: m.InteractionSystem })), { ssr: false });
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
-const HeldVhsView = dynamic(() => import("@/components/game3d/HeldVhsView").then(m => ({ default: m.HeldVhsView })), { ssr: false });
 
 const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
 const STATS_KEY = "vnv_stats";
@@ -111,8 +110,9 @@ export default function GamePage() {
   const [hintText, setHintText] = useState<string | null>(null);
 
   // VHS pickup inventory (multiple films)
-  type HeldMovie = { id: number; title: string; posterUrl: string; genre: string };
+  type HeldMovie = { id: number; title: string; posterUrl: string; genre: string; slotKey?: string };
   const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
+  const [pendingPickup, setPendingPickup] = useState<{ id: number; title: string; posterUrl: string; slotKey?: string } | null>(null);
   // Snack inventory (separate from movies)
   type HeldSnack = { name: string; emoji: string };
   const [heldSnacks, setHeldSnacks] = useState<HeldSnack[]>([]);
@@ -148,6 +148,13 @@ export default function GamePage() {
   // Typewriter effect for RPG dialogue
   const [displayedText, setDisplayedText] = useState('');
   const [typewriterDone, setTypewriterDone] = useState(false);
+
+  const getHudPosterSrc = useCallback((posterUrl: string) => {
+    if (!posterUrl) return "";
+    return posterUrl.startsWith("https://image.tmdb.org/")
+      ? `/api/image-proxy?url=${encodeURIComponent(posterUrl.replace('/w342/', '/w92/'))}`
+      : posterUrl;
+  }, []);
 
   useEffect(() => {
     if (!rpgNode) { setDisplayedText(''); setTypewriterDone(false); return; }
@@ -512,6 +519,7 @@ export default function GamePage() {
       // Pick up VHS tape — show back-of-box detail modal
       try {
         const movie = JSON.parse(data);
+        setPendingPickup(movie);
         document.exitPointerLock();
         setFilmId(movie.id);
         setOverlay("film_detail");
@@ -902,12 +910,14 @@ export default function GamePage() {
 
   // Rent a movie from the film detail modal (back-of-box view)
   const handleRentMovie = useCallback((movie: { id: number; title: string; posterUrl: string; genre: string }) => {
-    // Add to inventory (no duplicates, max 8 slots)
+    const slotKey = pendingPickup?.id === movie.id ? pendingPickup.slotKey : undefined;
+    // Add to held stack (no duplicates, max 5 movies)
     setHeldMovies(prev => {
       if (prev.some(m => m.id === movie.id)) return prev;
-      if (prev.length + heldSnacks.length >= 8) return prev;
-      return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl, genre: movie.genre }];
+      if (prev.length >= 5) return prev;
+      return [...prev, { id: movie.id, title: movie.title, posterUrl: movie.posterUrl, genre: movie.genre, slotKey }];
     });
+    setPendingPickup(null);
     setPickupFlash(true);
     setPickupTitle(movie.title);
     setTimeout(() => setPickupFlash(false), 800);
@@ -918,7 +928,7 @@ export default function GamePage() {
     // Close modal and resume
     setOverlay("none");
     setFilmId(null);
-  }, [heldSnacks.length, trackQuestMoviePickup]);
+  }, [pendingPickup, trackQuestMoviePickup]);
 
   const closeOverlay = useCallback(() => {
     // Track NPC relationship when ending a dialogue
@@ -935,7 +945,31 @@ export default function GamePage() {
     setRpgNode(null);
     setRpgHistory([]);
     setFilmId(null);
+    setPendingPickup(null);
   }, [overlay, rpgDialogue]);
+
+  const minutesUntilClose = Math.max(0, Math.round((23 - gameTime) * 60));
+  const closeHours = Math.floor(minutesUntilClose / 60);
+  const closeMinutes = minutesUntilClose % 60;
+  const closeCountdownLabel = gameTime >= 23
+    ? "Closed for the night"
+    : closeHours > 0
+      ? `${closeHours}h ${closeMinutes.toString().padStart(2, "0")}m to close`
+      : `${closeMinutes}m to close`;
+  const nextTier = currentTier === MEMBERSHIP_TIERS[MEMBERSHIP_TIERS.length - 1]
+    ? null
+    : MEMBERSHIP_TIERS[MEMBERSHIP_TIERS.indexOf(currentTier) + 1] ?? null;
+  const tierProgress = nextTier
+    ? ((totalXP - currentTier.minXP) / (nextTier.minXP - currentTier.minXP)) * 100
+    : 100;
+  const heldStackLabel = `${heldMovies.length}/5 tapes`;
+  const heldViewOffsets = [
+    { x: 0, y: 0, rotation: 8 },
+    { x: 26, y: 12, rotation: 13 },
+    { x: 50, y: 24, rotation: 17 },
+    { x: 72, y: 38, rotation: 20 },
+    { x: 90, y: 52, rotation: 24 },
+  ];
 
   // Q or Backspace to close overlays (ESC exits pointer lock, so don't use it)
   // Number keys 1-4 to select RPG dialogue responses
@@ -1044,9 +1078,15 @@ export default function GamePage() {
       >
         <Suspense fallback={null}>
           <fog attach="fog" args={["#0a0e18", 25, 50]} />
-          <Store isMobile={isMobile} eraYears={selectedEra.years} maxNpcs={maxNpcs} topDown={topDown} />
+          <Store
+            isMobile={isMobile}
+            eraYears={selectedEra.years}
+            heldMovieIds={heldMovies.map((movie) => movie.id)}
+            heldMovieSlotKeys={heldMovies.flatMap((movie) => movie.slotKey ? [movie.slotKey] : [])}
+            maxNpcs={maxNpcs}
+            topDown={topDown}
+          />
           <FirstPersonControls disabled={hasOverlay || topDown} />
-          <HeldVhsView movies={heldMovies} visible={!hasOverlay && !topDown} />
           {topDown && <TopDownCamera />}
           {!hasOverlay && !topDown && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
@@ -1294,27 +1334,32 @@ export default function GamePage() {
         <RewardOverlay prop={rewardProp} onDismiss={() => setRewardProp(null)} />
       )}
 
-      {/* Unified inventory bar */}
-      {!hasOverlay && (
-        <div className="g3-inventory-bar" style={{ position: 'relative' }}>
-          <span className="g3-inventory-label">INVENTORY</span>
-          {heldMovies.map((movie, i) => (
-            <div key={`m${i}`} className="g3-inv-slot g3-inv-movie" onClick={() => setHeldMovies(prev => prev.filter(m => m.id !== movie.id))} title={`${movie.title} (click to drop)`}>
+      {!hasOverlay && !topDown && heldMovies.length > 0 && (
+        <div className="g3-held-viewmodel" aria-hidden="true">
+          {heldMovies.slice(0, 5).map((movie, index) => (
+            <div
+              key={`held-vhs-${movie.slotKey ?? movie.id}-${index}`}
+              className="g3-held-vhs"
+              style={{
+                transform: `translate(${heldViewOffsets[index]?.x ?? 0}px, ${heldViewOffsets[index]?.y ?? 0}px) rotate(${heldViewOffsets[index]?.rotation ?? 8}deg)`,
+                zIndex: 20 - index,
+              }}
+            >
               {movie.posterUrl ? (
-                <img src={`/api/image-proxy?url=${encodeURIComponent(movie.posterUrl.replace('/w342/', '/w92/'))}`} alt={movie.title} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
+                <img
+                  src={getHudPosterSrc(movie.posterUrl)}
+                  alt=""
+                  className="g3-held-vhs-poster"
+                />
               ) : (
-                <span style={{ fontSize: '0.5rem', textAlign: 'center', padding: 2 }}>{movie.title.substring(0, 12)}</span>
+                <div className="g3-held-vhs-fallback">{movie.title}</div>
               )}
+              <div className="g3-held-vhs-spine" />
             </div>
           ))}
-          {heldSnacks.map((snack, i) => (
-            <div key={`s${i}`} className="g3-inv-slot g3-inv-snack" onClick={() => setHeldSnacks(prev => prev.filter(s => s.name !== snack.name))} title={`${snack.name} (click to drop)`}>
-              <span style={{ fontSize: '1.3rem' }}>{snack.emoji}</span>
-            </div>
-          ))}
-          {Array.from({ length: 8 - heldMovies.length - heldSnacks.length }).map((_, i) => (
-            <div key={`e${i}`} className="g3-inv-slot g3-inv-empty" />
-          ))}
+          {heldMovies.length > 5 && (
+            <div className="g3-held-vhs-count">+{heldMovies.length - 5}</div>
+          )}
         </div>
       )}
 
@@ -1352,26 +1397,49 @@ export default function GamePage() {
           }}>
             {formatGameTime(gameTime)}
           </span>
-          {(() => {
-            const next = getNextTier();
-            const progress = next ? ((totalXP - currentTier.minXP) / (next.minXP - currentTier.minXP)) * 100 : 100;
-            return (
-              <div className="g3-tier-badge" style={{
-                border: `2px solid ${currentTier.color}`,
-                color: currentTier.color,
-              }}>
-                <span style={{ fontSize: '1.1rem' }}>{currentTier.emoji}</span>
-                <span className="g3-tier-badge-name">{currentTier.name.toUpperCase()}</span>
-                <div className="g3-tier-badge-bar">
-                  <div className="g3-tier-badge-fill" style={{ width: `${Math.min(progress, 100)}%`, background: currentTier.color }} />
-                </div>
-                <span className="g3-tier-badge-xp">{totalXP}XP</span>
-              </div>
-            );
-          })()}
+          <div className="g3-tier-badge" style={{
+            border: `2px solid ${currentTier.color}`,
+            color: currentTier.color,
+          }}>
+            <span style={{ fontSize: '1.1rem' }}>{currentTier.emoji}</span>
+            <span className="g3-tier-badge-name">{currentTier.name.toUpperCase()}</span>
+            <div className="g3-tier-badge-bar">
+              <div className="g3-tier-badge-fill" style={{ width: `${Math.min(tierProgress, 100)}%`, background: currentTier.color }} />
+            </div>
+            <span className="g3-tier-badge-xp">{totalXP}XP</span>
+          </div>
           <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); setMusicMuted(next); return next; }); }} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
         </div>
       </div>
+
+      {!hasOverlay && !topDown && (
+        <div className="g3-status-card">
+          <div className="g3-status-row">
+            <span className="g3-status-label">TIME</span>
+            <span className="g3-status-value">{formatGameTime(gameTime)}</span>
+          </div>
+          <div className="g3-status-row">
+            <span className="g3-status-label">CLOSE</span>
+            <span className="g3-status-value">{closeCountdownLabel}</span>
+          </div>
+          <div className="g3-status-row">
+            <span className="g3-status-label">STACK</span>
+            <span className="g3-status-value">{heldStackLabel}</span>
+          </div>
+          <div className="g3-status-row">
+            <span className="g3-status-label">XP</span>
+            <span className="g3-status-value">{nextTier ? `${totalXP}/${nextTier.minXP}` : `${totalXP} MAX`}</span>
+          </div>
+          {challenge && (
+            <div className="g3-status-row">
+              <span className="g3-status-label">{challenge.timeLimit ? "LEFT" : "ELAPSED"}</span>
+              <span className="g3-status-value">
+                {challenge.timeLimit ? `${Math.max(0, challenge.timeLimit - challengeTimer)}s` : `${challengeTimer}s`}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Challenge indicator — compact top-left */}
       {challenge && !hasOverlay && (
@@ -1442,7 +1510,7 @@ export default function GamePage() {
 
       {/* Shelf Browser */}
       {overlay === "shelf" && (
-        <ShelfBrowser genre={shelfGenre} eraId={era as EraId} open onClose={closeOverlay} onFilmClick={(id) => { setFilmId(id); setOverlay("film_detail"); }} />
+        <ShelfBrowser genre={shelfGenre} eraId={era as EraId} open onClose={closeOverlay} onFilmClick={(id) => { setPendingPickup(null); setFilmId(id); setOverlay("film_detail"); }} />
       )}
 
       {/* Film Detail (VHS back-of-box) */}

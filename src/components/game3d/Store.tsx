@@ -11,7 +11,7 @@ import { LayoutDrivenPrefabs } from "./prefabs";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
-import { Mat, setEraYears, getShelfMovies } from "./store-materials";
+import { Mat, setEraYears, getShelfMovies, setHeldMovieIds, setHeldMovieSlotKeys } from "./store-materials";
 import { StaffPicksShelf } from "./store-shelves";
 import { NPCCustomer, KidCustomer, CharlieCharacter, VinnyCharacter, NPC_POOL, NPC_WAYPOINTS, KenneyModel, getRandomAdultPersonality } from "./store-characters";
 import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
@@ -97,8 +97,24 @@ function TrophyShelf() {
   );
 }
 
-export function Store({ isMobile, eraYears, maxNpcs = 5, topDown = false }: { isMobile?: boolean; eraYears?: string; maxNpcs?: number; topDown?: boolean }) {
+export function Store({
+  isMobile,
+  eraYears,
+  heldMovieIds = [],
+  heldMovieSlotKeys = [],
+  maxNpcs = 5,
+  topDown = false,
+}: {
+  isMobile?: boolean;
+  eraYears?: string;
+  heldMovieIds?: number[];
+  heldMovieSlotKeys?: string[];
+  maxNpcs?: number;
+  topDown?: boolean;
+}) {
   useEffect(() => { if (eraYears) setEraYears(eraYears); }, [eraYears]);
+  useEffect(() => { setHeldMovieIds(heldMovieIds); }, [heldMovieIds]);
+  useEffect(() => { setHeldMovieSlotKeys(heldMovieSlotKeys); }, [heldMovieSlotKeys]);
 
   const spawnedNpcs = useMemo(() => {
     const shuffled = [...NPC_POOL].sort(() => Math.random() - 0.5);

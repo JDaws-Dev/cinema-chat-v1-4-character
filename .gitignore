@@ -19,6 +19,7 @@
 
 # production
 /build
+/public/images/posters/
 
 # misc
 .DS_Store

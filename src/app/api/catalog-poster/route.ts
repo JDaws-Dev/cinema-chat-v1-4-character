@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { getCatalogMovieById } from "@/lib/curated-movie-catalog";
 
 const GENRE_COLORS: Record<string, { bg: string; fg: string; accent: string }> = {
@@ -34,10 +36,55 @@ function splitTitle(title: string): [string, string] {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const id = Number(searchParams.get("id"));
+  const cacheDir = path.join(/* turbopackIgnore: true */ process.cwd(), "public", "images", "posters");
+  const candidateFiles = [
+    path.join(cacheDir, `${id}.jpg`),
+    path.join(cacheDir, `${id}.jpeg`),
+    path.join(cacheDir, `${id}.png`),
+    path.join(cacheDir, `${id}.webp`),
+  ];
+
+  for (const filePath of candidateFiles) {
+    try {
+      const data = await readFile(filePath);
+      const ext = path.extname(filePath).slice(1).toLowerCase();
+      const contentType =
+        ext === "png"
+          ? "image/png"
+          : ext === "webp"
+            ? "image/webp"
+            : "image/jpeg";
+      return new Response(data, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+    } catch {
+      // Try next cached format.
+    }
+  }
+
   const movie = getCatalogMovieById(id);
 
   if (!movie) {
     return new Response("Not found", { status: 404 });
+  }
+
+  if (movie.posterUrl) {
+    try {
+      const res = await fetch(movie.posterUrl);
+      if (res.ok) {
+        return new Response(await res.arrayBuffer(), {
+          headers: {
+            "Content-Type": res.headers.get("Content-Type") || "image/jpeg",
+            "Cache-Control": "public, max-age=86400",
+          },
+        });
+      }
+    } catch {
+      // Fall back to generated art below.
+    }
   }
 
   const primaryGenre = movie.genres[0] || "Drama";
