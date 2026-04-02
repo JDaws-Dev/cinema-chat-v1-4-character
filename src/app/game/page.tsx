@@ -22,8 +22,8 @@ import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { mobileInput } from "@/components/game3d/MobileControls";
-import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
-import { STORE_LAYOUT } from "@/lib/store-layout";
+import { getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
+import { seedStoreMovieState } from "@/lib/store-movie-state";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -58,7 +58,7 @@ function formatGameTime(hours: number): string {
 type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout";
 
 export default function GamePage() {
-  type ShelfBrowseState = { genre: string; shelfId?: string; count?: number; label?: string };
+  type ShelfBrowseState = { genre: string; shelfId?: string; placementKey?: string; count?: number; label?: string };
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -206,35 +206,12 @@ export default function GamePage() {
 
   useEffect(() => {
     const eraId = getEraIdFromYears(selectedEra.years);
-    const gondolaCandidates = STORE_LAYOUT.objects.flatMap((obj) => {
-      if (obj.prefab !== "shelf/gondola") return [];
-      const frontGenre = typeof obj.meta?.genre === "string" ? obj.meta.genre : null;
-      const backGenre = typeof obj.meta?.backGenre === "string" ? obj.meta.backGenre : null;
-      const frontMovies = frontGenre
-        ? getCuratedShelfPosterData(frontGenre, eraId, `${obj.id}:front`, 18).map((movie, index) => ({
-            id: movie.id,
-            title: movie.title,
-            posterUrl: movie.url,
-            genre: frontGenre,
-            slotKey: `${obj.id}:front:${index}`,
-          }))
-        : [];
-      const backMovies = backGenre
-        ? getCuratedShelfPosterData(backGenre, eraId, `${obj.id}:back`, 18).map((movie, index) => ({
-            id: movie.id,
-            title: movie.title,
-            posterUrl: movie.url,
-            genre: backGenre,
-            slotKey: `${obj.id}:back:${index}`,
-          }))
-        : [];
-      return [...frontMovies, ...backMovies];
-    }).filter((movie) => movie.posterUrl);
-
-    const shuffled = [...gondolaCandidates].sort(() => Math.random() - 0.5);
-    const picked = shuffled.slice(0, 8);
-    setSpawnedMissingSlotKeys(picked.flatMap((movie) => movie.slotKey ? [movie.slotKey] : []));
-    setRecentReturns(picked.slice(0, 4));
+    const seeded = seedStoreMovieState(eraId, selectedEra.years, {
+      missingCount: 8,
+      recentReturnCount: 4,
+    });
+    setSpawnedMissingSlotKeys(seeded.missingSlotKeys);
+    setRecentReturns(seeded.recentReturns);
   }, [selectedEra.years]);
 
   // Side quest state (uses existing showQuestNotif for notifications)
@@ -814,6 +791,24 @@ export default function GamePage() {
         setOverlay("rpg_dialogue");
       }
     } else if (type === "return_slot") {
+      if (heldMovies.length > 0) {
+        const returnableMovies = heldMovies.filter((movie) => Boolean(movie.slotKey));
+        if (returnableMovies.length > 0) {
+          setRecentReturns((existing) => {
+            const bySlot = new Map(existing.map((movie) => [movie.slotKey, movie]));
+            for (const movie of returnableMovies) {
+              if (movie.slotKey) bySlot.set(movie.slotKey, movie);
+            }
+            return Array.from(bySlot.values()).slice(0, 8);
+          });
+        }
+        setHeldMovies([]);
+        setPickupTitle(`Returned ${heldMovies.length} tape${heldMovies.length === 1 ? "" : "s"}`);
+        setTimeout(() => setPickupTitle(null), 1500);
+        showQuestNotif(heldMovies.length === 1 ? "Tape returned!" : `${heldMovies.length} tapes returned!`);
+        playSFX("vhs_pickup");
+        return;
+      }
       // Complete "return_run" side quest objective if active
       const activeSide = getActiveSideQuests();
       let handledQuest = false;
@@ -852,6 +847,7 @@ export default function GamePage() {
           browseState = {
             genre: parsed.genre || "horror",
             shelfId: parsed.shelfId,
+            placementKey: parsed.placementKey,
             count: parsed.count,
             label: parsed.label,
           };
@@ -1586,12 +1582,25 @@ export default function GamePage() {
         <ShelfBrowser
           genre={shelfBrowse?.genre || ""}
           shelfId={shelfBrowse?.shelfId}
+          placementKey={shelfBrowse?.placementKey}
           shelfCount={shelfBrowse?.count}
           label={shelfBrowse?.label}
           eraId={era as EraId}
+          heldSlotKeys={heldMovies.flatMap((movie) => movie.slotKey ? [movie.slotKey] : [])}
+          recentReturnSlotKeys={recentReturns.flatMap((movie) => movie.slotKey ? [movie.slotKey] : [])}
+          checkedOutSlotKeys={spawnedMissingSlotKeys}
           open
           onClose={closeOverlay}
-          onFilmClick={(id) => { setPendingPickup(null); setFilmId(id); setOverlay("film_detail"); }}
+          onFilmClick={(movie) => {
+            setPendingPickup(movie.slotKey ? {
+              id: movie.id,
+              title: movie.title,
+              posterUrl: movie.posterUrl || "",
+              slotKey: movie.slotKey,
+            } : null);
+            setFilmId(movie.id);
+            setOverlay("film_detail");
+          }}
         />
       )}
 

@@ -78,7 +78,7 @@ export function ShelfUnit({
   const userData = buildInteractionUserData(interaction, {
     type: "shelf",
     label: `Browse ${genre}`,
-    data: JSON.stringify({ genre: genreKey, shelfId, count: 18, label: genre }),
+    data: JSON.stringify({ genre: genreKey, shelfId, placementKey: `${shelfId}:front`, count: 18, label: genre }),
   });
 
   const positions = useMemo(() => {
@@ -198,7 +198,7 @@ export function WallShelf({
   const userData = buildInteractionUserData(interaction, {
     type: "shelf",
     label: `Browse ${genre}`,
-    data: JSON.stringify({ genre: genreKey, shelfId, count: 20, label: genre }),
+    data: JSON.stringify({ genre: genreKey, shelfId, placementKey: shelfId, count: 20, label: genre }),
   });
 
   // Wall shelves have 3 tiers, single-sided (face one direction)
@@ -380,7 +380,7 @@ export function NewReleasesWall({
   const userData = buildInteractionUserData(interaction, {
     type: "shelf",
     label: "Browse NEW RELEASES",
-    data: JSON.stringify({ genre: "new", shelfId, count: 10, label: "NEW RELEASES" }),
+    data: JSON.stringify({ genre: "new", shelfId, placementKey: shelfId, count: 10, label: "NEW RELEASES" }),
   });
 
   // Blockbuster style: each movie gets 3-4 copies side by side, then next movie

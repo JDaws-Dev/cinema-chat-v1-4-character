@@ -1857,6 +1857,17 @@
   border-color: rgba(255, 215, 0, 0.4);
 }
 
+.vhs-cassette-disabled {
+  cursor: default;
+  opacity: 0.82;
+}
+
+.vhs-cassette-disabled:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 .vhs-poster {
   width: 100%;
   aspect-ratio: 2 / 3;
@@ -1881,6 +1892,35 @@
   height: 4px;
   width: 100%;
   margin-top: -1px;
+}
+
+.vhs-status-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 6px;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  background: rgba(10, 14, 24, 0.92);
+  color: #f8f1d4;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.vhs-status-in_returns {
+  color: #ffe082;
+  border-color: rgba(255, 224, 130, 0.55);
+}
+
+.vhs-status-held {
+  color: #9be7ff;
+  border-color: rgba(155, 231, 255, 0.55);
+}
+
+.vhs-status-checked_out {
+  color: #ffb4a8;
+  border-color: rgba(255, 180, 168, 0.55);
 }
 
 .vhs-title {

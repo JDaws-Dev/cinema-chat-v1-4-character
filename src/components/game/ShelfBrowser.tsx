@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { fetchTrending, fetchSearch } from "@/lib/api";
 import { getShelfBrowserMovies, type EraId } from "@/lib/curated-movie-catalog";
+import { getShelfPlacementSlotsForEra } from "@/lib/store-movie-state";
 import type { TrendingMovie, SearchResult } from "@/lib/types";
 
 // Map zone IDs to TMDB genre IDs
@@ -39,16 +40,34 @@ interface ShelfBrowserProps {
   genre: string;
   eraId: EraId;
   shelfId?: string;
+  placementKey?: string;
   shelfCount?: number;
   label?: string;
+  heldSlotKeys?: string[];
+  recentReturnSlotKeys?: string[];
+  checkedOutSlotKeys?: string[];
   open: boolean;
   onClose: () => void;
-  onFilmClick: (id: number) => void;
+  onFilmClick: (movie: Film) => void;
 }
 
-type Film = { id: number; title: string; year: number | null; posterUrl: string | null };
+type FilmStatus = "on_shelf" | "in_returns" | "held" | "checked_out";
+type Film = { id: number; title: string; year: number | null; posterUrl: string | null; slotKey?: string; status?: FilmStatus };
 
-export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, onClose, onFilmClick }: ShelfBrowserProps) {
+export function ShelfBrowser({
+  genre,
+  eraId,
+  shelfId,
+  placementKey,
+  shelfCount,
+  label,
+  heldSlotKeys = [],
+  recentReturnSlotKeys = [],
+  checkedOutSlotKeys = [],
+  open,
+  onClose,
+  onFilmClick,
+}: ShelfBrowserProps) {
   const [films, setFilms] = useState<Film[]>([]);
   const [loading, setLoading] = useState(false);
   const limit = shelfCount ?? (genre === "new_releases" || genre === "new" ? 10 : 18);
@@ -59,7 +78,29 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
     setFilms([]);
 
     if (eraId !== "present") {
-      setFilms(getShelfBrowserMovies(genre, eraId, shelfId, limit));
+      if (placementKey) {
+        const held = new Set(heldSlotKeys);
+        const inReturns = new Set(recentReturnSlotKeys);
+        const checkedOut = new Set(checkedOutSlotKeys);
+        setFilms(
+          getShelfPlacementSlotsForEra(eraId, genre, placementKey, limit).map((movie) => ({
+            id: movie.id,
+            title: movie.title,
+            year: movie.year,
+            posterUrl: movie.posterUrl,
+            slotKey: movie.slotKey,
+            status: held.has(movie.slotKey)
+              ? "held"
+              : inReturns.has(movie.slotKey)
+                ? "in_returns"
+                : checkedOut.has(movie.slotKey)
+                  ? "checked_out"
+                  : "on_shelf",
+          }))
+        );
+      } else {
+        setFilms(getShelfBrowserMovies(genre, eraId, shelfId, limit));
+      }
       setLoading(false);
       return;
     }
@@ -108,7 +149,7 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
         .catch(() => {})
         .finally(() => setLoading(false));
     }
-  }, [open, genre, eraId, shelfId, limit]);
+  }, [open, genre, eraId, shelfId, placementKey, limit, heldSlotKeys, recentReturnSlotKeys, checkedOutSlotKeys]);
 
   // Q or Backspace to close
   useEffect(() => {
@@ -132,6 +173,13 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
 
   const spineColor = SPINE_COLORS[genre] || "#888";
 
+  const statusLabel: Record<FilmStatus, string> = {
+    on_shelf: "ON SHELF",
+    in_returns: "IN RETURNS",
+    held: "IN YOUR STACK",
+    checked_out: "CHECKED OUT",
+  };
+
   return (
     <div className={`game-panel panel-bottom ${open ? "panel-open" : ""}`}>
       <div className="panel-header">
@@ -149,9 +197,9 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
           <div className="vhs-grid">
             {films.map((film) => (
               <div
-                key={film.id}
-                className="vhs-cassette"
-                onClick={() => onFilmClick(film.id)}
+                key={film.slotKey ?? film.id}
+                className={`vhs-cassette ${film.status === "checked_out" ? "vhs-cassette-disabled" : ""}`}
+                onClick={() => film.status !== "checked_out" && onFilmClick(film)}
               >
                 {film.posterUrl ? (
                   <img
@@ -164,6 +212,11 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
                   <div className="vhs-poster-placeholder">{film.title}</div>
                 )}
                 <div className="vhs-spine" style={{ background: spineColor }} />
+                {film.status && film.status !== "on_shelf" && (
+                  <div className={`vhs-status-badge vhs-status-${film.status}`}>
+                    {statusLabel[film.status]}
+                  </div>
+                )}
                 <div className="vhs-title">{film.title}</div>
                 {film.year && <div className="vhs-year">{film.year}</div>}
               </div>
