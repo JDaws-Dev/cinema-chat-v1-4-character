@@ -28,12 +28,19 @@
 - **Slot-level pickup state now exists**: physical shelf slots can now disappear per copy, which fixes the `new releases` bug where grabbing one copy incorrectly removed every copy of that title from the wall.
 - **Staff Picks is display-only again**: that shelf now behaves like a recommendation display instead of extra rentable duplicates, which better matches the one-home-per-movie rule.
 - **Gameplay HUD readability improved**: the game now exposes a clearer in-world status readout for store time, time until close, carried tape count, XP progress, and challenge timing.
+- **Shelf browser now respects the actual shelf you clicked**: `Browse Shelf` no longer dumps a whole genre bucket; it is limited to the physical rack or wall run the player interacted with.
+- **Pointer-lock flow improved after pickups**: grabbing a tape no longer leaves the player stranded waiting to click back into the game before they can look around again.
+- **Held tape stack behavior tightened**: newest pickup renders on top of the stack, the stack supports five carried tapes, and the HUD exposes a direct `View Stack` path for managing them.
+- **Stack overflow now has an explicit loop**: trying to grab a sixth tape surfaces a warning and routes the player to a stack/checkout view where individual movies can be put back.
+- **VHS back-of-box UI tightened**: the modal is now consistently rectangular again, and provider metadata is restored so catalog-backed titles can show `STREAM`, `RENT`, and `BUY` availability when TMDB has it.
+- **Spawn-time missing-copy logic has started**: some shelf homes now spawn empty, and a subset of those missing copies appear in a rentable `RECENT RETURNS` stack near the return bin.
+- **Returns stack is now a real pickup source**: players can rent directly from recent returns, which creates the foundation for later “race to returns” and “find the missing copy” gameplay.
 
 #### Current known issues / active work
 - **VHS artwork path is still the top priority**: most poster requests are now succeeding through `/api/catalog-poster`, but the full in-game VHS flow still needs more hardening so shelf art, shelf browser art, HUD inventory art, held-in-hand tapes, and missing/checked-out states all stay consistent.
-- **Shelf browser still needs stabilization**: the overlay path is being aligned to the same canonical movie ids used by the shelf renderer so it does not error when browsing historical shelves.
+- **Shelf/browser/state unification is still incomplete**: shelf browsing is now scoped to the clicked fixture, but the full canonical movie-slot model across shelves, held stack, returns stack, and checkout still needs more hardening.
 - **Historical catalog quality still needs tuning**: the generated era catalogs are large enough now, but the selection rules still need to skew harder toward mainstream, high-recognition rental-store movies rather than odd TMDB long-tail results.
-- **Returns gameplay is not complete yet**: the design direction is now clear -- poster stays visible in the home slot, the physical tape may be missing, and the missing copy can later participate in returns-pile gameplay.
+- **Returns gameplay is only at Phase 1**: spawn-time missing copies and rentable recent returns exist now, but routing returned movies back to their canonical shelf homes and building competitive/customer race logic still remains.
 
 ### Architecture
 - **React Three Fiber** with first-person controls (WASD + mouse look)
