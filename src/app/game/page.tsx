@@ -1111,13 +1111,14 @@ export default function GamePage() {
           onClick={() => setTopDown(true)}
           style={{
             position: 'fixed', top: 16, right: 16, zIndex: 40,
-            background: 'rgba(10, 14, 24, 0.85)', border: '1px solid rgba(255, 215, 0, 0.3)',
-            borderRadius: 6, padding: '6px 12px', cursor: 'pointer',
-            fontFamily: "'Courier New', monospace", color: '#ffd700', fontSize: '0.7rem',
+            background: 'rgba(10, 14, 24, 0.85)', border: '2px solid rgba(255, 215, 0, 0.4)',
+            borderRadius: 8, padding: isMobile ? '10px 18px' : '6px 12px', cursor: 'pointer',
+            fontFamily: "'Courier New', monospace", color: '#ffd700', fontSize: isMobile ? '1rem' : '0.7rem',
+            fontWeight: 'bold',
           }}
           title="Toggle top-down view (T)"
         >
-          MAP
+          🗺 MAP
         </button>
       )}
 
