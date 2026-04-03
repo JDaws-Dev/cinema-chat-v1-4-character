@@ -83,7 +83,7 @@ export function Counter({
       })}
 
       <mesh position={[2.3, 1.00, -0.2]}><boxGeometry args={[0.5, 0.25, 0.35]} /><Mat color="#2a2a3a" roughness={0.7} /></mesh>
-      <Text position={[2.3, 1.20, -0.4]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" font={undefined}>RETURNS</Text>
+      <Text position={[2.3, 1.00, -0.385]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" anchorY="middle" font={undefined}>RETURNS</Text>
 
       {/* Monitor on counter — base sits on surface at y=0.90 */}
       <group position={[0.5, 1.10, 0.3]}>

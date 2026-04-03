@@ -154,7 +154,9 @@ function ManagedNPC({
 
   useFrame(() => {
     if (!groupRef.current) return;
-    groupRef.current.position.set(npc.position[0], -0.05, npc.position[2]);
+    // Lower NPC so feet touch the floor: leg bottom is at local y=0.175, scaled by height
+    const feetOffset = -0.175 * npc.config.appearance.height;
+    groupRef.current.position.set(npc.position[0], feetOffset, npc.position[2]);
     groupRef.current.rotation.y = npc.facing;
 
     groupRef.current.visible = npc.opacity > 0.01;

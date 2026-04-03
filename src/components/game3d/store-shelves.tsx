@@ -222,12 +222,12 @@ export function WallShelf({
         </mesh>
       ))}
 
-      {/* Genre sign at top */}
+      {/* Genre sign at top — Blockbuster blue with yellow text for readability */}
       <mesh position={[0, 1.85, 0.05]}>
         <boxGeometry args={[Math.min(width, 2), 0.2, 0.03]} />
-        <Mat color="#0a1830" roughness={0.6} />
+        <Mat color="#00006e" roughness={0.6} />
       </mesh>
-      <Text position={[0, 1.85, 0.08]} fontSize={0.12} color={color} anchorX="center" font={undefined}>
+      <Text position={[0, 1.85, 0.08]} fontSize={0.12} color="#ffd700" anchorX="center" font={undefined}>
         {genre}
       </Text>
 

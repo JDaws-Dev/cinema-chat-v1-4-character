@@ -26,6 +26,7 @@ import { mobileInput } from "@/components/game3d/MobileControls";
 import { analyzeSentiment, getXPDelta, updateNpcRapport, isNpcHostile } from "@/lib/sentiment";
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 import { STORE_LAYOUT } from "@/lib/store-layout";
+import { useGameClock, formatGameTime, type ClosingAnnouncement } from "@/hooks/useGameClock";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -47,14 +48,6 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   const avail = arr.filter(x => !seen.has(getId(x)));
   const pool = avail.length > 0 ? avail : arr;
   return pool[Math.floor(Math.random() * pool.length)];
-}
-
-function formatGameTime(hours: number): string {
-  const h = Math.floor(hours);
-  const m = Math.floor((hours - h) * 60);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12 = h > 12 ? h - 12 : h;
-  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
 }
 
 type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout" | "npc_chat";
@@ -259,10 +252,16 @@ export default function GamePage() {
   const [tierUpNotification, setTierUpNotification] = useState<string | null>(null);
   const tierUpTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Game clock state — 7:30 PM = 19.5 hours, closes at 11 PM = 23
-  const [gameTime, setGameTime] = useState(19.5);
-  const gameClockRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const closingAnnouncedRef = useRef<Set<string>>(new Set());
+  // Game clock (extracted to useGameClock hook)
+  const { gameTime, isClosingSoon, minutesUntilClose, closeCountdownLabel, maxNpcs } = useGameClock({
+    started,
+    loading,
+    overlay,
+    onClosingAnnouncement: useCallback((announcement: ClosingAnnouncement, closed: boolean) => {
+      playVinnyLine(announcement.line);
+      if (closed) setOverlay("checkout");
+    }, []),
+  });
 
   // Load props count + tier on mount + wire subtitle handler + start NPC chatter
   useEffect(() => {
@@ -303,47 +302,6 @@ export default function GamePage() {
     window.addEventListener("keydown", handler);
     return () => { window.removeEventListener("click", handler); window.removeEventListener("keydown", handler); };
   }, []);
-
-  // ── Game Clock — starts ticking after splash + loading ─────
-  useEffect(() => {
-    if (!started || loading) return;
-    gameClockRef.current = setInterval(() => {
-      setGameTime(prev => {
-        const next = prev + (3.5 / (15 * 60)); // 3.5 game hours per 15 real minutes
-        if (next >= 23) return 23; // cap at 11 PM
-        return next;
-      });
-    }, 1000);
-    return () => { if (gameClockRef.current) clearInterval(gameClockRef.current); };
-  }, [started, loading]);
-
-  // ── Vinny closing time announcements ─────────────────────
-  useEffect(() => {
-    if (gameTime >= 23) {
-      if (!closingAnnouncedRef.current.has("closed") && overlay === "none") {
-        closingAnnouncedRef.current.add("closed");
-        playVinnyLine("That's it, folks! We're closed! Time to check out!");
-        setOverlay("checkout");
-      }
-      return;
-    }
-    const announcements: { threshold: number; key: string; line: string }[] = [
-      { threshold: 21, key: "9pm", line: "We close in two hours, folks! Make your selections!" },
-      { threshold: 22, key: "10pm", line: "One hour to close! If you haven't picked a movie yet, now's the time!" },
-      { threshold: 22.5, key: "1030pm", line: "Half hour to close! Last call for rentals!" },
-      { threshold: 22.75, key: "1045pm", line: "Fifteen minutes! I'm starting to shut down the registers!" },
-    ];
-    for (const a of announcements) {
-      if (gameTime >= a.threshold && !closingAnnouncedRef.current.has(a.key)) {
-        closingAnnouncedRef.current.add(a.key);
-        playVinnyLine(a.line);
-        break; // one announcement per tick
-      }
-    }
-  }, [gameTime, overlay]);
-
-  // ── NPC count based on closing time ──────────────────────
-  const maxNpcs = gameTime >= 22.75 ? 0 : gameTime >= 22.5 ? 2 : gameTime >= 22 ? 3 : 5;
 
   // ── Quest System ──────────────────────────────────────
   const showQuestNotif = useCallback((msg: string) => {
@@ -1082,14 +1040,6 @@ export default function GamePage() {
     setShelfBrowse(null);
   }, [overlay, rpgDialogue]);
 
-  const minutesUntilClose = Math.max(0, Math.round((23 - gameTime) * 60));
-  const closeHours = Math.floor(minutesUntilClose / 60);
-  const closeMinutes = minutesUntilClose % 60;
-  const closeCountdownLabel = gameTime >= 23
-    ? "Closed for the night"
-    : closeHours > 0
-      ? `${closeHours}h ${closeMinutes.toString().padStart(2, "0")}m to close`
-      : `${closeMinutes}m to close`;
   const nextTier = currentTier === MEMBERSHIP_TIERS[MEMBERSHIP_TIERS.length - 1]
     ? null
     : MEMBERSHIP_TIERS[MEMBERSHIP_TIERS.indexOf(currentTier) + 1] ?? null;

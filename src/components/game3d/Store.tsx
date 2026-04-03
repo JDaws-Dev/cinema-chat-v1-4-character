@@ -51,12 +51,13 @@ const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
 function AisleSign({ z, label }: { z: number; label: string; colors: string[] }) {
   return (
     <group position={[0, 0, z]}>
-      <mesh position={[0, ROOM_H - 0.45, 0]}><boxGeometry args={[0.02, 0.9, 0.02]} /><Mat color="#888888" metalness={0.5} roughness={0.3} /></mesh>
-      {/* Blockbuster blue background with yellow border */}
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.2, 0.36, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
-      <mesh position={[0, 2.6, 0]}><boxGeometry args={[6.1, 0.3, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
-      <Text position={[0, 2.6, 0.025]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
-      <Text position={[0, 2.6, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      {/* Hanging rod — ends 0.15m below ceiling to avoid clipping */}
+      <mesh position={[0, ROOM_H - 0.55, 0]}><boxGeometry args={[0.02, 0.7, 0.02]} /><Mat color="#888888" metalness={0.5} roughness={0.3} /></mesh>
+      {/* Blockbuster blue background with yellow border — larger text for readability */}
+      <mesh position={[0, 2.45, 0]}><boxGeometry args={[6.2, 0.42, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
+      <mesh position={[0, 2.45, 0]}><boxGeometry args={[6.1, 0.36, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
+      <Text position={[0, 2.45, 0.025]} fontSize={0.09} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
+      <Text position={[0, 2.45, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
     </group>
   );
 }
@@ -230,7 +231,7 @@ export function Store({
       {!topDown && <>
       {[-6, -2, 2, 6].map((fx) => (<group key={fx}><group position={[fx, ROOM_H - 0.04, -1.5]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group><group position={[fx, ROOM_H - 0.04, 2]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group></group>))}
       {[-4, 0, 4].map((fx) => (<group key={`mid-${fx}`} position={[fx, ROOM_H - 0.04, 0]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group>))}
-      {[-4.5, -0.5, 3.5].map((fx) => (<group key={`front-${fx}`} position={[fx, ROOM_H - 0.04, 4.9]}><mesh><boxGeometry args={[1.65, 0.05, 0.28]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.45, 0.03, 0.08]} /><meshBasicMaterial color="#fff6dd" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.55, 0.01, 0.22]} /><Mat color="#ece8da" roughness={0.22} /></mesh></group>))}
+      {[-4.5, -0.5, 3.5].map((fx) => (<group key={`front-${fx}`} position={[fx, ROOM_H - 0.04, 4.9]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group>))}
       </>}
 
       {AISLE_SIGNS.map((sign, i) => (<AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />))}
