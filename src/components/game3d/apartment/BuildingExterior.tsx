@@ -33,25 +33,9 @@ function BuildingFacade() {
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* RIGHT SIDE WALL — full height, with stair gap at top */}
-      {/* Lower portion (ground to slab) */}
-      <mesh position={[halfW + WALL_T / 2, BLDG_GROUND + APT_Y / 2, 0]}>
-        <boxGeometry args={[WALL_T, APT_Y, APT_D + WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Back section of right wall (z < 0.5) */}
-      <mesh position={[halfW + WALL_T / 2, APT_H / 2, -halfD / 2 - 0.5]}>
-        <boxGeometry args={[WALL_T, APT_H, halfD - 0.5]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Front section of right wall (z > 1.7, past door) */}
-      <mesh position={[halfW + WALL_T / 2, APT_H / 2, halfD - 0.4]}>
-        <boxGeometry args={[WALL_T, APT_H, 0.8]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Above door on right wall */}
-      <mesh position={[halfW + WALL_T / 2, APT_H - 0.3, 1.15]}>
-        <boxGeometry args={[WALL_T, 0.6, 1.0]} />
+      {/* RIGHT SIDE WALL — full height, SOLID (no windows — fire code, stair side) */}
+      <mesh position={[halfW + WALL_T / 2, BLDG_MID_Y, 0]}>
+        <boxGeometry args={[WALL_T, BLDG_FULL_H, APT_D + WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
@@ -206,173 +190,370 @@ function BuildingRoof() {
   );
 }
 
-// ── Exterior Stairs — clean rewrite ──
+// ── Exterior Stairs — COMPLETE REWRITE ──
 /*
- * EXTERIOR STAIRS — runs along the right side of the building.
+ * EXTERIOR STAIRS — solid stair enclosure attached to the right side of the building.
  *
- * Real-world reference: exterior metal staircase to 2nd-floor apartment above store.
- * - Stairs run PARALLEL to the building side wall (along z-axis)
- * - Start near the front (parking/street side, high z) going toward the back (low z)
- * - 1m clearance from building wall
- * - Landing at top with door on the building wall
- * - 14 risers at 0.19m (7.5") each = 2.66m rise... but we need 4m rise (APT_Y)
- *   So use 16 risers at 0.25m = 4.0m total rise
- * - Tread depth: 0.28m (11")
- * - Width: 1.0m (39")
+ * Real-world reference: 2-story mixed-use building in a 1990s strip mall.
+ * Ground floor is the laundromat, upper floor is the apartment.
+ * Exterior stairs on the right side, enclosed in matching brick.
+ *
+ * Design:
+ * - Staircase is a SOLID STRUCTURE (brick walls + closed underside) flush to building right wall
+ * - Inner wall IS the building right wall (shared, no gap)
+ * - Stairs run along right wall from front (high z, ground level) toward back (low z, apartment level)
+ * - Underside is CLOSED by the outer wall + under-stair fill panel
+ * - Small COVERED LANDING/PORCH at top (1.5m x 1.2m) with roof/awning
+ * - Apartment door on landing, on building wall, facing toward stairs (rotated to face +z)
+ * - Outer railing: metal with vertical balusters on outer (open) side of stairs
+ * - Inner handrail mounted on building wall
+ * - No windows on stair-side building wall (fire code) — handled by BuildingFacade
+ * - Ground entry at front (high z): open face to walk in from sidewalk
+ *
+ * Dimensions (real-world based):
+ * - 21 steps x 0.19m rise = 3.99m total rise (matches APT_Y = 4m)
+ * - 21 steps x 0.28m tread = 5.88m total run
+ * - Stair width: 1.0m
+ * - Outer wall thickness: 0.15m
+ * - Enclosure total width: 1.2m (1.0m stairs + 0.05m gap each side + 0.15m outer wall)
  * - Handrail height: 0.95m above tread
+ * - Landing: 1.5m deep (z) x 1.2m wide (x)
+ * - Door: 0.91m wide x 2.03m tall
  *
- * Coordinate reference (all LOCAL to apartment group at x=13, y=4, z=5.75):
- *   Building right wall surface: x = halfW + WALL_T/2 = 3.1 + 0.1 = 3.2
+ * Coordinate reference (all LOCAL to apartment group at world x=13, y=4, z=5.75):
+ *   Building right wall outer surface: x = halfW + WALL_T = 3.2
  *   Ground level: y = -APT_Y = -4
  *   Apartment floor: y = 0
- *   Front of building (parking side): z = halfD + WALL_T = 2.6
+ *   Front of building (street side): z = halfD = 2.5
  *   Back of building: z = -halfD = -2.5
+ *
+ *   Stair bottom (ground entry): y=-4, z=2.5
+ *   Stair top (last step):       y≈0,  z=2.5 - 5.88 = -3.38
+ *   Landing center:               y=0,  z=-4.13
+ *   Landing back edge:            y=0,  z=-4.88
  */
 function ExteriorStairs() {
-  const halfW = APT_W / 2;
-  const halfD = APT_D / 2;
-  const wallSurface = halfW + WALL_T / 2; // right wall outer surface x
+  const halfW = APT_W / 2;   // 3.0
+  const halfD = APT_D / 2;   // 2.5
 
-  const STEP_COUNT = 16;
-  const STEP_W = 1.0;      // stair width (x-axis)
-  const STEP_RISE = 0.25;  // height per step
-  const STEP_DEPTH = 0.28; // tread depth (z-axis)
-  const TOTAL_RISE = STEP_COUNT * STEP_RISE; // 4.0
-  const TOTAL_RUN = STEP_COUNT * STEP_DEPTH; // 4.48
-  const GROUND_Y = -APT_Y; // -4
-  const RAIL_H = 0.95;     // handrail height above tread
+  // Building right wall outer surface
+  const wallX = halfW + WALL_T; // 3.2
 
-  // Stair center x: flush against building wall (0.1m gap + half stair width)
-  const stairCenterX = wallSurface + 0.1 + STEP_W / 2; // 3.2 + 0.1 + 0.5 = 3.8
+  // Stair geometry
+  const STEPS = 21;
+  const RISE = 0.19;          // per step
+  const TREAD = 0.28;         // per step depth (z)
+  const STAIR_W = 1.0;        // tread width (x)
+  const TOTAL_RISE = STEPS * RISE;  // 3.99m
+  const TOTAL_RUN = STEPS * TREAD;  // 5.88m
+  const GND = -APT_Y;         // -4 (ground level in local coords)
 
-  // Stairs run from front (high z) to back (low z)
-  // Bottom step z: near front of building
-  const bottomZ = halfD; // 2.5 (front of building)
-  // Top step z: bottomZ - TOTAL_RUN
-  const topZ = bottomZ - TOTAL_RUN; // 2.5 - 4.48 = -1.98
+  // Enclosure dimensions
+  const ENCL_W = 1.2;         // total width of stair structure (x)
+  const WALL_THICK = 0.15;    // outer wall thickness
+  const RAIL_H = 0.95;        // handrail height above tread
 
-  // Door position: on the right wall at the top landing z
-  const doorZ = topZ - 0.3; // slightly past the top step
+  // Landing
+  const LAND_D = 1.5;         // landing depth (z)
+  const LAND_W = ENCL_W;      // landing width = enclosure width
+
+  // Key x positions
+  const stairCX = wallX + ENCL_W / 2;   // 3.8 — center of stair treads
+  const outerX = wallX + ENCL_W;         // 4.4 — outer face of enclosure
+
+  // Key z positions — stairs descend from front (high z) to back (low z)
+  const botZ = halfD;                    // 2.5 — ground entry (front of building)
+  const topZ = botZ - TOTAL_RUN;         // -3.38 — top step
+  const landCZ = topZ - LAND_D / 2;     // -4.13 — landing center
+  const landBackZ = topZ - LAND_D;       // -4.88 — landing back edge
+
+  // Enclosure extents
+  const enclFrontZ = botZ + 0.15;       // slight frame at front
+  const enclBackZ = landBackZ - 0.1;    // past landing back
+  const enclLen = enclFrontZ - enclBackZ;
+  const enclMidZ = (enclFrontZ + enclBackZ) / 2;
+
+  // Enclosure height: ground to apartment floor level (we don't need it taller —
+  // the landing railings handle safety above floor level)
+  const enclH = APT_Y;                  // 4.0m (ground to apt floor)
+  const enclMidY = GND + enclH / 2;     // -2.0
 
   return (
     <group>
-      {/* ── GROUND LANDING ── */}
-      <mesh position={[stairCenterX, GROUND_Y + 0.06, bottomZ + 0.5]}>
-        <boxGeometry args={[STEP_W + 0.3, 0.12, 1.0]} />
+      {/* ══════════════════════════════════════════════════════════════
+          1. STAIR ENCLOSURE — brick walls forming the stair structure
+          ══════════════════════════════════════════════════════════════ */}
+
+      {/* OUTER WALL (positive x) — from ground to apartment floor, full length */}
+      <mesh position={[outerX - WALL_THICK / 2, enclMidY, enclMidZ]}>
+        <boxGeometry args={[WALL_THICK, enclH, enclLen]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* BACK WALL (low z) — closes the back of the stair enclosure */}
+      <mesh position={[stairCX, enclMidY, enclBackZ + WALL_THICK / 2]}>
+        <boxGeometry args={[ENCL_W, enclH, WALL_THICK]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* FRONT ENTRY COLUMNS — frame the ground-level entry opening */}
+      {/* Outer entry column */}
+      <mesh position={[outerX - WALL_THICK / 2, GND + 1.25, enclFrontZ]}>
+        <boxGeometry args={[WALL_THICK, 2.5, 0.2]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* FLOOR SLAB inside enclosure at ground level — the concrete floor you walk on */}
+      <mesh position={[stairCX, GND + 0.025, botZ + 0.3]}>
+        <boxGeometry args={[STAIR_W + 0.1, 0.05, 0.6]} />
         <Mat color={STAIR_COLOR} />
       </mesh>
 
-      {/* ── STAIR TREADS (individual steps, not solid blocks) ── */}
-      {/* Each tread is a thin slab. An angled stringer underneath supports them. */}
-      {Array.from({ length: STEP_COUNT }).map((_, i) => {
-        const treadY = GROUND_Y + (i + 1) * STEP_RISE;
-        const treadZ = bottomZ - i * STEP_DEPTH;
-        return (
-          <mesh key={`tread-${i}`} position={[stairCenterX, treadY, treadZ]}>
-            <boxGeometry args={[STEP_W, 0.04, STEP_DEPTH + 0.02]} />
-            <Mat color={STAIR_COLOR} />
-          </mesh>
-        );
-      })}
-
-      {/* ── SOLID UNDERSIDE (angled slab under all treads) ── */}
-      {/* A single thick angled box that forms the solid underside of the staircase */}
+      {/* ══════════════════════════════════════════════════════════════
+          2. SOLID UNDERSIDE — angled panel closing the stair soffit
+          ══════════════════════════════════════════════════════════════ */}
       {(() => {
         const angle = Math.atan2(TOTAL_RISE, TOTAL_RUN);
         const hyp = Math.sqrt(TOTAL_RISE * TOTAL_RISE + TOTAL_RUN * TOTAL_RUN);
-        const midY = GROUND_Y + TOTAL_RISE / 2;
-        const midZ = bottomZ - TOTAL_RUN / 2;
         return (
-          <mesh position={[stairCenterX, midY - 0.08, midZ]} rotation={[angle, 0, 0]}>
-            <boxGeometry args={[STEP_W, 0.12, hyp]} />
+          <mesh
+            position={[stairCX, GND + TOTAL_RISE / 2 - 0.15, botZ - TOTAL_RUN / 2]}
+            rotation={[angle, 0, 0]}
+          >
+            <boxGeometry args={[STAIR_W + 0.04, 0.12, hyp]} />
             <Mat color="#666666" />
           </mesh>
         );
       })()}
 
-      {/* ── TOP LANDING — connects stairs to building wall ── */}
-      {/* Landing platform extends from stair edge to building wall */}
-      <mesh position={[(wallSurface + stairCenterX + STEP_W / 2) / 2, -0.06, topZ - 0.5]}>
-        <boxGeometry args={[stairCenterX + STEP_W / 2 - wallSurface + 0.2, 0.12, 1.5]} />
+      {/* ══════════════════════════════════════════════════════════════
+          3. STAIR TREADS — 21 individual steps (tread + riser)
+          ══════════════════════════════════════════════════════════════ */}
+      {Array.from({ length: STEPS }).map((_, i) => {
+        const y = GND + (i + 1) * RISE;
+        const z = botZ - i * TREAD;
+        return (
+          <group key={`step-${i}`}>
+            {/* Tread — horizontal surface */}
+            <mesh position={[stairCX, y, z]}>
+              <boxGeometry args={[STAIR_W, 0.05, TREAD + 0.02]} />
+              <Mat color={STAIR_COLOR} />
+            </mesh>
+            {/* Riser — vertical face */}
+            <mesh position={[stairCX, y - RISE / 2, z + TREAD / 2 + 0.01]}>
+              <boxGeometry args={[STAIR_W, RISE, 0.04]} />
+              <Mat color="#777777" />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* ══════════════════════════════════════════════════════════════
+          4. TOP LANDING / PORCH — covered platform at apartment level
+          ══════════════════════════════════════════════════════════════ */}
+
+      {/* Landing floor slab */}
+      <mesh position={[stairCX, -0.06, landCZ]}>
+        <boxGeometry args={[LAND_W, 0.12, LAND_D]} />
         <Mat color={STAIR_COLOR} />
       </mesh>
-      {/* Landing support — solid fill underneath */}
-      <mesh position={[stairCenterX, GROUND_Y + TOTAL_RISE / 2, topZ - 0.5]}>
-        <boxGeometry args={[STEP_W + 0.3, TOTAL_RISE, 1.5]} />
-        <Mat color="#555555" />
+
+      {/* Landing support structure — solid fill from ground to landing underside */}
+      <mesh position={[stairCX, GND + APT_Y / 2 - 0.12, landCZ]}>
+        <boxGeometry args={[LAND_W, APT_Y - 0.12, LAND_D]} />
+        <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* ── RAILINGS ── */}
-      {[-1, 1].map((side) => {
-        const railX = stairCenterX + side * (STEP_W / 2 + 0.05);
+      {/* Landing roof/awning */}
+      <mesh position={[stairCX, APT_H - 0.3, landCZ]}>
+        <boxGeometry args={[LAND_W + 0.3, 0.10, LAND_D + 0.3]} />
+        <Mat color={ROOF_COLOR} />
+      </mesh>
+      {/* Awning fascia — front edge */}
+      <mesh position={[stairCX, APT_H - 0.35, landCZ + LAND_D / 2 + 0.15]}>
+        <boxGeometry args={[LAND_W + 0.3, 0.15, 0.06]} />
+        <Mat color={FASCIA_COLOR} />
+      </mesh>
+      {/* Awning fascia — outer edge */}
+      <mesh position={[outerX + 0.15, APT_H - 0.35, landCZ]}>
+        <boxGeometry args={[0.06, 0.15, LAND_D + 0.3]} />
+        <Mat color={FASCIA_COLOR} />
+      </mesh>
+      {/* Awning fascia — back edge */}
+      <mesh position={[stairCX, APT_H - 0.35, landCZ - LAND_D / 2 - 0.15]}>
+        <boxGeometry args={[LAND_W + 0.3, 0.15, 0.06]} />
+        <Mat color={FASCIA_COLOR} />
+      </mesh>
+
+      {/* ══════════════════════════════════════════════════════════════
+          5. APARTMENT DOOR — on building right wall, at the landing
+             Faces toward the stairs (+x direction, rotated 90deg)
+          ══════════════════════════════════════════════════════════════ */}
+      <group position={[wallX + 0.02, 1.015, landCZ]} rotation={[0, Math.PI / 2, 0]}>
+        {/* Door frame */}
+        <mesh position={[-0.47, 0, 0]}>
+          <boxGeometry args={[0.06, 2.1, 0.1]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        <mesh position={[0.47, 0, 0]}>
+          <boxGeometry args={[0.06, 2.1, 0.1]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        <mesh position={[0, 1.05, 0]}>
+          <boxGeometry args={[1.0, 0.06, 0.1]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        {/* Door panel (0.91m wide x 2.03m tall) */}
+        <mesh position={[0, 0, 0.03]}>
+          <boxGeometry args={[0.91, 2.03, 0.05]} />
+          <Mat color={DOOR_EXT_COLOR} />
+        </mesh>
+        {/* Brass door knob */}
+        <mesh position={[0.33, -0.1, 0.07]}>
+          <sphereGeometry args={[0.035, 8, 8]} />
+          <meshBasicMaterial color="#b8960a" />
+        </mesh>
+        {/* Apartment number "2A" */}
+        <Text
+          position={[0, 0.65, 0.07]}
+          fontSize={0.12}
+          color="#d4a017"
+          anchorX="center"
+          anchorY="middle"
+          font={undefined}
+        >
+          2A
+        </Text>
+      </group>
+
+      {/* ══════════════════════════════════════════════════════════════
+          6. OUTER RAILING — metal with vertical balusters
+             Runs along the outer (positive x) side of the open stairway
+          ══════════════════════════════════════════════════════════════ */}
+
+      {/* ── Stair-run railing (angled, follows the stair slope) ── */}
+      {(() => {
         const angle = Math.atan2(TOTAL_RISE, TOTAL_RUN);
         const hyp = Math.sqrt(TOTAL_RISE * TOTAL_RISE + TOTAL_RUN * TOTAL_RUN);
+        const railX = outerX - WALL_THICK + 0.02; // inner face of outer wall + small offset
 
         return (
-          <group key={`rail-${side}`}>
+          <group>
+            {/* Angled top handrail */}
+            <mesh
+              position={[railX, GND + TOTAL_RISE / 2 + RAIL_H, botZ - TOTAL_RUN / 2]}
+              rotation={[angle, 0, 0]}
+            >
+              <boxGeometry args={[0.05, 0.05, hyp]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
             {/* Bottom post */}
-            <mesh position={[railX, GROUND_Y + RAIL_H / 2, bottomZ]}>
-              <boxGeometry args={[0.04, RAIL_H, 0.04]} />
+            <mesh position={[railX, GND + RAIL_H / 2, botZ]}>
+              <boxGeometry args={[0.05, RAIL_H, 0.05]} />
               <Mat color={RAIL_COLOR} />
             </mesh>
             {/* Top post */}
             <mesh position={[railX, RAIL_H / 2, topZ]}>
-              <boxGeometry args={[0.04, RAIL_H, 0.04]} />
+              <boxGeometry args={[0.05, RAIL_H, 0.05]} />
               <Mat color={RAIL_COLOR} />
             </mesh>
-            {/* Angled handrail */}
-            <mesh
-              position={[railX, GROUND_Y + TOTAL_RISE / 2 + RAIL_H, bottomZ - TOTAL_RUN / 2]}
-              rotation={[angle, 0, 0]}
-            >
-              <boxGeometry args={[0.04, 0.04, hyp]} />
+            {/* Vertical balusters every ~0.6m along the stair run */}
+            {[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map((t) => {
+              const bY = GND + t * TOTAL_RISE;
+              const bZ = botZ - t * TOTAL_RUN;
+              return (
+                <mesh key={`sb-${t}`} position={[railX, bY + RAIL_H / 2, bZ]}>
+                  <boxGeometry args={[0.025, RAIL_H, 0.025]} />
+                  <Mat color={RAIL_COLOR} />
+                </mesh>
+              );
+            })}
+          </group>
+        );
+      })()}
+
+      {/* ── Inner handrail (wall-mounted, on the building wall side) ── */}
+      {(() => {
+        const angle = Math.atan2(TOTAL_RISE, TOTAL_RUN);
+        const hyp = Math.sqrt(TOTAL_RISE * TOTAL_RISE + TOTAL_RUN * TOTAL_RUN);
+        return (
+          <mesh
+            position={[wallX + 0.05, GND + TOTAL_RISE / 2 + RAIL_H, botZ - TOTAL_RUN / 2]}
+            rotation={[angle, 0, 0]}
+          >
+            <boxGeometry args={[0.04, 0.04, hyp]} />
+            <Mat color={RAIL_COLOR} />
+          </mesh>
+        );
+      })()}
+
+      {/* ── Top landing railings (metal with balusters) ── */}
+      {(() => {
+        const frontZ = landCZ + LAND_D / 2;
+        const backZ = landCZ - LAND_D / 2;
+        const railX = outerX - WALL_THICK + 0.02;
+        const railHalf = RAIL_H / 2;
+        return (
+          <group>
+            {/* Outer railing top bar (positive x edge, runs front-to-back) */}
+            <mesh position={[railX, RAIL_H, landCZ]}>
+              <boxGeometry args={[0.04, 0.04, LAND_D]} />
               <Mat color={RAIL_COLOR} />
             </mesh>
-            {/* 4 balusters */}
+            {/* Back railing top bar (low z edge, runs wall-to-outer) */}
+            <mesh position={[stairCX, RAIL_H, backZ]}>
+              <boxGeometry args={[LAND_W, 0.04, 0.04]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+            {/* Short front railing segment (from stair opening edge to outer corner) */}
+            <mesh position={[stairCX + STAIR_W / 2 + (ENCL_W - STAIR_W) / 4, RAIL_H, frontZ]}>
+              <boxGeometry args={[(ENCL_W - STAIR_W) / 2, 0.04, 0.04]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+
+            {/* Corner posts */}
+            <mesh position={[railX, railHalf, frontZ]}>
+              <boxGeometry args={[0.05, RAIL_H, 0.05]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+            <mesh position={[railX, railHalf, backZ]}>
+              <boxGeometry args={[0.05, RAIL_H, 0.05]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+            <mesh position={[wallX, railHalf, backZ]}>
+              <boxGeometry args={[0.05, RAIL_H, 0.05]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+
+            {/* Balusters on outer railing (4 evenly spaced) */}
             {[0.2, 0.4, 0.6, 0.8].map((t) => (
-              <mesh key={`bal-${side}-${t}`} position={[railX, GROUND_Y + t * TOTAL_RISE + RAIL_H / 2, bottomZ - t * TOTAL_RUN]}>
+              <mesh key={`lo-${t}`} position={[railX, railHalf, backZ + t * LAND_D]}>
+                <boxGeometry args={[0.025, RAIL_H, 0.025]} />
+                <Mat color={RAIL_COLOR} />
+              </mesh>
+            ))}
+            {/* Balusters on back railing (3 evenly spaced) */}
+            {[0.25, 0.5, 0.75].map((t) => (
+              <mesh key={`lb-${t}`} position={[wallX + t * LAND_W, railHalf, backZ]}>
                 <boxGeometry args={[0.025, RAIL_H, 0.025]} />
                 <Mat color={RAIL_COLOR} />
               </mesh>
             ))}
           </group>
         );
-      })}
+      })()}
 
-      {/* ── TOP LANDING RAILING ── */}
-      {/* Front edge railing (facing parking) */}
-      <mesh position={[stairCenterX, RAIL_H, topZ + 0.2]}>
-        <boxGeometry args={[STEP_W + 0.5, 0.04, 0.04]} />
-        <Mat color={RAIL_COLOR} />
-      </mesh>
-      {/* Outer edge railing (away from building) */}
-      <mesh position={[stairCenterX + STEP_W / 2 + 0.2, RAIL_H, topZ - 0.5]}>
-        <boxGeometry args={[0.04, 0.04, 1.5]} />
-        <Mat color={RAIL_COLOR} />
-      </mesh>
-
-      {/* ── DOOR on building wall at top landing ── */}
-      <group position={[wallSurface + 0.06, 1.0, doorZ]} rotation={[0, Math.PI / 2, 0]}>
-        <mesh position={[-0.45, 0, 0]}><boxGeometry args={[0.06, 2.1, 0.1]} /><Mat color={TRIM_COLOR} /></mesh>
-        <mesh position={[0.45, 0, 0]}><boxGeometry args={[0.06, 2.1, 0.1]} /><Mat color={TRIM_COLOR} /></mesh>
-        <mesh position={[0, 1.05, 0]}><boxGeometry args={[0.96, 0.06, 0.1]} /><Mat color={TRIM_COLOR} /></mesh>
-        <mesh position={[0, 0, 0.03]}><boxGeometry args={[0.84, 2.0, 0.05]} /><Mat color={DOOR_EXT_COLOR} /></mesh>
-        <mesh position={[0.3, -0.1, 0.07]}><sphereGeometry args={[0.035, 8, 8]} /><meshBasicMaterial color="#b8960a" /></mesh>
-        <Text position={[0, 0.65, 0.07]} fontSize={0.1} color="#d4a017" anchorX="center" anchorY="middle" font={undefined}>2A</Text>
-      </group>
-
-      {/* ── AWNING above door ── */}
-      <mesh position={[wallSurface + 0.5, 2.15, doorZ]} rotation={[0.2, 0, 0]}>
-        <boxGeometry args={[1.2, 0.05, 0.6]} />
-        <Mat color={AWNING_COLOR} />
-      </mesh>
-
-      {/* ── PORCH LIGHT ── */}
-      <mesh position={[wallSurface + 0.05, 2.3, doorZ + 0.4]}>
+      {/* ── PORCH LIGHT (above door) ── */}
+      <mesh position={[wallX + 0.06, 2.2, landCZ]}>
         <boxGeometry args={[0.1, 0.15, 0.1]} />
         <meshBasicMaterial color="#d4a017" />
       </mesh>
-      <pointLight position={[stairCenterX, 2.2, doorZ]} intensity={0.8} distance={6} color="#ffe0a0" />
+      <pointLight
+        position={[stairCX, 1.8, landCZ]}
+        intensity={0.8}
+        distance={6}
+        color="#ffe0a0"
+      />
     </group>
   );
 }

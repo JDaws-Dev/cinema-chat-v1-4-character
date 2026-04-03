@@ -33,9 +33,9 @@ const CAMERAS = [
   { name: "strip_left",   pos: [-20, 3, 6],      lookAt: [-13, 2, 6],     fov: 60, label: "Strip mall left side" },
   // Apartment — exterior views (positioned to see the 2-story building)
   { name: "apt_exterior", pos: [18, 4, 14],      lookAt: [13, 4, 5.75],   fov: 50, label: "Apartment building from parking" },
-  { name: "apt_stairs",   pos: [17.5, 3, 8],     lookAt: [16.5, 4, 5],    fov: 55, label: "Apartment stairs close-up" },
+  { name: "apt_stairs",   pos: [18, 2, 10],      lookAt: [16.5, 2, 5],    fov: 55, label: "Apartment stairs close-up" },
   { name: "building_front",pos: [13, 5, 14],     lookAt: [13, 4, 5.75],   fov: 45, label: "Building front — 2 story view" },
-  { name: "building_right",pos: [19, 3, 5.75],   lookAt: [15, 4, 5.75],   fov: 50, label: "Building right side with stairs" },
+  { name: "building_right",pos: [22, 4, 3],       lookAt: [16, 2, 3],      fov: 55, label: "Building right side with stairs" },
   // Apartment — interior views (camera INSIDE at eye level y=5.4)
   // lookAt targets aimed at mid-height to capture floor furniture + walls
   { name: "apt_interior", pos: [14.5, 5.4, 7.5], lookAt: [12, 4.6, 4.5],  fov: 75, label: "Apartment interior from door" },

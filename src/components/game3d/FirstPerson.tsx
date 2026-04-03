@@ -213,16 +213,23 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     const JUMP_VELOCITY = 5.5;
 
     // Determine ground height at current position
-    const inStairX = camera.position.x > 15 && camera.position.x < 17.5;
-    const inStairZ = camera.position.z > 3 && camera.position.z < 9;
+    // Stair world coords: x=16.2..17.4, z=2.37..8.25 (front=8.25 ground, back=2.37 apt level)
+    const inStairX = camera.position.x > 16.0 && camera.position.x < 17.6;
+    const inStairZ = camera.position.z > 2.2 && camera.position.z < 8.5;
     const inApartment = camera.position.x > 10 && camera.position.x < 16 &&
                         camera.position.z > 3 && camera.position.z < 8.5 &&
                         camera.position.y > 3.5;
+    // Landing world coords: x=16.2..17.4, z=0.87..2.37
+    const inLanding = camera.position.x > 16.0 && camera.position.x < 17.6 &&
+                      camera.position.z > 0.6 && camera.position.z < 2.6 &&
+                      camera.position.y > 3.0;
 
     let groundY: number;
-    if (inStairX && inStairZ) {
-      // Stairs ramp: z=9 is ground level, z=3 is apartment level
-      const stairProgress = 1 - Math.max(0, Math.min(1, (camera.position.z - 3) / 6));
+    if (inLanding) {
+      groundY = APT_FLOOR_Y;
+    } else if (inStairX && inStairZ) {
+      // Stairs ramp: z=8.25 is ground level, z=2.37 is apartment level
+      const stairProgress = 1 - Math.max(0, Math.min(1, (camera.position.z - 2.37) / (8.25 - 2.37)));
       groundY = GROUND_Y + stairProgress * (APT_FLOOR_Y - GROUND_Y);
     } else if (inApartment) {
       groundY = APT_FLOOR_Y;
