@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useMemo, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Text, useGLTF, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
@@ -9,6 +9,15 @@ import { type NpcPersonality, type PersonalityType, PERSONALITIES, getRandomAdul
 import { getObjectById } from "@/lib/store-layout";
 import { SHELF_ROWS } from "./store-constants";
 import { Mat } from "./store-materials";
+
+// ── Global dialogue target signal ─────────────────────────────
+// Set by game page when RPG dialogue is active. Characters read this to animate mouth.
+// Value is the interactType string of the character being talked to (e.g. "vinny", "charlie", "customer")
+// or null when no dialogue is active.
+export let activeDialogueTarget: string | null = null;
+export function setActiveDialogueTarget(target: string | null) {
+  activeDialogueTarget = target;
+}
 
 // ── Lifelike animation helpers ─────────────────────────────
 // Deterministic seed from character id string → stable per-character randomization
@@ -656,6 +665,7 @@ export function CharlieCharacter() {
   const rightArmRef = useRef<THREE.Mesh>(null);
   const leftEyeRef = useRef<THREE.Mesh>(null);
   const rightEyeRef = useRef<THREE.Mesh>(null);
+  const mouthRef = useRef<THREE.Mesh>(null);
   const charlieId = "charlie";
   const speed = 0.8;
   const _cPos = getObjectById("charlie");
@@ -704,10 +714,19 @@ export function CharlieCharacter() {
       // Idle sway when stopped
       const swayPhase = charlieSeed * Math.PI * 2;
       ref.current.position.x += Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.0003; // gentle drift
+      // Priority 6: Wider aisle scanning — 0.4 rad arc instead of 0.2
       if (headRef.current) {
-        headRef.current.rotation.y = Math.sin(t * 0.3) * 0.2;
+        headRef.current.rotation.y = Math.sin(t * 0.3) * 0.4;
       }
-      resetLimbs();
+      // Priority 6: Shelf straightening — right arm extends forward and pulls back on 4s cycle when stopped
+      if (rightArmRef.current && isBrowsing.current) {
+        const straightenCycle = (t % 4) / 4; // 0..1 over 4s
+        // Extend forward (negative X rotation) then pull back
+        const extend = Math.sin(straightenCycle * Math.PI) * 0.5; // peak at 0.5 rad forward
+        rightArmRef.current.rotation.x = -extend;
+      } else {
+        resetLimbs();
+      }
       return;
     }
 
@@ -756,8 +775,19 @@ export function CharlieCharacter() {
       }
     }
 
+    // When walking, head still scans at wider arc (Priority 6)
     if (headRef.current) {
-      headRef.current.rotation.y = Math.sin(t * 0.25) * 0.1;
+      headRef.current.rotation.y = Math.sin(t * 0.25) * 0.3;
+    }
+
+    // Priority 5: Mouth movement during conversation
+    if (mouthRef.current) {
+      if (activeDialogueTarget === "charlie") {
+        const mouthAnim = 0.5 + 0.5 * (Math.sin(t * 11.1 + charlieSeed * 8) * 0.55 + Math.sin(t * 8.3 + 1.7) * 0.45);
+        mouthRef.current.scale.y = 0.5 + mouthAnim;
+      } else {
+        mouthRef.current.scale.y = 1;
+      }
     }
   });
 
@@ -803,7 +833,7 @@ export function CharlieCharacter() {
         <mesh position={[0.07, -0.02, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
         <mesh ref={leftEyeRef} position={[-0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
         <mesh ref={rightEyeRef} position={[0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        <mesh position={[0, -0.1, -0.18]}><boxGeometry args={[0.1, 0.02, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
+        <mesh ref={mouthRef} position={[0, -0.1, -0.18]}><boxGeometry args={[0.1, 0.02, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[-0.05, -0.095, -0.18]} rotation={[0, 0, -0.3]}><boxGeometry args={[0.025, 0.012, 0.015]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[0.05, -0.095, -0.18]} rotation={[0, 0, 0.3]}><boxGeometry args={[0.025, 0.012, 0.015]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[0, -0.05, -0.19]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#d4a574" roughness={0.8} /></mesh>
@@ -831,20 +861,33 @@ export function VinnyCharacter() {
   const torsoRef = useRef<THREE.Mesh>(null);
   const leftEyeRef = useRef<THREE.Mesh>(null);
   const rightEyeRef = useRef<THREE.Mesh>(null);
+  const mouthRef = useRef<THREE.Mesh>(null);
 
   const vinnySeed = useMemo(() => seedFromId("vinny"), []);
+  const { camera } = useThree();
 
-  // Priority 1: breathing + idle sway + head micro-movements
-  useLifelikeIdle(vinnySeed, torsoRef, headRef, ref, getObjectById("vinny")?.x ?? 7);
+  // Priority 1: breathing + head micro-movements (sway replaced by Priority 4 weight shift below)
+  useLifelikeIdle(vinnySeed, torsoRef, headRef, ref, undefined);
 
   // Priority 2: blink
   useBlink(vinnySeed, leftEyeRef, rightEyeRef);
 
-  useFrame((state) => {
+  // Counter lean timer
+  const counterLeanTimer = useRef(12 + vinnySeed * 3); // first lean at 12-15s
+  const isLeaning = useRef(false);
+  const leanDuration = useRef(0);
+
+  useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
+    const dt = Math.min(delta, 0.1);
+
     if (ref.current) {
       ref.current.position.y = Math.sin(t * 0.8) * 0.015;
       ref.current.rotation.z = Math.sin(t * 0.4) * 0.02;
+
+      // Priority 4: Weight shift — subtle X oscillation on ~6s cycle
+      const vinnyBaseX = getObjectById("vinny")?.x ?? 7;
+      ref.current.position.x = vinnyBaseX + Math.sin(t * (Math.PI * 2 / 6)) * 0.02;
     }
     if (leftArmRef.current) {
       leftArmRef.current.rotation.x = Math.sin(t * 0.6) * 0.15;
@@ -854,10 +897,56 @@ export function VinnyCharacter() {
       rightArmRef.current.rotation.x = Math.sin(t * 0.5 + 1.5) * 0.2;
       rightArmRef.current.rotation.z = Math.sin(t * 0.35 + 1.0) * 0.06;
     }
-    if (headRef.current) {
-      headRef.current.rotation.y = Math.sin(t * 0.25) * 0.15;
+
+    // Priority 4: Head tracking — lerp headRef.rotation.y toward camera X
+    if (headRef.current && ref.current) {
+      const vinnyWorldX = ref.current.position.x;
+      const vinnyWorldZ = ref.current.position.z;
+      const dx = camera.position.x - vinnyWorldX;
+      const dz = camera.position.z - vinnyWorldZ;
+      const targetYaw = Math.atan2(dx, -dz); // -z is forward for Vinny
+      // Clamp tracking to ±0.6 rad so head doesn't spin around
+      const clampedYaw = Math.max(-0.6, Math.min(0.6, targetYaw));
+      // Lerp toward target with some base idle sway layered on
+      const idleSway = Math.sin(t * 0.25) * 0.05;
+      headRef.current.rotation.y += (clampedYaw + idleSway - headRef.current.rotation.y) * 0.03;
       headRef.current.rotation.x = Math.sin(t * 0.18) * 0.04;
-      // head micro-movements are applied via useLifelikeIdle (rotation.z)
+      // head micro-movements (rotation.z) applied via useLifelikeIdle
+    }
+
+    // Priority 4: Counter lean — every ~12-15s, tilt torso forward for 3-4s
+    if (torsoRef.current) {
+      if (isLeaning.current) {
+        leanDuration.current -= dt;
+        if (leanDuration.current <= 0) {
+          isLeaning.current = false;
+          counterLeanTimer.current = 12 + Math.random() * 3;
+        } else {
+          // Smoothly lean forward: ease in/out over the duration
+          const leanProgress = 1 - leanDuration.current / 3.5;
+          const leanAmount = Math.sin(leanProgress * Math.PI) * 0.08; // peak 0.08 rad forward
+          torsoRef.current.rotation.x = leanAmount;
+        }
+      } else {
+        counterLeanTimer.current -= dt;
+        if (counterLeanTimer.current <= 0) {
+          isLeaning.current = true;
+          leanDuration.current = 3 + Math.random(); // 3-4s
+        }
+        // Decay any residual lean
+        torsoRef.current.rotation.x *= 0.95;
+      }
+    }
+
+    // Priority 5: Mouth movement during conversation
+    if (mouthRef.current) {
+      if (activeDialogueTarget === "vinny") {
+        // Semi-random fast oscillation: two overlapping sine waves
+        const mouthAnim = 0.5 + 0.5 * (Math.sin(t * 12.3 + vinnySeed * 10) * 0.6 + Math.sin(t * 7.7 + 2.1) * 0.4);
+        mouthRef.current.scale.y = 0.5 + mouthAnim; // range 0.5 to 1.5
+      } else {
+        mouthRef.current.scale.y = 1;
+      }
     }
   });
 
@@ -909,7 +998,7 @@ export function VinnyCharacter() {
         <mesh position={[0, -0.08, -0.2]}><boxGeometry args={[0.18, 0.05, 0.05]} /><Mat color="#2a1a0a" roughness={0.9} /></mesh>
         <mesh position={[-0.1, -0.09, -0.19]} rotation={[0, 0, -0.3]}><boxGeometry args={[0.04, 0.03, 0.04]} /><Mat color="#2a1a0a" roughness={0.9} /></mesh>
         <mesh position={[0.1, -0.09, -0.19]} rotation={[0, 0, 0.3]}><boxGeometry args={[0.04, 0.03, 0.04]} /><Mat color="#2a1a0a" roughness={0.9} /></mesh>
-        <mesh position={[0, -0.12, -0.2]}><boxGeometry args={[0.12, 0.025, 0.03]} /><Mat color="#c07060" roughness={0.8} /></mesh>
+        <mesh ref={mouthRef} position={[0, -0.12, -0.2]}><boxGeometry args={[0.12, 0.025, 0.03]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[-0.06, -0.115, -0.2]} rotation={[0, 0, -0.3]}><boxGeometry args={[0.03, 0.015, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[0.06, -0.115, -0.2]} rotation={[0, 0, 0.3]}><boxGeometry args={[0.03, 0.015, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[0, -0.04, -0.22]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#c49a6a" roughness={0.8} /></mesh>

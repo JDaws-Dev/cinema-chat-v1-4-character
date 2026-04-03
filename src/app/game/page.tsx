@@ -12,7 +12,6 @@ import {
   type Scenario, type QuoteChallenge, type SynopsisChallenge,
 } from "@/lib/friday-night";
 import { fetchSearch, fetchTrending } from "@/lib/api";
-import type { SearchResult } from "@/lib/types";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
 import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
@@ -21,6 +20,7 @@ import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, genera
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { buildCustomerDialogue } from "@/lib/npc-customer-dialogues";
 import { mobileInput } from "@/components/game3d/MobileControls";
+import { setActiveDialogueTarget } from "@/components/game3d/store-characters";
 import { isNpcHostile } from "@/lib/sentiment";
 import { type EraId } from "@/lib/curated-movie-catalog";
 import { useGameClock, formatGameTime, type ClosingAnnouncement } from "@/hooks/useGameClock";
@@ -29,6 +29,7 @@ import { useInventory, type HeldMovie, type HeldSnack } from "@/hooks/useInvento
 import { useChallenge, type ChallengeMovie, type ChallengeType } from "@/hooks/useChallenge";
 import { useOverlay, type Overlay } from "@/hooks/useOverlay";
 import { useDialogue } from "@/hooks/useDialogue";
+import { usePuzzle } from "@/hooks/usePuzzle";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -41,9 +42,6 @@ const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction"
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
 
 const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
-const STATS_KEY = "vnv_stats";
-function loadStats(): Record<string, number> { try { return JSON.parse(localStorage.getItem(STATS_KEY) || "{}"); } catch { return {}; } }
-function saveStats(s: Record<string, number>) { localStorage.setItem(STATS_KEY, JSON.stringify(s)); }
 
 function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   const seen = getSeen();
@@ -88,22 +86,11 @@ export default function GamePage() {
   const [shelfBrowse, setShelfBrowse] = useState<ShelfBrowseState | null>(null);
   const [filmId, setFilmId] = useState<number | null>(null);
 
-  // Vinny's Five state
-  const [puzzle, setPuzzle] = useState<{ clues: string[]; movieId: number; backdrop: string | null; poster: string | null; answer: Record<string, unknown> } | null>(null);
-  const [puzzleClue, setPuzzleClue] = useState(0);
-  const [puzzleGuess, setPuzzleGuess] = useState("");
-  const [puzzleResults, setPuzzleResults] = useState<SearchResult[]>([]);
-  const [puzzleWon, setPuzzleWon] = useState<boolean | null>(null);
-  const [puzzleBackdropReady, setPuzzleBackdropReady] = useState(false);
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   // Quote/Synopsis state
   const [quote, setQuote] = useState<QuoteChallenge | null>(null);
   const [synopsis, setSynopsis] = useState<SynopsisChallenge | null>(null);
   const [quizAnswer, setQuizAnswer] = useState<number | null>(null);
 
-  const [stats, setStats] = useState<Record<string, number>>({});
   const [hintText, setHintText] = useState<string | null>(null);
 
   // VHS pickup inventory (movies, snacks, pickup flash)
@@ -138,6 +125,22 @@ export default function GamePage() {
   // ── Overlay hook (manages overlay state + close) ──────
   const overlayCloseRef = useRef<(() => void) | null>(null);
   const { overlay, setOverlay, closeOverlay, hasOverlay } = useOverlay(overlayCloseRef);
+
+  // Vinny's Five puzzle (extracted to usePuzzle hook)
+  const {
+    puzzle, setPuzzle,
+    puzzleClue,
+    puzzleGuess,
+    puzzleResults,
+    puzzleWon,
+    puzzleBackdropReady,
+    puzzleBlur,
+    inputRef,
+    startPuzzle,
+    handlePuzzleSearch,
+    submitPuzzleGuess,
+    skipPuzzleClue,
+  } = usePuzzle(setOverlay);
 
   const getHudPosterSrc = useCallback((posterUrl: string) => {
     if (!posterUrl) return "";
@@ -207,8 +210,6 @@ export default function GamePage() {
 
   // Challenge timer is now handled by useChallenge hook
 
-  useEffect(() => { setStats(loadStats()); }, []);
-
   // Unlock audio on first user interaction (browser autoplay policy)
   useEffect(() => {
     const handler = () => { unlockAudio(); window.removeEventListener("click", handler); window.removeEventListener("keydown", handler); };
@@ -267,6 +268,8 @@ export default function GamePage() {
       const npcType = rpgDialogue.npc?.toLowerCase() || "customer";
       incrementNpcRelationship(npcType);
     }
+    // Clear mouth animation signal when dialogue closes
+    setActiveDialogueTarget(null);
     setPuzzle(null);
     setQuote(null);
     setSynopsis(null);
@@ -504,6 +507,7 @@ export default function GamePage() {
         setRpgNode(tree.opener);
         setRpgHistory([{ speaker: tree.opener.speaker, portrait: tree.opener.portrait, text: tree.opener.text }]);
       }
+      setActiveDialogueTarget("charlie");
       setOverlay("rpg_dialogue");
       return;
     }
@@ -592,6 +596,7 @@ export default function GamePage() {
         setRpgDialogue(tree);
         setRpgNode(openerWithTier);
         setRpgHistory([{ speaker: openerWithTier.speaker, portrait: openerWithTier.portrait, text: openerWithTier.text }]);
+        setActiveDialogueTarget("vinny");
         setOverlay("rpg_dialogue");
       } else if (roll < 0.8) {
         setQuote(pickRandom(QUOTES, q => q.id));
@@ -631,6 +636,7 @@ export default function GamePage() {
         setRpgDialogue(refusalTree);
         setRpgNode(refusalNode);
         setRpgHistory([{ speaker: refusalNode.speaker, portrait: refusalNode.portrait, text: refusalNode.text }]);
+        setActiveDialogueTarget("customer");
         setOverlay("rpg_dialogue");
         return;
       }
@@ -672,6 +678,7 @@ export default function GamePage() {
       setRpgDialogue(personalityTree);
       setRpgNode(personalityTree.opener);
       setRpgHistory([{ speaker: personalityTree.opener.speaker, portrait: personalityTree.opener.portrait, text: personalityTree.opener.text }]);
+      setActiveDialogueTarget("customer");
       setOverlay("rpg_dialogue");
     } else if (type === "pizza_clerk") {
       // Tony — Pizza Palace clerk, warm and friendly
@@ -704,6 +711,7 @@ export default function GamePage() {
       setRpgDialogue(tonyTree);
       setRpgNode(tonyOpener);
       setRpgHistory([{ speaker: tonyOpener.speaker, portrait: tonyOpener.portrait, text: tonyOpener.text }]);
+      setActiveDialogueTarget("pizza_clerk");
       setOverlay("rpg_dialogue");
     } else if (type === "laundro_clerk") {
       // Earl — Laundromat clerk, laid-back and philosophical
@@ -736,6 +744,7 @@ export default function GamePage() {
       setRpgDialogue(earlTree);
       setRpgNode(earlOpener);
       setRpgHistory([{ speaker: earlOpener.speaker, portrait: earlOpener.portrait, text: earlOpener.text }]);
+      setActiveDialogueTarget("laundro_clerk");
       setOverlay("rpg_dialogue");
     } else if (type === "return_slot") {
       // Complete "return_run" side quest objective if active
@@ -796,58 +805,6 @@ export default function GamePage() {
   // startChallenge is now provided by useChallenge hook
 
   // startMystery is now provided by useChallenge hook
-
-  // ── Puzzle (Vinny's Five) ──────────────────────────────
-  const startPuzzle = useCallback(async () => {
-    setOverlay("pick");
-    setPuzzleClue(0); setPuzzleGuess(""); setPuzzleResults([]); setPuzzleWon(null); setPuzzleBackdropReady(false);
-    try {
-      const res = await fetch("/api/puzzle?mode=random");
-      const data = await res.json();
-      if (data.puzzle) {
-        setPuzzle(data.puzzle);
-        if (data.puzzle.backdrop) {
-          const img = new Image();
-          img.onload = () => setPuzzleBackdropReady(true);
-          img.onerror = () => setPuzzleBackdropReady(true);
-          img.src = data.puzzle.backdrop;
-        } else setPuzzleBackdropReady(true);
-        setTimeout(() => inputRef.current?.focus(), 500);
-      }
-    } catch { setOverlay("none"); }
-  }, []);
-
-  const handlePuzzleSearch = useCallback((q: string) => {
-    setPuzzleGuess(q);
-    clearTimeout(searchTimer.current);
-    if (q.length < 2) { setPuzzleResults([]); return; }
-    searchTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search?query=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        setPuzzleResults((data.results || []).slice(0, 5).map((r: Record<string, unknown>) => ({
-          id: r.id as number, title: r.title as string, year: r.year as number | null, posterUrl: r.posterUrl as string | null, overview: "", voteAverage: 0, genre: "",
-        })));
-      } catch {}
-    }, 300);
-  }, []);
-
-  const submitPuzzleGuess = useCallback((title: string, id: number) => {
-    if (!puzzle) return;
-    setPuzzleGuess(""); setPuzzleResults([]);
-    if (id === puzzle.movieId) {
-      setPuzzleWon(true);
-      const s = loadStats(); s.played = (s.played || 0) + 1; s.won = (s.won || 0) + 1; saveStats(s); setStats(s);
-    } else {
-      if (puzzleClue < 4) setPuzzleClue(c => c + 1);
-      else { setPuzzleWon(false); const s = loadStats(); s.played = (s.played || 0) + 1; saveStats(s); setStats(s); }
-    }
-  }, [puzzle, puzzleClue]);
-
-  const skipPuzzleClue = useCallback(() => {
-    if (puzzleClue < 4) setPuzzleClue(c => c + 1);
-    else { setPuzzleWon(false); const s = loadStats(); s.played = (s.played || 0) + 1; saveStats(s); setStats(s); }
-  }, [puzzleClue]);
 
   // ── Quiz answer ────────────────────────────────────────
   const handleQuizAnswer = useCallback((idx: number, correct: number, id: string) => {
@@ -973,8 +930,6 @@ export default function GamePage() {
       </div>
     );
   }
-
-  const puzzleBlur = puzzleWon !== null ? 0 : [40, 28, 16, 6, 0][puzzleClue];
 
   return (
     <div className="g3-container">

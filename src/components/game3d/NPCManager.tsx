@@ -61,6 +61,7 @@ function NPCMesh({
   const headRef = useRef<THREE.Mesh>(null);
   const leftEyeRef = useRef<THREE.Mesh>(null);
   const rightEyeRef = useRef<THREE.Mesh>(null);
+  const mouthRef = useRef<THREE.Mesh>(null);
 
   // Per-NPC seed for animation desync
   const seed = useMemo(() => seedFromId(npc.config.id), [npc.config.id]);
@@ -126,6 +127,17 @@ function NPCMesh({
       }
     }
 
+    // ── Priority 5: Mouth movement during conversation ──
+    if (mouthRef.current) {
+      const isTalking = npc.state === "talking_to_player" || npc.state === "talking_to_npc";
+      if (isTalking) {
+        const mouthAnim = 0.5 + 0.5 * (Math.sin(t * 10.7 + seed * 12) * 0.55 + Math.sin(t * 7.1 + seed * 5) * 0.45);
+        mouthRef.current.scale.y = 0.5 + mouthAnim; // range 0.5 to 1.5
+      } else {
+        mouthRef.current.scale.y = 1;
+      }
+    }
+
     // ── Priority 3: Walking improvements ──
     if (isWalking) {
       const walkT = performance.now() * 0.008;
@@ -184,6 +196,11 @@ function NPCMesh({
       <mesh ref={rightEyeRef} position={[0.04, 1.24, -0.11]}>
         <sphereGeometry args={[0.018, 8, 8]} />
         <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      {/* Mouth — animated during conversation */}
+      <mesh ref={mouthRef} position={[0, 1.15, -0.12]}>
+        <boxGeometry args={[0.06, 0.015, 0.02]} />
+        <meshStandardMaterial color={skinTone} />
       </mesh>
       {/* Hair variants */}
       {hairStyle === "flattop" && (
