@@ -36,6 +36,8 @@ export interface DialogueConfig {
   setPropsCount: React.Dispatch<React.SetStateAction<{ unlocked: number; total: number }>>;
   /** Set the overlay (from useOverlay) */
   setOverlay: (o: Overlay) => void;
+  /** Show floating XP popup */
+  triggerXpPopup: (amount: number) => void;
 }
 
 export function useDialogue(config: DialogueConfig) {
@@ -48,6 +50,7 @@ export function useDialogue(config: DialogueConfig) {
     showQuestNotif,
     setPropsCount,
     setOverlay,
+    triggerXpPopup,
   } = config;
 
   // RPG dialogue state

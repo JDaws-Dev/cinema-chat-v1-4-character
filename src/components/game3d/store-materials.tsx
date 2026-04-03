@@ -234,15 +234,43 @@ export function setEraYears(years: string) {
 
 // Global registry of movies actually loaded on shelves — challenge picks from this
 const shelfMovieRegistry: Map<string, { title: string; genre: string; id: number }> = new Map();
-let heldMovieIds = new Set<number>();
+
+/**
+ * heldMovieSlotKeys is the union of:
+ *   - slot keys of tapes the player is currently holding (from vhs-state)
+ *   - spawnedMissingSlotKeys (random "checked out" display slots)
+ * Set by Store.tsx via setHeldMovieSlotKeys, sourced from useInventory -> vhs-state.
+ */
 let heldMovieSlotKeys = new Set<string>();
+
+/**
+ * Read held movie IDs directly from vhs-state localStorage.
+ * Used as a fallback in PosterBox when a tape has no slotKey.
+ */
+function getHeldMovieIdsFromVHS(): Set<number> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem("fnv_vhs_state");
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!parsed?.tapes) return new Set();
+    const ids = new Set<number>();
+    for (const tape of Object.values(parsed.tapes) as Array<{ id: number; status: string }>) {
+      if (tape.status === "held") ids.add(tape.id);
+    }
+    return ids;
+  } catch {
+    return new Set();
+  }
+}
 
 export function getShelfMovies(): { title: string; genre: string; id: number }[] {
   return Array.from(shelfMovieRegistry.values());
 }
 
-export function setHeldMovieIds(ids: number[]) {
-  heldMovieIds = new Set(ids);
+/** @deprecated — held IDs are now read from vhs-state localStorage. Kept as no-op for Store.tsx compat. */
+export function setHeldMovieIds(_ids: number[]) {
+  // No-op: PosterBox now reads held IDs from vhs-state directly
 }
 
 export function setHeldMovieSlotKeys(slotKeys: string[]) {
@@ -425,7 +453,7 @@ export function PosterBox({
   const loadedRef = useRef(false);
   const isUnavailable = slotKey
     ? (hideWithSlotKey && heldMovieSlotKeys.has(slotKey))
-    : typeof movieId === "number" && heldMovieIds.has(movieId);
+    : typeof movieId === "number" && getHeldMovieIdsFromVHS().has(movieId);
   const checkedOutTexture = useMemo(
     () => (isUnavailable && movieTitle ? getCheckedOutCardTexture(movieTitle) : null),
     [isUnavailable, movieTitle]

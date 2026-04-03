@@ -3512,3 +3512,33 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* ── Floating XP popup ─────────────────────────────────── */
+.g3-xp-popup {
+  position: fixed;
+  top: 38px;
+  right: 18px;
+  z-index: 200;
+  pointer-events: none;
+  font-family: var(--fnv-font-pixel, monospace);
+  font-size: 1.3rem;
+  color: var(--fnv-gold, #ffd700);
+  text-shadow:
+    0 0 6px rgba(255, 215, 0, 0.7),
+    2px 2px 0 rgba(0, 0, 0, 0.8);
+  animation: xpFloat 1.5s steps(8) forwards;
+}
+
+@keyframes xpFloat {
+  0%   { opacity: 1; transform: translateY(0); }
+  60%  { opacity: 1; transform: translateY(-36px); }
+  100% { opacity: 0; transform: translateY(-54px); }
+}
+
+@media (max-width: 768px) {
+  .g3-xp-popup {
+    font-size: 1rem;
+    top: 32px;
+    right: 10px;
+  }
+}

@@ -176,6 +176,18 @@ export default function GamePage() {
   const [tierUpNotification, setTierUpNotification] = useState<string | null>(null);
   const tierUpTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // XP popup state
+  const [xpPopup, setXpPopup] = useState<{ text: string; key: number } | null>(null);
+  const xpPopupTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const triggerXpPopup = useCallback((amount: number) => {
+    if (amount === 0) return;
+    const sign = amount > 0 ? "+" : "";
+    setXpPopup({ text: `${sign}${amount} XP`, key: Date.now() });
+    if (xpPopupTimer.current) clearTimeout(xpPopupTimer.current);
+    xpPopupTimer.current = setTimeout(() => setXpPopup(null), 1600);
+  }, []);
+
   // Game clock (extracted to useGameClock hook)
   const { gameTime, isClosingSoon, minutesUntilClose, closeCountdownLabel, maxNpcs } = useGameClock({
     started,
@@ -245,6 +257,7 @@ export default function GamePage() {
     showQuestNotif,
     setPropsCount,
     setOverlay,
+    triggerXpPopup,
   });
 
   // Wire up the overlay close callback (needs rpgDialogue from useDialogue)
@@ -286,6 +299,7 @@ export default function GamePage() {
           if (allDone) {
             const tierResult = completeQuest(quest.id);
             handleTierUp(tierResult);
+            triggerXpPopup(quest.reward.xp);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -296,7 +310,7 @@ export default function GamePage() {
         }
       }
     }
-  }, [showQuestNotif, handleTierUp]);
+  }, [showQuestNotif, handleTierUp, triggerXpPopup]);
 
   const trackQuestMoviePickup = useCallback((movieTitle: string, movieGenre: string) => {
     const active = getActiveQuests();
@@ -310,6 +324,7 @@ export default function GamePage() {
           if (allDone) {
             const tierResult = completeQuest(quest.id);
             handleTierUp(tierResult);
+            triggerXpPopup(quest.reward.xp);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -324,6 +339,7 @@ export default function GamePage() {
           if (allDone) {
             const tierResult = completeQuest(quest.id);
             handleTierUp(tierResult);
+            triggerXpPopup(quest.reward.xp);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -334,7 +350,7 @@ export default function GamePage() {
         }
       }
     }
-  }, [showQuestNotif, handleTierUp]);
+  }, [showQuestNotif, handleTierUp, triggerXpPopup]);
 
   const trackQuestNpcTalk = useCallback((npcName: string) => {
     const active = getActiveQuests();
@@ -346,6 +362,7 @@ export default function GamePage() {
           if (allDone) {
             const tierResult = completeQuest(quest.id);
             handleTierUp(tierResult);
+            triggerXpPopup(quest.reward.xp);
             setPropsCount(getPropsCount());
             showQuestNotif(`Quest Complete: ${quest.title}!`);
             if (quest.reward.propId) {
@@ -356,7 +373,7 @@ export default function GamePage() {
         }
       }
     }
-  }, [showQuestNotif, handleTierUp]);
+  }, [showQuestNotif, handleTierUp, triggerXpPopup]);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
@@ -627,6 +644,7 @@ export default function GamePage() {
             if (allDone) {
               const tierResult = completeQuest(q.id);
               handleTierUp(tierResult);
+              triggerXpPopup(q.reward.xp);
               setPropsCount(getPropsCount());
               showQuestNotif(`Side Quest Complete: ${q.title}! +${q.reward.xp} XP`);
               playSFX("challenge_complete");
@@ -731,6 +749,7 @@ export default function GamePage() {
             if (allDone) {
               const tierResult = completeQuest(q.id);
               handleTierUp(tierResult);
+              triggerXpPopup(q.reward.xp);
               setPropsCount(getPropsCount());
               showQuestNotif(`Side Quest Complete: ${q.title}! +${q.reward.xp} XP`);
               playSFX("challenge_complete");
@@ -1015,7 +1034,7 @@ export default function GamePage() {
             <p style={{ color: '#888', fontSize: '0.45rem', marginBottom: 20, fontFamily: 'var(--font-pixel, monospace)' }}>What year is it tonight?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {ERA_OPTIONS.map(opt => (
-                <button key={opt.id} onClick={() => { setEra(opt.id); if (!localStorage.getItem('fnv_has_visited')) { setShowTutorial(true); } setEraChosen(true); }}
+                <button key={opt.id} onClick={() => { setEra(opt.id); if (!localStorage.getItem('fnv_has_visited')) { setShowTutorial(true); } else { const xp = getTotalXP(); const tier = getMembershipTier(); addNotification(`WELCOME BACK — ${tier.name} Member | ${xp} XP`); } setEraChosen(true); }}
                   style={{
                     padding: '12px 16px', fontSize: '0.5rem', fontFamily: 'var(--font-pixel, monospace)',
                     border: '3px solid #ffd700', background: 'transparent', color: '#ffd700',
@@ -1311,6 +1330,11 @@ export default function GamePage() {
           <button className="g3-screenshot-btn" onClick={toggleMute} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
         </div>
       </div>
+
+      {/* Floating XP popup */}
+      {xpPopup && (
+        <div key={xpPopup.key} className="g3-xp-popup">{xpPopup.text}</div>
+      )}
 
       {!hasOverlay && !topDown && (
         <div className="g3-status-card">
