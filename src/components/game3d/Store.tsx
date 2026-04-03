@@ -9,7 +9,7 @@ import { hasProp, PROPS } from "@/lib/game-state";
 import { playSFX } from "@/lib/audio";
 import { getObjectById } from "@/lib/store-layout";
 import { LayoutDrivenPrefabs } from "./prefabs";
-import { DumpsterProp, FireHydrantProp, MailboxProp, StreetSignProp, NeonSignProp, AisleSignProp, AISLE_SIGNS, AisleFloorMarkings, FloorRugProp, PizzaPalace, Laundromat, CeilingFixtures } from "./props";
+import { NeonSignProp, AisleSignProp, AISLE_SIGNS, AisleFloorMarkings, FloorRugProp, PizzaPalace, Laundromat, CeilingFixtures, ExteriorEnvironment } from "./props";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
@@ -294,118 +294,22 @@ export function Store({
       <LayoutDrivenPrefabs />
       <RecentReturnsStack movies={recentReturnMovies} />
 
-      {/* Neon accent strips (removed — looked like weird colored bars) */}
-
-      {/* ── EXTERIOR ── */}
-      {/* Sky dome (hidden in top-down) */}
-      {!topDown && <>
-      {[{ pos: [0, 10, -30] as [number,number,number], rot: [0, 0, 0] as [number,number,number] },{ pos: [0, 10, 35] as [number,number,number], rot: [0, Math.PI, 0] as [number,number,number] },{ pos: [-35, 10, 0] as [number,number,number], rot: [0, Math.PI / 2, 0] as [number,number,number] },{ pos: [35, 10, 0] as [number,number,number], rot: [0, -Math.PI / 2, 0] as [number,number,number] }].map((sky, i) => (<mesh key={`sky-${i}`} position={sky.pos} rotation={sky.rot}><planeGeometry args={[80, 30]} /><meshBasicMaterial color="#1a2a48" /></mesh>))}
-      <mesh position={[0, 22, 0]} rotation={[Math.PI / 2, 0, 0]}><planeGeometry args={[80, 80]} /><meshBasicMaterial color="#1a2a48" /></mesh>
-      {Array.from({ length: 15 }).map((_, i) => (<mesh key={`star-${i}`} position={[(Math.sin(i * 7.3) * 25), 5 + Math.abs(Math.sin(i * 3.7)) * 12, 34]} rotation={[0, Math.PI, 0]}><circleGeometry args={[0.06, 4]} /><meshBasicMaterial color="#ffffff" /></mesh>))}
-      <mesh position={[12, 14, 34]} rotation={[0, Math.PI, 0]}><circleGeometry args={[1.0, 16]} /><meshBasicMaterial color="#d8dce8" /></mesh>
-      <mesh position={[12.3, 14.2, 33.9]} rotation={[0, Math.PI, 0]}><circleGeometry args={[0.7, 16]} /><meshBasicMaterial color="#c0c4d0" /></mesh>
-      </>}
-
-      {/* Parking lot — full strip mall width (Pizza Palace to Laundromat) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, ROOM_D / 2 + 5]}><planeGeometry args={[36, 14]} /><meshBasicMaterial color="#2a2a40" /></mesh>
-      {/* Sidewalk — runs full length in front of all three businesses */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, ROOM_D / 2 + 0.8]}><planeGeometry args={[36, 1.5]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
-      {/* Curb edge */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, ROOM_D / 2 + 0.5]}><planeGeometry args={[36, 1.5]} /><meshBasicMaterial color="#2a2520" /></mesh>
-      {/* Parking lines — spread across full lot */}
-      {[-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
-
-      {/* ── EXTERIOR NIGHTTIME LIGHTING (6 of 6 budget) ── */}
-      {/* 1. Storefront light spill — warm light above windows casting onto sidewalk */}
-      <pointLight position={[0, 3.2, ROOM_D / 2 + 1.2]} intensity={0.7} distance={10} color="#ffe0a0" />
-      {/* 2. FNV neon sign glow — gold light spilling down from main sign onto sidewalk */}
-      <pointLight position={[0, 2.0, ROOM_D / 2 + 0.8]} intensity={0.5} distance={6} color="#ffd700" />
-      {/* 3. Lamp post light (center, lamp-2) — warm yellow casting down onto mid parking lot */}
-      <pointLight position={[1.18, 3.0, 18.41]} intensity={0.8} distance={8} color="#ffe4a0" />
-      {/* 4. Lamp post light (left, lamp-1) — warm yellow casting down onto left parking area */}
-      <pointLight position={[-5.94, 3.0, 18.2]} intensity={0.8} distance={8} color="#ffe4a0" />
-      {/* 5. Car headlight accent — subtle warm glow near parked van simulating headlights-on */}
-      <pointLight position={[-4.76, 0.6, 11.5]} intensity={0.3} distance={4} color="#fff8e0" />
-      {/* 6. Cool blue entrance spill — nighttime exterior light bleeding into store entrance */}
-      <pointLight position={[0, 2, ROOM_D / 2]} intensity={0.15} distance={8} color="#2244aa" />
+      {/* ── EXTERIOR (sky, parking, roads, streets, collision walls) ── */}
+      <ExteriorEnvironment topDown={topDown} />
 
       {/* Fascia + signage (hidden in top-down) */}
       {!topDown && <>
       <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.22]}><boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
-
-      {/* Roof line */}
       <mesh position={[0, ROOM_H + 1.2, ROOM_D / 2 - 0.12]}><boxGeometry args={[ROOM_W + 12, 0.15, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>
       <mesh position={[0, ROOM_H + 1.1, ROOM_D / 2 + 0.27]}><boxGeometry args={[ROOM_W + 12.2, 0.08, 0.05]} /><meshBasicMaterial color="#444450" /></mesh>
       <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
       </>}
 
       <PizzaPalace />
-
       <Laundromat />
 
-      {/* Apartment above laundromat — physically in the world */}
+      {/* Apartment above laundromat */}
       <Apartment />
-
-      {/* Curb */}
-      <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}><boxGeometry args={[36, 0.1, 0.15]} /><meshBasicMaterial color="#555555" /></mesh>
-
-      {/* Road — full width */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, ROOM_D / 2 + 13]}><planeGeometry args={[40, 6]} /><meshBasicMaterial color="#111116" /></mesh>
-      {[-12, -8, -4, 0, 4, 8, 12].map((dx, i) => (<mesh key={`roadline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[dx, -0.055, ROOM_D / 2 + 13]}><planeGeometry args={[1.5, 0.08]} /><meshBasicMaterial color="#555533" /></mesh>))}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 13.05]}><planeGeometry args={[40, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 12.9]}><planeGeometry args={[40, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
-
-      {/* ── LEFT SIDE STREET (beyond Pizza Palace, x < -16) ── */}
-      {/* Road surface */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-18, -0.06, 5]}><planeGeometry args={[4, 30]} /><meshBasicMaterial color="#111116" /></mesh>
-      {/* Yellow center line */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-18, -0.054, 5]}><planeGeometry args={[0.06, 30]} /><meshBasicMaterial color="#ccaa22" /></mesh>
-      {/* Sidewalk on near side (between Pizza Palace wall and road) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-16.4, -0.04, 5]}><planeGeometry args={[0.8, 30]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
-      {/* Curb */}
-      <mesh position={[-16.8, 0.05, 5]}><boxGeometry args={[0.15, 0.1, 30]} /><meshBasicMaterial color="#555555" /></mesh>
-      {/* Building facade on far side (x=-20) — flat boxes to close world edge */}
-      <mesh position={[-19.9, 1.75, 2]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#5a4a3a" /></mesh>
-      <mesh position={[-19.9, 1.75, 12]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#6a5a4a" /></mesh>
-      {/* Facade roof trim */}
-      <mesh position={[-19.85, 3.6, 7]}><boxGeometry args={[0.3, 0.2, 24]} /><meshBasicMaterial color="#3a3a3a" /></mesh>
-      {/* Facade windows (dark recesses) */}
-      {[-1, 3, 7, 11, 15].map((dz, i) => (
-        <mesh key={`lfacade-win-${i}`} position={[-19.84, 2.0, dz]}><boxGeometry args={[0.05, 1.0, 1.2]} /><meshBasicMaterial color="#1a1a2a" /></mesh>
-      ))}
-      {/* Dumpster */}
-      <DumpsterProp position={[-17.5, 0, -2]} />
-      {/* Fire hydrant */}
-      <FireHydrantProp position={[-16.5, 0, 10]} />
-
-      {/* ── RIGHT SIDE STREET (beyond Laundromat, x > 16) ── */}
-      {/* Road surface */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[18, -0.06, 5]}><planeGeometry args={[4, 30]} /><meshBasicMaterial color="#111116" /></mesh>
-      {/* Yellow center line */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[18, -0.054, 5]}><planeGeometry args={[0.06, 30]} /><meshBasicMaterial color="#ccaa22" /></mesh>
-      {/* Sidewalk on near side (between Laundromat wall and road) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[16.4, -0.04, 5]}><planeGeometry args={[0.8, 30]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
-      {/* Curb */}
-      <mesh position={[16.8, 0.05, 5]}><boxGeometry args={[0.15, 0.1, 30]} /><meshBasicMaterial color="#555555" /></mesh>
-      {/* Building facade on far side (x=+20) — flat boxes to close world edge */}
-      <mesh position={[19.9, 1.75, 2]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#5a4a3a" /></mesh>
-      <mesh position={[19.9, 1.75, 12]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#4a4a5a" /></mesh>
-      {/* Facade roof trim */}
-      <mesh position={[19.85, 3.6, 7]}><boxGeometry args={[0.3, 0.2, 24]} /><meshBasicMaterial color="#3a3a3a" /></mesh>
-      {/* Facade windows (dark recesses) */}
-      {[-1, 3, 7, 11, 15].map((dz, i) => (
-        <mesh key={`rfacade-win-${i}`} position={[19.84, 2.0, dz]}><boxGeometry args={[0.05, 1.0, 1.2]} /><meshBasicMaterial color="#1a1a2a" /></mesh>
-      ))}
-      {/* Mailbox */}
-      <MailboxProp position={[16.5, 0, 10]} />
-      {/* Street sign */}
-      <StreetSignProp position={[17.0, 0, 14]} label="OAK ST" showText={!topDown} />
-
-      {/* ── INVISIBLE COLLISION WALLS at world edges ── */}
-      {/* Left world edge wall (x=-20) */}
-      <mesh position={[-20, 1.5, 5]} visible={false}><boxGeometry args={[0.2, 4, 40]} /><meshBasicMaterial transparent opacity={0} /></mesh>
-      {/* Right world edge wall (x=+20) */}
-      <mesh position={[20, 1.5, 5]} visible={false}><boxGeometry args={[0.2, 4, 40]} /><meshBasicMaterial transparent opacity={0} /></mesh>
 
       {/* Storefront windows + doors + awning — WALL_COLOR panels merged into MergedArchitecture */}
       {/* Upper wall band above windows — from door frame (±1.7) to near side walls (±9.7) */}

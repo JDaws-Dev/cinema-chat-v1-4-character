@@ -11,6 +11,7 @@ export { FloorRugProp } from "./FloorRugProp";
 export { PizzaPalace } from "./PizzaPalace";
 export { Laundromat } from "./Laundromat";
 export { CeilingFixtures } from "./CeilingFixtures";
+export { ExteriorEnvironment } from "./ExteriorEnvironment";
 
 /* ─────────────────────────────────────────────
  * Reusable low-poly street / exterior props.
