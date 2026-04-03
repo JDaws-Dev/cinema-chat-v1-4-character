@@ -209,6 +209,7 @@ function BuildingRoof() {
 }
 
 // ── Exterior Stairs with balusters and ground landing ──
+// Stairs go from ground level (high z, toward parking) UP to the apartment door (z~1.15)
 function ExteriorStairs() {
   const stairCount = 10;
   const stairW = 1.1;
@@ -218,117 +219,87 @@ function ExteriorStairs() {
   const halfW = APT_W / 2;
   const stairBaseY = -APT_Y;
 
+  // Stairs positioned on right side, going from parking lot (high z) up to door (z~1.15)
   return (
-    <group position={[halfW + WALL_T + 0.7, 0, 1.5]}>
-      {/* Ground-level landing platform */}
-      <mesh position={[0, stairBaseY + 0.06, stairD / 2 + 0.2]}>
+    <group position={[halfW + WALL_T + 0.7, 0, 1.15]}>
+      {/* Ground-level landing platform (bottom of stairs, toward parking) */}
+      <mesh position={[0, stairBaseY + 0.06, stairD * stairCount + 0.4]}>
         <boxGeometry args={[stairW + 0.3, 0.12, 0.8]} />
         <Mat color={STAIR_COLOR} />
       </mesh>
 
-      {/* Stair steps */}
+      {/* Stair steps — going from high z (ground) to low z (door) as they rise */}
       {Array.from({ length: stairCount }).map((_, i) => (
-        <mesh key={`stair-${i}`} position={[0, stairBaseY + stairH * i + stairH / 2, -stairD * i]}>
+        <mesh key={`stair-${i}`} position={[0, stairBaseY + stairH * i + stairH / 2, stairD * (stairCount - i)]}>
           <boxGeometry args={[stairW, stairH, stairD]} />
           <Mat color={STAIR_COLOR} />
         </mesh>
       ))}
 
-      {/* Stair stringer (left) */}
-      <mesh position={[-stairW / 2 - 0.04, stairBaseY + totalRise / 2, -stairD * stairCount / 2]}
-            rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
-        <boxGeometry args={[0.06, Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount)) + 0.2, 0.15]} />
-        <Mat color="#666666" />
-      </mesh>
-      {/* Stair stringer (right) */}
-      <mesh position={[stairW / 2 + 0.04, stairBaseY + totalRise / 2, -stairD * stairCount / 2]}
-            rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
-        <boxGeometry args={[0.06, Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount)) + 0.2, 0.15]} />
-        <Mat color="#666666" />
-      </mesh>
+      {/* Stair stringers (angled supports on left and right) */}
+      {[-1, 1].map((side) => (
+        <mesh key={`stringer-${side}`}
+              position={[side * (stairW / 2 + 0.04), stairBaseY + totalRise / 2, stairD * stairCount / 2]}
+              rotation={[-Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
+          <boxGeometry args={[0.06, Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount)) + 0.2, 0.15]} />
+          <Mat color="#666666" />
+        </mesh>
+      ))}
 
-      {/* Railing — left side */}
-      <group>
-        <mesh position={[-stairW / 2 - 0.06, stairBaseY + 0.55, 0.3]}>
-          <boxGeometry args={[0.05, 1.1, 0.05]} />
-          <Mat color={RAIL_COLOR} />
-        </mesh>
-        <mesh position={[-stairW / 2 - 0.06, -0.45, -stairD * (stairCount - 1)]}>
-          <boxGeometry args={[0.05, 1.1, 0.05]} />
-          <Mat color={RAIL_COLOR} />
-        </mesh>
-        {(() => {
-          const railLen = Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount));
-          return (
-            <mesh position={[-stairW / 2 - 0.06, stairBaseY + totalRise / 2 + 0.55, -stairD * stairCount / 2 + 0.15]}
-                  rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
+      {/* Railings — both sides */}
+      {[-1, 1].map((side) => {
+        const railX = side * (stairW / 2 + 0.06);
+        const railLen = Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount));
+        return (
+          <group key={`rail-${side}`}>
+            {/* Bottom post */}
+            <mesh position={[railX, stairBaseY + 0.55, stairD * stairCount + 0.2]}>
+              <boxGeometry args={[0.05, 1.1, 0.05]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+            {/* Top post */}
+            <mesh position={[railX, -0.45, stairD * 0.5]}>
+              <boxGeometry args={[0.05, 1.1, 0.05]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+            {/* Angled rail bar */}
+            <mesh position={[railX, stairBaseY + totalRise / 2 + 0.55, stairD * stairCount / 2 + 0.15]}
+                  rotation={[-Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
               <boxGeometry args={[0.04, railLen, 0.04]} />
               <Mat color={RAIL_COLOR} />
             </mesh>
-          );
-        })()}
-        {Array.from({ length: Math.floor(stairCount / 1.5) }).map((_, i) => {
-          const t = (i + 0.5) / Math.floor(stairCount / 1.5);
-          const by = stairBaseY + t * totalRise;
-          const bz = -t * stairD * stairCount + 0.15;
-          return (
-            <mesh key={`bal-l-${i}`} position={[-stairW / 2 - 0.06, by + 0.35, bz]}>
-              <boxGeometry args={[0.02, 0.7, 0.02]} />
-              <Mat color={RAIL_COLOR} />
-            </mesh>
-          );
-        })}
-      </group>
+            {/* Balusters */}
+            {Array.from({ length: Math.floor(stairCount / 1.5) }).map((_, i) => {
+              const t = (i + 0.5) / Math.floor(stairCount / 1.5);
+              const by = stairBaseY + t * totalRise;
+              const bz = stairD * stairCount * (1 - t) + 0.15;
+              return (
+                <mesh key={`bal-${side}-${i}`} position={[railX, by + 0.35, bz]}>
+                  <boxGeometry args={[0.02, 0.7, 0.02]} />
+                  <Mat color={RAIL_COLOR} />
+                </mesh>
+              );
+            })}
+          </group>
+        );
+      })}
 
-      {/* Railing — right side */}
-      <group>
-        <mesh position={[stairW / 2 + 0.06, stairBaseY + 0.55, 0.3]}>
-          <boxGeometry args={[0.05, 1.1, 0.05]} />
-          <Mat color={RAIL_COLOR} />
-        </mesh>
-        <mesh position={[stairW / 2 + 0.06, -0.45, -stairD * (stairCount - 1)]}>
-          <boxGeometry args={[0.05, 1.1, 0.05]} />
-          <Mat color={RAIL_COLOR} />
-        </mesh>
-        {(() => {
-          const railLen = Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount));
-          return (
-            <mesh position={[stairW / 2 + 0.06, stairBaseY + totalRise / 2 + 0.55, -stairD * stairCount / 2 + 0.15]}
-                  rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
-              <boxGeometry args={[0.04, railLen, 0.04]} />
-              <Mat color={RAIL_COLOR} />
-            </mesh>
-          );
-        })()}
-        {Array.from({ length: Math.floor(stairCount / 1.5) }).map((_, i) => {
-          const t = (i + 0.5) / Math.floor(stairCount / 1.5);
-          const by = stairBaseY + t * totalRise;
-          const bz = -t * stairD * stairCount + 0.15;
-          return (
-            <mesh key={`bal-r-${i}`} position={[stairW / 2 + 0.06, by + 0.35, bz]}>
-              <boxGeometry args={[0.02, 0.7, 0.02]} />
-              <Mat color={RAIL_COLOR} />
-            </mesh>
-          );
-        })}
-      </group>
-
-      {/* Top landing platform */}
-      <mesh position={[0, -0.06, -stairD * stairCount - 0.3]}>
-        <boxGeometry args={[stairW + 0.4, 0.12, 1.0]} />
+      {/* Top landing platform (at apartment door level, z near 0) */}
+      <mesh position={[0, -0.06, 0]}>
+        <boxGeometry args={[stairW + 0.4, 0.12, 1.2]} />
         <Mat color={STAIR_COLOR} />
       </mesh>
-      {/* Landing railing (front edge) */}
-      <mesh position={[0, 0.45, -stairD * stairCount - 0.75]}>
+      {/* Landing railing (outer edge, facing parking) */}
+      <mesh position={[0, 0.45, 0.5]}>
         <boxGeometry args={[stairW + 0.4, 0.04, 0.04]} />
         <Mat color={RAIL_COLOR} />
       </mesh>
       {/* Landing railing posts */}
-      <mesh position={[-stairW / 2 - 0.15, 0.25, -stairD * stairCount - 0.75]}>
+      <mesh position={[-stairW / 2 - 0.15, 0.25, 0.5]}>
         <boxGeometry args={[0.05, 0.7, 0.05]} />
         <Mat color={RAIL_COLOR} />
       </mesh>
-      <mesh position={[stairW / 2 + 0.15, 0.25, -stairD * stairCount - 0.75]}>
+      <mesh position={[stairW / 2 + 0.15, 0.25, 0.5]}>
         <boxGeometry args={[0.05, 0.7, 0.05]} />
         <Mat color={RAIL_COLOR} />
       </mesh>

@@ -13,6 +13,7 @@ import { TrophyOverlay } from "@/components/game/overlays/TrophyOverlay";
 import { QuizOverlay } from "@/components/game/overlays/QuizOverlay";
 import { ShelfOverlay, type ShelfBrowseState } from "@/components/game/overlays/ShelfOverlay";
 import { RpgDialogueOverlay } from "@/components/game/overlays/RpgDialogueOverlay";
+import { DialogueBox } from "@/components/game3d/DialogueOverlay";
 import { EraSelectorOverlay } from "@/components/game/overlays/EraSelectorOverlay";
 import { TutorialOverlay } from "@/components/game/overlays/TutorialOverlay";
 import { DialogueOverlay as VinnyDialogueOverlay } from "@/components/game/overlays/DialogueOverlay";
