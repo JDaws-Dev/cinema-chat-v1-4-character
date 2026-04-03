@@ -350,6 +350,11 @@ function LampPostPrefab({ obj }: { obj: ResolvedLayoutObject }) {
         <boxGeometry args={[0.3, 0.08, 0.15]} />
         <meshBasicMaterial color="#555" />
       </mesh>
+      {/* Lamp bulb glow */}
+      <mesh position={[0, 3.0, 0]}>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshBasicMaterial color="#ffe4a0" />
+      </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
         <circleGeometry args={[1.5, 12]} />
         <meshBasicMaterial color="#332a15" transparent opacity={0.3} />

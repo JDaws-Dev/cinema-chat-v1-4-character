@@ -6,7 +6,8 @@ import * as THREE from "three";
 import type { LayoutInteraction } from "@/lib/store-layout";
 import { getObjectById } from "@/lib/store-layout";
 import { ROOM_D, ROOM_W, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
-import { Mat, toonGradientTexture, PosterBox, usePosterUrls, getOrCreatePosterTexture } from "./store-materials";
+import { Mat, PosterBox, usePosterUrls, getOrCreatePosterTexture } from "./store-materials";
+import { InstancedVHSBoxes as InstancedVHSBoxesNew, SharedVHSBox, type VHSInstanceConfig } from "./InstancedVHSBoxes";
 
 export { SHELF_ROWS };
 
@@ -25,28 +26,13 @@ function buildInteractionUserData(
   };
 }
 
-/** Instanced fallback VHS boxes — one draw call for all solid-colored boxes on a side */
+/** @deprecated Use InstancedVHSBoxes from ./InstancedVHSBoxes.tsx instead */
 export function InstancedVHSBoxes({ positions, color }: { positions: [number, number, number][]; color: string }) {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
-
-  useEffect(() => {
-    if (!meshRef.current || positions.length === 0) return;
-    positions.forEach((pos, i) => {
-      tempMatrix.setPosition(pos[0], pos[1], pos[2]);
-      meshRef.current!.setMatrixAt(i, tempMatrix);
-    });
-    meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [positions, tempMatrix]);
-
-  if (positions.length === 0) return null;
-
-  return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, positions.length]}>
-      <boxGeometry args={[0.15, 0.26, 0.025]} />
-      <meshToonMaterial color={color} gradientMap={toonGradientTexture} />
-    </instancedMesh>
+  const instances: VHSInstanceConfig[] = useMemo(
+    () => positions.map((p) => ({ position: p })),
+    [positions]
   );
+  return <InstancedVHSBoxesNew instances={instances} color={color} />;
 }
 
 export function ShelfUnit({
@@ -281,13 +267,10 @@ export function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: 
         {label}
       </Text>
 
-      {/* Face-out VHS boxes — 3 on top shelf, 3 on bottom */}
+      {/* Face-out VHS boxes — 3 on top shelf, 3 on bottom (shared geometry/material) */}
       {vhsColors.map((color, i) => (
         <group key={`et-${i}`} position={[-0.28 + i * 0.28, 1.1, -0.25]}>
-          <mesh>
-            <boxGeometry args={[0.15, 0.26, 0.025]} />
-            <Mat color={color} roughness={0.6} />
-          </mesh>
+          <SharedVHSBox position={[0, 0, 0]} color={color} />
           {/* White label strip on face */}
           <mesh position={[0, -0.08, -0.051]}>
             <planeGeometry args={[0.14, 0.06]} />
@@ -297,10 +280,7 @@ export function EndcapDisplay({ x, z, rotY, label, vhsColors }: { x: number; z: 
       ))}
       {vhsColors.map((color, i) => (
         <group key={`eb-${i}`} position={[-0.28 + i * 0.28, 0.55, -0.25]}>
-          <mesh>
-            <boxGeometry args={[0.15, 0.26, 0.025]} />
-            <Mat color={color} roughness={0.6} />
-          </mesh>
+          <SharedVHSBox position={[0, 0, 0]} color={color} />
           {/* White label strip on face */}
           <mesh position={[0, -0.08, -0.051]}>
             <planeGeometry args={[0.14, 0.06]} />
@@ -481,10 +461,7 @@ export function NewReleasesWall({
             slotKey={`${shelfId}:copy-${pos.idx}`}
           />
         ) : (
-          <mesh key={pos.idx} position={[pos.x, pos.y, 0.15]}>
-            <boxGeometry args={[0.15, 0.26, 0.025]} />
-            <Mat color="#ec4899" roughness={0.6} />
-          </mesh>
+          <SharedVHSBox key={pos.idx} position={[pos.x, pos.y, 0.15]} color="#ec4899" />
         );
       })}
 

@@ -684,6 +684,10 @@ function hashStr(s: string): number {
 
 // ── NPCManager — the main component ────────────────────────────
 
+/** Module-level active NPC count for DebugOverlay (avoids prop drilling). */
+let _activeNpcCount = 0;
+export function getActiveNpcCount() { return _activeNpcCount; }
+
 export interface NPCManagerHandle {
   startDialogue: (npcId: string) => ActiveNPC | null;
   endDialogue: (npcId: string) => void;
@@ -754,6 +758,9 @@ export function NPCManager({
   }, []);
 
   const npcs = Array.from(stateRef.current.activeNPCs.values());
+
+  // Expose count for DebugOverlay
+  useEffect(() => { _activeNpcCount = npcs.length; }, [npcs.length]);
 
   return (
     <group>

@@ -8,6 +8,7 @@ import { hasProp, PROPS } from "@/lib/game-state";
 import { playSFX } from "@/lib/audio";
 import { getObjectById } from "@/lib/store-layout";
 import { LayoutDrivenPrefabs } from "./prefabs";
+import { DumpsterProp, FireHydrantProp, MailboxProp, StreetSignProp } from "./props";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
@@ -289,6 +290,18 @@ export function Store({
       {/* Parking lines — spread across full lot */}
       {[-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
 
+      {/* ── EXTERIOR NIGHTTIME LIGHTING (5 of 6 budget) ── */}
+      {/* 1. Storefront light spill — warm light above windows casting onto sidewalk */}
+      <pointLight position={[0, 3.2, ROOM_D / 2 + 1.2]} intensity={0.7} distance={10} color="#ffe0a0" />
+      {/* 2. FNV neon sign glow — gold light spilling down from main sign onto sidewalk */}
+      <pointLight position={[0, 2.0, ROOM_D / 2 + 0.8]} intensity={0.5} distance={6} color="#ffd700" />
+      {/* 3. Lamp post light (center, lamp-2) — warm yellow casting down onto mid parking lot */}
+      <pointLight position={[1.18, 3.0, 18.41]} intensity={0.8} distance={8} color="#ffe4a0" />
+      {/* 4. Lamp post light (left, lamp-1) — warm yellow casting down onto left parking area */}
+      <pointLight position={[-5.94, 3.0, 18.2]} intensity={0.8} distance={8} color="#ffe4a0" />
+      {/* 5. Car headlight accent — subtle warm glow near parked van simulating headlights-on */}
+      <pointLight position={[-4.76, 0.6, 11.5]} intensity={0.3} distance={4} color="#fff8e0" />
+
       {/* Fascia + signage (hidden in top-down) */}
       {!topDown && <>
       <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.22]}><boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
@@ -555,11 +568,9 @@ export function Store({
         <mesh key={`lfacade-win-${i}`} position={[-19.84, 2.0, dz]}><boxGeometry args={[0.05, 1.0, 1.2]} /><meshBasicMaterial color="#1a1a2a" /></mesh>
       ))}
       {/* Dumpster */}
-      <mesh position={[-17.5, 0.5, -2]}><boxGeometry args={[1.2, 1.0, 0.8]} /><meshBasicMaterial color="#2a4a2a" /></mesh>
-      <mesh position={[-17.5, 1.05, -2]}><boxGeometry args={[1.3, 0.08, 0.85]} /><meshBasicMaterial color="#1a3a1a" /></mesh>
+      <DumpsterProp position={[-17.5, 0, -2]} />
       {/* Fire hydrant */}
-      <mesh position={[-16.5, 0.25, 10]}><boxGeometry args={[0.25, 0.5, 0.25]} /><meshBasicMaterial color="#cc2222" /></mesh>
-      <mesh position={[-16.5, 0.55, 10]}><boxGeometry args={[0.35, 0.1, 0.3]} /><meshBasicMaterial color="#cc2222" /></mesh>
+      <FireHydrantProp position={[-16.5, 0, 10]} />
 
       {/* ── RIGHT SIDE STREET (beyond Laundromat, x > 16) ── */}
       {/* Road surface */}
@@ -580,12 +591,9 @@ export function Store({
         <mesh key={`rfacade-win-${i}`} position={[19.84, 2.0, dz]}><boxGeometry args={[0.05, 1.0, 1.2]} /><meshBasicMaterial color="#1a1a2a" /></mesh>
       ))}
       {/* Mailbox */}
-      <mesh position={[16.5, 0.5, 10]}><boxGeometry args={[0.35, 1.0, 0.3]} /><meshBasicMaterial color="#2244aa" /></mesh>
-      <mesh position={[16.5, 1.05, 10]}><boxGeometry args={[0.4, 0.08, 0.35]} /><meshBasicMaterial color="#1a3388" /></mesh>
+      <MailboxProp position={[16.5, 0, 10]} />
       {/* Street sign */}
-      <mesh position={[17.0, 1.2, 14]}><boxGeometry args={[0.08, 2.4, 0.08]} /><meshBasicMaterial color="#666666" /></mesh>
-      <mesh position={[17.0, 2.3, 14]}><boxGeometry args={[1.0, 0.25, 0.04]} /><meshBasicMaterial color="#227722" /></mesh>
-      {!topDown && <Text position={[17.0, 2.3, 14.03]} fontSize={0.1} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>OAK ST</Text>}
+      <StreetSignProp position={[17.0, 0, 14]} label="OAK ST" showText={!topDown} />
 
       {/* ── INVISIBLE COLLISION WALLS at world edges ── */}
       {/* Left world edge wall (x=-20) */}

@@ -36,10 +36,11 @@ const CAMERAS = [
   { name: "apt_stairs",   pos: [17.5, 3, 8],     lookAt: [16.5, 4, 5],    fov: 55, label: "Apartment stairs close-up" },
   { name: "building_front",pos: [13, 5, 14],     lookAt: [13, 4, 5.75],   fov: 45, label: "Building front — 2 story view" },
   { name: "building_right",pos: [19, 3, 5.75],   lookAt: [15, 4, 5.75],   fov: 50, label: "Building right side with stairs" },
-  // Apartment — interior views (camera INSIDE the apartment at eye level y=5.6)
-  { name: "apt_interior", pos: [14.5, 5.6, 7.5], lookAt: [12, 5.3, 4],    fov: 70, label: "Apartment interior from door" },
-  { name: "apt_tv",       pos: [13, 5.6, 7],     lookAt: [13, 5.2, 3.25], fov: 55, label: "Apartment TV/VCR area" },
-  { name: "apt_kitchen",  pos: [11, 5.6, 5.75],  lookAt: [15.5, 5.2, 4],  fov: 60, label: "Apartment kitchen corner" },
+  // Apartment — interior views (camera INSIDE at eye level y=5.4)
+  // lookAt targets aimed at mid-height to capture floor furniture + walls
+  { name: "apt_interior", pos: [14.5, 5.4, 7.5], lookAt: [12, 4.6, 4.5],  fov: 75, label: "Apartment interior from door" },
+  { name: "apt_tv",       pos: [13, 5.4, 7.2],   lookAt: [13, 4.5, 3.25], fov: 60, label: "Apartment TV/VCR area" },
+  { name: "apt_kitchen",  pos: [11.5, 5.4, 5.75],lookAt: [14, 4.6, 4.5],  fov: 65, label: "Apartment kitchen corner" },
   { name: "apt_overhead", pos: [13, 8.5, 5.75],  lookAt: [13, 4, 5.75],   fov: 65, label: "Apartment overhead" },
 ];
 

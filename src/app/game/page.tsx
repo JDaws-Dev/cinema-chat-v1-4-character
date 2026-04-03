@@ -52,6 +52,7 @@ const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerso
 const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction").then(m => ({ default: m.InteractionSystem })), { ssr: false });
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
 const Apartment = dynamic(() => import("@/components/game3d/Apartment").then(m => ({ default: m.Apartment })), { ssr: false });
+const DebugOverlay = dynamic(() => import("@/components/game3d/DebugOverlay").then(m => ({ default: m.DebugOverlay })), { ssr: false });
 
 const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
 
@@ -822,6 +823,7 @@ export default function GamePage() {
           {!hasOverlay && !topDown && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
           <PostEffects mobile={isMobile} />
+          <DebugOverlay />
         </Suspense>
       </Canvas>
       </div>
