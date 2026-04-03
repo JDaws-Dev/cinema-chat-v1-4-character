@@ -3440,3 +3440,75 @@
   from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+/* ── Onboarding Tutorial Overlay ─────────────────────────── */
+.g3-tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  animation: tutorialFadeIn 0.3s steps(4) forwards;
+}
+.g3-tutorial-box {
+  border: 3px solid var(--fnv-gold);
+  background: var(--fnv-dark);
+  padding: 32px 36px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  font-family: var(--fnv-font-pixel);
+  box-shadow: 6px 6px 0 rgba(255, 215, 0, 0.15);
+}
+.g3-tutorial-title {
+  color: var(--fnv-gold);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  margin: 0 0 24px 0;
+  text-shadow: 2px 2px 0 #000;
+}
+.g3-tutorial-tips {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px 0;
+  text-align: left;
+}
+.g3-tutorial-tips li {
+  color: var(--fnv-text);
+  font-size: 0.5rem;
+  padding: 8px 0 8px 20px;
+  position: relative;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+.g3-tutorial-tips li:last-child {
+  border-bottom: none;
+}
+.g3-tutorial-tips li::before {
+  content: ">";
+  position: absolute;
+  left: 0;
+  color: var(--fnv-gold);
+  font-weight: bold;
+}
+.g3-tutorial-btn {
+  font-family: var(--fnv-font-pixel);
+  font-size: 0.6rem;
+  padding: 12px 32px;
+  background: transparent;
+  color: var(--fnv-gold);
+  border: 3px solid var(--fnv-gold);
+  cursor: pointer;
+  letter-spacing: 0.15em;
+  transition: all 0.1s steps(2);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+}
+.g3-tutorial-btn:hover {
+  background: var(--fnv-gold);
+  color: var(--fnv-dark);
+}
+@keyframes tutorialFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

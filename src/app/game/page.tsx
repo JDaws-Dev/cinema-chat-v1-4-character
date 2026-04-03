@@ -17,7 +17,7 @@ import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
 import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, setMuted, isMuted, setMusicMuted, isMusicMuted, VINNY_LINES, unlockAudio, setCurrentEra, playNpcLine } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, VINNY_LINES, unlockAudio, setCurrentEra, playNpcLine } from "@/lib/audio";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
@@ -27,6 +27,8 @@ import { analyzeSentiment, getXPDelta, updateNpcRapport, isNpcHostile } from "@/
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 import { STORE_LAYOUT } from "@/lib/store-layout";
 import { useGameClock, formatGameTime, type ClosingAnnouncement } from "@/hooks/useGameClock";
+import { useAudioUI } from "@/hooks/useAudioUI";
+import { useInventory, type HeldMovie, type HeldSnack } from "@/hooks/useInventory";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -59,6 +61,7 @@ export default function GamePage() {
   const [isMobile, setIsMobile] = useState(false);
   const [era, setEra] = useState<string>("early90s");
   const [eraChosen, setEraChosen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const ERA_OPTIONS = [
     { id: "late80s", label: "Late 80s", years: "1987-1989", displayYear: "1989" },
     { id: "early90s", label: "Early 90s", years: "1990-1993", displayYear: "1992" },
@@ -106,18 +109,18 @@ export default function GamePage() {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [hintText, setHintText] = useState<string | null>(null);
 
-  // VHS pickup inventory (multiple films)
-  type HeldMovie = { id: number; title: string; posterUrl: string; genre: string; slotKey?: string };
-  const [heldMovies, setHeldMovies] = useState<HeldMovie[]>([]);
-  const [pendingPickup, setPendingPickup] = useState<{ id: number; title: string; posterUrl: string; slotKey?: string } | null>(null);
-  const [spawnedMissingSlotKeys, setSpawnedMissingSlotKeys] = useState<string[]>([]);
-  const [recentReturns, setRecentReturns] = useState<HeldMovie[]>([]);
-  // Snack inventory (separate from movies)
-  type HeldSnack = { name: string; emoji: string };
-  const [heldSnacks, setHeldSnacks] = useState<HeldSnack[]>([]);
+  // VHS pickup inventory (movies, snacks, pickup flash)
+  const {
+    heldMovies, setHeldMovies,
+    heldSnacks, setHeldSnacks,
+    pendingPickup, setPendingPickup,
+    spawnedMissingSlotKeys,
+    recentReturns, setRecentReturns,
+    pickupFlash, setPickupFlash,
+    pickupTitle, setPickupTitle,
+    removeHeldMovie,
+  } = useInventory({ eraYears: selectedEra.years });
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
-  const [pickupFlash, setPickupFlash] = useState(false);
-  const [pickupTitle, setPickupTitle] = useState<string | null>(null);
 
   // Movie Night Challenge state
   type ChallengeMovie = { title: string; genre: string };
@@ -133,11 +136,8 @@ export default function GamePage() {
   const [mysteryHintsUsed, setMysteryHintsUsed] = useState(0);
   const [mysteryWrongMsg, setMysteryWrongMsg] = useState<string | null>(null);
 
-  // Audio state
-  const [audioMuted, setAudioMuted] = useState(false);
-  const [musicOff, setMusicOff] = useState(false);
-  const [subtitle, setSubtitle] = useState<string | null>(null);
-  const subtitleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Audio UI (mute, subtitle, music toggle)
+  const { audioMuted, musicOff, setMusicOff, subtitle, setSubtitle, toggleMute } = useAudioUI();
 
   // RPG dialogue state
   const [rpgDialogue, setRpgDialogue] = useState<DialogueTree | null>(null);
@@ -195,51 +195,6 @@ export default function GamePage() {
     });
   }, [isMobile, topDown]);
 
-  const removeHeldMovie = useCallback((movieId: number) => {
-    setHeldMovies((prev) => {
-      const removeIndex = prev.findIndex((movie) => movie.id === movieId);
-      if (removeIndex === -1) return prev;
-      const [removed] = prev.slice(removeIndex, removeIndex + 1);
-      if (removed?.slotKey && spawnedMissingSlotKeys.includes(removed.slotKey)) {
-        setRecentReturns((existing) => existing.some((movie) => movie.slotKey === removed.slotKey) ? existing : [removed, ...existing].slice(0, 8));
-      }
-      return prev.filter((_, index) => index !== removeIndex);
-    });
-  }, [spawnedMissingSlotKeys]);
-
-  useEffect(() => {
-    const eraId = getEraIdFromYears(selectedEra.years);
-    const gondolaCandidates = STORE_LAYOUT.objects.flatMap((obj) => {
-      if (obj.prefab !== "shelf/gondola") return [];
-      const frontGenre = typeof obj.meta?.genre === "string" ? obj.meta.genre : null;
-      const backGenre = typeof obj.meta?.backGenre === "string" ? obj.meta.backGenre : null;
-      const frontMovies = frontGenre
-        ? getCuratedShelfPosterData(frontGenre, eraId, `${obj.id}:front`, 18).map((movie, index) => ({
-            id: movie.id,
-            title: movie.title,
-            posterUrl: movie.url,
-            genre: frontGenre,
-            slotKey: `${obj.id}:front:${index}`,
-          }))
-        : [];
-      const backMovies = backGenre
-        ? getCuratedShelfPosterData(backGenre, eraId, `${obj.id}:back`, 18).map((movie, index) => ({
-            id: movie.id,
-            title: movie.title,
-            posterUrl: movie.url,
-            genre: backGenre,
-            slotKey: `${obj.id}:back:${index}`,
-          }))
-        : [];
-      return [...frontMovies, ...backMovies];
-    }).filter((movie) => movie.posterUrl);
-
-    const shuffled = [...gondolaCandidates].sort(() => Math.random() - 0.5);
-    const picked = shuffled.slice(0, 8);
-    setSpawnedMissingSlotKeys(picked.flatMap((movie) => movie.slotKey ? [movie.slotKey] : []));
-    setRecentReturns(picked.slice(0, 4));
-  }, [selectedEra.years]);
-
   // Side quest state (uses existing showQuestNotif for notifications)
 
   // Quest system state
@@ -263,16 +218,11 @@ export default function GamePage() {
     }, []),
   });
 
-  // Load props count + tier on mount + wire subtitle handler + start NPC chatter
+  // Load props count + tier on mount
   useEffect(() => {
     setPropsCount(getPropsCount());
     setTotalXP(getTotalXP());
     setCurrentTier(getMembershipTier());
-    setSubtitleHandler((text, duration) => {
-      setSubtitle(text);
-      if (subtitleTimer.current) clearTimeout(subtitleTimer.current);
-      subtitleTimer.current = setTimeout(() => setSubtitle(null), duration);
-    });
   }, []);
 
   // Update challenge timer every second + check speed run timeout
@@ -1189,7 +1139,7 @@ export default function GamePage() {
             <p style={{ color: '#888', fontSize: '0.45rem', marginBottom: 20, fontFamily: 'var(--font-pixel, monospace)' }}>What year is it tonight?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {ERA_OPTIONS.map(opt => (
-                <button key={opt.id} onClick={() => { setEra(opt.id); setEraChosen(true); }}
+                <button key={opt.id} onClick={() => { setEra(opt.id); if (!localStorage.getItem('fnv_has_visited')) { setShowTutorial(true); } setEraChosen(true); }}
                   style={{
                     padding: '12px 16px', fontSize: '0.5rem', fontFamily: 'var(--font-pixel, monospace)',
                     border: '3px solid #ffd700', background: 'transparent', color: '#ffd700',
@@ -1200,6 +1150,24 @@ export default function GamePage() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Onboarding tutorial — first visit only */}
+      {showTutorial && (
+        <div className="g3-tutorial-overlay">
+          <div className="g3-tutorial-box">
+            <h2 className="g3-tutorial-title">WELCOME TO FRIDAY NIGHT VIDEO</h2>
+            <ul className="g3-tutorial-tips">
+              <li>Walk into the store and browse the shelves</li>
+              <li>Pick up movies and bring them to Vinny at the counter</li>
+              <li>Talk to customers &mdash; they might need your help</li>
+              <li>Have fun &mdash; it&apos;s Friday night!</li>
+            </ul>
+            <button className="g3-tutorial-btn" onClick={() => { localStorage.setItem('fnv_has_visited', '1'); setShowTutorial(false); }}>
+              GOT IT
+            </button>
           </div>
         </div>
       )}
@@ -1464,7 +1432,7 @@ export default function GamePage() {
             </div>
             <span className="g3-tier-badge-xp">{totalXP}XP</span>
           </div>
-          <button className="g3-screenshot-btn" onClick={() => { setAudioMuted(m => { const next = !m; setMuted(next); setMusicMuted(next); return next; }); }} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
+          <button className="g3-screenshot-btn" onClick={toggleMute} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
         </div>
       </div>
 
