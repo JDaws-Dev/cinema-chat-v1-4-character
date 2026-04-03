@@ -1,12 +1,12 @@
 "use client";
 
-import { EffectComposer, Bloom, Vignette, Noise, ChromaticAberration, Scanline, N8AO } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Vignette, Noise, ChromaticAberration, Scanline, N8AO, Pixelation } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import { Vector2 } from "three";
 
 const CHROMA_OFFSET = new Vector2(0.0006, 0.0006);
 
-export function PostEffects({ mobile = false }: { mobile?: boolean }) {
+export function PostEffects({ mobile = false, retroMode = false }: { mobile?: boolean; retroMode?: boolean }) {
   // Lighter effects on mobile for performance
   if (mobile) {
     return (
@@ -53,6 +53,7 @@ export function PostEffects({ mobile = false }: { mobile?: boolean }) {
         density={1.25}
         opacity={0.06}
       />
+      {retroMode && <Pixelation granularity={3} />}
     </EffectComposer>
   );
 }

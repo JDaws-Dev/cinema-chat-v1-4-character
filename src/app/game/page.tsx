@@ -70,6 +70,24 @@ export default function GamePage() {
   const [era, setEra] = useState<string>("early90s");
   const [eraChosen, setEraChosen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [retroMode, setRetroMode] = useState(false);
+
+  // Load retro mode preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("fnv_retro_mode");
+      if (saved === "true") setRetroMode(true);
+    } catch {}
+  }, []);
+
+  const toggleRetroMode = useCallback(() => {
+    setRetroMode(prev => {
+      const next = !prev;
+      try { localStorage.setItem("fnv_retro_mode", String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
   const ERA_OPTIONS = [
     { id: "late80s", label: "Late 80s", years: "1987-1989", displayYear: "1989" },
     { id: "early90s", label: "Early 90s", years: "1990-1993", displayYear: "1992" },
@@ -805,7 +823,7 @@ export default function GamePage() {
         onCreated={({ gl }) => { gl.setClearColor("#1a2a48"); setTimeout(() => setLoading(false), 500); }}
       >
         <Suspense fallback={null}>
-          <fog attach="fog" args={["#0a0e18", 25, 50]} />
+          <fogExp2 attach="fog" args={["#0a0e18", 0.02]} />
           <Store
             isMobile={isMobile}
             eraYears={selectedEra.years}
@@ -822,7 +840,7 @@ export default function GamePage() {
           {topDown && <TopDownCamera />}
           {!hasOverlay && !topDown && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
-          <PostEffects mobile={isMobile} />
+          <PostEffects mobile={isMobile} retroMode={retroMode} />
           <DebugOverlay />
         </Suspense>
       </Canvas>
@@ -975,6 +993,7 @@ export default function GamePage() {
         heldMovies={heldMovies} challenge={challenge} challengeTimer={challengeTimer}
         setOverlay={setOverlay} overlay={overlay}
         xpPopup={xpPopup} tierUpNotification={tierUpNotification}
+        retroMode={retroMode} toggleRetroMode={toggleRetroMode}
       />
 
       {/* ── OVERLAYS ────────────────────────────────────────── */}

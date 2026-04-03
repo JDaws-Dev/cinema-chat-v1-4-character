@@ -363,7 +363,7 @@ export function Store({
       {/* Parking lines — spread across full lot */}
       {[-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
 
-      {/* ── EXTERIOR NIGHTTIME LIGHTING (5 of 6 budget) ── */}
+      {/* ── EXTERIOR NIGHTTIME LIGHTING (6 of 6 budget) ── */}
       {/* 1. Storefront light spill — warm light above windows casting onto sidewalk */}
       <pointLight position={[0, 3.2, ROOM_D / 2 + 1.2]} intensity={0.7} distance={10} color="#ffe0a0" />
       {/* 2. FNV neon sign glow — gold light spilling down from main sign onto sidewalk */}
@@ -374,6 +374,8 @@ export function Store({
       <pointLight position={[-5.94, 3.0, 18.2]} intensity={0.8} distance={8} color="#ffe4a0" />
       {/* 5. Car headlight accent — subtle warm glow near parked van simulating headlights-on */}
       <pointLight position={[-4.76, 0.6, 11.5]} intensity={0.3} distance={4} color="#fff8e0" />
+      {/* 6. Cool blue entrance spill — nighttime exterior light bleeding into store entrance */}
+      <pointLight position={[0, 2, ROOM_D / 2]} intensity={0.15} distance={8} color="#2244aa" />
 
       {/* Fascia + signage (hidden in top-down) */}
       {!topDown && <>

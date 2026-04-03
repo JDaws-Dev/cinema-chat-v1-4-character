@@ -28,6 +28,8 @@ interface GameHUDProps {
   overlay: Overlay;
   xpPopup: { key: number; text: string } | null;
   tierUpNotification: string | null;
+  retroMode: boolean;
+  toggleRetroMode: () => void;
 }
 
 export function GameHUD({
@@ -38,6 +40,7 @@ export function GameHUD({
   heldMovies, challenge, challengeTimer,
   setOverlay, overlay,
   xpPopup, tierUpNotification,
+  retroMode, toggleRetroMode,
 }: GameHUDProps) {
   return (
     <>
@@ -72,6 +75,20 @@ export function GameHUD({
             <span className="g3-tier-badge-xp">{totalXP}XP</span>
           </div>
           <button className="g3-screenshot-btn" onClick={toggleMute} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
+          <button
+            className="g3-screenshot-btn"
+            onClick={toggleRetroMode}
+            title="Toggle retro pixelation"
+            style={{
+              fontSize: "0.45rem",
+              fontFamily: "var(--font-pixel, monospace)",
+              letterSpacing: "0.05em",
+              color: retroMode ? "#ffd700" : "#888",
+              textShadow: retroMode ? "0 0 6px rgba(255,215,0,0.5)" : "none",
+            }}
+          >
+            RETRO
+          </button>
         </div>
       </div>
 
