@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Html, Billboard, Text } from "@react-three/drei";
+import { Html, Billboard, Text, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import {
   type ActiveNPC,
@@ -372,15 +372,13 @@ function NPCMesh({
   return (
     <group ref={groupRef} scale={height}>
       {/* Body (torso) */}
-      <mesh ref={torsoRef} position={[0, 0.85, 0]}>
-        <boxGeometry args={[torsoWidth, 0.45, 0.2]} />
+      <RoundedBox ref={torsoRef} args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}>
         <meshStandardMaterial color={shirtColor} />
-      </mesh>
+      </RoundedBox>
       {/* Head — Priority 10: kid gets larger relative head */}
-      <mesh ref={headRef} position={[0, 1.22, 0]} scale={[1, headScaleY, 1]}>
-        <sphereGeometry args={[0.13, 8, 8]} />
+      <RoundedBox ref={headRef} args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} position={[0, 1.22, 0]} scale={[1, headScaleY, 1]}>
         <meshStandardMaterial color={skinTone} />
-      </mesh>
+      </RoundedBox>
       {/* Eyes */}
       <mesh ref={leftEyeRef} position={[-0.04, 1.24, -0.11]}>
         <sphereGeometry args={[0.018, 8, 8]} />

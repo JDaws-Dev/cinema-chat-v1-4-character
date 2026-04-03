@@ -1,6 +1,6 @@
 "use client";
 
-import { EffectComposer, Bloom, Vignette, Noise, ChromaticAberration } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Vignette, Noise, ChromaticAberration, Scanline, N8AO } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import { Vector2 } from "three";
 
@@ -24,6 +24,13 @@ export function PostEffects({ mobile = false }: { mobile?: boolean }) {
 
   return (
     <EffectComposer multisampling={0}>
+      <N8AO
+        aoRadius={0.5}
+        distanceFalloff={0.5}
+        intensity={1.5}
+        quality="low"
+        halfRes
+      />
       <Bloom
         intensity={0.3}
         luminanceThreshold={0.8}
@@ -40,6 +47,11 @@ export function PostEffects({ mobile = false }: { mobile?: boolean }) {
         offset={CHROMA_OFFSET}
         radialModulation={false}
         modulationOffset={0}
+      />
+      <Scanline
+        blendFunction={BlendFunction.OVERLAY}
+        density={1.25}
+        opacity={0.06}
       />
     </EffectComposer>
   );

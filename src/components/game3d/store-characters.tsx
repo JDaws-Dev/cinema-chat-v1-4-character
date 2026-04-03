@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Text, useGLTF, Billboard } from "@react-three/drei";
+import { Text, useGLTF, Billboard, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
 import { type NpcPersonality, type PersonalityType, PERSONALITIES, getRandomAdultPersonality, getPersonalityLabel } from "@/lib/npc-personalities";
@@ -804,7 +804,7 @@ export function CharlieCharacter() {
       <mesh position={[0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
       <mesh position={[0.08, 0.01, -0.02]}><boxGeometry args={[0.14, 0.03, 0.19]} /><Mat color="#f0f0f0" roughness={0.6} /></mesh>
       <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      <mesh ref={torsoRef} position={[0, 0.85, 0]}><boxGeometry args={[0.36, 0.5, 0.22]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
+      <RoundedBox ref={torsoRef} args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}><Mat color="#0a4a8a" roughness={0.7} /></RoundedBox>
       <mesh position={[0, 0.85, -0.115]}><boxGeometry args={[0.34, 0.46, 0.02]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
       <mesh position={[0, 0.85, 0.115]}><boxGeometry args={[0.34, 0.46, 0.02]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
       <mesh position={[-0.175, 0.85, 0]}><boxGeometry args={[0.02, 0.46, 0.22]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
@@ -822,7 +822,7 @@ export function CharlieCharacter() {
       <mesh ref={rightArmRef} position={[0.24, 0.82, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
       <mesh position={[0.24, 0.58, 0]}><sphereGeometry args={[0.05, 8, 8]} /><Mat color="#e8c4a0" roughness={0.8} /></mesh>
       <group ref={headRef} position={[0, 1.3, 0]}>
-        <mesh position={[0, 0, 0]} scale={[1, 1.1, 0.9]}><sphereGeometry args={[0.2, 16, 16]} /><Mat color="#e8c4a0" roughness={0.75} /></mesh>
+        <RoundedBox args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} position={[0, 0, 0]} scale={[1, 1.1, 0.9]}><Mat color="#e8c4a0" roughness={0.75} /></RoundedBox>
         <mesh position={[0, 0.12, 0]} rotation={[0, 0, 0.08]}><sphereGeometry args={[0.21, 16, 10]} /><Mat color="#1a3a6a" roughness={0.6} /></mesh>
         <mesh position={[0, 0.06, -0.18]} rotation={[0.15, 0, 0.06]}><boxGeometry args={[0.22, 0.02, 0.12]} /><Mat color="#1a3a6a" roughness={0.6} /></mesh>
         <mesh position={[0, 0.08, -0.2]} rotation={[0.15, 0, 0]}><boxGeometry args={[0.12, 0.04, 0.01]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
@@ -968,7 +968,7 @@ export function VinnyCharacter() {
       <mesh position={[0.09, 0.05, -0.08]}><boxGeometry args={[0.12, 0.04, 0.06]} /><Mat color="#1a3a6a" roughness={0.6} /></mesh>
       <mesh position={[0, 0.7, 0]}><boxGeometry args={[0.32, 0.05, 0.18]} /><Mat color="#3a2a1a" roughness={0.7} /></mesh>
       <mesh position={[0, 0.7, -0.09]}><boxGeometry args={[0.06, 0.04, 0.01]} /><Mat color="#c0a020" roughness={0.3} metalness={0.5} /></mesh>
-      <mesh ref={torsoRef} position={[0, 0.95, 0]}><boxGeometry args={[0.4, 0.55, 0.25]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
+      <RoundedBox ref={torsoRef} args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.95, 0]}><Mat color="#0a4a8a" roughness={0.7} /></RoundedBox>
       <mesh position={[0, 1.2, -0.06]}><boxGeometry args={[0.22, 0.06, 0.16]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
       <mesh position={[-0.06, 1.22, -0.1]} rotation={[0.3, 0, 0.2]}><boxGeometry args={[0.08, 0.05, 0.02]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
       <mesh position={[0.06, 1.22, -0.1]} rotation={[0.3, 0, -0.2]}><boxGeometry args={[0.08, 0.05, 0.02]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
@@ -990,7 +990,7 @@ export function VinnyCharacter() {
         <mesh position={[0, -0.48, 0]}><sphereGeometry args={[0.06, 8, 8]} /><Mat color="#d4a574" roughness={0.8} /></mesh>
       </group>
       <group ref={headRef} position={[0, 1.45, 0]}>
-        <mesh position={[0, 0, 0]} scale={[1, 1.1, 0.9]}><sphereGeometry args={[0.23, 16, 16]} /><Mat color="#d4a574" roughness={0.75} /></mesh>
+        <RoundedBox args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} position={[0, 0, 0]} scale={[1, 1.1, 0.9]}><Mat color="#d4a574" roughness={0.75} /></RoundedBox>
         <mesh position={[0, 0.12, 0.02]}><sphereGeometry args={[0.24, 16, 10]} /><Mat color="#2a1a0a" roughness={0.9} /></mesh>
         <mesh position={[-0.08, 0.02, -0.2]} rotation={[0, 0, 0]}><torusGeometry args={[0.04, 0.006, 8, 16]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
         <mesh position={[0.08, 0.02, -0.2]} rotation={[0, 0, 0]}><torusGeometry args={[0.04, 0.006, 8, 16]} /><Mat color="#888888" roughness={0.3} metalness={0.6} /></mesh>
@@ -1056,7 +1056,7 @@ export function TonyCharacter() {
       {/* Belt */}
       <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
       {/* Torso — red shirt */}
-      <mesh position={[0, 0.85, 0]}><boxGeometry args={[0.36, 0.5, 0.22]} /><Mat color="#cc2222" roughness={0.7} /></mesh>
+      <RoundedBox args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}><Mat color="#cc2222" roughness={0.7} /></RoundedBox>
       {/* Apron — white box over torso front */}
       <mesh position={[0, 0.78, -0.12]}><boxGeometry args={[0.32, 0.55, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} /></mesh>
       {/* Apron strap */}
@@ -1078,7 +1078,7 @@ export function TonyCharacter() {
       </group>
       {/* Head */}
       <group ref={headRef} position={[0, 1.35, 0]}>
-        <mesh scale={[1, 1.1, 0.9]}><sphereGeometry args={[0.2, 16, 16]} /><Mat color="#c49a6c" roughness={0.75} /></mesh>
+        <RoundedBox args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} scale={[1, 1.1, 0.9]}><Mat color="#c49a6c" roughness={0.75} /></RoundedBox>
         {/* Dark hair */}
         <mesh position={[0, 0.1, 0.02]}><sphereGeometry args={[0.21, 16, 10]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
         {/* Eyes */}
@@ -1142,7 +1142,7 @@ export function EarlCharacter() {
       {/* Belt */}
       <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
       {/* Torso — gray shirt */}
-      <mesh position={[0, 0.85, 0]}><boxGeometry args={[0.36, 0.5, 0.22]} /><Mat color="#707070" roughness={0.7} /></mesh>
+      <RoundedBox args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}><Mat color="#707070" roughness={0.7} /></RoundedBox>
       {/* Collar */}
       <mesh position={[0, 1.08, -0.05]}><boxGeometry args={[0.2, 0.05, 0.14]} /><Mat color="#707070" roughness={0.6} /></mesh>
       {/* Name tag */}
@@ -1159,7 +1159,7 @@ export function EarlCharacter() {
       </group>
       {/* Head — bald */}
       <group ref={headRef} position={[0, 1.35, 0]}>
-        <mesh scale={[1, 1.1, 0.9]}><sphereGeometry args={[0.2, 16, 16]} /><Mat color="#d4a574" roughness={0.75} /></mesh>
+        <RoundedBox args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} scale={[1, 1.1, 0.9]}><Mat color="#d4a574" roughness={0.75} /></RoundedBox>
         {/* Glasses — simple box frames */}
         <mesh position={[-0.07, 0.01, -0.18]}><boxGeometry args={[0.08, 0.06, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
         <mesh position={[0.07, 0.01, -0.18]}><boxGeometry args={[0.08, 0.06, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>

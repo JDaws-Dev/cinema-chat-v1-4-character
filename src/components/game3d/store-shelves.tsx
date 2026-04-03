@@ -1,13 +1,36 @@
 "use client";
 
 import React, { useRef, useMemo, useEffect } from "react";
-import { Text, RoundedBox } from "@react-three/drei";
+import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import type { LayoutInteraction } from "@/lib/store-layout";
 import { getObjectById } from "@/lib/store-layout";
 import { ROOM_D, ROOM_W, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
-import { Mat, PosterBox, usePosterUrls, getOrCreatePosterTexture } from "./store-materials";
+import { Mat, PosterBox, usePosterUrls, getOrCreatePosterTexture, toonGradientTexture } from "./store-materials";
 import { InstancedVHSBoxes as InstancedVHSBoxesNew, SharedVHSBox, type VHSInstanceConfig } from "./InstancedVHSBoxes";
+
+// ── Shared shelf plank geometries & materials ──────────────────────
+// Reused across all ShelfUnit / WallShelf / NewReleasesWall instances
+// so the GPU stores each shape once instead of per-plank.
+
+/** ShelfUnit horizontal boards (gondola planks) — 2.76 x 0.04 x 0.35 */
+const sharedPlankGeometry = new THREE.BoxGeometry(2.76, 0.04, 0.35);
+/** ShelfUnit top cap — 2.85 x 0.04 x 0.38 */
+const sharedTopCapGeometry = new THREE.BoxGeometry(2.85, 0.04, 0.38);
+
+/** NewReleasesWall shelf boards — 7.8 x 0.04 x 0.32 */
+const sharedNRBoardGeometry = new THREE.BoxGeometry(7.8, 0.04, 0.32);
+
+/** Shared brown wood material for shelf planks (#6a4226) — toon-shaded to match Mat */
+const sharedPlankMaterial = new THREE.MeshToonMaterial({
+  color: "#6a4226",
+  gradientMap: toonGradientTexture,
+});
+/** Shared honey/oak material for top caps (#8a6838) — toon-shaded to match Mat */
+const sharedTopCapMaterial = new THREE.MeshToonMaterial({
+  color: "#8a6838",
+  gradientMap: toonGradientTexture,
+});
 
 export { SHELF_ROWS };
 
@@ -101,10 +124,8 @@ export function ShelfUnit({
         <boxGeometry args={[0.04, 1.5, 0.35]} />
         <Mat color="#4a2818" roughness={0.8} />
       </mesh>
-      {/* Top cap */}
-      <RoundedBox args={[2.85, 0.04, 0.38]} radius={0.01} smoothness={2} position={[0, 1.52, 0]}>
-        <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
-      </RoundedBox>
+      {/* Top cap — shared geometry + material */}
+      <mesh position={[0, 1.52, 0]} geometry={sharedTopCapGeometry} material={sharedTopCapMaterial} />
       {/* Genre sign on top — Blockbuster blue with yellow text */}
       {/* Front side (faces -z in local space) */}
       <mesh position={[0, 1.62, -0.12]}>
@@ -122,11 +143,9 @@ export function ShelfUnit({
           <Text position={[0, 1.62, 0.14]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{backGenre}</Text>
         </>
       )}
-      {/* 3 visible shelf boards — these are what the VHS tapes sit on */}
+      {/* 3 visible shelf boards — shared geometry + material */}
       {[0.02, 0.50, 1.0].map((sy, i) => (
-        <RoundedBox key={`board-${i}`} args={[2.76, 0.04, 0.35]} radius={0.01} smoothness={2} position={[0, sy, 0]}>
-          <Mat color="#6a4226" roughness={0.7} />
-        </RoundedBox>
+        <mesh key={`board-${i}`} position={[0, sy, 0]} geometry={sharedPlankGeometry} material={sharedPlankMaterial} />
       ))}
 
       {/* VHS Boxes — PosterBoxes rendered individually, fallbacks instanced for perf */}
@@ -392,12 +411,9 @@ export function NewReleasesWall({
         <boxGeometry args={[8.2, 0.05, 0.35]} />
         <Mat color="#8a6838" roughness={0.5} metalness={0.05} />
       </mesh>
-      {/* Shelf boards — aligned to VHS row bottoms (rows at y=1.75,1.25,0.75; VHS half-height=0.13) */}
+      {/* Shelf boards — shared geometry + material */}
       {[1.61, 1.11, 0.61, 0.02].map((y, i) => (
-        <mesh key={`shelf-${i}`} position={[0, y, 0.05]}>
-          <boxGeometry args={[7.8, 0.04, 0.32]} />
-          <Mat color="#6a4226" roughness={0.7} />
-        </mesh>
+        <mesh key={`shelf-${i}`} position={[0, y, 0.05]} geometry={sharedNRBoardGeometry} material={sharedPlankMaterial} />
       ))}
       {/* Shelf bracket supports — metal L-brackets under each shelf */}
       {[1.61, 1.11, 0.61].map((y, i) =>

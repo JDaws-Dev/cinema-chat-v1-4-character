@@ -5,30 +5,70 @@ import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 
-// Toon shading gradient — 3-step (shadow, mid, highlight) for cel-shaded look
+// Toon shading gradient — warm amber-tinted 6-step for cozy 90s retail feel
 export const toonGradientTexture = (() => {
   if (typeof document === "undefined") return null; // SSR guard
-  const canvas = document.createElement("canvas");
-  canvas.width = 6;
-  canvas.height = 1;
-  const ctx = canvas.getContext("2d")!;
-  // 6 steps: smoother cel-shaded transitions (per INTERIOR-DESIGN-GUIDE.md)
-  const values = [40, 80, 120, 160, 200, 255];
-  values.forEach((v, i) => {
-    const hex = v.toString(16).padStart(2, "0");
-    ctx.fillStyle = `#${hex}${hex}${hex}`;
-    ctx.fillRect(i, 0, 1, 1);
-  });
-  const tex = new THREE.CanvasTexture(canvas);
+  // Warm amber-tinted gradient for cozy 90s retail feel (RGBA, 4 bytes per pixel)
+  const warmGradient = new Uint8Array([
+    35, 28, 18, 255,    // deep warm shadow
+    75, 60, 40, 255,    // warm mid-shadow
+    125, 105, 75, 255,  // warm midtone
+    170, 150, 115, 255, // warm highlight
+    210, 195, 160, 255, // bright warm
+    255, 248, 230, 255, // near-white warm
+  ]);
+  const tex = new THREE.DataTexture(warmGradient, 6, 1, THREE.RGBAFormat);
   tex.minFilter = THREE.NearestFilter;
   tex.magFilter = THREE.NearestFilter;
+  tex.needsUpdate = true;
   return tex;
 })();
 
-/** Drop-in material — meshToonMaterial everywhere (cel-shaded) */
+// ── Shared material cache — one MeshToonMaterial per unique param set ──
+const matCache = new Map<string, THREE.MeshToonMaterial>();
+
+function getSharedMaterial(color: string, gradientMap: THREE.Texture | null, opts?: {
+  transparent?: boolean;
+  opacity?: number;
+  side?: THREE.Side;
+  emissive?: string;
+  emissiveIntensity?: number;
+}): THREE.MeshToonMaterial {
+  const key = `${color}|${opts?.transparent ?? false}|${opts?.opacity ?? 1}|${opts?.side ?? 0}|${opts?.emissive ?? ''}|${opts?.emissiveIntensity ?? 0}`;
+  let mat = matCache.get(key);
+  if (!mat) {
+    mat = new THREE.MeshToonMaterial({
+      color,
+      gradientMap: gradientMap ?? undefined,
+      transparent: opts?.transparent,
+      opacity: opts?.opacity,
+      side: opts?.side,
+      emissive: opts?.emissive ? new THREE.Color(opts.emissive) : undefined,
+      emissiveIntensity: opts?.emissiveIntensity,
+    });
+    matCache.set(key, mat);
+  }
+  return mat;
+}
+
+/** Drop-in material — meshToonMaterial everywhere (cel-shaded), cached & shared */
 export function Mat(props: Record<string, unknown>) {
-  const { roughness, metalness, ...toonProps } = props;
-  return <meshToonMaterial {...(toonProps as Record<string, unknown>)} gradientMap={toonGradientTexture} />;
+  const { roughness, metalness, color, transparent, opacity, side, emissive, emissiveIntensity, ...rest } = props;
+  const material = useMemo(
+    () => getSharedMaterial(
+      (color as string) ?? '#ffffff',
+      toonGradientTexture,
+      {
+        transparent: transparent as boolean | undefined,
+        opacity: opacity as number | undefined,
+        side: side as THREE.Side | undefined,
+        emissive: emissive as string | undefined,
+        emissiveIntensity: emissiveIntensity as number | undefined,
+      }
+    ),
+    [color, transparent, opacity, side, emissive, emissiveIntensity]
+  );
+  return <primitive object={material} attach="material" {...rest} />;
 }
 
 // ── Poster texture cache + throttled loader ─────────────────
