@@ -51,6 +51,21 @@
 - State files: kebab-case (vhs-state.ts, npc-behavior.ts)
 - CSS classes: g3- prefix (g3-hud, g3-overlay, g3-crosshair)
 
+## MANDATORY: 3D Design Review (see DESIGN-REVIEW-CHECKLIST.md)
+Before committing ANY 3D geometry change:
+1. Web search for reference photos of the real-world thing
+2. Check real-world dimensions (building codes, furniture standards)
+3. Verify spatial reasoning from the PLAYER'S perspective
+4. Run visual-qa.mjs and READ the screenshots
+5. Compare screenshots against reference photos
+6. "Build passes" is NOT proof that geometry looks correct
+7. If an agent wrote it, YOU must verify it visually before committing
+
+NEVER "imagine" what a thing looks like. ALWAYS reference real-world examples.
+- Consider how the thing INTERSECTS with surrounding objects (walls, floors, other geometry)
+- Evaluate the ENTIRE screenshot, not just the thing you changed
+- Every 3D change MUST include collision updates in FirstPerson.tsx if it affects walkable areas
+
 ## Key Constraints
 - ZERO Claude API cost (subscription CLI only)
 - OpenAI for gpt-4o-mini NPC chat only
