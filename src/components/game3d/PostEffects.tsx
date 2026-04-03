@@ -53,7 +53,7 @@ export function PostEffects({ mobile = false, retroMode = false }: { mobile?: bo
         density={1.25}
         opacity={0.06}
       />
-      {retroMode && <Pixelation granularity={3} />}
+      {retroMode ? <Pixelation granularity={3} /> : <></>}
     </EffectComposer>
   );
 }

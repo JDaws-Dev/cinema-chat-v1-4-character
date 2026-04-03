@@ -126,12 +126,95 @@ function NPCMesh({
   const glanceDuration = useRef(0);
   const glanceTargetDir = useRef(0); // Y rotation toward glance target
 
+  // LOD: frame counter for half-rate animation at medium distance
+  const frameCounter = useRef(0);
+  // LOD: track if we applied static pose (to avoid re-applying every frame)
+  const wasStaticPose = useRef(false);
+
+  const { camera } = useThree();
+
   const { shirtColor, pantsColor, hairColor, skinTone, hairStyle, height } =
     npc.config.appearance;
 
+  // ── SINGLE combined useFrame: positioning + animation with distance-based LOD ──
   useFrame((state, dt) => {
     const cappedDt = Math.min(dt, 0.1);
     const t = state.clock.elapsedTime;
+    frameCounter.current++;
+
+    // ── Positioning (from ManagedNPC — always runs regardless of LOD) ──
+    if (groupRef.current) {
+      const isWalkingPos = npc.state === "walking" || npc.state === "entering" || npc.state === "leaving";
+      const feetOffset = -0.175 * npc.config.appearance.height;
+      const swayOffset = isWalkingPos ? 0 : Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.02;
+      const squatOffset = (npc.state === "browsing" && browseHeight === "squat") ? -0.3 : 0;
+      groupRef.current.position.set(npc.position[0] + swayOffset, feetOffset + squatOffset, npc.position[2]);
+      groupRef.current.rotation.y = npc.facing;
+      groupRef.current.visible = npc.opacity > 0.01;
+
+      // Opacity handling
+      groupRef.current.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+          if (npc.opacity < 0.99) {
+            child.material.transparent = true;
+            child.material.opacity = npc.opacity;
+          } else {
+            child.material.transparent = false;
+            child.material.opacity = 1;
+          }
+        }
+      });
+
+      registerNPCPosition(npc.config.id, npc.position[0], npc.position[2]);
+    }
+
+    // ── Distance-based LOD ──
+    const dx = npc.position[0] - camera.position.x;
+    const dz = npc.position[2] - camera.position.z;
+    const distToCamera = Math.sqrt(dx * dx + dz * dz);
+
+    // FAR (>12 units): skip ALL animation, set static pose once
+    if (distToCamera > 12) {
+      if (!wasStaticPose.current) {
+        wasStaticPose.current = true;
+        // Reset to neutral static pose
+        if (torsoRef.current) { torsoRef.current.scale.y = 1; torsoRef.current.rotation.y = 0; }
+        if (headRef.current) { headRef.current.rotation.z = 0; headRef.current.rotation.y = 0; headRef.current.rotation.x = 0; }
+        if (leftEyeRef.current) leftEyeRef.current.scale.y = 1;
+        if (rightEyeRef.current) rightEyeRef.current.scale.y = 1;
+        if (mouthRef.current) mouthRef.current.scale.y = 1;
+        if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+        if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+        if (leftArmRef.current) leftArmRef.current.rotation.x = 0;
+        if (rightArmRef.current) rightArmRef.current.rotation.x = 0;
+        if (leftHandRef.current) leftHandRef.current.scale.set(1, 1, 1);
+        if (rightHandRef.current) rightHandRef.current.scale.set(1, 1, 1);
+      }
+      // Still track checkout state and VHS visibility (cheap)
+      if (npc.state === "checking_out") hasCheckedOut.current = true;
+      if (vhsBoxRef.current) vhsBoxRef.current.visible = hasCheckedOut.current;
+      return;
+    }
+
+    wasStaticPose.current = false;
+
+    // MEDIUM (8-12 units): run animation at half rate (skip every other frame)
+    if (distToCamera >= 8 && distToCamera <= 12) {
+      if (frameCounter.current % 2 !== 0) {
+        // Still track state changes even on skipped frames
+        if (npc.state === "checking_out") hasCheckedOut.current = true;
+        if (vhsBoxRef.current) vhsBoxRef.current.visible = hasCheckedOut.current;
+        if (npc.state !== prevState.current) {
+          if (npc.state === "entering") enterTimer.current = 0;
+          prevState.current = npc.state;
+        }
+        return;
+      }
+      // Double dt to compensate for half-rate updates
+      // (cappedDt is already set, we use it as-is since visual effect is acceptable)
+    }
+
+    // NEAR (<8 units) or MEDIUM (on active frames): run full animation
 
     const isWalking =
       npc.state === "walking" ||
@@ -141,12 +224,6 @@ function NPCMesh({
     // ── Priority 1: Breathing — torso scaleY pulses 1.0 → 1.008 ──
     if (torsoRef.current) {
       torsoRef.current.scale.y = 1.0 + 0.008 * (0.5 + 0.5 * Math.sin((t * Math.PI * 2) / breathPeriod));
-    }
-
-    // ── Priority 1: Idle sway — ±0.02 on 6s cycle (only when not walking) ──
-    if (groupRef.current && !isWalking) {
-      // Apply sway as a small X offset relative to positioned location
-      // (ManagedNPC sets position each frame, so we apply sway to the inner group indirectly via torso/head)
     }
 
     // ── Priority 1: Head micro-movements — two sine waves, 0.03 rad max ──
@@ -213,9 +290,9 @@ function NPCMesh({
         const targetWpId = npc.currentPath[npc.pathIndex];
         const targetWp = WAYPOINTS[targetWpId];
         if (targetWp) {
-          const dx = targetWp.position[0] - npc.position[0];
-          const dz = targetWp.position[2] - npc.position[2];
-          const dist = Math.sqrt(dx * dx + dz * dz);
+          const wpDx = targetWp.position[0] - npc.position[0];
+          const wpDz = targetWp.position[2] - npc.position[2];
+          const dist = Math.sqrt(wpDx * wpDx + wpDz * wpDz);
           if (dist < 0.5) {
             // Smooth deceleration: lerp swing amplitude toward 0
             const dampFactor = Math.max(0, dist / 0.5);
@@ -253,7 +330,7 @@ function NPCMesh({
     // ── Priority 7: Browsing height variety ──
     if (npc.state === "browsing") {
       if (browseHeight === "squat") {
-        // Bend legs outward to simulate crouching (Y offset handled in ManagedNPC)
+        // Bend legs outward to simulate crouching (Y offset handled in positioning above)
         if (leftLegRef.current) leftLegRef.current.rotation.x = Math.max(leftLegRef.current.rotation.x, 0.5);
         if (rightLegRef.current) rightLegRef.current.rotation.x = Math.max(rightLegRef.current.rotation.x, 0.5);
       } else if (browseHeight === "reach_up") {
@@ -304,9 +381,9 @@ function NPCMesh({
         for (const other of allNpcs) {
           if (other.config.id === npc.config.id) continue;
           if (other.state === "talking_to_npc" || other.state === "talking_to_player") continue;
-          const dx = npc.position[0] - other.position[0];
-          const dz = npc.position[2] - other.position[2];
-          const dist = Math.sqrt(dx * dx + dz * dz);
+          const npcDx = npc.position[0] - other.position[0];
+          const npcDz = npc.position[2] - other.position[2];
+          const dist = Math.sqrt(npcDx * npcDx + npcDz * npcDz);
           if (dist < 1.5 && dist > 0.1) {
             glanceActive.current = true;
             glanceDuration.current = 0.5;
@@ -473,16 +550,6 @@ function ManagedNPC({
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
-  // Per-NPC sway phase so they never sync
-  const swayPhase = useMemo(() => seedFromId(npc.config.id) * Math.PI * 2, [npc.config.id]);
-
-  // Priority 7: Browsing height for squat Y offset (applied to position in useFrame)
-  const browseHeightSeed = useMemo(
-    () => seedFromIdAndStep(npc.config.id, npc.goalStepIndex),
-    [npc.config.id, npc.goalStepIndex]
-  );
-  const browseHeight = useMemo(() => browseHeightFromSeed(browseHeightSeed), [browseHeightSeed]);
-
   // Set userData for interaction system raycast
   useEffect(() => {
     if (!groupRef.current) return;
@@ -495,36 +562,8 @@ function ManagedNPC({
     };
   }, [npc.config.id, npc.config.name, npc.config.personalityType]);
 
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    const t = state.clock.elapsedTime;
-    // Lower NPC so feet touch the floor: leg bottom is at local y=0.175, scaled by height
-    const feetOffset = -0.175 * npc.config.appearance.height;
-
-    // Priority 1: idle sway — ±0.02 on 6s cycle when not walking
-    const isWalking = npc.state === "walking" || npc.state === "entering" || npc.state === "leaving";
-    const swayOffset = isWalking ? 0 : Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.02;
-
-    // Priority 7: squat lowers body by 0.3 when browsing
-    const squatOffset = (npc.state === "browsing" && browseHeight === "squat") ? -0.3 : 0;
-    groupRef.current.position.set(npc.position[0] + swayOffset, feetOffset + squatOffset, npc.position[2]);
-    groupRef.current.rotation.y = npc.facing;
-
-    groupRef.current.visible = npc.opacity > 0.01;
-    groupRef.current.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-        if (npc.opacity < 0.99) {
-          child.material.transparent = true;
-          child.material.opacity = npc.opacity;
-        } else {
-          child.material.transparent = false;
-          child.material.opacity = 1;
-        }
-      }
-    });
-
-    registerNPCPosition(npc.config.id, npc.position[0], npc.position[2]);
-  });
+  // NOTE: All useFrame logic (positioning + animation) is now consolidated
+  // inside NPCMesh for a single useFrame callback per NPC with distance-based LOD.
 
   return (
     <group>
