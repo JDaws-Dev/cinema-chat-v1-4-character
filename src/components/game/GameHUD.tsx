@@ -148,6 +148,8 @@ export function GameHUD({
           <span className="g3-key">J</span> quests
           <span className="g3-sep">|</span>
           <span className="g3-key">Shift</span> kneel
+          <span className="g3-sep">|</span>
+          <span className="g3-key">Space</span> jump
         </div>
       )}
 

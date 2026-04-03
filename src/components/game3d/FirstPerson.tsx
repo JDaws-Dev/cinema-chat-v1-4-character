@@ -87,6 +87,7 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const locked = useRef(false);
   const initialized = useRef(false);
+  const velocityY = useRef(0);
   const lookVelocityX = useRef(0);
   const lookVelocityY = useRef(0);
 
@@ -206,27 +207,56 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
       // Blocked both ways — don't move
     }
 
-    // Staircase to apartment — right side of laundromat (x: 15.5-16.5, z: 4-8)
-    // Stairs go from ground (y=1.6) to apartment floor (y=5.6) over z range 4-8
-    const inStairX = camera.position.x > 15.5 && camera.position.x < 17;
-    const inStairZ = camera.position.z > 3.5 && camera.position.z < 8.5;
+    // ── Vertical movement: stairs, jump, gravity ──
     const APT_FLOOR_Y = 4 + 1.6; // apartment floor y=4 + eye height 1.6
-    let targetY: number;
+    const GROUND_Y = 1.6;
+    const GRAVITY = 12;
+    const JUMP_VELOCITY = 5.5;
 
+    // Determine ground height at current position
+    const inStairX = camera.position.x > 15 && camera.position.x < 17.5;
+    const inStairZ = camera.position.z > 3 && camera.position.z < 9;
+    const inApartment = camera.position.x > 10 && camera.position.x < 16 &&
+                        camera.position.z > 3 && camera.position.z < 8.5 &&
+                        camera.position.y > 3.5;
+
+    let groundY: number;
     if (inStairX && inStairZ) {
-      // Ramp: linearly interpolate Y based on Z position (walking "up" the stairs as z decreases from 8 to 4)
-      const stairProgress = 1 - Math.max(0, Math.min(1, (camera.position.z - 3.5) / 5));
-      targetY = 1.6 + stairProgress * (APT_FLOOR_Y - 1.6);
-    } else if (camera.position.y > 3) {
-      // In the apartment (above ground) — keep at apartment floor height
-      targetY = APT_FLOOR_Y;
+      // Stairs ramp: z=9 is ground level, z=3 is apartment level
+      const stairProgress = 1 - Math.max(0, Math.min(1, (camera.position.z - 3) / 6));
+      groundY = GROUND_Y + stairProgress * (APT_FLOOR_Y - GROUND_Y);
+    } else if (inApartment) {
+      groundY = APT_FLOOR_Y;
     } else {
-      targetY = 1.6; // ground level
+      groundY = GROUND_Y;
     }
 
-    // Crouch mechanic: hold Shift or C to lower camera
-    const crouchOffset = keys.current.has("shift") ? -0.8 : 0;
-    camera.position.y += ((targetY + crouchOffset) - camera.position.y) * 0.15;
+    // Jump: spacebar triggers jump if on the ground
+    if (!velocityY.current && (keys.current.has(" ") || keys.current.has("space"))) {
+      if (Math.abs(camera.position.y - groundY) < 0.2) {
+        velocityY.current = JUMP_VELOCITY;
+      }
+    }
+
+    // Apply gravity and velocity
+    if (velocityY.current || camera.position.y > groundY + 0.1) {
+      velocityY.current -= GRAVITY * delta;
+      camera.position.y += velocityY.current * delta;
+      // Land
+      if (camera.position.y <= groundY) {
+        camera.position.y = groundY;
+        velocityY.current = 0;
+      }
+    } else {
+      // On the ground — snap to ground height (smooth for stairs)
+      camera.position.y += (groundY - camera.position.y) * 0.2;
+      velocityY.current = 0;
+    }
+
+    // Crouch mechanic: hold Shift to lower camera
+    if (keys.current.has("shift") && velocityY.current === 0) {
+      camera.position.y -= 0.8;
+    }
 
     // Update spatial audio listener to match player position
     setPlayerPosition(camera.position.x, camera.position.z);
