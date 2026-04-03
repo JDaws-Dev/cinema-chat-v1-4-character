@@ -31,16 +31,16 @@ const CAMERAS = [
   { name: "side_elev",    pos: [15.5, 2.15, -0.35], lookAt: [0, 1.7, -0.4], fov: 44, label: "Side elevation" },
   { name: "strip_right",  pos: [20, 3, 6],       lookAt: [13, 4, 6],      fov: 60, label: "Strip mall right side" },
   { name: "strip_left",   pos: [-20, 3, 6],      lookAt: [-13, 2, 6],     fov: 60, label: "Strip mall left side" },
-  // Apartment — exterior views (pulled back to see full building)
-  { name: "apt_exterior", pos: [20, 5, 12],      lookAt: [13, 3.5, 5.75], fov: 55, label: "Apartment exterior (full building)" },
-  { name: "apt_stairs",   pos: [18, 2, 9],       lookAt: [16, 3.5, 5],    fov: 55, label: "Apartment stairs from parking" },
-  { name: "building_front",pos: [13, 4, 16],     lookAt: [13, 3.5, 5.75], fov: 50, label: "Building front from street" },
-  { name: "building_right",pos: [22, 4, 5.75],   lookAt: [16, 3, 5.75],   fov: 50, label: "Building right side" },
-  // Apartment — interior views
-  { name: "apt_interior", pos: [11.5, 5.6, 7],   lookAt: [13, 5.2, 4],    fov: 75, label: "Apartment interior wide" },
-  { name: "apt_tv",       pos: [14, 5.6, 7],     lookAt: [13, 5.2, 3.5],  fov: 60, label: "Apartment TV area" },
-  { name: "apt_kitchen",  pos: [11.5, 5.6, 5],   lookAt: [15, 5.2, 4],    fov: 60, label: "Apartment kitchen" },
-  { name: "apt_overhead", pos: [13, 8, 5.75],    lookAt: [13, 4, 5.75],   fov: 70, label: "Apartment overhead" },
+  // Apartment — exterior views (positioned to see the 2-story building)
+  { name: "apt_exterior", pos: [18, 4, 14],      lookAt: [13, 4, 5.75],   fov: 50, label: "Apartment building from parking" },
+  { name: "apt_stairs",   pos: [17.5, 3, 8],     lookAt: [16.5, 4, 5],    fov: 55, label: "Apartment stairs close-up" },
+  { name: "building_front",pos: [13, 5, 14],     lookAt: [13, 4, 5.75],   fov: 45, label: "Building front — 2 story view" },
+  { name: "building_right",pos: [19, 3, 5.75],   lookAt: [15, 4, 5.75],   fov: 50, label: "Building right side with stairs" },
+  // Apartment — interior views (camera INSIDE the apartment at eye level y=5.6)
+  { name: "apt_interior", pos: [14.5, 5.6, 7.5], lookAt: [12, 5.3, 4],    fov: 70, label: "Apartment interior from door" },
+  { name: "apt_tv",       pos: [13, 5.6, 7],     lookAt: [13, 5.2, 3.25], fov: 55, label: "Apartment TV/VCR area" },
+  { name: "apt_kitchen",  pos: [11, 5.6, 5.75],  lookAt: [15.5, 5.2, 4],  fov: 60, label: "Apartment kitchen corner" },
+  { name: "apt_overhead", pos: [13, 8.5, 5.75],  lookAt: [13, 4, 5.75],   fov: 65, label: "Apartment overhead" },
 ];
 
 export function SecurityCameras() {
@@ -60,8 +60,14 @@ export function SecurityCameras() {
         ? CAMERAS.filter(c => camNames.includes(c.name))
         : CAMERAS;
 
+      // Temporarily disable fog for security camera captures
+      const savedFog = scene.fog;
+      scene.fog = null;
+
       for (const def of toCapture) {
         cam.fov = def.fov;
+        cam.near = 0.1;
+        cam.far = 100; // extended range for exterior shots
         cam.aspect = width / height;
         cam.updateProjectionMatrix();
         cam.position.set(def.pos[0], def.pos[1], def.pos[2]);
@@ -100,6 +106,9 @@ export function SecurityCameras() {
       }
 
       rt.dispose();
+
+      // Restore fog
+      scene.fog = savedFog;
 
       // Save to /tmp via API
       try {
