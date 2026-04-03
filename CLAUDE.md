@@ -51,15 +51,23 @@
 - State files: kebab-case (vhs-state.ts, npc-behavior.ts)
 - CSS classes: g3- prefix (g3-hud, g3-overlay, g3-crosshair)
 
-## MANDATORY: 3D Design Review (see DESIGN-REVIEW-CHECKLIST.md)
-Before committing ANY 3D geometry change:
-1. Web search for reference photos of the real-world thing
-2. Check real-world dimensions (building codes, furniture standards)
-3. Verify spatial reasoning from the PLAYER'S perspective
-4. Run visual-qa.mjs and READ the screenshots
-5. Compare screenshots against reference photos
+## MANDATORY: 3D Architecture Methodology (see DESIGN-3D-ARCHITECTURE-METHODOLOGY.md)
+Before writing ANY 3D geometry code, you MUST follow the methodology in DESIGN-3D-ARCHITECTURE-METHODOLOGY.md.
+
+**The short version (full details in the methodology doc):**
+1. Search for reference photos of the real-world thing FIRST
+2. Fill out the measurement sheet (real dimensions, not guesses)
+3. Build the BLOCKOUT (big boxes only, no details) and verify from 4 angles
+4. Only then add detail (window frames, railings, trim)
+5. Run visual-qa.mjs and READ the screenshots — compare to references
 6. "Build passes" is NOT proof that geometry looks correct
-7. If an agent wrote it, YOU must verify it visually before committing
+
+**The three fatal mistakes to avoid:**
+- Starting with details before the main volume is right
+- Positioning elements with independent hardcoded numbers (use shared edge constants)
+- "Imagining" what things look like instead of searching for references
+
+Also see: DESIGN-REVIEW-CHECKLIST.md for the commit-time checklist.
 
 NEVER "imagine" what a thing looks like. ALWAYS reference real-world examples.
 - Consider how the thing INTERSECTS with surrounding objects (walls, floors, other geometry)
