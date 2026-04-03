@@ -82,22 +82,12 @@ function RecentReturnsStack({
 }: {
   movies: Array<{ id: number; title: string; posterUrl: string; genre: string; slotKey?: string }>;
 }) {
-  const bin = getObjectById("return-bin");
-  if (!bin || movies.length === 0) return null;
+  const counter = getObjectById("counter");
+  if (!counter || movies.length === 0) return null;
 
+  // Returns stack on the counter end — no separate desk
   return (
-    <group position={[bin.x - 0.9, 0.98, bin.z - 0.05]} rotation={[0, -0.2, 0]}>
-      <mesh position={[0.1, -0.02, 0.02]}>
-        <boxGeometry args={[1.05, 0.08, 0.62]} />
-        <Mat color="#5a3a1a" roughness={0.7} />
-      </mesh>
-      <mesh position={[0.1, 0.18, 0.28]}>
-        <boxGeometry args={[0.86, 0.18, 0.04]} />
-        <Mat color="#ffd700" roughness={0.45} />
-      </mesh>
-      <Text position={[0.1, 0.18, 0.31]} fontSize={0.05} color="#0a1830" anchorX="center" anchorY="middle" font={undefined}>
-        RECENT RETURNS
-      </Text>
+    <group position={[counter.x - 2.2, 0.92, counter.z]} rotation={[0, -0.1, 0]}>
       {movies.slice(0, 4).map((movie, index) => (
         <PosterBox
           key={`recent-return-${movie.slotKey ?? movie.id}`}
