@@ -16,17 +16,19 @@ import type { SearchResult } from "@/lib/types";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
 import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, VINNY_LINES, unlockAudio, setCurrentEra, playNpcLine } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { buildCustomerDialogue } from "@/lib/npc-customer-dialogues";
 import { mobileInput } from "@/components/game3d/MobileControls";
-import { analyzeSentiment, getXPDelta, updateNpcRapport, isNpcHostile } from "@/lib/sentiment";
+import { isNpcHostile } from "@/lib/sentiment";
 import { type EraId } from "@/lib/curated-movie-catalog";
 import { useGameClock, formatGameTime, type ClosingAnnouncement } from "@/hooks/useGameClock";
 import { useAudioUI } from "@/hooks/useAudioUI";
 import { useInventory, type HeldMovie, type HeldSnack } from "@/hooks/useInventory";
 import { useChallenge, type ChallengeMovie, type ChallengeType } from "@/hooks/useChallenge";
+import { useOverlay, type Overlay } from "@/hooks/useOverlay";
+import { useDialogue } from "@/hooks/useDialogue";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -49,8 +51,6 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   const pool = avail.length > 0 ? avail : arr;
   return pool[Math.floor(Math.random() * pool.length)];
 }
-
-type Overlay = "none" | "dialogue" | "shelf" | "film_detail" | "pick" | "quote" | "synopsis" | "challenge_select" | "trophy" | "rpg_dialogue" | "quest_log" | "checkout" | "npc_chat";
 
 export default function GamePage() {
   type ShelfBrowseState = { genre: string; shelfId?: string; count?: number; label?: string };
@@ -84,7 +84,6 @@ export default function GamePage() {
       try { (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.("landscape").catch(() => {}); } catch {}
     }
   }, []);
-  const [overlay, setOverlay] = useState<Overlay>("none");
   const [topDown, setTopDown] = useState(false);
   const [shelfBrowse, setShelfBrowse] = useState<ShelfBrowseState | null>(null);
   const [filmId, setFilmId] = useState<number | null>(null);
@@ -136,20 +135,9 @@ export default function GamePage() {
   // Audio UI (mute, subtitle, music toggle)
   const { audioMuted, musicOff, setMusicOff, subtitle, setSubtitle, toggleMute } = useAudioUI();
 
-  // RPG dialogue state
-  const [rpgDialogue, setRpgDialogue] = useState<DialogueTree | null>(null);
-  const [rpgNode, setRpgNode] = useState<DialogueNode | null>(null);
-  const [rpgHistory, setRpgHistory] = useState<{ speaker: string; portrait?: string; text: string }[]>([]);
-
-  // NPC freeform chat state
-  const [npcChatTarget, setNpcChatTarget] = useState<{ name: string; personalityType: string; npcManagerId: string } | null>(null);
-  const [npcChatMessages, setNpcChatMessages] = useState<{ role: 'player' | 'npc'; text: string }[]>([]);
-  const [npcChatInput, setNpcChatInput] = useState('');
-  const [npcChatLoading, setNpcChatLoading] = useState(false);
-
-  // Typewriter effect for RPG dialogue
-  const [displayedText, setDisplayedText] = useState('');
-  const [typewriterDone, setTypewriterDone] = useState(false);
+  // ── Overlay hook (manages overlay state + close) ──────
+  const overlayCloseRef = useRef<(() => void) | null>(null);
+  const { overlay, setOverlay, closeOverlay, hasOverlay } = useOverlay(overlayCloseRef);
 
   const getHudPosterSrc = useCallback((posterUrl: string) => {
     if (!posterUrl) return "";
@@ -157,22 +145,6 @@ export default function GamePage() {
       ? `/api/image-proxy?url=${encodeURIComponent(posterUrl.replace('/w342/', '/w92/'))}`
       : posterUrl;
   }, []);
-
-  useEffect(() => {
-    if (!rpgNode) { setDisplayedText(''); setTypewriterDone(false); return; }
-    // Show full text immediately — no typewriter delay
-    setDisplayedText(rpgNode.text);
-    setTypewriterDone(true);
-  }, [rpgNode]);
-
-  // Play ElevenLabs voice when an NPC speaks in RPG dialogue
-  useEffect(() => {
-    if (!rpgNode || rpgNode.speaker === "You") return;
-    const personalityType = npcChatTarget?.personalityType;
-    if (!personalityType) return;
-    const npcName = rpgDialogue?.npc || rpgNode.speaker;
-    playNpcLine(npcName, rpgNode.text, personalityType);
-  }, [rpgNode, npcChatTarget?.personalityType, rpgDialogue?.npc]);
 
   // Notification stacking system
   const [notifications, setNotifications] = useState<{ id: number; text: string }[]>([]);
@@ -251,6 +223,48 @@ export default function GamePage() {
       tierUpTimer.current = setTimeout(() => setTierUpNotification(null), 4000);
     }
   }, [refreshTierState]);
+
+  // ── Dialogue hook (RPG dialogue + NPC freeform chat) ──
+  const {
+    rpgDialogue, setRpgDialogue,
+    rpgNode, setRpgNode,
+    rpgHistory, setRpgHistory,
+    displayedText, typewriterDone,
+    handleDialogueResponse,
+    npcChatTarget, setNpcChatTarget,
+    npcChatMessages, setNpcChatMessages,
+    npcChatInput, setNpcChatInput,
+    npcChatLoading,
+    handleNpcChatSend,
+  } = useDialogue({
+    handleTierUp,
+    era,
+    totalXP,
+    setTotalXP,
+    setCurrentTier,
+    showQuestNotif,
+    setPropsCount,
+    setOverlay,
+  });
+
+  // Wire up the overlay close callback (needs rpgDialogue from useDialogue)
+  overlayCloseRef.current = () => {
+    // Track NPC relationship when ending a dialogue
+    if (overlay === "rpg_dialogue" && rpgDialogue) {
+      const npcType = rpgDialogue.npc?.toLowerCase() || "customer";
+      incrementNpcRelationship(npcType);
+    }
+    setPuzzle(null);
+    setQuote(null);
+    setSynopsis(null);
+    setQuizAnswer(null);
+    setRpgDialogue(null);
+    setRpgNode(null);
+    setRpgHistory([]);
+    setFilmId(null);
+    setPendingPickup(null);
+    setShelfBrowse(null);
+  };
 
   const trackQuestGenreVisit = useCallback((genre: string) => {
     const active = getActiveQuests();
@@ -344,123 +358,10 @@ export default function GamePage() {
     }
   }, [showQuestNotif, handleTierUp]);
 
-  // Handle RPG dialogue response selection (quest triggers + node navigation)
-  const handleDialogueResponse = useCallback((resp: { text: string; next: DialogueNode; questStart?: string; questComplete?: string }) => {
-    if (resp.questStart) {
-      const questId = resp.questStart;
-      const state = getQuestState();
-      if (!state.activeQuests.includes(questId) && !state.completedQuests.includes(questId)) {
-        startQuest(questId);
-        const quest = CUSTOMER_SIDE_QUESTS.find(q => q.id === questId);
-        if (quest) {
-          showQuestNotif(`New Side Quest: ${quest.title}`);
-          playSFX("challenge_start");
-        }
-      }
-    }
-    if (resp.questComplete) {
-      const questId = resp.questComplete;
-      // Handle Charlie trivia correct answer — award 25 XP directly
-      if (questId === "trivia_correct") {
-        const result = addXP(25);
-        setTotalXP(result.newTotal);
-        setCurrentTier(getMembershipTier(result.newTotal));
-        handleTierUp(result.tierUp ? { tierUp: true, newTier: result.newTier } : null);
-        showQuestNotif("Trivia correct! +25 XP");
-        playSFX("challenge_complete");
-      } else {
-        const quest = CUSTOMER_SIDE_QUESTS.find(q => q.id === questId);
-        if (quest) {
-          const state = getQuestState();
-          if (!state.completedQuests.includes(questId)) {
-            if (!state.activeQuests.includes(questId)) {
-              startQuest(questId);
-            }
-            for (const obj of quest.objectives) {
-              completeObjective(questId, obj.id);
-            }
-            const tierResult = completeQuest(questId);
-            handleTierUp(tierResult);
-            setPropsCount(getPropsCount());
-            showQuestNotif(`Side Quest Complete: ${quest.title}! +${quest.reward.xp} XP`);
-            playSFX("challenge_complete");
-          }
-        }
-      }
-    }
-    // Intercept freeform chat sentinel
-    if (resp.next.text === "__OPEN_FREEFORM_CHAT__" && npcChatTarget) {
-      setNpcChatMessages([{ role: 'npc', text: `Hey! What's on your mind?` }]);
-      setNpcChatInput('');
-      setOverlay("npc_chat");
-      return;
-    }
-
-    setRpgHistory(prev => [
-      ...prev,
-      { speaker: "You", text: resp.text },
-      { speaker: resp.next.speaker, portrait: resp.next.portrait, text: resp.next.text },
-    ]);
-    setRpgNode(resp.next);
-  }, [showQuestNotif, handleTierUp, npcChatTarget]);
-
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
     setHoverLabel(label);
   }, []);
-
-  // ── NPC freeform chat send ────────────────────────────
-  const handleNpcChatSend = useCallback(async () => {
-    if (!npcChatInput.trim() || !npcChatTarget || npcChatLoading) return;
-    const text = npcChatInput.trim();
-    setNpcChatInput('');
-    setNpcChatMessages(prev => [...prev, { role: 'player', text }]);
-    setNpcChatLoading(true);
-
-    // Sentiment scoring (client-side, instant)
-    const { tone } = analyzeSentiment(text);
-    const xpDelta = getXPDelta(tone);
-    if (xpDelta !== 0) {
-      const result = addXP(xpDelta);
-      setTotalXP(result.newTotal);
-      setCurrentTier(getMembershipTier(result.newTotal));
-      if (result.tierUp) handleTierUp({ tierUp: true, newTier: result.newTier });
-    }
-    updateNpcRapport(npcChatTarget.npcManagerId, xpDelta);
-
-    try {
-      const res = await fetch('/api/npc-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          npcName: npcChatTarget.name,
-          personalityType: npcChatTarget.personalityType,
-          eraId: era,
-          playerMessage: text,
-          history: npcChatMessages.slice(-6),
-          playerXP: totalXP,
-        }),
-      });
-      const data = await res.json();
-
-      // Also apply LLM sentiment if different from keyword
-      if (data.sentiment && data.sentiment !== 'neutral' && data.source === 'llm') {
-        const llmXp = getXPDelta(data.sentiment);
-        if (llmXp !== 0 && tone === 'neutral') {
-          const result2 = addXP(llmXp);
-          setTotalXP(result2.newTotal);
-          setCurrentTier(getMembershipTier(result2.newTotal));
-          updateNpcRapport(npcChatTarget.npcManagerId, llmXp);
-        }
-      }
-
-      setNpcChatMessages(prev => [...prev, { role: 'npc', text: data.reply }]);
-    } catch {
-      setNpcChatMessages(prev => [...prev, { role: 'npc', text: "Sorry, I spaced out. What?" }]);
-    } finally {
-      setNpcChatLoading(false);
-    }
-  }, [npcChatInput, npcChatTarget, npcChatLoading, npcChatMessages, era, totalXP, handleTierUp]);
 
   // ── Movie Night Score Calculation ──────────────────────
   type ScoreItem = { label: string; points: number };
@@ -966,25 +867,6 @@ export default function GamePage() {
     resumePointerLock();
   }, [addNotification, heldMovies.length, pendingPickup, resumePointerLock, trackQuestMoviePickup]);
 
-  const closeOverlay = useCallback(() => {
-    // Track NPC relationship when ending a dialogue
-    if (overlay === "rpg_dialogue" && rpgDialogue) {
-      const npcType = rpgDialogue.npc?.toLowerCase() || "customer";
-      incrementNpcRelationship(npcType);
-    }
-    setOverlay("none");
-    setPuzzle(null);
-    setQuote(null);
-    setSynopsis(null);
-    setQuizAnswer(null);
-    setRpgDialogue(null);
-    setRpgNode(null);
-    setRpgHistory([]);
-    setFilmId(null);
-    setPendingPickup(null);
-    setShelfBrowse(null);
-  }, [overlay, rpgDialogue]);
-
   const nextTier = currentTier === MEMBERSHIP_TIERS[MEMBERSHIP_TIERS.length - 1]
     ? null
     : MEMBERSHIP_TIERS[MEMBERSHIP_TIERS.indexOf(currentTier) + 1] ?? null;
@@ -1073,7 +955,6 @@ export default function GamePage() {
     );
   }
 
-  const hasOverlay = overlay !== "none";
   const puzzleBlur = puzzleWon !== null ? 0 : [40, 28, 16, 6, 0][puzzleClue];
 
   return (

@@ -274,6 +274,203 @@ const CHARLIE_DIALOGUES: DialogueTree[] = [
   },
 ];
 
+// ── TONY DIALOGUES (Pizza Palace clerk) ──────────────────
+
+const TONY_DIALOGUES: DialogueTree[] = [
+  {
+    id: "tony_greeting_1",
+    npc: "Tony",
+    portrait: "T",
+    opener: {
+      speaker: "Tony",
+      portrait: "T",
+      text: "Hey, welcome to Pizza Palace! Best slice in the strip mall, guaranteed. What can I get ya?",
+      responses: [
+        {
+          text: "What do you recommend?",
+          next: {
+            speaker: "Tony",
+            portrait: "T",
+            text: "Pepperoni. Always pepperoni. I've been making pies since I was fourteen and nothing beats a classic pepperoni slice straight out of the oven.",
+            responses: [
+              { text: "Pepperoni it is.", next: { speaker: "Tony", portrait: "T", text: "Coming right up! You won't regret it. I put a little extra cheese on there for the Friday crowd." } },
+              { text: "What about something fancier?", next: { speaker: "Tony", portrait: "T", text: "Fancy? This ain't a French restaurant. But I do a mean sausage and mushroom if you're feeling adventurous." } },
+              { text: "How long have you worked here?", next: { speaker: "Tony", portrait: "T", text: "Worked here? I built this place! Well, my uncle started it, and I took over. Going on fifteen years now. This oven is older than most of my customers." } },
+            ],
+          },
+        },
+        {
+          text: "Busy night?",
+          next: {
+            speaker: "Tony",
+            portrait: "T",
+            text: "Friday nights are always crazy. Everybody rents a movie next door and then comes in here for a pie. I'm not complaining — keeps the lights on and the dough spinning.",
+            responses: [
+              { text: "You and Vinny must do good business together.", next: { speaker: "Tony", portrait: "T", text: "Oh yeah, me and Vinny go way back. He sends people over here, I tell people to rent from him. Everybody wins. That's how a strip mall's supposed to work." } },
+              { text: "I can see why. Smells amazing.", next: { speaker: "Tony", portrait: "T", text: "That's the good olive oil. My aunt ships it from the old country. Secret ingredient, but I just told you, so keep it between us." } },
+              { text: "Must be tiring.", next: { speaker: "Tony", portrait: "T", text: "Nah, I love it. Standing on my feet all night making pizza for good people? There's worse ways to spend a Friday." } },
+            ],
+          },
+        },
+        {
+          text: "Just looking at the menu.",
+          next: {
+            speaker: "Tony",
+            portrait: "T",
+            text: "Take your time. But between you and me, you can't go wrong with anything on there. I wouldn't serve it if I wouldn't eat it myself.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "tony_movies_1",
+    npc: "Tony",
+    portrait: "T",
+    opener: {
+      speaker: "Tony",
+      portrait: "T",
+      text: "You know, soon as I close up tonight, I'm heading next door to grab a movie. Nothing beats pizza and a movie after a long shift.",
+      responses: [
+        {
+          text: "What are you watching tonight?",
+          next: {
+            speaker: "Tony",
+            portrait: "T",
+            text: "I've had my eye on this action flick all week. Something with car chases and explosions. After eight hours of rolling dough, I need something loud.",
+            responses: [
+              { text: "Action is the best genre.", next: { speaker: "Tony", portrait: "T", text: "Finally, someone who gets it! Give me a good action movie, a cold drink, and a leftover slice, and that's a perfect Friday night." } },
+              { text: "Ever watch anything quieter?", next: { speaker: "Tony", portrait: "T", text: "Quieter? I fall asleep in five minutes if it's not loud enough. Last time I tried a drama I woke up on the couch at 3 AM with the menu screen looping." } },
+              { text: "You rent from Vinny?", next: { speaker: "Tony", portrait: "T", text: "Always. Vinny's the only guy I trust with movie picks. Plus he gives me a discount for keeping him fed. Fair trade if you ask me." } },
+            ],
+          },
+        },
+        {
+          text: "What's your favorite genre?",
+          next: {
+            speaker: "Tony",
+            portrait: "T",
+            text: "Action, no question. The bigger the explosions, the better. I grew up on all those classics. There's nothing like a good chase scene to wind down after work.",
+            responses: [
+              { text: "Any favorites?", next: { speaker: "Tony", portrait: "T", text: "Too many to count. But if I had to pick one to watch forever, it'd be Die Hard. Perfect movie. Don't even try to argue with me on that." } },
+              { text: "I would have guessed cooking shows.", next: { speaker: "Tony", portrait: "T", text: "Ha! I get enough cooking in real life. When I sit down I want to see stuff blowing up, not someone julienning onions." } },
+            ],
+          },
+        },
+        {
+          text: "Don't you get tired of this strip mall?",
+          next: {
+            speaker: "Tony",
+            portrait: "T",
+            text: "Tired of it? This is my whole world, pal. Pizza Palace, Vinny's shop, Earl's laundromat. Everything I need is right here on this block. Why would I go anywhere else?",
+          },
+        },
+      ],
+    },
+  },
+];
+
+// ── EARL DIALOGUES (Laundromat attendant) ────────────────
+
+const EARL_DIALOGUES: DialogueTree[] = [
+  {
+    id: "earl_greeting_1",
+    npc: "Earl",
+    portrait: "E",
+    opener: {
+      speaker: "Earl",
+      portrait: "E",
+      text: "Well hey there. Welcome to the laundromat. Machines are all working today, which is something of a miracle.",
+      responses: [
+        {
+          text: "How do the machines work?",
+          next: {
+            speaker: "Earl",
+            portrait: "E",
+            text: "Quarters in the slot, dial to the right, press the button. Same as they've always worked. If one starts making a funny noise, just give it a tap on the side. They respond to a gentle touch.",
+            responses: [
+              { text: "Sounds like you know them pretty well.", next: { speaker: "Earl", portrait: "E", text: "I've been fixing these machines longer than most people have been alive. Each one's got its own personality. Number four likes to rattle, but she gets the job done." } },
+              { text: "Any machines I should avoid?", next: { speaker: "Earl", portrait: "E", text: "Number seven runs a little hot. Good for towels, bad for anything you care about. Stick with three or five — those are my reliable ones." } },
+              { text: "Thanks for the tip.", next: { speaker: "Earl", portrait: "E", text: "Anytime. That's what I'm here for. Well, that and reading my magazines." } },
+            ],
+          },
+        },
+        {
+          text: "How long have you been here?",
+          next: {
+            speaker: "Earl",
+            portrait: "E",
+            text: "Longer than the machines, longer than the strip mall, longer than just about everything on this block. I was here when they poured the parking lot. Watched the whole neighborhood grow up.",
+            responses: [
+              { text: "That's incredible.", next: { speaker: "Earl", portrait: "E", text: "It's just life. You stay in one place long enough, you become part of the furniture. And I mean that in the best way." } },
+              { text: "You must have seen a lot of changes.", next: { speaker: "Earl", portrait: "E", text: "Shops come and go, but people stay the same. Everybody needs clean clothes. That's job security right there." } },
+              { text: "Don't you get bored?", next: { speaker: "Earl", portrait: "E", text: "Bored? Never. I've got my magazines, my regulars, and the hum of the machines. It's peaceful. Most people spend their whole lives looking for peace, and here I am sitting in it." } },
+            ],
+          },
+        },
+        {
+          text: "Nice place.",
+          next: {
+            speaker: "Earl",
+            portrait: "E",
+            text: "It does the job. Clean, warm, and the fluorescent lights never go out. Plus I keep a stack of magazines by the chairs if you need something to read while you wait. Help yourself.",
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: "earl_stories_1",
+    npc: "Earl",
+    portrait: "E",
+    opener: {
+      speaker: "Earl",
+      portrait: "E",
+      text: "You know, you hear a lot of stories working in a place like this. The machines spin, people talk, and I just listen.",
+      responses: [
+        {
+          text: "What's the weirdest thing someone left in a machine?",
+          next: {
+            speaker: "Earl",
+            portrait: "E",
+            text: "A bowling trophy. Full-size, gold-plated, wedged right in the drum. The woman came back three days later like nothing happened. Said she forgot it was in her gym bag.",
+            responses: [
+              { text: "No way.", next: { speaker: "Earl", portrait: "E", text: "I couldn't make this stuff up if I tried. I've also found a harmonica, two wallets, and a love letter that was never sent. That last one stuck with me." } },
+              { text: "Did the machine survive?", next: { speaker: "Earl", portrait: "E", text: "Machine five has a dent in the drum to this day. Still works though. Like I said, they're tough old girls." } },
+              { text: "That's amazing.", next: { speaker: "Earl", portrait: "E", text: "Every machine in here has a story if you listen close enough. The spin cycle covers up a lot, but not everything." } },
+            ],
+          },
+        },
+        {
+          text: "Any regulars I should know about?",
+          next: {
+            speaker: "Earl",
+            portrait: "E",
+            text: "There's one fella who comes in every Friday like clockwork. Same time, same machine, same detergent. Been doing it for years. We nod at each other. That's our whole relationship.",
+            responses: [
+              { text: "That's kind of nice.", next: { speaker: "Earl", portrait: "E", text: "It is. You don't always need words. Sometimes a nod is worth more than a conversation. He knows I'm here, I know he's here. That's enough." } },
+              { text: "Does he ever talk?", next: { speaker: "Earl", portrait: "E", text: "Once. He said 'machine three is making a noise.' I fixed it. He nodded. That was our deepest conversation in five years." } },
+            ],
+          },
+        },
+        {
+          text: "You seem pretty relaxed about everything.",
+          next: {
+            speaker: "Earl",
+            portrait: "E",
+            text: "Patience. That's the secret. Everything in here takes time. The wash cycle, the dry cycle, getting a stain out. You can't rush any of it. Life's the same way if you think about it.",
+            responses: [
+              { text: "That's actually really wise.", next: { speaker: "Earl", portrait: "E", text: "Wise? I'm just a guy who watches machines spin all day. But if something useful came out of it, well, that's a bonus." } },
+              { text: "I could use more patience.", next: { speaker: "Earl", portrait: "E", text: "Everybody could. Sit down, watch a cycle go. You'd be surprised how much you figure out when you stop trying to figure things out." } },
+              { text: "I bet you've got more where that came from.", next: { speaker: "Earl", portrait: "E", text: "I've got enough wisdom to fill a dryer. But I'll save some for next time. Can't give it all away in one visit." } },
+            ],
+          },
+        },
+      ],
+    },
+  },
+];
+
 // ── CUSTOMER DIALOGUES (overheard / brief interactions) ────
 
 const CUSTOMER_DIALOGUES: DialogueTree[] = [
@@ -907,6 +1104,8 @@ const ALL_DIALOGUES: Record<string, DialogueTree[]> = {
   vinny: VINNY_DIALOGUES,
   charlie: CHARLIE_DIALOGUES,
   customer: CUSTOMER_DIALOGUES,
+  tony: TONY_DIALOGUES,
+  earl: EARL_DIALOGUES,
 };
 
 const usedDialogues = new Set<string>();
@@ -914,6 +1113,17 @@ const usedDialogues = new Set<string>();
 export function getRandomDialogue(npc: string): DialogueTree {
   const pool = ALL_DIALOGUES[npc] || VINNY_DIALOGUES;
   // Prefer unseen dialogues
+  const unseen = pool.filter(d => !usedDialogues.has(d.id));
+  const pick = unseen.length > 0
+    ? unseen[Math.floor(Math.random() * unseen.length)]
+    : pool[Math.floor(Math.random() * pool.length)];
+  usedDialogues.add(pick.id);
+  return pick;
+}
+
+/** Get a random dialogue tree for a named NPC (Tony or Earl) */
+export function getNamedNpcDialogue(npcType: "tony" | "earl"): DialogueTree {
+  const pool = ALL_DIALOGUES[npcType];
   const unseen = pool.filter(d => !usedDialogues.has(d.id));
   const pick = unseen.length > 0
     ? unseen[Math.floor(Math.random() * unseen.length)]

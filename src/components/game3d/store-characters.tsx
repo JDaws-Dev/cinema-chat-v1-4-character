@@ -10,6 +10,78 @@ import { getObjectById } from "@/lib/store-layout";
 import { SHELF_ROWS } from "./store-constants";
 import { Mat } from "./store-materials";
 
+// ── Lifelike animation helpers ─────────────────────────────
+// Deterministic seed from character id string → stable per-character randomization
+function seedFromId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  return (h >>> 0) / 4294967295; // 0..1
+}
+
+// Hook: breathing (torso scaleY), idle sway (groupX), head micro-movements
+function useLifelikeIdle(
+  seed: number,
+  torsoRef: React.RefObject<THREE.Mesh | null>,
+  headRef: React.RefObject<THREE.Group | THREE.Mesh | null>,
+  groupRef: React.RefObject<THREE.Group | null>,
+  baseGroupX?: number, // if group position.x is managed externally, pass undefined
+) {
+  const breathPeriod = 3.5 + seed * 1.0; // 3.5-4.5s
+  const swayPhase = seed * Math.PI * 2;
+  const headFreq1 = 0.7 + seed * 0.4;
+  const headFreq2 = 1.3 + (1 - seed) * 0.5;
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    // Breathing: torso scaleY pulses 1.0 → 1.008
+    if (torsoRef.current) {
+      torsoRef.current.scale.y = 1.0 + 0.008 * (0.5 + 0.5 * Math.sin((t * Math.PI * 2) / breathPeriod));
+    }
+    // Idle sway: offset group X by ±0.02 on 6s cycle
+    if (groupRef.current && baseGroupX !== undefined) {
+      groupRef.current.position.x = baseGroupX + Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.02;
+    }
+    // Head micro-movements: sum of two sine waves, max 0.03 rad
+    if (headRef.current) {
+      const micro = Math.sin(t * headFreq1 * 2.5) * 0.015 + Math.sin(t * headFreq2 * 3.1) * 0.015;
+      headRef.current.rotation.z = micro;
+    }
+  });
+}
+
+// Hook: blink animation — scale eye meshes Y to 0 for 0.1s every 3-5s
+function useBlink(
+  seed: number,
+  ...eyeRefs: React.RefObject<THREE.Mesh | null>[]
+) {
+  const nextBlink = useRef(3 + seed * 2); // first blink 3-5s in
+  const blinkTimer = useRef(0);
+  const isBlinking = useRef(false);
+
+  useFrame((_, dt) => {
+    const cappedDt = Math.min(dt, 0.1);
+    if (isBlinking.current) {
+      blinkTimer.current -= cappedDt;
+      if (blinkTimer.current <= 0) {
+        isBlinking.current = false;
+        nextBlink.current = 3 + Math.random() * 2; // 3-5s until next
+        for (const ref of eyeRefs) {
+          if (ref.current) ref.current.scale.y = 1;
+        }
+      }
+    } else {
+      nextBlink.current -= cappedDt;
+      if (nextBlink.current <= 0) {
+        isBlinking.current = true;
+        blinkTimer.current = 0.1;
+        for (const ref of eyeRefs) {
+          if (ref.current) ref.current.scale.y = 0.05;
+        }
+      }
+    }
+  });
+}
+
 // NPC waypoints — aisles between the 12 chevron gondolas
 // Center aisle: x=0 (between left pair and right pair)
 // Left aisle: x=-4, Right aisle: x=4
@@ -577,10 +649,13 @@ export function CharlieCharacter() {
   /* CharlieCharacter is very long — I'll include the full original code */
   const ref = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
   const leftLegRef = useRef<THREE.Mesh>(null);
   const rightLegRef = useRef<THREE.Mesh>(null);
   const leftArmRef = useRef<THREE.Mesh>(null);
   const rightArmRef = useRef<THREE.Mesh>(null);
+  const leftEyeRef = useRef<THREE.Mesh>(null);
+  const rightEyeRef = useRef<THREE.Mesh>(null);
   const charlieId = "charlie";
   const speed = 0.8;
   const _cPos = getObjectById("charlie");
@@ -601,6 +676,14 @@ export function CharlieCharacter() {
   const waitTimer = useRef(0);
   const isBrowsing = useRef(false);
 
+  const charlieSeed = useMemo(() => seedFromId("charlie"), []);
+
+  // Priority 1: breathing + head micro-movements (sway handled in useFrame since Charlie moves)
+  useLifelikeIdle(charlieSeed, torsoRef, headRef, ref, undefined /* sway managed manually */);
+
+  // Priority 2: blink
+  useBlink(charlieSeed, leftEyeRef, rightEyeRef);
+
   useFrame((state, delta) => {
     if (!ref.current) return;
     const dt = Math.min(delta, 0.1);
@@ -618,6 +701,9 @@ export function CharlieCharacter() {
     if (waitTimer.current > 0) {
       waitTimer.current -= dt;
       ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
+      // Idle sway when stopped
+      const swayPhase = charlieSeed * Math.PI * 2;
+      ref.current.position.x += Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.0003; // gentle drift
       if (headRef.current) {
         headRef.current.rotation.y = Math.sin(t * 0.3) * 0.2;
       }
@@ -688,7 +774,7 @@ export function CharlieCharacter() {
       <mesh position={[0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
       <mesh position={[0.08, 0.01, -0.02]}><boxGeometry args={[0.14, 0.03, 0.19]} /><Mat color="#f0f0f0" roughness={0.6} /></mesh>
       <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      <mesh position={[0, 0.85, 0]}><boxGeometry args={[0.36, 0.5, 0.22]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
+      <mesh ref={torsoRef} position={[0, 0.85, 0]}><boxGeometry args={[0.36, 0.5, 0.22]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
       <mesh position={[0, 0.85, -0.115]}><boxGeometry args={[0.34, 0.46, 0.02]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
       <mesh position={[0, 0.85, 0.115]}><boxGeometry args={[0.34, 0.46, 0.02]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
       <mesh position={[-0.175, 0.85, 0]}><boxGeometry args={[0.02, 0.46, 0.22]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
@@ -715,8 +801,8 @@ export function CharlieCharacter() {
         <mesh position={[0, -0.02, 0.12]}><boxGeometry args={[0.2, 0.1, 0.06]} /><Mat color="#c4a45a" roughness={0.9} /></mesh>
         <mesh position={[-0.07, -0.02, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
         <mesh position={[0.07, -0.02, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh position={[-0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        <mesh position={[0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        <mesh ref={leftEyeRef} position={[-0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        <mesh ref={rightEyeRef} position={[0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
         <mesh position={[0, -0.1, -0.18]}><boxGeometry args={[0.1, 0.02, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[-0.05, -0.095, -0.18]} rotation={[0, 0, -0.3]}><boxGeometry args={[0.025, 0.012, 0.015]} /><Mat color="#c07060" roughness={0.8} /></mesh>
         <mesh position={[0.05, -0.095, -0.18]} rotation={[0, 0, 0.3]}><boxGeometry args={[0.025, 0.012, 0.015]} /><Mat color="#c07060" roughness={0.8} /></mesh>
@@ -742,6 +828,17 @@ export function VinnyCharacter() {
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
+  const leftEyeRef = useRef<THREE.Mesh>(null);
+  const rightEyeRef = useRef<THREE.Mesh>(null);
+
+  const vinnySeed = useMemo(() => seedFromId("vinny"), []);
+
+  // Priority 1: breathing + idle sway + head micro-movements
+  useLifelikeIdle(vinnySeed, torsoRef, headRef, ref, getObjectById("vinny")?.x ?? 7);
+
+  // Priority 2: blink
+  useBlink(vinnySeed, leftEyeRef, rightEyeRef);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -760,6 +857,7 @@ export function VinnyCharacter() {
     if (headRef.current) {
       headRef.current.rotation.y = Math.sin(t * 0.25) * 0.15;
       headRef.current.rotation.x = Math.sin(t * 0.18) * 0.04;
+      // head micro-movements are applied via useLifelikeIdle (rotation.z)
     }
   });
 
@@ -773,7 +871,7 @@ export function VinnyCharacter() {
       <mesh position={[0.09, 0.05, -0.08]}><boxGeometry args={[0.12, 0.04, 0.06]} /><Mat color="#1a3a6a" roughness={0.6} /></mesh>
       <mesh position={[0, 0.7, 0]}><boxGeometry args={[0.32, 0.05, 0.18]} /><Mat color="#3a2a1a" roughness={0.7} /></mesh>
       <mesh position={[0, 0.7, -0.09]}><boxGeometry args={[0.06, 0.04, 0.01]} /><Mat color="#c0a020" roughness={0.3} metalness={0.5} /></mesh>
-      <mesh position={[0, 0.95, 0]}><boxGeometry args={[0.4, 0.55, 0.25]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
+      <mesh ref={torsoRef} position={[0, 0.95, 0]}><boxGeometry args={[0.4, 0.55, 0.25]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
       <mesh position={[0, 1.2, -0.06]}><boxGeometry args={[0.22, 0.06, 0.16]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
       <mesh position={[-0.06, 1.22, -0.1]} rotation={[0.3, 0, 0.2]}><boxGeometry args={[0.08, 0.05, 0.02]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
       <mesh position={[0.06, 1.22, -0.1]} rotation={[0.3, 0, -0.2]}><boxGeometry args={[0.08, 0.05, 0.02]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
@@ -806,8 +904,8 @@ export function VinnyCharacter() {
         <mesh position={[0.08, 0.02, -0.21]}><circleGeometry args={[0.038, 16]} /><Mat color="#e8e8ff" transparent opacity={0.15} /></mesh>
         <mesh position={[-0.08, 0.02, -0.19]}><sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
         <mesh position={[0.08, 0.02, -0.19]}><sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh position={[-0.08, 0.02, -0.22]}><sphereGeometry args={[0.015, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        <mesh position={[0.08, 0.02, -0.22]}><sphereGeometry args={[0.015, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        <mesh ref={leftEyeRef} position={[-0.08, 0.02, -0.22]}><sphereGeometry args={[0.015, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        <mesh ref={rightEyeRef} position={[0.08, 0.02, -0.22]}><sphereGeometry args={[0.015, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
         <mesh position={[0, -0.08, -0.2]}><boxGeometry args={[0.18, 0.05, 0.05]} /><Mat color="#2a1a0a" roughness={0.9} /></mesh>
         <mesh position={[-0.1, -0.09, -0.19]} rotation={[0, 0, -0.3]}><boxGeometry args={[0.04, 0.03, 0.04]} /><Mat color="#2a1a0a" roughness={0.9} /></mesh>
         <mesh position={[0.1, -0.09, -0.19]} rotation={[0, 0, 0.3]}><boxGeometry args={[0.04, 0.03, 0.04]} /><Mat color="#2a1a0a" roughness={0.9} /></mesh>

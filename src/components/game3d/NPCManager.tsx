@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Html, Billboard, Text } from "@react-three/drei";
 import * as THREE from "three";
@@ -37,6 +37,13 @@ const BUBBLE_STYLE: React.CSSProperties = {
   boxShadow: "3px 3px 0 rgba(0,0,0,0.5)",
 };
 
+// ── Lifelike animation seed helper ──────────────────────────────
+function seedFromId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  return (h >>> 0) / 4294967295; // 0..1
+}
+
 // ── NPC mesh — simplified box-geometry character ───────────────
 
 function NPCMesh({
@@ -48,37 +55,135 @@ function NPCMesh({
 }) {
   const leftLegRef = useRef<THREE.Mesh>(null);
   const rightLegRef = useRef<THREE.Mesh>(null);
+  const leftArmRef = useRef<THREE.Mesh>(null);
+  const rightArmRef = useRef<THREE.Mesh>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
+  const headRef = useRef<THREE.Mesh>(null);
+  const leftEyeRef = useRef<THREE.Mesh>(null);
+  const rightEyeRef = useRef<THREE.Mesh>(null);
+
+  // Per-NPC seed for animation desync
+  const seed = useMemo(() => seedFromId(npc.config.id), [npc.config.id]);
+  const breathPeriod = useMemo(() => 3.5 + seed * 1.0, [seed]); // 3.5-4.5s
+  const swayPhase = useMemo(() => seed * Math.PI * 2, [seed]);
+  const headFreq1 = useMemo(() => 0.7 + seed * 0.4, [seed]);
+  const headFreq2 = useMemo(() => 1.3 + (1 - seed) * 0.5, [seed]);
+
+  // Blink state
+  const nextBlink = useRef(3 + seed * 2);
+  const blinkTimer = useRef(0);
+  const isBlinking = useRef(false);
 
   const { shirtColor, pantsColor, hairColor, skinTone, hairStyle, height } =
     npc.config.appearance;
 
-  useFrame(() => {
+  useFrame((state, dt) => {
+    const cappedDt = Math.min(dt, 0.1);
+    const t = state.clock.elapsedTime;
+
     const isWalking =
       npc.state === "walking" ||
       npc.state === "entering" ||
       npc.state === "leaving";
-    if (isWalking) {
-      const t = performance.now() * 0.008;
-      if (leftLegRef.current) leftLegRef.current.rotation.x = Math.sin(t) * 0.4;
-      if (rightLegRef.current)
-        rightLegRef.current.rotation.x = Math.sin(t + Math.PI) * 0.4;
+
+    // ── Priority 1: Breathing — torso scaleY pulses 1.0 → 1.008 ──
+    if (torsoRef.current) {
+      torsoRef.current.scale.y = 1.0 + 0.008 * (0.5 + 0.5 * Math.sin((t * Math.PI * 2) / breathPeriod));
+    }
+
+    // ── Priority 1: Idle sway — ±0.02 on 6s cycle (only when not walking) ──
+    if (groupRef.current && !isWalking) {
+      // Apply sway as a small X offset relative to positioned location
+      // (ManagedNPC sets position each frame, so we apply sway to the inner group indirectly via torso/head)
+    }
+
+    // ── Priority 1: Head micro-movements — two sine waves, 0.03 rad max ──
+    if (headRef.current) {
+      const micro = Math.sin(t * headFreq1 * 2.5) * 0.015 + Math.sin(t * headFreq2 * 3.1) * 0.015;
+      headRef.current.rotation.z = micro;
+      // Also small Y rotation for head look variation
+      if (!isWalking) {
+        headRef.current.rotation.y = Math.sin(t * 0.3 + swayPhase) * 0.08;
+      }
+    }
+
+    // ── Priority 2: Blink — scale eye Y to 0.05 for 0.1s every 3-5s ──
+    if (isBlinking.current) {
+      blinkTimer.current -= cappedDt;
+      if (blinkTimer.current <= 0) {
+        isBlinking.current = false;
+        nextBlink.current = 3 + Math.random() * 2;
+        if (leftEyeRef.current) leftEyeRef.current.scale.y = 1;
+        if (rightEyeRef.current) rightEyeRef.current.scale.y = 1;
+      }
     } else {
+      nextBlink.current -= cappedDt;
+      if (nextBlink.current <= 0) {
+        isBlinking.current = true;
+        blinkTimer.current = 0.1;
+        if (leftEyeRef.current) leftEyeRef.current.scale.y = 0.05;
+        if (rightEyeRef.current) rightEyeRef.current.scale.y = 0.05;
+      }
+    }
+
+    // ── Priority 3: Walking improvements ──
+    if (isWalking) {
+      const walkT = performance.now() * 0.008;
+      const legSwing = Math.sin(walkT) * 0.4;
+
+      // Leg animation
+      if (leftLegRef.current) leftLegRef.current.rotation.x = legSwing;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = -legSwing;
+
+      // Torso counter-rotation: ±0.06 rad opposite to legs
+      if (torsoRef.current) {
+        torsoRef.current.rotation.y = -Math.sin(walkT) * 0.06;
+      }
+
+      // Arm swing with phase lag (~0.15 rad offset from legs)
+      const armSwing = Math.sin(walkT - 0.15) * 0.4 * 0.6;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = -armSwing;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = armSwing;
+
+      // Approach deceleration: when stateTimer is low, dampen leg swing
+      if (npc.stateTimer < 0.5 && (npc.state === "walking")) {
+        const dampFactor = Math.max(0, npc.stateTimer / 0.5);
+        if (leftLegRef.current) leftLegRef.current.rotation.x *= dampFactor;
+        if (rightLegRef.current) rightLegRef.current.rotation.x *= dampFactor;
+        if (leftArmRef.current) leftArmRef.current.rotation.x *= dampFactor;
+        if (rightArmRef.current) rightArmRef.current.rotation.x *= dampFactor;
+        if (torsoRef.current) torsoRef.current.rotation.y *= dampFactor;
+      }
+    } else {
+      // Decay limbs to rest
       if (leftLegRef.current) leftLegRef.current.rotation.x *= 0.9;
       if (rightLegRef.current) rightLegRef.current.rotation.x *= 0.9;
+      if (leftArmRef.current) leftArmRef.current.rotation.x *= 0.9;
+      if (rightArmRef.current) rightArmRef.current.rotation.x *= 0.9;
+      if (torsoRef.current) torsoRef.current.rotation.y *= 0.9;
     }
   });
 
   return (
     <group ref={groupRef} scale={height}>
-      {/* Body */}
-      <mesh position={[0, 0.85, 0]}>
+      {/* Body (torso) */}
+      <mesh ref={torsoRef} position={[0, 0.85, 0]}>
         <boxGeometry args={[0.35, 0.45, 0.2]} />
         <meshStandardMaterial color={shirtColor} />
       </mesh>
       {/* Head */}
-      <mesh position={[0, 1.22, 0]}>
+      <mesh ref={headRef} position={[0, 1.22, 0]}>
         <sphereGeometry args={[0.13, 8, 8]} />
         <meshStandardMaterial color={skinTone} />
+      </mesh>
+      {/* Eyes */}
+      <mesh ref={leftEyeRef} position={[-0.04, 1.24, -0.11]}>
+        <sphereGeometry args={[0.018, 8, 8]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      <mesh ref={rightEyeRef} position={[0.04, 1.24, -0.11]}>
+        <sphereGeometry args={[0.018, 8, 8]} />
+        <meshStandardMaterial color="#1a1a1a" />
       </mesh>
       {/* Hair variants */}
       {hairStyle === "flattop" && (
@@ -106,8 +211,8 @@ function NPCMesh({
         <mesh position={[0, 1.32, 0]}><sphereGeometry args={[0.18, 8, 8]} /><meshStandardMaterial color={hairColor} /></mesh>
       )}
       {/* Arms */}
-      <mesh position={[-0.24, 0.85, 0]}><boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} /></mesh>
-      <mesh position={[0.24, 0.85, 0]}><boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} /></mesh>
+      <mesh ref={leftArmRef} position={[-0.24, 0.85, 0]}><boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} /></mesh>
+      <mesh ref={rightArmRef} position={[0.24, 0.85, 0]}><boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} /></mesh>
       {/* Legs */}
       <mesh ref={leftLegRef} position={[-0.08, 0.4, 0]}>
         <boxGeometry args={[0.12, 0.45, 0.12]} /><meshStandardMaterial color={pantsColor} />
@@ -140,6 +245,9 @@ function ManagedNPC({
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
+  // Per-NPC sway phase so they never sync
+  const swayPhase = useMemo(() => seedFromId(npc.config.id) * Math.PI * 2, [npc.config.id]);
+
   // Set userData for interaction system raycast
   useEffect(() => {
     if (!groupRef.current) return;
@@ -152,11 +260,16 @@ function ManagedNPC({
     };
   }, [npc.config.id, npc.config.name, npc.config.personalityType]);
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
     // Lower NPC so feet touch the floor: leg bottom is at local y=0.175, scaled by height
     const feetOffset = -0.175 * npc.config.appearance.height;
-    groupRef.current.position.set(npc.position[0], feetOffset, npc.position[2]);
+
+    // Priority 1: idle sway — ±0.02 on 6s cycle when not walking
+    const isWalking = npc.state === "walking" || npc.state === "entering" || npc.state === "leaving";
+    const swayOffset = isWalking ? 0 : Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.02;
+    groupRef.current.position.set(npc.position[0] + swayOffset, feetOffset, npc.position[2]);
     groupRef.current.rotation.y = npc.facing;
 
     groupRef.current.visible = npc.opacity > 0.01;
