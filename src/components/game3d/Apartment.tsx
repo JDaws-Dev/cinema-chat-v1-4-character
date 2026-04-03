@@ -16,12 +16,428 @@ const APT_Y = 4;    // one floor above ground (laundromat ceiling ~3.5 + slab)
 const APT_X = 13;
 const APT_Z = 5.75;
 
-// Colors — warm 90s wood-paneling vibes
+// Full building height from ground (world y=0) to apartment roof
+// In local coords (group is at y=APT_Y), ground = -APT_Y, roof = APT_H
+const BLDG_GROUND = -APT_Y;          // local y for world ground level
+const BLDG_ROOF = APT_H;             // local y for roof top
+const BLDG_FULL_H = APT_Y + APT_H;   // total building height = 6.8
+const BLDG_MID_Y = (BLDG_GROUND + BLDG_ROOF) / 2; // center of full height
+
+// Floor separator at laundromat ceiling / apartment floor
+const SLAB_Y = 0;         // local y = 0 is the apartment floor / top of slab
+const SLAB_WORLD_Y = APT_Y; // world y = 4
+const FLOOR_SEP_Y = -0.15;  // just below apartment floor in local coords
+
+// Wall thickness for exterior
+const WALL_T = 0.2;
+
+// Colors — warm 90s wood-paneling vibes (interior)
 const FLOOR_COLOR = "#8B6914";      // warm hardwood
 const WALL_COLOR = "#F5E6CC";       // cream walls
 const BASEBOARD_COLOR = "#5C3A1E";  // dark wood baseboard
 const CEILING_COLOR = "#E8DCC8";    // warm off-white
 const TRIM_COLOR = "#6B4226";       // door/window trim
+
+// Exterior colors
+const BRICK_COLOR = "#A0826A";      // brick/tan exterior
+const BRICK_DARK = "#8B7060";       // slightly darker for variation
+const TRIM_BAND = "#7A6A5A";        // floor separator trim
+const ROOF_COLOR = "#3a3a3a";       // dark roof
+const FASCIA_COLOR = "#5C4A3A";     // roof edge trim
+const STAIR_COLOR = "#888888";      // concrete stairs
+const RAIL_COLOR = "#4a4a4a";       // metal railing
+const DOOR_EXT_COLOR = "#5a3828";   // exterior door
+const AWNING_COLOR = "#6B4226";     // door awning
+
+// ── Building Exterior Facade ──
+// Runs from ground (local y = -4) to roof (local y = 2.8)
+// This is what you see from the parking lot: a proper 2-story building
+function BuildingFacade() {
+  const halfW = APT_W / 2;
+  const halfD = APT_D / 2;
+
+  // Front wall faces parking lot (positive z direction)
+  // Laundromat has its own front wall with door gap, so we only add
+  // the APARTMENT LEVEL portion of the front (above slab) and fill gaps
+  // Left/right/back walls run full height.
+
+  return (
+    <group>
+      {/* ── LEFT SIDE WALL (x = -halfW) — full height ── */}
+      <mesh position={[-halfW - WALL_T / 2, BLDG_MID_Y, 0]}>
+        <boxGeometry args={[WALL_T, BLDG_FULL_H, APT_D + WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* ── RIGHT SIDE WALL (x = +halfW) — full height, with stair gap at top ── */}
+      {/* Lower portion (ground to slab) */}
+      <mesh position={[halfW + WALL_T / 2, BLDG_GROUND + APT_Y / 2, 0]}>
+        <boxGeometry args={[WALL_T, APT_Y, APT_D + WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Upper portion — behind the stairs area, door gap near z=1.15 local */}
+      {/* Back section of right wall (z < 0.5) */}
+      <mesh position={[halfW + WALL_T / 2, APT_H / 2, -halfD / 2 - 0.5]}>
+        <boxGeometry args={[WALL_T, APT_H, halfD - 0.5]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Front section of right wall (z > 1.7, past door) */}
+      <mesh position={[halfW + WALL_T / 2, APT_H / 2, halfD - 0.4]}>
+        <boxGeometry args={[WALL_T, APT_H, 0.8]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Above door on right wall */}
+      <mesh position={[halfW + WALL_T / 2, APT_H - 0.3, 1.15]}>
+        <boxGeometry args={[WALL_T, 0.6, 1.0]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* ── BACK WALL (z = -halfD) — full height ── */}
+      <mesh position={[0, BLDG_MID_Y, -halfD - WALL_T / 2]}>
+        <boxGeometry args={[APT_W, BLDG_FULL_H, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* ── FRONT WALL (z = +halfD) — full height with window openings ── */}
+      {/* This is the parking lot facing wall. */}
+      {/* Ground floor (laundromat level) — the laundromat has its own interior walls,
+          but we need exterior cladding. Leave openings for laundromat window + door. */}
+      {/* Ground floor: far left section */}
+      <mesh position={[-halfW + 0.6, BLDG_GROUND + APT_Y / 2, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.2, APT_Y, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Ground floor: far right section */}
+      <mesh position={[halfW - 0.6, BLDG_GROUND + APT_Y / 2, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.2, APT_Y, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Ground floor: above laundromat window (transom area) */}
+      <mesh position={[-0.5, BLDG_GROUND + APT_Y - 0.4, halfD + WALL_T / 2]}>
+        <boxGeometry args={[2.6, 0.8, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Ground floor: below laundromat window (knee wall) */}
+      <mesh position={[-0.5, BLDG_GROUND + 0.35, halfD + WALL_T / 2]}>
+        <boxGeometry args={[2.6, 0.7, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Ground floor: between laundromat window and door */}
+      <mesh position={[1.2, BLDG_GROUND + APT_Y / 2, halfD + WALL_T / 2]}>
+        <boxGeometry args={[0.6, APT_Y, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Ground floor: above laundromat door */}
+      <mesh position={[2.0, BLDG_GROUND + APT_Y - 0.5, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.0, 1.0, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* Upper floor front wall (apartment level) — with window opening */}
+      {/* Left of apartment window */}
+      <mesh position={[-halfW + 0.8, APT_H / 2, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.6, APT_H, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Right of apartment window */}
+      <mesh position={[halfW - 0.8, APT_H / 2, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.6, APT_H, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Above apartment window */}
+      <mesh position={[0.5, APT_H - 0.2, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.8, 0.4, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Below apartment window */}
+      <mesh position={[0.5, 0.25, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.8, 0.5, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* ── HORIZONTAL FLOOR SEPARATOR BAND ── */}
+      {/* Visible trim band between ground floor and upper floor */}
+      <mesh position={[0, FLOOR_SEP_Y, halfD + WALL_T / 2 + 0.02]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + 0.1, 0.15, 0.06]} />
+        <Mat color={TRIM_BAND} />
+      </mesh>
+      {/* Band on left side */}
+      <mesh position={[-halfW - WALL_T / 2 - 0.02, FLOOR_SEP_Y, 0]}>
+        <boxGeometry args={[0.06, 0.15, APT_D + WALL_T * 2 + 0.1]} />
+        <Mat color={TRIM_BAND} />
+      </mesh>
+      {/* Band on right side */}
+      <mesh position={[halfW + WALL_T / 2 + 0.02, FLOOR_SEP_Y, 0]}>
+        <boxGeometry args={[0.06, 0.15, APT_D + WALL_T * 2 + 0.1]} />
+        <Mat color={TRIM_BAND} />
+      </mesh>
+      {/* Band on back */}
+      <mesh position={[0, FLOOR_SEP_Y, -halfD - WALL_T / 2 - 0.02]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + 0.1, 0.15, 0.06]} />
+        <Mat color={TRIM_BAND} />
+      </mesh>
+
+      {/* ── STRUCTURAL FLOOR SLAB ── */}
+      {/* Concrete slab between laundromat ceiling and apartment floor */}
+      <mesh position={[0, -0.1, 0]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + 0.4, 0.2, APT_D + WALL_T * 2 + 0.4]} />
+        <Mat color="#9a9080" />
+      </mesh>
+
+      {/* ── EXTERIOR WINDOW FRAME (apartment level, front) ── */}
+      {/* Protrudes from exterior wall so it's visible from parking lot */}
+      <group position={[0.5, 1.4, halfD + WALL_T + 0.02]}>
+        {/* Top frame */}
+        <mesh position={[0, 0.65, 0]}>
+          <boxGeometry args={[1.7, 0.08, 0.06]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        {/* Bottom frame (sill) — slight protrusion */}
+        <mesh position={[0, -0.65, 0.02]}>
+          <boxGeometry args={[1.7, 0.08, 0.1]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        {/* Left frame */}
+        <mesh position={[-0.82, 0, 0]}>
+          <boxGeometry args={[0.08, 1.4, 0.06]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        {/* Right frame */}
+        <mesh position={[0.82, 0, 0]}>
+          <boxGeometry args={[0.08, 1.4, 0.06]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        {/* Glass pane visible from outside */}
+        <mesh>
+          <planeGeometry args={[1.5, 1.2]} />
+          <Mat color="#4a6a8a" transparent opacity={0.2} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+
+      {/* ── EXTERIOR DOOR (apartment entrance, right side) ── */}
+      {/* Visible on the right wall at the stair landing */}
+      <group position={[halfW + WALL_T + 0.01, 1.05, 1.15]} rotation={[0, Math.PI / 2, 0]}>
+        {/* Door frame */}
+        <mesh position={[-0.48, 0, 0]}>
+          <boxGeometry args={[0.07, 2.15, 0.08]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        <mesh position={[0.48, 0, 0]}>
+          <boxGeometry args={[0.07, 2.15, 0.08]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        <mesh position={[0, 1.1, 0]}>
+          <boxGeometry args={[1.03, 0.07, 0.08]} />
+          <Mat color={TRIM_COLOR} />
+        </mesh>
+        {/* Door panel */}
+        <mesh position={[0, 0, 0.01]}>
+          <boxGeometry args={[0.88, 2.05, 0.06]} />
+          <Mat color={DOOR_EXT_COLOR} />
+        </mesh>
+        {/* Door knob */}
+        <mesh position={[0.32, 0, 0.05]}>
+          <sphereGeometry args={[0.035, 8, 8]} />
+          <meshBasicMaterial color="#b8960a" />
+        </mesh>
+        {/* Door number */}
+        <Text position={[0, 0.7, 0.04]} fontSize={0.1} color="#d4a017" anchorX="center" anchorY="middle" font={undefined}>
+          2A
+        </Text>
+      </group>
+
+      {/* ── SMALL AWNING above exterior door ── */}
+      <group position={[halfW + WALL_T + 0.3, 2.2, 1.15]}>
+        <mesh rotation={[0.3, 0, 0]}>
+          <boxGeometry args={[1.2, 0.05, 0.6]} />
+          <Mat color={AWNING_COLOR} />
+        </mesh>
+        {/* Awning underside */}
+        <mesh position={[0, -0.03, 0.15]} rotation={[0.3, 0, 0]}>
+          <planeGeometry args={[1.15, 0.5]} />
+          <Mat color="#5a3a20" />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+// ── Proper Roof with overhang and fascia ──
+function BuildingRoof() {
+  const halfW = APT_W / 2;
+  const halfD = APT_D / 2;
+  const overhang = 0.35;
+  const roofThickness = 0.25;
+
+  return (
+    <group position={[0, BLDG_ROOF, 0]}>
+      {/* Main roof slab */}
+      <mesh position={[0, roofThickness / 2, 0]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + overhang * 2, roofThickness, APT_D + WALL_T * 2 + overhang * 2]} />
+        <Mat color={ROOF_COLOR} />
+      </mesh>
+      {/* Fascia — front */}
+      <mesh position={[0, 0, halfD + WALL_T + overhang]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + overhang * 2 + 0.1, 0.2, 0.06]} />
+        <Mat color={FASCIA_COLOR} />
+      </mesh>
+      {/* Fascia — back */}
+      <mesh position={[0, 0, -halfD - WALL_T - overhang]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + overhang * 2 + 0.1, 0.2, 0.06]} />
+        <Mat color={FASCIA_COLOR} />
+      </mesh>
+      {/* Fascia — left */}
+      <mesh position={[-halfW - WALL_T - overhang, 0, 0]}>
+        <boxGeometry args={[0.06, 0.2, APT_D + WALL_T * 2 + overhang * 2]} />
+        <Mat color={FASCIA_COLOR} />
+      </mesh>
+      {/* Fascia — right */}
+      <mesh position={[halfW + WALL_T + overhang, 0, 0]}>
+        <boxGeometry args={[0.06, 0.2, APT_D + WALL_T * 2 + overhang * 2]} />
+        <Mat color={FASCIA_COLOR} />
+      </mesh>
+    </group>
+  );
+}
+
+// ── Exterior Stairs with balusters and ground landing ──
+function ExteriorStairs() {
+  const stairCount = 10;
+  const stairW = 1.1;
+  const totalRise = APT_Y;     // from ground to apartment floor
+  const stairH = totalRise / stairCount;
+  const stairD = 0.38;
+  const halfW = APT_W / 2;
+
+  // Stairs go from ground (local y = -APT_Y) up to apartment floor (local y = 0)
+  // They are on the right side, starting at front and going toward back (negative z)
+  const stairBaseY = -APT_Y; // ground level in local coords
+
+  return (
+    <group position={[halfW + WALL_T + 0.7, 0, 1.5]}>
+      {/* Ground-level landing platform */}
+      <mesh position={[0, stairBaseY + 0.06, stairD / 2 + 0.2]}>
+        <boxGeometry args={[stairW + 0.3, 0.12, 0.8]} />
+        <Mat color={STAIR_COLOR} />
+      </mesh>
+
+      {/* Stair steps */}
+      {Array.from({ length: stairCount }).map((_, i) => (
+        <mesh key={`stair-${i}`} position={[0, stairBaseY + stairH * i + stairH / 2, -stairD * i]}>
+          <boxGeometry args={[stairW, stairH, stairD]} />
+          <Mat color={STAIR_COLOR} />
+        </mesh>
+      ))}
+
+      {/* Stair stringer (side support — left) */}
+      <mesh position={[-stairW / 2 - 0.04, stairBaseY + totalRise / 2, -stairD * stairCount / 2]}
+            rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
+        <boxGeometry args={[0.06, Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount)) + 0.2, 0.15]} />
+        <Mat color="#666666" />
+      </mesh>
+      {/* Stair stringer (side support — right) */}
+      <mesh position={[stairW / 2 + 0.04, stairBaseY + totalRise / 2, -stairD * stairCount / 2]}
+            rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
+        <boxGeometry args={[0.06, Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount)) + 0.2, 0.15]} />
+        <Mat color="#666666" />
+      </mesh>
+
+      {/* ── Railing — left side ── */}
+      <group>
+        {/* Bottom post */}
+        <mesh position={[-stairW / 2 - 0.06, stairBaseY + 0.55, 0.3]}>
+          <boxGeometry args={[0.05, 1.1, 0.05]} />
+          <Mat color={RAIL_COLOR} />
+        </mesh>
+        {/* Top post */}
+        <mesh position={[-stairW / 2 - 0.06, -0.45, -stairD * (stairCount - 1)]}>
+          <boxGeometry args={[0.05, 1.1, 0.05]} />
+          <Mat color={RAIL_COLOR} />
+        </mesh>
+        {/* Rail bar (angled) */}
+        {(() => {
+          const railLen = Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount));
+          return (
+            <mesh position={[-stairW / 2 - 0.06, stairBaseY + totalRise / 2 + 0.55, -stairD * stairCount / 2 + 0.15]}
+                  rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
+              <boxGeometry args={[0.04, railLen, 0.04]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+          );
+        })()}
+        {/* Balusters — left side */}
+        {Array.from({ length: Math.floor(stairCount / 1.5) }).map((_, i) => {
+          const t = (i + 0.5) / Math.floor(stairCount / 1.5);
+          const by = stairBaseY + t * totalRise;
+          const bz = -t * stairD * stairCount + 0.15;
+          return (
+            <mesh key={`bal-l-${i}`} position={[-stairW / 2 - 0.06, by + 0.35, bz]}>
+              <boxGeometry args={[0.02, 0.7, 0.02]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+          );
+        })}
+      </group>
+
+      {/* ── Railing — right side ── */}
+      <group>
+        {/* Bottom post */}
+        <mesh position={[stairW / 2 + 0.06, stairBaseY + 0.55, 0.3]}>
+          <boxGeometry args={[0.05, 1.1, 0.05]} />
+          <Mat color={RAIL_COLOR} />
+        </mesh>
+        {/* Top post */}
+        <mesh position={[stairW / 2 + 0.06, -0.45, -stairD * (stairCount - 1)]}>
+          <boxGeometry args={[0.05, 1.1, 0.05]} />
+          <Mat color={RAIL_COLOR} />
+        </mesh>
+        {/* Rail bar (angled) */}
+        {(() => {
+          const railLen = Math.sqrt(totalRise * totalRise + (stairD * stairCount) * (stairD * stairCount));
+          return (
+            <mesh position={[stairW / 2 + 0.06, stairBaseY + totalRise / 2 + 0.55, -stairD * stairCount / 2 + 0.15]}
+                  rotation={[Math.atan2(totalRise, stairD * stairCount), 0, 0]}>
+              <boxGeometry args={[0.04, railLen, 0.04]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+          );
+        })()}
+        {/* Balusters — right side */}
+        {Array.from({ length: Math.floor(stairCount / 1.5) }).map((_, i) => {
+          const t = (i + 0.5) / Math.floor(stairCount / 1.5);
+          const by = stairBaseY + t * totalRise;
+          const bz = -t * stairD * stairCount + 0.15;
+          return (
+            <mesh key={`bal-r-${i}`} position={[stairW / 2 + 0.06, by + 0.35, bz]}>
+              <boxGeometry args={[0.02, 0.7, 0.02]} />
+              <Mat color={RAIL_COLOR} />
+            </mesh>
+          );
+        })}
+      </group>
+
+      {/* Top landing platform — connects to apartment door */}
+      <mesh position={[0, -0.06, -stairD * stairCount - 0.3]}>
+        <boxGeometry args={[stairW + 0.4, 0.12, 1.0]} />
+        <Mat color={STAIR_COLOR} />
+      </mesh>
+      {/* Landing railing (front edge) */}
+      <mesh position={[0, 0.45, -stairD * stairCount - 0.75]}>
+        <boxGeometry args={[stairW + 0.4, 0.04, 0.04]} />
+        <Mat color={RAIL_COLOR} />
+      </mesh>
+      {/* Landing railing posts */}
+      <mesh position={[-stairW / 2 - 0.15, 0.25, -stairD * stairCount - 0.75]}>
+        <boxGeometry args={[0.05, 0.7, 0.05]} />
+        <Mat color={RAIL_COLOR} />
+      </mesh>
+      <mesh position={[stairW / 2 + 0.15, 0.25, -stairD * stairCount - 0.75]}>
+        <boxGeometry args={[0.05, 0.7, 0.05]} />
+        <Mat color={RAIL_COLOR} />
+      </mesh>
+    </group>
+  );
+}
 
 function ApartmentFloor() {
   return (
@@ -45,63 +461,65 @@ function ApartmentFloor() {
 function ApartmentWalls() {
   const halfW = APT_W / 2;
   const halfD = APT_D / 2;
+  // Interior walls are inset from exterior walls to avoid z-fighting
+  const inset = WALL_T + 0.01;
   return (
     <group>
-      {/* Back wall (z = -halfD) */}
-      <mesh position={[0, APT_H / 2, -halfD]}>
+      {/* Back wall (z = -halfD + inset) */}
+      <mesh position={[0, APT_H / 2, -halfD + 0.01]}>
         <planeGeometry args={[APT_W, APT_H]} />
         <Mat color={WALL_COLOR} />
       </mesh>
-      {/* Left wall (x = -halfW) */}
-      <mesh position={[-halfW, APT_H / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
+      {/* Left wall (x = -halfW + inset) */}
+      <mesh position={[-halfW + 0.01, APT_H / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[APT_D, APT_H]} />
         <Mat color={WALL_COLOR} />
       </mesh>
       {/* Right wall (x = halfW) — with door gap */}
-      <mesh position={[halfW, APT_H / 2, -0.8]} rotation={[0, -Math.PI / 2, 0]}>
+      <mesh position={[halfW - 0.01, APT_H / 2, -0.8]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[3.4, APT_H]} />
         <Mat color={WALL_COLOR} />
       </mesh>
-      <mesh position={[halfW, APT_H / 2, 1.9]} rotation={[0, -Math.PI / 2, 0]}>
+      <mesh position={[halfW - 0.01, APT_H / 2, 1.9]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[0.7, APT_H]} />
         <Mat color={WALL_COLOR} />
       </mesh>
-      <mesh position={[halfW, 2.3, 1.15]} rotation={[0, -Math.PI / 2, 0]}>
+      <mesh position={[halfW - 0.01, 2.3, 1.15]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[0.8, 0.5]} />
         <Mat color={WALL_COLOR} />
       </mesh>
       {/* Front wall (z = halfD) — with window */}
-      <mesh position={[-1.5, APT_H / 2, halfD]} rotation={[0, Math.PI, 0]}>
+      <mesh position={[-1.5, APT_H / 2, halfD - 0.01]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[3, APT_H]} />
         <Mat color={WALL_COLOR} />
       </mesh>
-      <mesh position={[2.25, APT_H / 2, halfD]} rotation={[0, Math.PI, 0]}>
+      <mesh position={[2.25, APT_H / 2, halfD - 0.01]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[1.5, APT_H]} />
         <Mat color={WALL_COLOR} />
       </mesh>
-      <mesh position={[0.5, 2.3, halfD]} rotation={[0, Math.PI, 0]}>
+      <mesh position={[0.5, 2.3, halfD - 0.01]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[1.5, 0.5]} />
         <Mat color={WALL_COLOR} />
       </mesh>
-      <mesh position={[0.5, 0.3, halfD]} rotation={[0, Math.PI, 0]}>
+      <mesh position={[0.5, 0.3, halfD - 0.01]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[1.5, 0.6]} />
         <Mat color={WALL_COLOR} />
       </mesh>
 
       {/* Baseboards on all walls */}
-      <mesh position={[0, 0.05, -halfD + 0.01]}>
+      <mesh position={[0, 0.05, -halfD + 0.03]}>
         <boxGeometry args={[APT_W, 0.1, 0.02]} />
         <Mat color={BASEBOARD_COLOR} />
       </mesh>
-      <mesh position={[-halfW + 0.01, 0.05, 0]} rotation={[0, Math.PI / 2, 0]}>
+      <mesh position={[-halfW + 0.03, 0.05, 0]} rotation={[0, Math.PI / 2, 0]}>
         <boxGeometry args={[APT_D, 0.1, 0.02]} />
         <Mat color={BASEBOARD_COLOR} />
       </mesh>
-      <mesh position={[halfW - 0.01, 0.05, 0]} rotation={[0, Math.PI / 2, 0]}>
+      <mesh position={[halfW - 0.03, 0.05, 0]} rotation={[0, Math.PI / 2, 0]}>
         <boxGeometry args={[APT_D, 0.1, 0.02]} />
         <Mat color={BASEBOARD_COLOR} />
       </mesh>
-      <mesh position={[0, 0.05, halfD - 0.01]} rotation={[0, Math.PI, 0]}>
+      <mesh position={[0, 0.05, halfD - 0.03]} rotation={[0, Math.PI, 0]}>
         <boxGeometry args={[APT_W, 0.1, 0.02]} />
         <Mat color={BASEBOARD_COLOR} />
       </mesh>
@@ -133,7 +551,7 @@ function ApartmentCeiling() {
 function ApartmentWindow() {
   const halfD = APT_D / 2;
   return (
-    <group position={[0.5, 1.4, halfD]}>
+    <group position={[0.5, 1.4, halfD - 0.02]}>
       {/* Window glass — looking out to parking lot */}
       <mesh rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[1.4, 1.2]} />
@@ -332,11 +750,11 @@ function KitchenArea() {
   );
 }
 
-/** Door/entrance from exterior stairs on right side */
+/** Door/entrance from exterior stairs on right side (interior side) */
 function ApartmentDoor() {
   const halfW = APT_W / 2;
   return (
-    <group position={[halfW - 0.02, 0, 1.15]} rotation={[0, -Math.PI / 2, 0]}
+    <group position={[halfW - 0.03, 0, 1.15]} rotation={[0, -Math.PI / 2, 0]}
            userData={{ interactType: "apartment_exit", label: "Head Back to the Store" }}>
       {/* Door frame */}
       <mesh position={[-0.48, 1.05, 0]}><boxGeometry args={[0.06, 2.1, 0.1]} /><Mat color={TRIM_COLOR} /></mesh>
@@ -352,65 +770,6 @@ function ApartmentDoor() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.013, 0.4]}>
         <planeGeometry args={[0.7, 0.4]} />
         <Mat color="#5a4a30" />
-      </mesh>
-    </group>
-  );
-}
-
-/** Exterior stairs on the right side of the laundromat leading up to apartment */
-function ExteriorStairs() {
-  const stairCount = 10;
-  const stairW = 1.0;
-  const stairH = APT_Y / stairCount;
-  const stairD = 0.35;
-  return (
-    <group position={[APT_W / 2 + 0.6, 0, 1.2]}>
-      {/* Stair steps */}
-      {Array.from({ length: stairCount }).map((_, i) => (
-        <mesh key={`stair-${i}`} position={[0, stairH * i + stairH / 2, -stairD * i]}>
-          <boxGeometry args={[stairW, stairH, stairD]} />
-          <Mat color="#666666" />
-        </mesh>
-      ))}
-      {/* Railing — left side */}
-      <group>
-        {/* Bottom post */}
-        <mesh position={[-stairW / 2 - 0.05, 0.5, 0.1]}>
-          <boxGeometry args={[0.05, 1.0, 0.05]} />
-          <Mat color="#555555" />
-        </mesh>
-        {/* Top post */}
-        <mesh position={[-stairW / 2 - 0.05, APT_Y - 0.4, -stairD * (stairCount - 1)]}>
-          <boxGeometry args={[0.05, 1.0, 0.05]} />
-          <Mat color="#555555" />
-        </mesh>
-        {/* Rail bar (angled) */}
-        <mesh position={[-stairW / 2 - 0.05, APT_Y / 2 + 0.3, -stairD * (stairCount / 2)]}
-              rotation={[Math.atan2(APT_Y, stairD * stairCount), 0, 0]}>
-          <boxGeometry args={[0.04, Math.sqrt(APT_Y * APT_Y + (stairD * stairCount) * (stairD * stairCount)), 0.04]} />
-          <Mat color="#555555" />
-        </mesh>
-      </group>
-      {/* Railing — right side */}
-      <group>
-        <mesh position={[stairW / 2 + 0.05, 0.5, 0.1]}>
-          <boxGeometry args={[0.05, 1.0, 0.05]} />
-          <Mat color="#555555" />
-        </mesh>
-        <mesh position={[stairW / 2 + 0.05, APT_Y - 0.4, -stairD * (stairCount - 1)]}>
-          <boxGeometry args={[0.05, 1.0, 0.05]} />
-          <Mat color="#555555" />
-        </mesh>
-        <mesh position={[stairW / 2 + 0.05, APT_Y / 2 + 0.3, -stairD * (stairCount / 2)]}
-              rotation={[Math.atan2(APT_Y, stairD * stairCount), 0, 0]}>
-          <boxGeometry args={[0.04, Math.sqrt(APT_Y * APT_Y + (stairD * stairCount) * (stairD * stairCount)), 0.04]} />
-          <Mat color="#555555" />
-        </mesh>
-      </group>
-      {/* Landing platform at top */}
-      <mesh position={[0, APT_Y - 0.05, -stairD * stairCount - 0.3]}>
-        <boxGeometry args={[stairW + 0.3, 0.1, 0.8]} />
-        <Mat color="#555555" />
       </mesh>
     </group>
   );
@@ -472,7 +831,14 @@ export function Apartment() {
       {/* Secondary fill light near kitchen */}
       <pointLight position={[-2, 2, -1.5]} intensity={0.3} distance={5} color="#ffd8a0" />
 
-      {/* Structure */}
+      {/* ── Full building exterior facade (ground to roof) ── */}
+      <BuildingFacade />
+      <BuildingRoof />
+
+      {/* ── Exterior stairs (right side, ground to apartment) ── */}
+      <ExteriorStairs />
+
+      {/* ── Interior structure ── */}
       <ApartmentFloor />
       <ApartmentWalls />
       <ApartmentCeiling />
@@ -490,32 +856,6 @@ export function Apartment() {
       {/* Decor */}
       <WallClock />
       <WallArt />
-
-      {/* Exterior stairs */}
-      <ExteriorStairs />
-
-      {/* Exterior wall (visible from outside — the apartment "box") */}
-      <mesh position={[0, APT_H / 2, -APT_D / 2 - 0.05]}>
-        <boxGeometry args={[APT_W + 0.1, APT_H, 0.1]} />
-        <Mat color="#8B7355" />
-      </mesh>
-      <mesh position={[0, APT_H / 2, APT_D / 2 + 0.05]}>
-        <boxGeometry args={[APT_W + 0.1, APT_H, 0.1]} />
-        <Mat color="#8B7355" />
-      </mesh>
-      <mesh position={[-APT_W / 2 - 0.05, APT_H / 2, 0]}>
-        <boxGeometry args={[0.1, APT_H, APT_D + 0.1]} />
-        <Mat color="#8B7355" />
-      </mesh>
-      <mesh position={[APT_W / 2 + 0.05, APT_H / 2, 0]}>
-        <boxGeometry args={[0.1, APT_H, APT_D + 0.1]} />
-        <Mat color="#8B7355" />
-      </mesh>
-      {/* Roof */}
-      <mesh position={[0, APT_H + 0.05, 0]}>
-        <boxGeometry args={[APT_W + 0.3, 0.1, APT_D + 0.3]} />
-        <Mat color="#4a4a4a" />
-      </mesh>
     </group>
   );
 }
