@@ -111,6 +111,7 @@ export function useDialogue(config: DialogueConfig) {
           setTotalXP(result.newTotal);
           setCurrentTier(getMembershipTier(result.newTotal));
           handleTierUp(result.tierUp ? { tierUp: true, newTier: result.newTier } : null);
+          triggerXpPopup(25);
           showQuestNotif("Trivia correct! +25 XP");
           playSFX("challenge_complete");
         } else {
@@ -126,6 +127,7 @@ export function useDialogue(config: DialogueConfig) {
               }
               const tierResult = completeQuest(questId);
               handleTierUp(tierResult);
+              triggerXpPopup(quest.reward.xp);
               setPropsCount(getPropsCount());
               showQuestNotif(`Side Quest Complete: ${quest.title}! +${quest.reward.xp} XP`);
               playSFX("challenge_complete");
@@ -148,7 +150,7 @@ export function useDialogue(config: DialogueConfig) {
       ]);
       setRpgNode(resp.next);
     },
-    [showQuestNotif, handleTierUp, npcChatTarget, setTotalXP, setCurrentTier, setPropsCount, setOverlay]
+    [showQuestNotif, handleTierUp, npcChatTarget, setTotalXP, setCurrentTier, setPropsCount, setOverlay, triggerXpPopup]
   );
 
   // NPC freeform chat send
@@ -167,6 +169,7 @@ export function useDialogue(config: DialogueConfig) {
       setTotalXP(result.newTotal);
       setCurrentTier(getMembershipTier(result.newTotal));
       if (result.tierUp) handleTierUp({ tierUp: true, newTier: result.newTier });
+      triggerXpPopup(xpDelta);
     }
     updateNpcRapport(npcChatTarget.npcManagerId, xpDelta);
 
@@ -192,6 +195,7 @@ export function useDialogue(config: DialogueConfig) {
           const result2 = addXP(llmXp);
           setTotalXP(result2.newTotal);
           setCurrentTier(getMembershipTier(result2.newTotal));
+          triggerXpPopup(llmXp);
           updateNpcRapport(npcChatTarget.npcManagerId, llmXp);
         }
       }
@@ -202,7 +206,7 @@ export function useDialogue(config: DialogueConfig) {
     } finally {
       setNpcChatLoading(false);
     }
-  }, [npcChatInput, npcChatTarget, npcChatLoading, npcChatMessages, era, totalXP, handleTierUp, setTotalXP, setCurrentTier]);
+  }, [npcChatInput, npcChatTarget, npcChatLoading, npcChatMessages, era, totalXP, handleTierUp, setTotalXP, setCurrentTier, triggerXpPopup]);
 
   return {
     // RPG dialogue
