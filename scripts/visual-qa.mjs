@@ -26,21 +26,23 @@ async function main() {
 
   console.log('Loading game...');
   await page.goto(GAME_URL, { timeout: 30000, waitUntil: 'load' });
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2000);
 
   console.log('Starting game...');
-  await page.click('.g3-splash-btn').catch(() => {});
-  await page.waitForTimeout(2000);
+  const playBtn = page.locator('.g3-splash-btn');
+  await playBtn.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+  if (await playBtn.count() > 0) { await playBtn.click(); console.log('Clicked PLAY FREE'); }
+  await page.waitForTimeout(3000);
 
   const eraBtn = page.locator('button:has-text("Early 90s")');
   if (await eraBtn.count() > 0) { await eraBtn.click(); console.log('Era: Early 90s'); }
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000);
 
   const gotIt = page.locator('button:has-text("GOT IT")');
   if (await gotIt.count() > 0) { await gotIt.click(); console.log('Tutorial dismissed'); }
 
-  console.log('Waiting for 3D scene (10s)...');
-  await page.waitForTimeout(10000);
+  console.log('Waiting for 3D scene (15s)...');
+  await page.waitForTimeout(15000);
 
   console.log('Capturing security cameras...');
   const result = await page.evaluate(async (camNames) => {

@@ -9,7 +9,7 @@ import { hasProp, PROPS } from "@/lib/game-state";
 import { playSFX } from "@/lib/audio";
 import { getObjectById } from "@/lib/store-layout";
 import { LayoutDrivenPrefabs } from "./prefabs";
-import { DumpsterProp, FireHydrantProp, MailboxProp, StreetSignProp } from "./props";
+import { DumpsterProp, FireHydrantProp, MailboxProp, StreetSignProp, NeonSignProp, AisleSignProp, AISLE_SIGNS, AisleFloorMarkings, FloorRugProp } from "./props";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
@@ -33,41 +33,6 @@ function eraYearsToId(years?: string): string {
   return "early90s";
 }
 
-// ── Neon sign ──
-function NeonSign() {
-  const pos = getObjectById("neon-sign");
-  return (
-    <group position={[pos?.x ?? 0, pos?.y ?? 3.1, pos?.z ?? (-ROOM_D / 2 + 0.15)]}>
-      <mesh position={[0, 0, -0.01]}><boxGeometry args={[5.8, 0.4, 0.03]} /><Mat color="#0a0a18" roughness={0.5} /></mesh>
-      <Text position={[0, 0, 0.02]} fontSize={0.2} color="#ffd700" anchorX="center" font={undefined}>FRIDAY NIGHT VIDEO<meshBasicMaterial color="#ffd700" toneMapped={false} /></Text>
-    </group>
-  );
-}
-
-// ── Aisle signs — show genres in each row ──
-const AISLE_SIGNS: { z: number; label: string; colors: string[] }[] = [
-  { z: -4.2, label: "ACTION/ADVENTURE \u2022 COMEDY \u2022 HORROR \u2022 DRAMA", colors: [] },
-  { z: -1.5, label: "THRILLER \u2022 ROMANCE \u2022 SCI-FI & FANTASY \u2022 KIDS & FAMILY", colors: [] },
-  { z: 1, label: "MUSICALS \u2022 CLASSICS \u2022 SCI-FI & FANTASY", colors: [] },
-];
-
-function AisleSign({ z, label }: { z: number; label: string; colors: string[] }) {
-  return (
-    <group position={[0, 0, z]}>
-      {/* Hanging rod — ends 0.15m below ceiling to avoid clipping */}
-      <mesh position={[0, ROOM_H - 0.55, 0]}><boxGeometry args={[0.02, 0.7, 0.02]} /><Mat color="#888888" metalness={0.5} roughness={0.3} /></mesh>
-      {/* Blockbuster blue background with yellow border — larger text for readability */}
-      <mesh position={[0, 2.45, 0]}><boxGeometry args={[6.2, 0.42, 0.02]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
-      <mesh position={[0, 2.45, 0]}><boxGeometry args={[6.1, 0.36, 0.03]} /><Mat color="#00006e" roughness={0.5} /></mesh>
-      <Text position={[0, 2.45, 0.025]} fontSize={0.09} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
-      <Text position={[0, 2.45, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.09} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{label}</Text>
-    </group>
-  );
-}
-
-function AisleFloorMarkings() {
-  return null;
-}
 
 // ── Merged static architecture — reduces ~20 draw calls to ~5 ──
 function MergedArchitecture({ topDown }: { topDown: boolean }) {
@@ -175,15 +140,6 @@ function MergedArchitecture({ topDown }: { topDown: boolean }) {
   );
 }
 
-function FloorRug() {
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 5.2]}><planeGeometry args={[3.4, 2.4]} /><Mat color="#ffd700" roughness={0.95} /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 5.2]}><planeGeometry args={[3, 2]} /><Mat color="#0a1830" roughness={0.95} /></mesh>
-      <Text rotation={[-Math.PI / 2, Math.PI, 0]} position={[0, 0.014, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>FRIDAY NIGHT VIDEO</Text>
-    </group>
-  );
-}
 
 function RecentReturnsStack({
   movies,
@@ -311,7 +267,7 @@ export function Store({
       {[-4.5, -0.5, 3.5].map((fx) => (<group key={`front-${fx}`} position={[fx, ROOM_H - 0.04, 4.9]}><mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh><mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh><mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh></group>))}
       </>}
 
-      {AISLE_SIGNS.map((sign, i) => (<AisleSign key={`aisle-${i}`} z={sign.z} label={sign.label} colors={sign.colors} />))}
+      {AISLE_SIGNS.map((sign, i) => (<AisleSignProp key={`aisle-${i}`} z={sign.z} label={sign.label} />))}
       <AisleFloorMarkings />
 
       {/* ── COUNTER + CHARACTERS ── */}
@@ -321,7 +277,7 @@ export function Store({
       <TonyCharacter />
       <EarlCharacter />
       <StaffPicksShelf />
-      <NeonSign />
+      <NeonSignProp />
 
       {/* Employees only door */}
       <group position={[-ROOM_W / 2 + 0.07, 0, getObjectById("employees-door")?.z ?? -5.19]} rotation={[0, Math.PI / 2, 0]}>
@@ -725,7 +681,7 @@ export function Store({
       </AnimatedEntranceDoor>
 
 
-      <FloorRug />
+      <FloorRugProp />
 
       {/* Security mirror */}
       <group position={[-9.2, 3.3, -6.2]}><mesh rotation={[Math.PI / 4, 0, 0]}><circleGeometry args={[0.45, 24]} /><Mat color="#c0c8d0" roughness={0.8} metalness={0.3} /></mesh><mesh position={[0, 0.15, 0.05]}><cylinderGeometry args={[0.06, 0.06, 0.15, 8]} /><Mat color="#444444" roughness={0.8} /></mesh></group>
@@ -735,7 +691,7 @@ export function Store({
 
       {/* Welcome mat outside */}
       <mesh position={[0, 0.005, 6.3]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[3.5, 1.2]} /><Mat color="#1a1a1a" roughness={0.8} /></mesh>
-      <Text position={[0, 0.01, 6.3]} rotation={[-Math.PI / 2, Math.PI, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>WELCOME</Text>
+      <Text position={[0, 0.01, 6.3]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>WELCOME</Text>
 
       {/* Welcome mat inside */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, ROOM_D / 2 - 0.5]}><planeGeometry args={[2, 1]} /><Mat color="#4a2020" roughness={0.95} /></mesh>

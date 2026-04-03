@@ -3,6 +3,12 @@
 import React from "react";
 import { Text } from "@react-three/drei";
 
+// Re-export extracted store interior props
+export { NeonSignProp } from "./NeonSignProp";
+export { AisleSignProp, AISLE_SIGNS } from "./AisleSignProp";
+export { AisleFloorMarkings } from "./AisleFloorMarkings";
+export { FloorRugProp } from "./FloorRugProp";
+
 /* ─────────────────────────────────────────────
  * Reusable low-poly street / exterior props.
  * All accept position ([x, y, z]) and optional

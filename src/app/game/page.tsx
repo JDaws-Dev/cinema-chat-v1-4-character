@@ -844,40 +844,16 @@ export default function GamePage() {
       </Canvas>
       </div>
 
-      {/* Loading overlay */}
-      <div className={`g3-loading-overlay${!loading ? " g3-loaded" : ""}`}>
-        <div className="g3-logo">
-          <div className="g3-logo-ticket">
-            <div className="g3-logo-left" />
-            <div className="g3-logo-right" />
-          </div>
-        </div>
-        <h1 style={{ fontSize: "0.8rem", fontWeight: 400, color: "#ffd700", letterSpacing: "0.1em", fontFamily: "var(--font-pixel, monospace)", textShadow: "2px 2px 0 #000" }}>FRIDAY NIGHT VIDEO</h1>
-        <p className="g3-loading-text">Opening the store...</p>
-      </div>
+      <LoadingOverlay loading={loading} />
 
-      {/* Crosshair */}
       {/* Era selector — shows after loading, before gameplay */}
       {!loading && !eraChosen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 20px' }}>
-            <h2 style={{ color: '#ffd700', fontFamily: 'var(--font-pixel, monospace)', fontSize: '0.8rem', marginBottom: 12, letterSpacing: '0.1em', textShadow: '2px 2px 0 #000' }}>CHOOSE YOUR ERA</h2>
-            <p style={{ color: '#888', fontSize: '0.45rem', marginBottom: 20, fontFamily: 'var(--font-pixel, monospace)' }}>What year is it tonight?</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {ERA_OPTIONS.map(opt => (
-                <button key={opt.id} onClick={() => { setEra(opt.id); if (!localStorage.getItem('fnv_has_visited')) { setShowTutorial(true); } else { const xp = getTotalXP(); const tier = getMembershipTier(); addNotification(`WELCOME BACK — ${tier.name} Member | ${xp} XP`); } setEraChosen(true); }}
-                  style={{
-                    padding: '12px 16px', fontSize: '0.5rem', fontFamily: 'var(--font-pixel, monospace)',
-                    border: '3px solid #ffd700', background: 'transparent', color: '#ffd700',
-                    borderRadius: 0, cursor: 'pointer', textAlign: 'left',
-                    boxShadow: '4px 4px 0 rgba(0,0,0,0.6)', transition: 'all 0.1s steps(2)',
-                  }}>
-                  <strong>{opt.label}</strong> <span style={{ opacity: 0.5, fontSize: '0.4rem' }}>({opt.years})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <EraSelectorOverlay
+          eraOptions={ERA_OPTIONS}
+          onSelectEra={(id) => { setEra(id); setEraChosen(true); }}
+          addNotification={addNotification}
+          setShowTutorial={setShowTutorial}
+        />
       )}
 
       {/* Onboarding tutorial — first visit only */}
