@@ -8,6 +8,9 @@ export { NeonSignProp } from "./NeonSignProp";
 export { AisleSignProp, AISLE_SIGNS } from "./AisleSignProp";
 export { AisleFloorMarkings } from "./AisleFloorMarkings";
 export { FloorRugProp } from "./FloorRugProp";
+export { PizzaPalace } from "./PizzaPalace";
+export { Laundromat } from "./Laundromat";
+export { CeilingFixtures } from "./CeilingFixtures";
 
 /* ─────────────────────────────────────────────
  * Reusable low-poly street / exterior props.
