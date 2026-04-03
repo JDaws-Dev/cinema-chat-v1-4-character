@@ -35,26 +35,25 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   // Back wall (z=-7)
   colliders.push({ x: 0, z: -7.2, hw: 10, hd: 0.2 });
 
-  // ── Pizza Palace walls (x=-16 to x=-10, z=7) ──
-  // Back wall of pizza place (z=7, same as video store front — shared wall)
-  // Left wall of pizza place (x=-16)
-  colliders.push({ x: -16.2, z: 4, hw: 0.2, hd: 3.5 });
+  // ── Pizza Palace walls (x=-16 to x=-10) — 8m deep ──
+  // Left wall of pizza place (x=-16) — extends from front z=7 to back z=0 (world)
+  colliders.push({ x: -16.2, z: 2, hw: 0.2, hd: 5.5 });
   // Front wall — left of pizza door (x=-16 to x=-13, z=7.3)
   colliders.push({ x: -14.75, z: 7.3, hw: 1.25, hd: 0.2 });
   // Front wall — right of pizza door (x=-12 to x=-10, z=7.3)
   colliders.push({ x: -11, z: 7.3, hw: 1, hd: 0.2 });
-  // Back wall of pizza place (z=4.5 — interior back)
-  colliders.push({ x: -13, z: 4.3, hw: 3, hd: 0.2 });
+  // Back wall of pizza place (z=0 — deeper interior, was z=4.5)
+  colliders.push({ x: -13, z: -0.2, hw: 3, hd: 0.2 });
 
-  // ── Laundromat walls (x=10 to x=16) — walkable interior ──
+  // ── Laundromat walls (x=10 to x=16) — 8m deep ──
   // Front wall — left of door (x=10 to x=12.85, z=7)
   colliders.push({ x: 11.5, z: 7.2, hw: 1.5, hd: 0.2 });
   // Front wall — right of door (x=14.15 to x=16, z=7)
   colliders.push({ x: 15.1, z: 7.2, hw: 0.9, hd: 0.2 });
-  // Right wall of laundromat (x=16)
-  colliders.push({ x: 16.2, z: 5.75, hw: 0.2, hd: 1.5 });
-  // Back wall of laundromat (z=4.5)
-  colliders.push({ x: 13, z: 4.3, hw: 3, hd: 0.2 });
+  // Right wall of laundromat (x=16) — extends from front z=7 to back z=0.25 (world)
+  colliders.push({ x: 16.2, z: 2.5, hw: 0.2, hd: 5 });
+  // Back wall of laundromat (z=0.25 — deeper interior, was z=4.5)
+  colliders.push({ x: 13, z: 0.05, hw: 3, hd: 0.2 });
 
   // ── World-edge invisible walls (side streets) ──
   // Left world edge (x=-20)

@@ -1046,7 +1046,7 @@ export function TonyCharacter() {
   });
 
   return (
-    <group ref={ref} position={[-13, 0, 4.3]} rotation={[0, Math.PI, 0]} userData={{ interactType: "pizza_clerk", label: "Talk to Tony" }}>
+    <group ref={ref} position={[-13, 0, 4.8]} rotation={[0, Math.PI, 0]} userData={{ interactType: "pizza_clerk", label: "Talk to Tony" }}>
       {/* Legs */}
       <mesh position={[-0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} /></mesh>
       <mesh position={[0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} /></mesh>
@@ -1132,7 +1132,7 @@ export function EarlCharacter() {
   });
 
   return (
-    <group ref={ref} position={[13, 0, 5.95]} rotation={[0, Math.PI, 0]} userData={{ interactType: "laundro_clerk", label: "Talk to Earl" }}>
+    <group ref={ref} position={[13, 0, 4.45]} rotation={[0, Math.PI, 0]} userData={{ interactType: "laundro_clerk", label: "Talk to Earl" }}>
       {/* Legs */}
       <mesh position={[-0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#2a3a2a" roughness={0.85} /></mesh>
       <mesh position={[0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#2a3a2a" roughness={0.85} /></mesh>

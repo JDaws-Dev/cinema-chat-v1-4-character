@@ -10,8 +10,8 @@
  *
  * Coordinate system (matches Store.tsx / store-layout.ts):
  *   - Video store: x=-10..10, z=-7..7 (ROOM_W=20, ROOM_D=14)
- *   - Pizza Palace: group at (-13, 0, 5.5), local x=-3..3, z=-2.5..1.5
- *   - Laundromat:   group at (13, 0, 5.75), local x=-3..3, z=-1.25..1.25
+ *   - Pizza Palace: group at (-13, 0, 5.5), local x=-3..3, z=-5.5..1.5 (8m deep)
+ *   - Laundromat:   group at (13, 0, 5.75), local x=-3..3, z=-5.5..1.25 (8m deep)
  *   - Sidewalk:     z ~ 7.8, full width
  *   - Parking lot:  z ~ 10-14
  *   - Street:       z ~ 16+
@@ -135,36 +135,43 @@ export const WAYPOINTS: Record<string, Waypoint> = {
   'vs-counter-approach': { id: 'vs-counter-approach', type: 'aisle',   zone: 'video_store', position: [7, 0, 4],   neighbors: ['vs-aisle-front-center', 'vs-aisle-front-right', 'vs-counter'], loiterRange: [0, 2] },
   'vs-counter':          { id: 'vs-counter',          type: 'counter', zone: 'video_store', position: [7, 0, 4.8], neighbors: ['vs-counter-approach'], loiterRange: [5, 15], facingAngle: Math.PI },
 
-  // ── PIZZA PALACE ───────────────────────────────────────
-  'pp-counter':  { id: 'pp-counter',  type: 'counter', zone: 'pizza_palace', position: pp(0, 0, -1.2),   neighbors: ['door-pizza-int', 'pp-soda', 'pp-booth-1', 'pp-booth-2'], loiterRange: [8, 20], facingAngle: Math.PI },
-  'pp-soda':     { id: 'pp-soda',     type: 'soda',    zone: 'pizza_palace', position: pp(-2.5, 0, -0.8), neighbors: ['pp-counter'], loiterRange: [3, 6] },
-  'pp-booth-1':  { id: 'pp-booth-1',  type: 'booth',   zone: 'pizza_palace', position: pp(-2.2, 0, -1),   neighbors: ['pp-counter', 'pp-booth-2'], loiterRange: [60, 180], facingAngle: -Math.PI / 2 },
-  'pp-booth-2':  { id: 'pp-booth-2',  type: 'booth',   zone: 'pizza_palace', position: pp(-2.2, 0, 0.5),  neighbors: ['pp-counter', 'pp-booth-1'], loiterRange: [60, 180], facingAngle: -Math.PI / 2 },
-  // Two more booths on the opposite side (conceptual — the store has 2 booth groups)
-  'pp-booth-3':  { id: 'pp-booth-3',  type: 'booth',   zone: 'pizza_palace', position: pp(1.5, 0, -1),    neighbors: ['pp-counter', 'pp-booth-4'], loiterRange: [60, 180], facingAngle: Math.PI / 2 },
-  'pp-booth-4':  { id: 'pp-booth-4',  type: 'booth',   zone: 'pizza_palace', position: pp(1.5, 0, 0.5),   neighbors: ['pp-counter', 'pp-booth-3'], loiterRange: [60, 180], facingAngle: Math.PI / 2 },
+  // ── PIZZA PALACE (8m deep) ─────────────────────────────
+  'pp-counter':  { id: 'pp-counter',  type: 'counter', zone: 'pizza_palace', position: pp(0, 0, -0.2),    neighbors: ['door-pizza-int', 'pp-soda', 'pp-booth-1', 'pp-booth-2', 'pp-booth-5'], loiterRange: [8, 20], facingAngle: Math.PI },
+  'pp-soda':     { id: 'pp-soda',     type: 'soda',    zone: 'pizza_palace', position: pp(-2.5, 0, -0.1), neighbors: ['pp-counter'], loiterRange: [3, 6] },
+  // Front booths (left wall)
+  'pp-booth-1':  { id: 'pp-booth-1',  type: 'booth',   zone: 'pizza_palace', position: pp(-2.2, 0, -1.5), neighbors: ['pp-counter', 'pp-booth-2'], loiterRange: [60, 180], facingAngle: -Math.PI / 2 },
+  'pp-booth-2':  { id: 'pp-booth-2',  type: 'booth',   zone: 'pizza_palace', position: pp(-2.2, 0, 0),    neighbors: ['pp-counter', 'pp-booth-1', 'pp-booth-3'], loiterRange: [60, 180], facingAngle: -Math.PI / 2 },
+  // Back booths (left wall — deeper room)
+  'pp-booth-3':  { id: 'pp-booth-3',  type: 'booth',   zone: 'pizza_palace', position: pp(-2.2, 0, -3.5), neighbors: ['pp-booth-2', 'pp-booth-4'], loiterRange: [60, 180], facingAngle: -Math.PI / 2 },
+  'pp-booth-4':  { id: 'pp-booth-4',  type: 'booth',   zone: 'pizza_palace', position: pp(-2.2, 0, -2),   neighbors: ['pp-booth-3', 'pp-counter'], loiterRange: [60, 180], facingAngle: -Math.PI / 2 },
+  // Right wall tables
+  'pp-booth-5':  { id: 'pp-booth-5',  type: 'booth',   zone: 'pizza_palace', position: pp(2.2, 0, -2),    neighbors: ['pp-counter', 'pp-booth-6'], loiterRange: [60, 180], facingAngle: Math.PI / 2 },
+  'pp-booth-6':  { id: 'pp-booth-6',  type: 'booth',   zone: 'pizza_palace', position: pp(2.2, 0, -3.5),  neighbors: ['pp-booth-5', 'pp-counter'], loiterRange: [60, 180], facingAngle: Math.PI / 2 },
 
-  // ── LAUNDROMAT ─────────────────────────────────────────
-  // Washers along back wall (5 machines, we provide 3 waypoints for usable ones)
-  'lm-washer-1':     { id: 'lm-washer-1',     type: 'machine', zone: 'laundromat', position: lm(-1.2, 0, -0.5), neighbors: ['lm-washer-2', 'lm-folding-table', 'door-laundro-int'], loiterRange: [3, 8], facingAngle: Math.PI },
-  'lm-washer-2':     { id: 'lm-washer-2',     type: 'machine', zone: 'laundromat', position: lm(-0.4, 0, -0.5), neighbors: ['lm-washer-1', 'lm-washer-3', 'lm-folding-table'], loiterRange: [3, 8], facingAngle: Math.PI },
-  'lm-washer-3':     { id: 'lm-washer-3',     type: 'machine', zone: 'laundromat', position: lm(0.4, 0, -0.5),  neighbors: ['lm-washer-2', 'lm-folding-table', 'lm-dryer-1'], loiterRange: [3, 8], facingAngle: Math.PI },
+  // ── LAUNDROMAT (8m deep) ───────────────────────────────
+  // Washers along left wall (8 machines, 4 waypoints for usable ones)
+  'lm-washer-1':     { id: 'lm-washer-1',     type: 'machine', zone: 'laundromat', position: lm(-2.65, 0, -5),   neighbors: ['lm-washer-2', 'lm-folding-table-2', 'door-laundro-int'], loiterRange: [3, 8], facingAngle: Math.PI / 2 },
+  'lm-washer-2':     { id: 'lm-washer-2',     type: 'machine', zone: 'laundromat', position: lm(-2.65, 0, -3.4), neighbors: ['lm-washer-1', 'lm-washer-3', 'lm-folding-table-2'], loiterRange: [3, 8], facingAngle: Math.PI / 2 },
+  'lm-washer-3':     { id: 'lm-washer-3',     type: 'machine', zone: 'laundromat', position: lm(-2.65, 0, -1.8), neighbors: ['lm-washer-2', 'lm-washer-4', 'lm-folding-table'], loiterRange: [3, 8], facingAngle: Math.PI / 2 },
+  'lm-washer-4':     { id: 'lm-washer-4',     type: 'machine', zone: 'laundromat', position: lm(-2.65, 0, -0.2), neighbors: ['lm-washer-3', 'lm-folding-table', 'door-laundro-int'], loiterRange: [3, 8], facingAngle: Math.PI / 2 },
 
-  // Dryers on right wall (3 machines)
-  'lm-dryer-1':      { id: 'lm-dryer-1',      type: 'machine', zone: 'laundromat', position: lm(2.2, 0, -0.8),  neighbors: ['lm-washer-3', 'lm-dryer-2', 'lm-folding-table'], loiterRange: [3, 8], facingAngle: -Math.PI / 2 },
-  'lm-dryer-2':      { id: 'lm-dryer-2',      type: 'machine', zone: 'laundromat', position: lm(2.2, 0, -0.1),  neighbors: ['lm-dryer-1', 'lm-dryer-3', 'lm-folding-table'], loiterRange: [3, 8], facingAngle: -Math.PI / 2 },
-  'lm-dryer-3':      { id: 'lm-dryer-3',      type: 'machine', zone: 'laundromat', position: lm(2.2, 0, 0.6),   neighbors: ['lm-dryer-2', 'lm-folding-table'], loiterRange: [3, 8], facingAngle: -Math.PI / 2 },
+  // Dryers along right wall (6 machines, 3 waypoints)
+  'lm-dryer-1':      { id: 'lm-dryer-1',      type: 'machine', zone: 'laundromat', position: lm(2.65, 0, -4.5),  neighbors: ['lm-dryer-2', 'lm-folding-table-2'], loiterRange: [3, 8], facingAngle: -Math.PI / 2 },
+  'lm-dryer-2':      { id: 'lm-dryer-2',      type: 'machine', zone: 'laundromat', position: lm(2.65, 0, -2.9),  neighbors: ['lm-dryer-1', 'lm-dryer-3', 'lm-folding-table'], loiterRange: [3, 8], facingAngle: -Math.PI / 2 },
+  'lm-dryer-3':      { id: 'lm-dryer-3',      type: 'machine', zone: 'laundromat', position: lm(2.65, 0, -1.3),  neighbors: ['lm-dryer-2', 'lm-folding-table'], loiterRange: [3, 8], facingAngle: -Math.PI / 2 },
 
-  // Folding table (center)
-  'lm-folding-table': { id: 'lm-folding-table', type: 'table', zone: 'laundromat', position: lm(0, 0, 0.2), neighbors: ['lm-washer-1', 'lm-washer-2', 'lm-washer-3', 'lm-dryer-1', 'lm-dryer-2', 'lm-dryer-3', 'lm-chair-1', 'door-laundro-int'], loiterRange: [10, 30], facingAngle: Math.PI },
+  // Folding tables (2, spread over the room)
+  'lm-folding-table':   { id: 'lm-folding-table',   type: 'table', zone: 'laundromat', position: lm(0, 0, -1.5), neighbors: ['lm-washer-3', 'lm-washer-4', 'lm-dryer-2', 'lm-dryer-3', 'lm-chair-1', 'lm-folding-table-2', 'door-laundro-int'], loiterRange: [10, 30], facingAngle: Math.PI },
+  'lm-folding-table-2': { id: 'lm-folding-table-2', type: 'table', zone: 'laundromat', position: lm(0, 0, -3.8), neighbors: ['lm-washer-1', 'lm-washer-2', 'lm-dryer-1', 'lm-folding-table', 'lm-chair-4'], loiterRange: [10, 30], facingAngle: Math.PI },
 
-  // Seating (3 chairs along left wall)
-  'lm-chair-1': { id: 'lm-chair-1', type: 'seat', zone: 'laundromat', position: lm(-2.7, 0, -0.6), neighbors: ['lm-chair-2', 'lm-folding-table', 'door-laundro-int'], loiterRange: [30, 120], facingAngle: -Math.PI / 2 },
-  'lm-chair-2': { id: 'lm-chair-2', type: 'seat', zone: 'laundromat', position: lm(-2.7, 0, 0.1),  neighbors: ['lm-chair-1', 'lm-chair-3', 'lm-folding-table'], loiterRange: [30, 120], facingAngle: -Math.PI / 2 },
-  'lm-chair-3': { id: 'lm-chair-3', type: 'seat', zone: 'laundromat', position: lm(-2.7, 0, 0.8),  neighbors: ['lm-chair-2', 'lm-folding-table'], loiterRange: [30, 120], facingAngle: -Math.PI / 2 },
+  // Seating (4 chairs — front area + back)
+  'lm-chair-1': { id: 'lm-chair-1', type: 'seat', zone: 'laundromat', position: lm(-1.5, 0, -0.6), neighbors: ['lm-chair-2', 'lm-folding-table', 'door-laundro-int'], loiterRange: [30, 120], facingAngle: Math.PI / 2 },
+  'lm-chair-2': { id: 'lm-chair-2', type: 'seat', zone: 'laundromat', position: lm(-1.5, 0, 0.1),  neighbors: ['lm-chair-1', 'lm-chair-3', 'lm-folding-table'], loiterRange: [30, 120], facingAngle: Math.PI / 2 },
+  'lm-chair-3': { id: 'lm-chair-3', type: 'seat', zone: 'laundromat', position: lm(-1.5, 0, 0.8),  neighbors: ['lm-chair-2', 'lm-folding-table'], loiterRange: [30, 120], facingAngle: Math.PI / 2 },
+  'lm-chair-4': { id: 'lm-chair-4', type: 'seat', zone: 'laundromat', position: lm(-1.5, 0, -2.5), neighbors: ['lm-chair-1', 'lm-folding-table-2'], loiterRange: [30, 120], facingAngle: Math.PI / 2 },
 
-  // Vending machine
-  'lm-vending':  { id: 'lm-vending',  type: 'soda', zone: 'laundromat', position: lm(2.5, 0, -0.5), neighbors: ['lm-dryer-1', 'lm-folding-table'], loiterRange: [3, 6] },
+  // Vending machines (back-right corner)
+  'lm-vending':  { id: 'lm-vending',  type: 'soda', zone: 'laundromat', position: lm(2.5, 0, -5), neighbors: ['lm-dryer-1', 'lm-folding-table-2'], loiterRange: [3, 6] },
 };
 
 

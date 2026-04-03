@@ -55,9 +55,26 @@ function BuildingFacade() {
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* BACK WALL — full height */}
+      {/* BACK WALL — full height (apartment depth) */}
       <mesh position={[0, BLDG_MID_Y, -halfD - WALL_T / 2]}>
         <boxGeometry args={[APT_W, BLDG_FULL_H, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+
+      {/* ── GROUND-FLOOR EXTENSION — laundromat extends 3m deeper than apartment ── */}
+      {/* Back wall extension (ground floor only, z=-2.5 to z=-5.5 in local) */}
+      <mesh position={[0, BLDG_GROUND + APT_Y / 2, -halfD - 1.5 - WALL_T / 2]}>
+        <boxGeometry args={[APT_W + WALL_T * 2, APT_Y, 3]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Right side wall extension for deeper ground floor */}
+      <mesh position={[halfW + WALL_T / 2, BLDG_GROUND + APT_Y / 2, -halfD - 1.5]}>
+        <boxGeometry args={[WALL_T, APT_Y, 3 + WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Left side wall extension for deeper ground floor */}
+      <mesh position={[-halfW - WALL_T / 2, BLDG_GROUND + APT_Y / 2, -halfD - 1.5]}>
+        <boxGeometry args={[WALL_T, APT_Y, 3 + WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
