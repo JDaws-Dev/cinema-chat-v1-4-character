@@ -72,7 +72,7 @@ function FloorRug() {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 5.2]}><planeGeometry args={[3.4, 2.4]} /><Mat color="#ffd700" roughness={0.95} /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.011, 5.2]}><planeGeometry args={[3, 2]} /><Mat color="#0a1830" roughness={0.95} /></mesh>
-      <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.014, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>FRIDAY NIGHT VIDEO</Text>
+      <Text rotation={[-Math.PI / 2, Math.PI, 0]} position={[0, 0.014, 5.2]} fontSize={0.18} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>FRIDAY NIGHT VIDEO</Text>
     </group>
   );
 }
@@ -180,8 +180,14 @@ export function Store({
 
       {/* ── CEILING (hidden in top-down view) ── */}
       {!topDown && <>
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}><planeGeometry args={[ROOM_W, ROOM_D]} /><Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} /></mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H - 0.02, ROOM_D / 2]}><planeGeometry args={[ROOM_W + 2, 2]} /><Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} /></mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_H, 0]}><planeGeometry args={[ROOM_W + 2, ROOM_D + 2]} /><Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} /></mesh>
+      {/* Front soffit — closes gap between ceiling and storefront wall */}
+      <mesh position={[0, ROOM_H - 0.15, ROOM_D / 2 - 0.05]}><boxGeometry args={[ROOM_W + 2, 0.35, 1.0]} /><Mat color={CEILING_COLOR} roughness={0.9} /></mesh>
+      {/* Side soffits — close gaps at left and right wall edges */}
+      <mesh position={[-ROOM_W / 2, ROOM_H - 0.15, 0]}><boxGeometry args={[0.5, 0.35, ROOM_D + 2]} /><Mat color={CEILING_COLOR} roughness={0.9} /></mesh>
+      <mesh position={[ROOM_W / 2, ROOM_H - 0.15, 0]}><boxGeometry args={[0.5, 0.35, ROOM_D + 2]} /><Mat color={CEILING_COLOR} roughness={0.9} /></mesh>
+      {/* Back soffit */}
+      <mesh position={[0, ROOM_H - 0.15, -ROOM_D / 2 + 0.05]}><boxGeometry args={[ROOM_W + 2, 0.35, 0.5]} /><Mat color={CEILING_COLOR} roughness={0.9} /></mesh>
       {/* Ceiling grid — sparse for perf */}
       {[-6, -2, 2, 6].map(x => (<mesh key={`cgx${x}`} position={[x, ROOM_H - 0.03, 0]}><boxGeometry args={[0.02, 0.01, ROOM_D]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
       {[-4, 0, 4].map(z => (<mesh key={`cgz${z}`} position={[0, ROOM_H - 0.03, z]}><boxGeometry args={[ROOM_W, 0.01, 0.02]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
@@ -216,6 +222,12 @@ export function Store({
       <hemisphereLight args={["#fff6e4", "#4a5070", 0.6]} />
       <directionalLight position={[5, 8, 3]} intensity={1.2} color="#fff1dc" />
       <directionalLight position={[-3, 6, -8]} intensity={0.3} color="#c8d4e8" />
+
+      {/* Side wall accent lights — illuminate shelves and posters on left/right walls */}
+      <pointLight position={[-ROOM_W / 2 + 1, 2.2, -3]} intensity={0.6} distance={8} color="#fff4d0" />
+      <pointLight position={[-ROOM_W / 2 + 1, 2.2, 3]} intensity={0.6} distance={8} color="#fff4d0" />
+      <pointLight position={[ROOM_W / 2 - 1, 2.2, -3]} intensity={0.6} distance={8} color="#fff4d0" />
+      <pointLight position={[ROOM_W / 2 - 1, 2.2, 3]} intensity={0.6} distance={8} color="#fff4d0" />
 
       {/* Fluorescent ceiling fixtures (hidden in top-down) */}
       {!topDown && <>
@@ -345,10 +357,11 @@ export function Store({
         <mesh position={[0, ROOM_H - 0.05, 0]}><boxGeometry args={[1.5, 0.04, 0.3]} /><meshBasicMaterial color="#fffae8" /></mesh>
         <pointLight position={[0, ROOM_H - 0.2, 0]} intensity={0.8} distance={8} color="#fff4d0" />
 
-        {/* Neon OPEN sign in window */}
+        {/* Neon OPEN sign in window — double-sided */}
         <group position={[1.5, 2, 1.48]}>
           <mesh><boxGeometry args={[0.7, 0.35, 0.03]} /><meshBasicMaterial color="#0a0a0a" /></mesh>
           <Text position={[0, 0, 0.02]} fontSize={0.14} color="#ff3366" anchorX="center" anchorY="middle" font={undefined}>OPEN</Text>
+          <Text position={[0, 0, -0.02]} rotation={[0, Math.PI, 0]} fontSize={0.14} color="#ff3366" anchorX="center" anchorY="middle" font={undefined}>OPEN</Text>
         </group>
       </group>
 
@@ -508,7 +521,7 @@ export function Store({
         <mesh position={[-1.12, 0, 0.01]}><boxGeometry args={[0.06, 1.9, 0.04]} /><Mat color="#556677" roughness={0.3} metalness={0.6} /></mesh>
         <mesh position={[1.12, 0, 0.01]}><boxGeometry args={[0.06, 1.9, 0.04]} /><Mat color="#556677" roughness={0.3} metalness={0.6} /></mesh>
       </group>
-      <group position={[ROOM_W / 2 + 1.2, 2.0, ROOM_D / 2 + 0.25]}><mesh><boxGeometry args={[0.7, 0.35, 0.04]} /><meshBasicMaterial color="#111111" /></mesh><Text position={[0, 0, 0.03]} fontSize={0.16} color="#33ff66" anchorX="center" anchorY="middle">OPEN<meshBasicMaterial color="#33ff66" toneMapped={false} /></Text></group>
+      <group position={[ROOM_W / 2 + 1.2, 2.0, ROOM_D / 2 + 0.25]}><mesh><boxGeometry args={[0.7, 0.35, 0.04]} /><meshBasicMaterial color="#111111" /></mesh><Text position={[0, 0, 0.03]} fontSize={0.16} color="#33ff66" anchorX="center" anchorY="middle">OPEN<meshBasicMaterial color="#33ff66" toneMapped={false} /></Text><Text position={[0, 0, -0.03]} rotation={[0, Math.PI, 0]} fontSize={0.16} color="#33ff66" anchorX="center" anchorY="middle">OPEN<meshBasicMaterial color="#33ff66" toneMapped={false} /></Text></group>
 
       {/* Curb */}
       <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}><boxGeometry args={[36, 0.1, 0.15]} /><meshBasicMaterial color="#555555" /></mesh>
@@ -536,6 +549,17 @@ export function Store({
       {/* Window sills */}
       <mesh position={[-5.5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[7.6, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
       <mesh position={[5.5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[7.6, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
+
+      {/* Neon OPEN sign — double-sided so it reads correctly from both inside and outside */}
+      <group position={[5, 2.0, ROOM_D / 2 - 0.05]}>
+        <mesh><boxGeometry args={[0.8, 0.4, 0.04]} /><meshBasicMaterial color="#0a0a0a" /></mesh>
+        {/* Front face (visible from outside / entering) */}
+        <Text position={[0, 0, 0.025]} fontSize={0.16} color="#ff3366" anchorX="center" anchorY="middle" font={undefined}>OPEN<meshBasicMaterial color="#ff3366" toneMapped={false} /></Text>
+        {/* Back face (visible from inside the store) */}
+        <Text position={[0, 0, -0.025]} rotation={[0, Math.PI, 0]} fontSize={0.16} color="#ff3366" anchorX="center" anchorY="middle" font={undefined}>OPEN<meshBasicMaterial color="#ff3366" toneMapped={false} /></Text>
+        <pointLight position={[0, 0, 0.1]} intensity={0.3} distance={2} color="#ff3366" />
+      </group>
+
       {/* Knee wall below windows — full width, seals corners */}
       <mesh position={[0, 0.13, ROOM_D / 2 - 0.01]}><boxGeometry args={[ROOM_W - 0.1, 0.26, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
 
@@ -572,7 +596,7 @@ export function Store({
 
       {/* Welcome mat outside */}
       <mesh position={[0, 0.005, 6.3]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[3.5, 1.2]} /><Mat color="#1a1a1a" roughness={0.8} /></mesh>
-      <Text position={[0, 0.01, 6.3]} rotation={[-Math.PI / 2, 0, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>WELCOME</Text>
+      <Text position={[0, 0.01, 6.3]} rotation={[-Math.PI / 2, Math.PI, 0]} fontSize={0.12} color="#333333" anchorX="center" font={undefined}>WELCOME</Text>
 
       {/* Welcome mat inside */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, ROOM_D / 2 - 0.5]}><planeGeometry args={[2, 1]} /><Mat color="#4a2020" roughness={0.95} /></mesh>

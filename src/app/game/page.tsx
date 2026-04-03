@@ -30,6 +30,7 @@ import { useChallenge, type ChallengeMovie, type ChallengeType } from "@/hooks/u
 import { useOverlay, type Overlay } from "@/hooks/useOverlay";
 import { useDialogue } from "@/hooks/useDialogue";
 import { usePuzzle } from "@/hooks/usePuzzle";
+import { useQuestTracking } from "@/hooks/useQuestTracking";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -149,13 +150,15 @@ export default function GamePage() {
       : posterUrl;
   }, []);
 
-  // Notification stacking system
-  const [notifications, setNotifications] = useState<{ id: number; text: string }[]>([]);
-  const addNotification = useCallback((text: string) => {
-    const id = Date.now();
-    setNotifications(prev => [...prev.slice(-2), { id, text }]); // max 3
-    setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 4000);
-  }, []);
+  // Quest tracking system (notifications, XP, tier, quest objectives)
+  const {
+    notifications, addNotification,
+    showQuestNotif,
+    totalXP, setTotalXP, currentTier, setCurrentTier, tierUpNotification,
+    xpPopup, triggerXpPopup,
+    refreshTierState, handleTierUp,
+    trackQuestGenreVisit, trackQuestMoviePickup, trackQuestNpcTalk,
+  } = useQuestTracking({ setPropsCount, setRewardProp });
 
   const resumePointerLock = useCallback(() => {
     if (isMobile || topDown) return;
@@ -169,28 +172,6 @@ export default function GamePage() {
 
   // Side quest state (uses existing showQuestNotif for notifications)
 
-  // Quest system state
-  const [questNotification, setQuestNotification] = useState<string | null>(null);
-  const questNotifTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  // Membership tier state
-  const [totalXP, setTotalXP] = useState(0);
-  const [currentTier, setCurrentTier] = useState(MEMBERSHIP_TIERS[0]);
-  const [tierUpNotification, setTierUpNotification] = useState<string | null>(null);
-  const tierUpTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  // XP popup state
-  const [xpPopup, setXpPopup] = useState<{ text: string; key: number } | null>(null);
-  const xpPopupTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const triggerXpPopup = useCallback((amount: number) => {
-    if (amount === 0) return;
-    const sign = amount > 0 ? "+" : "";
-    setXpPopup({ text: `${sign}${amount} XP`, key: Date.now() });
-    if (xpPopupTimer.current) clearTimeout(xpPopupTimer.current);
-    xpPopupTimer.current = setTimeout(() => setXpPopup(null), 1600);
-  }, []);
-
   // Game clock (extracted to useGameClock hook)
   const { gameTime, isClosingSoon, minutesUntilClose, closeCountdownLabel, maxNpcs } = useGameClock({
     started,
@@ -202,12 +183,6 @@ export default function GamePage() {
     }, []),
   });
 
-  // Load tier on mount (props count loaded by useChallenge hook)
-  useEffect(() => {
-    setTotalXP(getTotalXP());
-    setCurrentTier(getMembershipTier());
-  }, []);
-
   // Challenge timer is now handled by useChallenge hook
 
   // Unlock audio on first user interaction (browser autoplay policy)
@@ -217,25 +192,6 @@ export default function GamePage() {
     window.addEventListener("keydown", handler);
     return () => { window.removeEventListener("click", handler); window.removeEventListener("keydown", handler); };
   }, []);
-
-  // ── Quest System ──────────────────────────────────────
-  const showQuestNotif = useCallback((msg: string) => {
-    addNotification(msg);
-  }, [addNotification]);
-
-  const refreshTierState = useCallback(() => {
-    setTotalXP(getTotalXP());
-    setCurrentTier(getMembershipTier());
-  }, []);
-
-  const handleTierUp = useCallback((result: { tierUp: boolean; newTier: string } | null) => {
-    refreshTierState();
-    if (result?.tierUp) {
-      setTierUpNotification(result.newTier);
-      if (tierUpTimer.current) clearTimeout(tierUpTimer.current);
-      tierUpTimer.current = setTimeout(() => setTierUpNotification(null), 4000);
-    }
-  }, [refreshTierState]);
 
   // ── Dialogue hook (RPG dialogue + NPC freeform chat) ──
   const {
@@ -281,102 +237,6 @@ export default function GamePage() {
     setPendingPickup(null);
     setShelfBrowse(null);
   };
-
-  const trackQuestGenreVisit = useCallback((genre: string) => {
-    const active = getActiveQuests();
-    const genreUpper = genre.toUpperCase().replace(/_/g, " ").replace("SCIFI", "SCI-FI").replace("NEW RELEASES", "DOCS").replace("STAFF PICKS", "CLASSICS");
-    const GENRE_MAP: Record<string, string> = {
-      "HORROR": "HORROR", "SCIFI": "SCI-FI", "COMEDY": "COMEDY", "DRAMA": "DRAMA",
-      "ACTION": "ACTION", "CLASSICS": "CLASSICS", "FAMILY": "FAMILY", "NEW RELEASES": "DOCS",
-      "NEW_RELEASES": "DOCS", "STAFF PICKS": "CLASSICS", "STAFF_PICKS": "CLASSICS",
-      "ROMANCE": "ROMANCE", "WESTERN": "WESTERN", "THRILLER": "THRILLER",
-      "ANIMATED": "ANIMATED", "DOCS": "DOCS", "SCI-FI": "SCI-FI",
-    };
-    const mappedGenre = GENRE_MAP[genreUpper] || genreUpper;
-
-    for (const quest of active) {
-      for (const obj of quest.objectives) {
-        if (obj.type === "visit_section" && obj.target === mappedGenre) {
-          const allDone = completeObjective(quest.id, obj.id);
-          showQuestNotif(`Quest: Visited ${mappedGenre} section`);
-          if (allDone) {
-            const tierResult = completeQuest(quest.id);
-            handleTierUp(tierResult);
-            triggerXpPopup(quest.reward.xp);
-            setPropsCount(getPropsCount());
-            showQuestNotif(`Quest Complete: ${quest.title}!`);
-            if (quest.reward.propId) {
-              const prop = PROPS.find(p => p.id === quest.reward.propId);
-              if (prop) setRewardProp(prop);
-            }
-          }
-        }
-      }
-    }
-  }, [showQuestNotif, handleTierUp, triggerXpPopup]);
-
-  const trackQuestMoviePickup = useCallback((movieTitle: string, movieGenre: string) => {
-    const active = getActiveQuests();
-    const genreUpper = movieGenre.toUpperCase();
-
-    for (const quest of active) {
-      for (const obj of quest.objectives) {
-        if (obj.type === "browse_genre" && obj.target === genreUpper) {
-          const allDone = completeObjective(quest.id, obj.id);
-          showQuestNotif(`Quest: Picked ${genreUpper} movie`);
-          if (allDone) {
-            const tierResult = completeQuest(quest.id);
-            handleTierUp(tierResult);
-            triggerXpPopup(quest.reward.xp);
-            setPropsCount(getPropsCount());
-            showQuestNotif(`Quest Complete: ${quest.title}!`);
-            if (quest.reward.propId) {
-              const prop = PROPS.find(p => p.id === quest.reward.propId);
-              if (prop) setRewardProp(prop);
-            }
-          }
-        }
-        if (obj.type === "find_movie" && obj.target && movieTitle.toLowerCase().includes(obj.target.toLowerCase())) {
-          const allDone = completeObjective(quest.id, obj.id);
-          showQuestNotif(`Quest: Found ${movieTitle}!`);
-          if (allDone) {
-            const tierResult = completeQuest(quest.id);
-            handleTierUp(tierResult);
-            triggerXpPopup(quest.reward.xp);
-            setPropsCount(getPropsCount());
-            showQuestNotif(`Quest Complete: ${quest.title}!`);
-            if (quest.reward.propId) {
-              const prop = PROPS.find(p => p.id === quest.reward.propId);
-              if (prop) setRewardProp(prop);
-            }
-          }
-        }
-      }
-    }
-  }, [showQuestNotif, handleTierUp, triggerXpPopup]);
-
-  const trackQuestNpcTalk = useCallback((npcName: string) => {
-    const active = getActiveQuests();
-    for (const quest of active) {
-      for (const obj of quest.objectives) {
-        if (obj.type === "talk_to_npc" && obj.target === npcName) {
-          const allDone = completeObjective(quest.id, obj.id);
-          showQuestNotif(`Quest: Talked to ${npcName}`);
-          if (allDone) {
-            const tierResult = completeQuest(quest.id);
-            handleTierUp(tierResult);
-            triggerXpPopup(quest.reward.xp);
-            setPropsCount(getPropsCount());
-            showQuestNotif(`Quest Complete: ${quest.title}!`);
-            if (quest.reward.propId) {
-              const prop = PROPS.find(p => p.id === quest.reward.propId);
-              if (prop) setRewardProp(prop);
-            }
-          }
-        }
-      }
-    }
-  }, [showQuestNotif, handleTierUp, triggerXpPopup]);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {

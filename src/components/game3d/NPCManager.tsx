@@ -44,14 +44,32 @@ function seedFromId(id: string): number {
   return (h >>> 0) / 4294967295; // 0..1
 }
 
+// Deterministic seed from two values (for browse height per-shelf-stop)
+function seedFromIdAndStep(id: string, step: number): number {
+  let h = 0;
+  const combined = id + ":" + step;
+  for (let i = 0; i < combined.length; i++) h = ((h << 5) - h + combined.charCodeAt(i)) | 0;
+  return (h >>> 0) / 4294967295; // 0..1
+}
+
+// Browse height type: squat (30%), eye-level (50%), reach-up (20%)
+type BrowseHeight = "squat" | "eye_level" | "reach_up";
+function browseHeightFromSeed(s: number): BrowseHeight {
+  if (s < 0.3) return "squat";
+  if (s < 0.8) return "eye_level";
+  return "reach_up";
+}
+
 // ── NPC mesh — simplified box-geometry character ───────────────
 
 function NPCMesh({
   npc,
   groupRef,
+  allNpcs,
 }: {
   npc: ActiveNPC;
   groupRef: React.RefObject<THREE.Group | null>;
+  allNpcs: ActiveNPC[];
 }) {
   const leftLegRef = useRef<THREE.Mesh>(null);
   const rightLegRef = useRef<THREE.Mesh>(null);
@@ -74,6 +92,21 @@ function NPCMesh({
   const nextBlink = useRef(3 + seed * 2);
   const blinkTimer = useRef(0);
   const isBlinking = useRef(false);
+
+  // Priority 7: Browsing height — deterministic per NPC + goalStepIndex
+  const browseHeightSeed = useMemo(
+    () => seedFromIdAndStep(npc.config.id, npc.goalStepIndex),
+    [npc.config.id, npc.goalStepIndex]
+  );
+  const browseHeight = useMemo(() => browseHeightFromSeed(browseHeightSeed), [browseHeightSeed]);
+
+  // Priority 8: Environmental reactions state
+  const enterTimer = useRef(0); // tracks time since entering state began
+  const prevState = useRef<string>(npc.state);
+  const glanceTimer = useRef(0); // cooldown for mutual NPC glance
+  const glanceActive = useRef(false);
+  const glanceDuration = useRef(0);
+  const glanceTargetDir = useRef(0); // Y rotation toward glance target
 
   const { shirtColor, pantsColor, hairColor, skinTone, hairStyle, height } =
     npc.config.appearance;
@@ -157,14 +190,38 @@ function NPCMesh({
       if (leftArmRef.current) leftArmRef.current.rotation.x = -armSwing;
       if (rightArmRef.current) rightArmRef.current.rotation.x = armSwing;
 
-      // Approach deceleration: when stateTimer is low, dampen leg swing
-      if (npc.stateTimer < 0.5 && (npc.state === "walking")) {
-        const dampFactor = Math.max(0, npc.stateTimer / 0.5);
-        if (leftLegRef.current) leftLegRef.current.rotation.x *= dampFactor;
-        if (rightLegRef.current) rightLegRef.current.rotation.x *= dampFactor;
-        if (leftArmRef.current) leftArmRef.current.rotation.x *= dampFactor;
-        if (rightArmRef.current) rightArmRef.current.rotation.x *= dampFactor;
-        if (torsoRef.current) torsoRef.current.rotation.y *= dampFactor;
+      // Priority 7: Approach deceleration — dampen limbs when close to target waypoint
+      if (npc.state === "walking" && npc.currentPath.length > 0 && npc.pathIndex < npc.currentPath.length) {
+        const targetWpId = npc.currentPath[npc.pathIndex];
+        const targetWp = WAYPOINTS[targetWpId];
+        if (targetWp) {
+          const dx = targetWp.position[0] - npc.position[0];
+          const dz = targetWp.position[2] - npc.position[2];
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < 0.5) {
+            // Smooth deceleration: lerp swing amplitude toward 0
+            const dampFactor = Math.max(0, dist / 0.5);
+            if (leftLegRef.current) leftLegRef.current.rotation.x *= dampFactor;
+            if (rightLegRef.current) rightLegRef.current.rotation.x *= dampFactor;
+            if (leftArmRef.current) leftArmRef.current.rotation.x *= dampFactor;
+            if (rightArmRef.current) rightArmRef.current.rotation.x *= dampFactor;
+            if (torsoRef.current) torsoRef.current.rotation.y *= dampFactor;
+          }
+        }
+      }
+
+      // Priority 8: Near counter — slow leg swing to 0.8x when walking near counter
+      {
+        const cDx = npc.position[0] - 7;
+        const cDz = npc.position[2] - 5;
+        const cDist = Math.sqrt(cDx * cDx + cDz * cDz);
+        if (cDist < 2.0) {
+          const slowFactor = 0.8;
+          if (leftLegRef.current) leftLegRef.current.rotation.x *= slowFactor;
+          if (rightLegRef.current) rightLegRef.current.rotation.x *= slowFactor;
+          if (leftArmRef.current) leftArmRef.current.rotation.x *= slowFactor;
+          if (rightArmRef.current) rightArmRef.current.rotation.x *= slowFactor;
+        }
       }
     } else {
       // Decay limbs to rest
@@ -173,6 +230,87 @@ function NPCMesh({
       if (leftArmRef.current) leftArmRef.current.rotation.x *= 0.9;
       if (rightArmRef.current) rightArmRef.current.rotation.x *= 0.9;
       if (torsoRef.current) torsoRef.current.rotation.y *= 0.9;
+    }
+
+    // ── Priority 7: Browsing height variety ──
+    if (npc.state === "browsing") {
+      if (browseHeight === "squat") {
+        // Bend legs outward to simulate crouching (Y offset handled in ManagedNPC)
+        if (leftLegRef.current) leftLegRef.current.rotation.x = Math.max(leftLegRef.current.rotation.x, 0.5);
+        if (rightLegRef.current) rightLegRef.current.rotation.x = Math.max(rightLegRef.current.rotation.x, 0.5);
+      } else if (browseHeight === "reach_up") {
+        // One arm extends high, head tilts up
+        if (rightArmRef.current) rightArmRef.current.rotation.x = -2.8; // arm extends upward
+        if (headRef.current) headRef.current.rotation.x = -0.15; // head tilts up
+      }
+      // eye_level: no modification needed
+    }
+
+    // ── Priority 8: Environmental reactions ──
+
+    // Track state transitions for enter timer
+    if (npc.state !== prevState.current) {
+      if (npc.state === "entering") {
+        enterTimer.current = 0; // reset on entering state
+      }
+      prevState.current = npc.state;
+    }
+
+    // Near door (z > 5.5, entering state): head pans left-right for first 2s
+    if (npc.state === "entering" && npc.position[2] > 5.5 && headRef.current) {
+      enterTimer.current += cappedDt;
+      if (enterTimer.current < 2.0) {
+        // Wide head pan: oscillate Y rotation ±0.5 rad over 2s
+        const panProgress = enterTimer.current / 2.0;
+        headRef.current.rotation.y = Math.sin(panProgress * Math.PI * 3) * 0.5;
+      }
+    }
+
+    // Near counter (within 2 units of x:7, z:5): head glance toward counter
+    const counterDx = npc.position[0] - 7;
+    const counterDz = npc.position[2] - 5;
+    const counterDist = Math.sqrt(counterDx * counterDx + counterDz * counterDz);
+    if (counterDist < 2.0 && isWalking && headRef.current) {
+      // Glance toward counter: rotate head toward (7, 5) relative to NPC facing
+      const angleToCounter = Math.atan2(7 - npc.position[0], 5 - npc.position[2]);
+      const relAngle = angleToCounter - npc.facing;
+      // Blend head Y toward counter direction (soft glance)
+      headRef.current.rotation.y = headRef.current.rotation.y * 0.85 + relAngle * 0.15 * 0.5;
+    }
+
+    // Near another NPC (< 1.5 units, not in conversation): mutual glance
+    if (!glanceActive.current) {
+      glanceTimer.current -= cappedDt;
+      if (glanceTimer.current <= 0 && npc.state !== "talking_to_npc" && npc.state !== "talking_to_player") {
+        // Check for nearby NPCs
+        for (const other of allNpcs) {
+          if (other.config.id === npc.config.id) continue;
+          if (other.state === "talking_to_npc" || other.state === "talking_to_player") continue;
+          const dx = npc.position[0] - other.position[0];
+          const dz = npc.position[2] - other.position[2];
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < 1.5 && dist > 0.1) {
+            glanceActive.current = true;
+            glanceDuration.current = 0.5;
+            glanceTargetDir.current = Math.atan2(other.position[0] - npc.position[0], other.position[2] - npc.position[2]) - npc.facing;
+            break;
+          }
+        }
+        if (!glanceActive.current) {
+          glanceTimer.current = 2.0 + Math.random() * 3.0; // check again in 2-5s
+        }
+      }
+    }
+
+    if (glanceActive.current && headRef.current) {
+      glanceDuration.current -= cappedDt;
+      if (glanceDuration.current > 0) {
+        // Rotate head toward the other NPC
+        headRef.current.rotation.y = headRef.current.rotation.y * 0.7 + glanceTargetDir.current * 0.3;
+      } else {
+        glanceActive.current = false;
+        glanceTimer.current = 3.0 + Math.random() * 4.0; // cooldown before next glance
+      }
     }
   });
 
@@ -256,14 +394,23 @@ function SpeechBubble({ text }: { text: string }) {
 function ManagedNPC({
   npc,
   speechLine,
+  allNpcs,
 }: {
   npc: ActiveNPC;
   speechLine: string | null;
+  allNpcs: ActiveNPC[];
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
   // Per-NPC sway phase so they never sync
   const swayPhase = useMemo(() => seedFromId(npc.config.id) * Math.PI * 2, [npc.config.id]);
+
+  // Priority 7: Browsing height for squat Y offset (applied to position in useFrame)
+  const browseHeightSeed = useMemo(
+    () => seedFromIdAndStep(npc.config.id, npc.goalStepIndex),
+    [npc.config.id, npc.goalStepIndex]
+  );
+  const browseHeight = useMemo(() => browseHeightFromSeed(browseHeightSeed), [browseHeightSeed]);
 
   // Set userData for interaction system raycast
   useEffect(() => {
@@ -286,7 +433,10 @@ function ManagedNPC({
     // Priority 1: idle sway — ±0.02 on 6s cycle when not walking
     const isWalking = npc.state === "walking" || npc.state === "entering" || npc.state === "leaving";
     const swayOffset = isWalking ? 0 : Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.02;
-    groupRef.current.position.set(npc.position[0] + swayOffset, feetOffset, npc.position[2]);
+
+    // Priority 7: squat lowers body by 0.3 when browsing
+    const squatOffset = (npc.state === "browsing" && browseHeight === "squat") ? -0.3 : 0;
+    groupRef.current.position.set(npc.position[0] + swayOffset, feetOffset + squatOffset, npc.position[2]);
     groupRef.current.rotation.y = npc.facing;
 
     groupRef.current.visible = npc.opacity > 0.01;
@@ -307,7 +457,7 @@ function ManagedNPC({
 
   return (
     <group>
-      <NPCMesh npc={npc} groupRef={groupRef} />
+      <NPCMesh npc={npc} groupRef={groupRef} allNpcs={allNpcs} />
       {/* Name label */}
       <group position={[npc.position[0], 1.55, npc.position[2]]}>
         <Billboard>
@@ -539,6 +689,7 @@ export function NPCManager({
           key={npc.config.id}
           npc={npc}
           speechLine={activeSpeech.get(npc.config.id) ?? null}
+          allNpcs={npcs}
         />
       ))}
     </group>
