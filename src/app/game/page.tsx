@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
-import { DialogueBox } from "@/components/game3d/DialogueOverlay";
 import { FilmDetailModal } from "@/components/FilmDetailModal";
 import { RewardOverlay } from "@/components/game/RewardOverlay";
 import { CheckoutOverlay } from "@/components/game/overlays/CheckoutOverlay";
@@ -14,29 +13,35 @@ import { TrophyOverlay } from "@/components/game/overlays/TrophyOverlay";
 import { QuizOverlay } from "@/components/game/overlays/QuizOverlay";
 import { ShelfOverlay, type ShelfBrowseState } from "@/components/game/overlays/ShelfOverlay";
 import { RpgDialogueOverlay } from "@/components/game/overlays/RpgDialogueOverlay";
+import { EraSelectorOverlay } from "@/components/game/overlays/EraSelectorOverlay";
+import { TutorialOverlay } from "@/components/game/overlays/TutorialOverlay";
+import { DialogueOverlay as VinnyDialogueOverlay } from "@/components/game/overlays/DialogueOverlay";
+import { SplashScreen } from "@/components/game/SplashScreen";
+import { TopDownIndicator } from "@/components/game/TopDownIndicator";
+import { LoadingOverlay } from "@/components/game/LoadingOverlay";
+import { NotificationStack } from "@/components/game/NotificationStack";
 import { GameHUD } from "@/components/game/GameHUD";
 import { ChallengeHUD } from "@/components/game/ChallengeHUD";
 import { HeldVHSStack } from "@/components/game/HeldVHSStack";
 import {
-  SCENARIOS, QUOTES, SYNOPSES,
+  QUOTES, SYNOPSES,
   getSeen, markSeen, addCorrectAnswer, addWrongAnswer,
-  type Scenario, type QuoteChallenge, type SynopsisChallenge,
+  type QuoteChallenge, type SynopsisChallenge,
 } from "@/lib/friday-night";
-import { fetchSearch, fetchTrending } from "@/lib/api";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, type MovieProp, completeObjective, completeQuest, isQuestComplete, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
-import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
-import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
-import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
+import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, completeObjective, completeQuest, getActiveSideQuests, MEMBERSHIP_TIERS, getTotalXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
+import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, unlockAudio, setCurrentEra } from "@/lib/audio";
+import { getRandomDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
+import { PERSONALITIES, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { buildCustomerDialogue } from "@/lib/npc-customer-dialogues";
+import { buildTonyDialogue, buildEarlDialogue } from "@/lib/npc-strip-mall-dialogues";
 import { mobileInput } from "@/components/game3d/MobileControls";
 import { setActiveDialogueTarget } from "@/components/game3d/store-characters";
 import { isNpcHostile } from "@/lib/sentiment";
 import { useGameClock, type ClosingAnnouncement } from "@/hooks/useGameClock";
 import { useAudioUI } from "@/hooks/useAudioUI";
-import { useInventory, type HeldMovie, type HeldSnack } from "@/hooks/useInventory";
-import { useChallenge, type ChallengeMovie, type ChallengeType } from "@/hooks/useChallenge";
+import { useInventory } from "@/hooks/useInventory";
+import { useChallenge } from "@/hooks/useChallenge";
 import { useOverlay, type Overlay } from "@/hooks/useOverlay";
 import { useDialogue } from "@/hooks/useDialogue";
 import { usePuzzle } from "@/hooks/usePuzzle";
@@ -53,8 +58,6 @@ const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction"
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
 const Apartment = dynamic(() => import("@/components/game3d/Apartment").then(m => ({ default: m.Apartment })), { ssr: false });
 const DebugOverlay = dynamic(() => import("@/components/game3d/DebugOverlay").then(m => ({ default: m.DebugOverlay })), { ssr: false });
-
-const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
 
 function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
   const seen = getSeen();
@@ -123,8 +126,6 @@ export default function GamePage() {
   const [synopsis, setSynopsis] = useState<SynopsisChallenge | null>(null);
   const [quizAnswer, setQuizAnswer] = useState<number | null>(null);
 
-  const [hintText, setHintText] = useState<string | null>(null);
-
   // VHS pickup inventory (movies, snacks, pickup flash)
   const {
     heldMovies, setHeldMovies,
@@ -152,7 +153,7 @@ export default function GamePage() {
   } = useChallenge(setHeldMovies, setHeldSnacks);
 
   // Audio UI (mute, subtitle, music toggle)
-  const { audioMuted, musicOff, setMusicOff, subtitle, setSubtitle, toggleMute } = useAudioUI();
+  const { audioMuted, subtitle, toggleMute } = useAudioUI();
 
   // ── Overlay hook (manages overlay state + close) ──────
   const overlayCloseRef = useRef<(() => void) | null>(null);
@@ -214,7 +215,7 @@ export default function GamePage() {
   // Side quest state (uses existing showQuestNotif for notifications)
 
   // Game clock (extracted to useGameClock hook)
-  const { gameTime, isClosingSoon, minutesUntilClose, closeCountdownLabel, maxNpcs } = useGameClock({
+  const { gameTime, closeCountdownLabel, maxNpcs } = useGameClock({
     started,
     loading,
     overlay,
@@ -242,7 +243,7 @@ export default function GamePage() {
     displayedText, typewriterDone,
     handleDialogueResponse,
     npcChatTarget, setNpcChatTarget,
-    npcChatMessages, setNpcChatMessages,
+    npcChatMessages,
     npcChatInput, setNpcChatInput,
     npcChatLoading,
     handleNpcChatSend,
@@ -739,7 +740,22 @@ export default function GamePage() {
     return () => window.removeEventListener("keydown", handler);
   }, [overlay]);
 
-  // (Screenshot feature removed)
+  // C key screenshot (no HUD indicator — hidden power-user feature)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
+      if ((e.key === "c" || e.key === "C") && overlay === "none") {
+        const canvas = document.querySelector("canvas");
+        if (!canvas) return;
+        const link = document.createElement("a");
+        link.download = `friday-night-video-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [overlay]);
 
   // J to open quest log
   useEffect(() => {
@@ -756,25 +772,7 @@ export default function GamePage() {
 
   // ── Splash ─────────────────────────────────────────────
   if (!started) {
-    return (
-      <div className="g3-splash" style={{ backgroundImage: 'url(/images/fnv-splash.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-        <div className="g3-splash-content" style={{ background: 'rgba(10, 14, 24, 0.7)', padding: isMobile ? '24px 20px' : '40px 48px', borderRadius: 16, backdropFilter: 'blur(8px)' }}>
-          <h1 className="g3-splash-title" style={{ fontSize: isMobile ? '2rem' : '3.2rem' }}>FRIDAY NIGHT<br/>VIDEO</h1>
-          <p className="g3-splash-tagline" style={{ marginBottom: 20 }}>It&apos;s Friday night. Pick a movie.</p>
-          <button className="g3-splash-btn" onClick={() => {
-            setStarted(true); setLoading(true);
-            unlockAudio();
-            if (/Mobi|Android/i.test(navigator.userAgent)) {
-              try {
-                const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
-                if (el.requestFullscreen) { el.requestFullscreen().catch(() => {}); }
-                else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
-              } catch {}
-            }
-          }}>PLAY FREE</button>
-        </div>
-      </div>
-    );
+    return <SplashScreen isMobile={isMobile} onStart={() => { setStarted(true); setLoading(true); }} />;
   }
 
   return (
