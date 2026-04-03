@@ -206,9 +206,27 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
       // Blocked both ways — don't move
     }
 
+    // Staircase to apartment — right side of laundromat (x: 15.5-16.5, z: 4-8)
+    // Stairs go from ground (y=1.6) to apartment floor (y=5.6) over z range 4-8
+    const inStairX = camera.position.x > 15.5 && camera.position.x < 17;
+    const inStairZ = camera.position.z > 3.5 && camera.position.z < 8.5;
+    const APT_FLOOR_Y = 4 + 1.6; // apartment floor y=4 + eye height 1.6
+    let targetY: number;
+
+    if (inStairX && inStairZ) {
+      // Ramp: linearly interpolate Y based on Z position (walking "up" the stairs as z decreases from 8 to 4)
+      const stairProgress = 1 - Math.max(0, Math.min(1, (camera.position.z - 3.5) / 5));
+      targetY = 1.6 + stairProgress * (APT_FLOOR_Y - 1.6);
+    } else if (camera.position.y > 3) {
+      // In the apartment (above ground) — keep at apartment floor height
+      targetY = APT_FLOOR_Y;
+    } else {
+      targetY = 1.6; // ground level
+    }
+
     // Crouch mechanic: hold Shift or C to lower camera
-    const crouchTarget = keys.current.has("shift") ? 0.8 : 1.6;
-    camera.position.y += (crouchTarget - camera.position.y) * 0.15;
+    const crouchOffset = keys.current.has("shift") ? -0.8 : 0;
+    camera.position.y += ((targetY + crouchOffset) - camera.position.y) * 0.15;
 
     // Update spatial audio listener to match player position
     setPlayerPosition(camera.position.x, camera.position.z);

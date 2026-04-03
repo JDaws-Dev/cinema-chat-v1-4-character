@@ -16,6 +16,7 @@ import { StaffPicksShelf } from "./store-shelves";
 import { CharlieCharacter, VinnyCharacter, TonyCharacter, EarlCharacter, KenneyModel } from "./store-characters";
 import { NPCManager } from "./NPCManager";
 import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
+import { Apartment } from "./Apartment";
 
 // Re-export for external consumers
 export { setEraYears, getShelfMovies };
@@ -509,6 +510,9 @@ export function Store({
           <mesh position={[0.1, 0.52, 0.05]}><boxGeometry args={[0.3, 0.08, 0.2]} /><meshBasicMaterial color="#e8a0a0" /></mesh>
         </group>
       </group>
+
+      {/* Apartment above laundromat — physically in the world */}
+      <Apartment />
 
       {/* Laundromat exterior signage */}
       <group position={[ROOM_W / 2 + 3, ROOM_H - 0.3, ROOM_D / 2 + 0.17]}><mesh><boxGeometry args={[3.5, 0.6, 0.05]} /><meshBasicMaterial color="#0a0a1a" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.24} color="#77ddff" anchorX="center" anchorY="middle">LAUNDROMAT<meshBasicMaterial color="#77ddff" toneMapped={false} /></Text><mesh position={[0, 0, -0.01]}><planeGeometry args={[3.8, 0.9]} /><meshBasicMaterial color="#3399cc" transparent opacity={0.08} /></mesh></group>
