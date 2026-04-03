@@ -37,15 +37,13 @@ function getSharedMaterial(color: string, gradientMap: THREE.Texture | null, opt
   const key = `${color}|${opts?.transparent ?? false}|${opts?.opacity ?? 1}|${opts?.side ?? 0}|${opts?.emissive ?? ''}|${opts?.emissiveIntensity ?? 0}`;
   let mat = matCache.get(key);
   if (!mat) {
-    mat = new THREE.MeshToonMaterial({
-      color,
-      gradientMap: gradientMap ?? undefined,
-      transparent: opts?.transparent,
-      opacity: opts?.opacity,
-      side: opts?.side,
-      emissive: opts?.emissive ? new THREE.Color(opts.emissive) : undefined,
-      emissiveIntensity: opts?.emissiveIntensity,
-    });
+    const matConfig: Record<string, unknown> = { color, gradientMap: gradientMap ?? undefined };
+    if (opts?.transparent !== undefined) matConfig.transparent = opts.transparent;
+    if (opts?.opacity !== undefined) matConfig.opacity = opts.opacity;
+    if (opts?.side !== undefined) matConfig.side = opts.side;
+    if (opts?.emissive !== undefined) matConfig.emissive = new THREE.Color(opts.emissive);
+    if (opts?.emissiveIntensity !== undefined) matConfig.emissiveIntensity = opts.emissiveIntensity;
+    mat = new THREE.MeshToonMaterial(matConfig as THREE.MeshToonMaterialParameters);
     matCache.set(key, mat);
   }
   return mat;
