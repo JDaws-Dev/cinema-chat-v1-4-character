@@ -8,7 +8,7 @@ export async function GET(req: Request) {
 
   try {
     if (!isTmdbConfigured()) {
-      return Response.json({ movies: getCatalogTrendingMovies() });
+      return Response.json({ movies: await getCatalogTrendingMovies() });
     }
 
     const res = await tmdbFetch(`/trending/movie/${window}`);

@@ -6,8 +6,24 @@ import type {
   StreamingProviders,
   TrendingMovie,
 } from "./types";
-import { GENERATED_ERA_CATALOG, type GeneratedCatalogMovie } from "./generated-era-catalog";
+import type { GeneratedCatalogMovie, GeneratedEraId, GeneratedShelfGenre } from "./generated-era-catalog";
 import { STORE_LAYOUT } from "./store-layout";
+
+// ── Lazy-loaded era catalog (68K lines, only fetched after era selection) ──
+type GeneratedEraCatalog = Record<GeneratedEraId, Record<GeneratedShelfGenre, GeneratedCatalogMovie[]>>;
+let _eraCatalogPromise: Promise<GeneratedEraCatalog> | null = null;
+let _eraCatalogCache: GeneratedEraCatalog | null = null;
+
+function loadEraCatalog(): Promise<GeneratedEraCatalog> {
+  if (_eraCatalogCache) return Promise.resolve(_eraCatalogCache);
+  if (!_eraCatalogPromise) {
+    _eraCatalogPromise = import("./generated-era-catalog").then((mod) => {
+      _eraCatalogCache = mod.GENERATED_ERA_CATALOG;
+      return _eraCatalogCache;
+    });
+  }
+  return _eraCatalogPromise;
+}
 
 export type EraId = "late80s" | "early90s" | "mid90s" | "late90s" | "present";
 
@@ -255,38 +271,75 @@ const MANUAL_TITLE_YEAR_KEYS = new Set(
   MOVIES.map((movie) => `${movie.title.trim().toLowerCase()}::${movie.year}`)
 );
 
-const GENERATED_MOVIES: CatalogMovie[] = dedupeByTitleYear(
-  dedupeById(
-    Object.values(GENERATED_ERA_CATALOG)
-      .flatMap((eraCatalog) => Object.values(eraCatalog))
-      .flat()
-      .map((movie: GeneratedCatalogMovie) => ({
-        id: movie.id,
-        title: movie.title,
-        year: movie.year,
-        overview: movie.overview,
-        genres: movie.genres,
-        shelfGenres: movie.shelfGenres as ShelfGenre[],
-        posterUrl: movie.posterUrl ?? null,
-      }))
-      .filter((movie) => !MANUAL_TITLE_YEAR_KEYS.has(`${movie.title.trim().toLowerCase()}::${movie.year}`))
-  )
-);
+// ── Lazy catalog initialization (only after era catalog loads) ──
+// Before the era catalog loads, we serve MOVIES-only data so the splash/era picker works.
+const MOVIES_BY_ID = new Map<number, CatalogMovie>();
+const MOVIES_BY_TITLE = new Map<string, CatalogMovie>();
+for (const movie of MOVIES) {
+  MOVIES_BY_ID.set(movie.id, movie);
+  MOVIES_BY_TITLE.set(movie.title.toLowerCase(), movie);
+}
 
-const ALL_MOVIES: CatalogMovie[] = dedupeByTitleYear(dedupeById([...MOVIES, ...GENERATED_MOVIES]));
+let _allMovies: CatalogMovie[] | null = null;
+let _movieById: Map<number, CatalogMovie> | null = null;
+let _movieByTitle: Map<string, CatalogMovie> | null = null;
+let _initPromise: Promise<void> | null = null;
 
-const MOVIE_BY_ID = new Map<number, CatalogMovie>();
-const MOVIE_BY_TITLE = new Map<string, CatalogMovie>();
+function buildDerivedData(catalog: GeneratedEraCatalog) {
+  const generatedMovies: CatalogMovie[] = dedupeByTitleYear(
+    dedupeById(
+      Object.values(catalog)
+        .flatMap((eraCatalog) => Object.values(eraCatalog))
+        .flat()
+        .map((movie: GeneratedCatalogMovie) => ({
+          id: movie.id,
+          title: movie.title,
+          year: movie.year,
+          overview: movie.overview,
+          genres: movie.genres,
+          shelfGenres: movie.shelfGenres as ShelfGenre[],
+          posterUrl: movie.posterUrl ?? null,
+        }))
+        .filter((movie) => !MANUAL_TITLE_YEAR_KEYS.has(`${movie.title.trim().toLowerCase()}::${movie.year}`))
+    )
+  );
 
-for (const movie of ALL_MOVIES) {
-  MOVIE_BY_ID.set(movie.id, movie);
-  MOVIE_BY_TITLE.set(movie.title.toLowerCase(), movie);
+  _allMovies = dedupeByTitleYear(dedupeById([...MOVIES, ...generatedMovies]));
+  _movieById = new Map<number, CatalogMovie>();
+  _movieByTitle = new Map<string, CatalogMovie>();
+  for (const movie of _allMovies) {
+    _movieById.set(movie.id, movie);
+    _movieByTitle.set(movie.title.toLowerCase(), movie);
+  }
+}
+
+/** Ensure the full catalog (generated + curated) is loaded. */
+export function ensureCatalogLoaded(): Promise<void> {
+  if (_allMovies) return Promise.resolve();
+  if (!_initPromise) {
+    _initPromise = loadEraCatalog().then((catalog) => {
+      buildDerivedData(catalog);
+    });
+  }
+  return _initPromise;
+}
+
+/** Synchronous accessors — return curated-only data before catalog loads, full data after. */
+function getAllMovies(): CatalogMovie[] {
+  return _allMovies ?? MOVIES;
+}
+function getMovieById(id: number): CatalogMovie | undefined {
+  return (_movieById ?? MOVIES_BY_ID).get(id);
+}
+function getMovieByTitle(title: string): CatalogMovie | undefined {
+  return (_movieByTitle ?? MOVIES_BY_TITLE).get(title);
 }
 
 function getEraVisibleMovies(eraId: EraId): CatalogMovie[] {
-  if (eraId === "present") return ALL_MOVIES;
+  const all = getAllMovies();
+  if (eraId === "present") return all;
   const { end } = ERA_RANGES[eraId];
-  return ALL_MOVIES.filter((movie) => movie.year <= end);
+  return all.filter((movie) => movie.year <= end);
 }
 
 function getPrimaryShelfGenre(movie: CatalogMovie): ShelfGenre {
@@ -332,16 +385,18 @@ export function getEraIdFromYears(years: string): EraId {
   }
 }
 
-export function getCuratedShelfPosterData(
+export async function getCuratedShelfPosterData(
   genreInput: string,
   eraId: EraId,
   placementKey?: string,
   count?: number,
-): Array<{ id: number; title: string; url: string }> {
+): Promise<Array<{ id: number; title: string; url: string }>> {
+  await ensureCatalogLoaded();
   const genre = normalizeGenreKey(genreInput);
+  const catalog = _eraCatalogCache;
   const generatedShelfMovies =
-    eraId !== "present"
-      ? GENERATED_ERA_CATALOG[eraId]?.[genre as keyof typeof GENERATED_ERA_CATALOG.late80s] ?? []
+    eraId !== "present" && catalog
+      ? catalog[eraId as GeneratedEraId]?.[genre as GeneratedShelfGenre] ?? []
       : [];
   const generatedResults = generatedShelfMovies.map((movie) => {
     const canonical = findCatalogMovieByTitle(movie.title, movie.year);
@@ -406,14 +461,15 @@ export function getCuratedShelfPosterData(
   }));
 }
 
-export function getShelfBrowserMovies(
+export async function getShelfBrowserMovies(
   genreInput: string,
   eraId: EraId,
   placementKey?: string,
   count?: number,
-): Array<{ id: number; title: string; year: number; posterUrl: string }> {
-  return getCuratedShelfPosterData(genreInput, eraId, placementKey, count).flatMap((movie) => {
-    const full = MOVIE_BY_ID.get(movie.id);
+): Promise<Array<{ id: number; title: string; year: number; posterUrl: string }>> {
+  const posters = await getCuratedShelfPosterData(genreInput, eraId, placementKey, count);
+  return posters.flatMap((movie) => {
+    const full = getMovieById(movie.id);
     if (!full) return [];
     return {
       id: full.id,
@@ -425,22 +481,23 @@ export function getShelfBrowserMovies(
 }
 
 export function getCatalogMovieById(id: number): CatalogMovie | undefined {
-  return MOVIE_BY_ID.get(id);
+  return getMovieById(id);
 }
 
 export function findCatalogMovieByTitle(title: string, year?: number | null): CatalogMovie | undefined {
   const normalized = title.trim().toLowerCase();
-  const exact = MOVIE_BY_TITLE.get(normalized);
+  const exact = getMovieByTitle(normalized);
   if (exact && (year == null || exact.year === year)) return exact;
-  return ALL_MOVIES.find((movie) =>
+  return getAllMovies().find((movie) =>
     movie.title.toLowerCase() === normalized && (year == null || movie.year === year)
   );
 }
 
-export function searchCatalogMovies(query: string): SearchResult[] {
+export async function searchCatalogMovies(query: string): Promise<SearchResult[]> {
+  await ensureCatalogLoaded();
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  return ALL_MOVIES
+  return getAllMovies()
     .filter((movie) => movie.title.toLowerCase().includes(q))
     .slice(0, 20)
     .map((movie) => ({
@@ -454,14 +511,15 @@ export function searchCatalogMovies(query: string): SearchResult[] {
     }));
 }
 
-export function discoverCatalogMovies(filters: {
+export async function discoverCatalogMovies(filters: {
   decade?: string | null;
   genreId?: string | null;
   releaseDateGte?: string | null;
   releaseDateLte?: string | null;
   page?: number;
-}): SearchResponse {
-  let results = [...ALL_MOVIES];
+}): Promise<SearchResponse> {
+  await ensureCatalogLoaded();
+  let results = [...getAllMovies()];
   const page = filters.page || 1;
 
   if (filters.decade) {
@@ -507,8 +565,9 @@ export function discoverCatalogMovies(filters: {
   };
 }
 
-export function getCatalogTrendingMovies(): TrendingMovie[] {
-  return ALL_MOVIES
+export async function getCatalogTrendingMovies(): Promise<TrendingMovie[]> {
+  await ensureCatalogLoaded();
+  return getAllMovies()
     .filter((movie) => movie.year >= 1997)
     .sort(compareForShelf)
     .slice(0, 20)
@@ -523,7 +582,8 @@ export function getCatalogTrendingMovies(): TrendingMovie[] {
     }));
 }
 
-export function getCatalogMovieInfo(title: string, year?: number | null): { movie: MovieInfo | null; providers: StreamingProviders | null } {
+export async function getCatalogMovieInfo(title: string, year?: number | null): Promise<{ movie: MovieInfo | null; providers: StreamingProviders | null }> {
+  await ensureCatalogLoaded();
   const match = findCatalogMovieByTitle(title, year);
   if (!match) return { movie: null, providers: null };
   return {
@@ -540,11 +600,12 @@ export function getCatalogMovieInfo(title: string, year?: number | null): { movi
   };
 }
 
-export function getCatalogFilmDetail(id: number): FilmDetail | null {
+export async function getCatalogFilmDetail(id: number): Promise<FilmDetail | null> {
+  await ensureCatalogLoaded();
   const match = getCatalogMovieById(id);
   if (!match) return null;
 
-  const similar: MovieInfo[] = ALL_MOVIES
+  const similar: MovieInfo[] = getAllMovies()
     .filter((movie) => movie.id !== match.id && movie.shelfGenres.some((genre) => match.shelfGenres.includes(genre)))
     .slice(0, 8)
     .map((movie) => ({

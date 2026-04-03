@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const catalogFilm = getCatalogFilmDetail(Number(id));
+    const catalogFilm = await getCatalogFilmDetail(Number(id));
     if (catalogFilm) {
       if (Number(id) < 900000) {
         try {

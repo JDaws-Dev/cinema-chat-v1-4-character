@@ -303,15 +303,19 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
     const [startYear, endYear] = currentEraYears.split("-");
 
     if (currentEraId !== "present") {
-      const localPosters = getCuratedShelfPosterData(genre, currentEraId, placementKey, count);
-      setPosters(
-        localPosters.map((poster) => ({
-          url: poster.url,
-          title: poster.title,
-          id: poster.id,
-        }))
-      );
-      return;
+      let cancelled = false;
+      getCuratedShelfPosterData(genre, currentEraId, placementKey, count).then((localPosters) => {
+        if (!cancelled) {
+          setPosters(
+            localPosters.map((poster) => ({
+              url: poster.url,
+              title: poster.title,
+              id: poster.id,
+            }))
+          );
+        }
+      });
+      return () => { cancelled = true; };
     }
 
     if (!genreId) {

@@ -110,36 +110,55 @@ export function useInventory({ eraYears }: { eraYears: string }) {
 
   // Spawn missing slot keys from gondola shelves for the selected era
   useEffect(() => {
+    let cancelled = false;
     const eraId = getEraIdFromYears(eraYears);
-    const gondolaCandidates = STORE_LAYOUT.objects.flatMap((obj) => {
-      if (obj.prefab !== "shelf/gondola") return [];
-      const frontGenre = typeof obj.meta?.genre === "string" ? obj.meta.genre : null;
-      const backGenre = typeof obj.meta?.backGenre === "string" ? obj.meta.backGenre : null;
-      const frontMovies = frontGenre
-        ? getCuratedShelfPosterData(frontGenre, eraId, `${obj.id}:front`, 18).map((movie, index) => ({
-            id: movie.id,
-            title: movie.title,
-            posterUrl: movie.url,
-            genre: frontGenre,
-            slotKey: `${obj.id}:front:${index}`,
-          }))
-        : [];
-      const backMovies = backGenre
-        ? getCuratedShelfPosterData(backGenre, eraId, `${obj.id}:back`, 18).map((movie, index) => ({
-            id: movie.id,
-            title: movie.title,
-            posterUrl: movie.url,
-            genre: backGenre,
-            slotKey: `${obj.id}:back:${index}`,
-          }))
-        : [];
-      return [...frontMovies, ...backMovies];
-    }).filter((movie) => movie.posterUrl);
 
-    const shuffled = [...gondolaCandidates].sort(() => Math.random() - 0.5);
-    const picked = shuffled.slice(0, 8);
-    setSpawnedMissingSlotKeys(picked.flatMap((movie) => movie.slotKey ? [movie.slotKey] : []));
-    setRecentReturns(picked.slice(0, 4));
+    async function loadGondolaCandidates() {
+      const gondolaCandidates: Array<{ id: number; title: string; posterUrl: string; genre: string; slotKey: string }> = [];
+
+      for (const obj of STORE_LAYOUT.objects) {
+        if (obj.prefab !== "shelf/gondola") continue;
+        const frontGenre = typeof obj.meta?.genre === "string" ? obj.meta.genre : null;
+        const backGenre = typeof obj.meta?.backGenre === "string" ? obj.meta.backGenre : null;
+        if (frontGenre) {
+          const posters = await getCuratedShelfPosterData(frontGenre, eraId, `${obj.id}:front`, 18);
+          for (let index = 0; index < posters.length; index++) {
+            const movie = posters[index];
+            gondolaCandidates.push({
+              id: movie.id,
+              title: movie.title,
+              posterUrl: movie.url,
+              genre: frontGenre,
+              slotKey: `${obj.id}:front:${index}`,
+            });
+          }
+        }
+        if (backGenre) {
+          const posters = await getCuratedShelfPosterData(backGenre, eraId, `${obj.id}:back`, 18);
+          for (let index = 0; index < posters.length; index++) {
+            const movie = posters[index];
+            gondolaCandidates.push({
+              id: movie.id,
+              title: movie.title,
+              posterUrl: movie.url,
+              genre: backGenre,
+              slotKey: `${obj.id}:back:${index}`,
+            });
+          }
+        }
+      }
+
+      if (cancelled) return;
+
+      const filtered = gondolaCandidates.filter((movie) => movie.posterUrl);
+      const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+      const picked = shuffled.slice(0, 8);
+      setSpawnedMissingSlotKeys(picked.flatMap((movie) => movie.slotKey ? [movie.slotKey] : []));
+      setRecentReturns(picked.slice(0, 4));
+    }
+
+    loadGondolaCandidates();
+    return () => { cancelled = true; };
   }, [eraYears]);
 
   return {

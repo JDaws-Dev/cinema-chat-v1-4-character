@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { getCatalogMovieById } from "@/lib/curated-movie-catalog";
+import { getCatalogMovieById, ensureCatalogLoaded } from "@/lib/curated-movie-catalog";
 
 const GENRE_COLORS: Record<string, { bg: string; fg: string; accent: string }> = {
   Action: { bg: "#7f1d1d", fg: "#fff7ed", accent: "#fb923c" },
@@ -65,6 +65,7 @@ export async function GET(req: Request) {
     }
   }
 
+  await ensureCatalogLoaded();
   const movie = getCatalogMovieById(id);
 
   if (!movie) {

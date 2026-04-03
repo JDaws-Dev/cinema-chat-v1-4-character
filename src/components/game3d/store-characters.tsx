@@ -894,8 +894,16 @@ export function VinnyCharacter() {
       leftArmRef.current.rotation.z = Math.sin(t * 0.3) * 0.05;
     }
     if (rightArmRef.current) {
-      rightArmRef.current.rotation.x = Math.sin(t * 0.5 + 1.5) * 0.2;
-      rightArmRef.current.rotation.z = Math.sin(t * 0.35 + 1.0) * 0.06;
+      // Priority 9: Vinny pointing gesture during talking_to_player
+      if (activeDialogueTarget === "vinny") {
+        // Arm raises slightly and extends forward — "You gotta see this one"
+        const pointTarget = -0.5; // forward rotation (negative X = arm extends forward)
+        rightArmRef.current.rotation.x += (pointTarget - rightArmRef.current.rotation.x) * 0.05;
+        rightArmRef.current.rotation.z += (-0.15 - rightArmRef.current.rotation.z) * 0.05; // slight outward
+      } else {
+        rightArmRef.current.rotation.x = Math.sin(t * 0.5 + 1.5) * 0.2;
+        rightArmRef.current.rotation.z = Math.sin(t * 0.35 + 1.0) * 0.06;
+      }
     }
 
     // Priority 4: Head tracking — lerp headRef.rotation.y toward camera X

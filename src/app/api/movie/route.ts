@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const catalog = getCatalogMovieInfo(title, year ? parseInt(year) : null);
+    const catalog = await getCatalogMovieInfo(title, year ? parseInt(year) : null);
     if (catalog.movie) {
       return Response.json(catalog);
     }

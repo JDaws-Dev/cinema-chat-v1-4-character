@@ -59,8 +59,10 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
     setFilms([]);
 
     if (eraId !== "present") {
-      setFilms(getShelfBrowserMovies(genre, eraId, shelfId, limit));
-      setLoading(false);
+      getShelfBrowserMovies(genre, eraId, shelfId, limit)
+        .then((movies) => setFilms(movies))
+        .catch(() => {})
+        .finally(() => setLoading(false));
       return;
     }
 

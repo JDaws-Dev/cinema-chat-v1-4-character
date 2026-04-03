@@ -62,6 +62,14 @@ function browseHeightFromSeed(s: number): BrowseHeight {
 
 // ── NPC mesh — simplified box-geometry character ───────────────
 
+// ── Priority 9: VHS genre colors ─────────────────────────────
+const VHS_GENRE_COLORS: { genre: string; color: string }[] = [
+  { genre: "action", color: "#cc2222" },
+  { genre: "drama", color: "#2244aa" },
+  { genre: "comedy", color: "#dd8800" },
+  { genre: "horror", color: "#7722aa" },
+];
+
 function NPCMesh({
   npc,
   groupRef,
@@ -80,6 +88,9 @@ function NPCMesh({
   const leftEyeRef = useRef<THREE.Mesh>(null);
   const rightEyeRef = useRef<THREE.Mesh>(null);
   const mouthRef = useRef<THREE.Mesh>(null);
+  const leftHandRef = useRef<THREE.Mesh>(null);
+  const rightHandRef = useRef<THREE.Mesh>(null);
+  const vhsBoxRef = useRef<THREE.Mesh>(null);
 
   // Per-NPC seed for animation desync
   const seed = useMemo(() => seedFromId(npc.config.id), [npc.config.id]);
@@ -99,6 +110,13 @@ function NPCMesh({
     [npc.config.id, npc.goalStepIndex]
   );
   const browseHeight = useMemo(() => browseHeightFromSeed(browseHeightSeed), [browseHeightSeed]);
+
+  // Priority 9: Track whether NPC has checked out (carries VHS after)
+  const hasCheckedOut = useRef(false);
+  const vhsGenreColor = useMemo(() => {
+    const idx = Math.floor(seedFromId(npc.config.id + ":vhs") * VHS_GENRE_COLORS.length);
+    return VHS_GENRE_COLORS[idx % VHS_GENRE_COLORS.length].color;
+  }, [npc.config.id]);
 
   // Priority 8: Environmental reactions state
   const enterTimer = useRef(0); // tracks time since entering state began
@@ -312,17 +330,54 @@ function NPCMesh({
         glanceTimer.current = 3.0 + Math.random() * 4.0; // cooldown before next glance
       }
     }
+
+    // ── Priority 9: Hand shape toggle ──
+    // Idle/browsing = open palm (flattened sphere), other states = closed fist (uniform)
+    const isBrowsingOrIdle = npc.state === "browsing" || npc.state === "waiting" || npc.state === "entering";
+    if (leftHandRef.current) {
+      if (isBrowsingOrIdle) {
+        leftHandRef.current.scale.set(1.2, 0.7, 1);
+      } else {
+        leftHandRef.current.scale.set(1, 1, 1);
+      }
+    }
+    if (rightHandRef.current) {
+      if (isBrowsingOrIdle) {
+        rightHandRef.current.scale.set(1.2, 0.7, 1);
+      } else {
+        rightHandRef.current.scale.set(1, 1, 1);
+      }
+    }
+
+    // ── Priority 9: Track checkout state for VHS carry ──
+    if (npc.state === "checking_out") {
+      hasCheckedOut.current = true;
+    }
+    // Show/hide VHS box: visible after checking_out through leaving/despawning
+    if (vhsBoxRef.current) {
+      vhsBoxRef.current.visible = hasCheckedOut.current;
+    }
   });
+
+  // ── Priority 10: Body proportion tweaks by personality ──
+  const pType = npc.config.personalityType;
+  const torsoWidth = pType === "parent" ? 0.40 : 0.35; // parent: wider lower torso
+  const legHeight = pType === "teenager" ? 0.50 : 0.45; // teenager: longer legs
+  const legY = pType === "teenager" ? 0.375 : 0.4; // adjust position for longer legs
+  const armY = pType === "teenager" ? 0.82 : 0.85; // teenager: arms hang lower
+  const headScaleY = pType === "kid" ? 1.2 : 1.0; // kid: larger head relative to body
+  // critic: arm attachment rotated inward 0.1 rad (applied as Z rotation on arms)
+  const armInwardRot = pType === "critic" ? 0.1 : 0;
 
   return (
     <group ref={groupRef} scale={height}>
       {/* Body (torso) */}
       <mesh ref={torsoRef} position={[0, 0.85, 0]}>
-        <boxGeometry args={[0.35, 0.45, 0.2]} />
+        <boxGeometry args={[torsoWidth, 0.45, 0.2]} />
         <meshStandardMaterial color={shirtColor} />
       </mesh>
-      {/* Head */}
-      <mesh ref={headRef} position={[0, 1.22, 0]}>
+      {/* Head — Priority 10: kid gets larger relative head */}
+      <mesh ref={headRef} position={[0, 1.22, 0]} scale={[1, headScaleY, 1]}>
         <sphereGeometry args={[0.13, 8, 8]} />
         <meshStandardMaterial color={skinTone} />
       </mesh>
@@ -365,15 +420,33 @@ function NPCMesh({
       {hairStyle === "afro" && (
         <mesh position={[0, 1.32, 0]}><sphereGeometry args={[0.18, 8, 8]} /><meshStandardMaterial color={hairColor} /></mesh>
       )}
-      {/* Arms */}
-      <mesh ref={leftArmRef} position={[-0.24, 0.85, 0]}><boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} /></mesh>
-      <mesh ref={rightArmRef} position={[0.24, 0.85, 0]}><boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} /></mesh>
-      {/* Legs */}
-      <mesh ref={leftLegRef} position={[-0.08, 0.4, 0]}>
-        <boxGeometry args={[0.12, 0.45, 0.12]} /><meshStandardMaterial color={pantsColor} />
+      {/* Arms — Priority 10: critic has inward shoulder rounding */}
+      <mesh ref={leftArmRef} position={[-0.24, armY, 0]} rotation={[0, 0, armInwardRot]}>
+        <boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} />
       </mesh>
-      <mesh ref={rightLegRef} position={[0.08, 0.4, 0]}>
-        <boxGeometry args={[0.12, 0.45, 0.12]} /><meshStandardMaterial color={pantsColor} />
+      <mesh ref={rightArmRef} position={[0.24, armY, 0]} rotation={[0, 0, -armInwardRot]}>
+        <boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} />
+      </mesh>
+      {/* Hands — Priority 9: sphere hands with shape toggle (scale set in useFrame) */}
+      <mesh ref={leftHandRef} position={[-0.24, armY - 0.24, 0]}>
+        <sphereGeometry args={[0.035, 8, 8]} />
+        <meshStandardMaterial color={skinTone} />
+      </mesh>
+      <mesh ref={rightHandRef} position={[0.24, armY - 0.24, 0]}>
+        <sphereGeometry args={[0.035, 8, 8]} />
+        <meshStandardMaterial color={skinTone} />
+      </mesh>
+      {/* Priority 9: VHS box in right hand — visible after checking_out */}
+      <mesh ref={vhsBoxRef} position={[0.24, armY - 0.30, -0.03]} visible={false}>
+        <boxGeometry args={[0.08, 0.05, 0.02]} />
+        <meshStandardMaterial color={vhsGenreColor} />
+      </mesh>
+      {/* Legs — Priority 10: teenager gets longer legs */}
+      <mesh ref={leftLegRef} position={[-0.08, legY, 0]}>
+        <boxGeometry args={[0.12, legHeight, 0.12]} /><meshStandardMaterial color={pantsColor} />
+      </mesh>
+      <mesh ref={rightLegRef} position={[0.08, legY, 0]}>
+        <boxGeometry args={[0.12, legHeight, 0.12]} /><meshStandardMaterial color={pantsColor} />
       </mesh>
     </group>
   );

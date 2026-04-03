@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
   try {
     if (query && !isTmdbConfigured()) {
-      const localResults = searchCatalogMovies(query);
+      const localResults = await searchCatalogMovies(query);
       return Response.json({
         results: localResults,
         totalResults: localResults.length,
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
 
       if (!isTmdbConfigured() || hasHistoricalDateWindow) {
         return Response.json(
-          discoverCatalogMovies({
+          await discoverCatalogMovies({
             decade,
             genreId,
             releaseDateGte,

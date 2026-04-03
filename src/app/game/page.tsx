@@ -6,6 +6,10 @@ import { DialogueBox } from "@/components/game3d/DialogueOverlay";
 import { ShelfBrowser } from "@/components/game/ShelfBrowser";
 import { FilmDetailModal } from "@/components/FilmDetailModal";
 import { RewardOverlay } from "@/components/game/RewardOverlay";
+import { CheckoutOverlay } from "@/components/game/overlays/CheckoutOverlay";
+import { QuestLogOverlay } from "@/components/game/overlays/QuestLogOverlay";
+import { PuzzleOverlay } from "@/components/game/overlays/PuzzleOverlay";
+import { NpcChatOverlay } from "@/components/game/overlays/NpcChatOverlay";
 import {
   SCENARIOS, QUOTES, SYNOPSES,
   getSeen, markSeen, addCorrectAnswer, addWrongAnswer,
@@ -13,7 +17,7 @@ import {
 } from "@/lib/friday-night";
 import { fetchSearch, fetchTrending } from "@/lib/api";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
+import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, completeObjective, completeQuest, isQuestComplete, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
@@ -243,55 +247,7 @@ export default function GamePage() {
     setHoverLabel(label);
   }, []);
 
-  // ── Movie Night Score Calculation ──────────────────────
-  type ScoreItem = { label: string; points: number };
-  function calculateMovieNightScore(movies: HeldMovie[], snacks: HeldSnack[]): { score: number; breakdown: ScoreItem[] } {
-    let score = 0;
-    const breakdown: ScoreItem[] = [];
-
-    // Base: movies
-    if (movies.length === 1) { score += 50; breakdown.push({ label: "Quick Night", points: 50 }); }
-    if (movies.length === 2) { score += 120; breakdown.push({ label: "Double Feature", points: 120 }); }
-    if (movies.length >= 3) { score += 200; breakdown.push({ label: "Marathon!", points: 200 }); }
-
-    // Genre variety
-    const genres = new Set(movies.map(m => m.genre).filter(Boolean));
-    if (genres.size === movies.length && movies.length > 1) {
-      score += 50; breakdown.push({ label: "Genre Variety", points: 50 });
-    }
-
-    // Snack bonus
-    if (snacks.length > 0) {
-      const snackPts = snacks.length * 25;
-      score += snackPts; breakdown.push({ label: `${snacks.length} Snack(s)`, points: snackPts });
-    }
-
-    // Big feast
-    if (snacks.length >= 3) {
-      score += 50; breakdown.push({ label: "Feast Mode!", points: 50 });
-    }
-
-    // Snack pairing bonuses
-    const snackNames = snacks.map(s => s.name.toLowerCase());
-    const movieGenres = movies.map(m => m.genre.toLowerCase());
-    const candyNames = ["m&ms", "skittles", "junior mints", "twizzlers", "gummy bears", "milk duds", "nerds", "hot tamales", "swedish fish", "reese's pieces", "raisinets", "sour patch kids", "red vines", "butterfinger", "cookie"];
-    const sodaNames = ["soda"];
-    const hasPopcorn = snackNames.some(s => s.includes("popcorn"));
-    const hasCandy = snackNames.some(s => candyNames.some(c => s.includes(c)));
-    const hasSoda = snackNames.some(s => sodaNames.some(c => s.includes(c)));
-
-    if (movieGenres.includes("horror") && hasPopcorn) {
-      score += 30; breakdown.push({ label: "Scream & Munch", points: 30 });
-    }
-    if (movieGenres.includes("comedy") && hasCandy) {
-      score += 20; breakdown.push({ label: "Sugar Rush", points: 20 });
-    }
-    if (movieGenres.includes("action") && hasSoda) {
-      score += 25; breakdown.push({ label: "Adrenaline Fuel", points: 25 });
-    }
-
-    return { score, breakdown };
-  }
+  // ── Movie Night Score Calculation (moved to CheckoutOverlay) ──
 
   // ── Interaction handler from 3D world ──────────────────
   const handleInteract = useCallback((type: string, data?: string) => {
@@ -1273,70 +1229,15 @@ export default function GamePage() {
 
       {/* Vinny's Five (Puzzle) */}
       {overlay === "pick" && puzzle && (
-        <div className="g3-puzzle-overlay">
-          {puzzle.backdrop && puzzleBackdropReady && (
-            <div className="vf-backdrop" style={{ backgroundImage: `url(${puzzle.backdrop})`, filter: `blur(${puzzleBlur}px) brightness(0.6)` }} />
-          )}
-          <div className="vf-scrim" />
-          <div className="g3-puzzle-content">
-            <div className="g3-puzzle-top">
-              <button className="vf-back" onClick={closeOverlay}>✕ Close</button>
-              <div className="vf-star-track">
-                {[5,4,3,2,1].map(s => <span key={s} className={`vf-star ${puzzleWon === null && s <= 5 - puzzleClue ? "vf-star-lit" : ""} ${puzzleWon && s <= 5 - puzzleClue ? "vf-star-won" : ""}`}>★</span>)}
-              </div>
-              <span className="vf-clue-num">{puzzleWon === null ? `${puzzleClue + 1}/5` : ""}</span>
-            </div>
-
-            {puzzleWon === null ? (
-              <>
-                <div className="vf-clue-stack">
-                  <div className="vf-clue-item vf-clue-vinny">
-                    <div className="vf-v-badge">V</div>
-                    <p className="vf-clue-poetic">&ldquo;{puzzle.clues[0]}&rdquo;</p>
-                  </div>
-                  {puzzleClue >= 1 && <div className="vf-clue-item vf-clue-fact-item"><span className="vf-clue-tag">GENRE</span><span className="vf-clue-val">{puzzle.clues[1]}</span></div>}
-                  {puzzleClue >= 2 && <div className="vf-clue-item vf-clue-fact-item"><span className="vf-clue-tag">STARRING</span><span className="vf-clue-val">{puzzle.clues[2]}</span></div>}
-                  {puzzleClue >= 3 && <div className="vf-clue-item vf-clue-tagline"><span className="vf-clue-tag">TAGLINE</span><p className="vf-clue-tagline-text">&ldquo;{puzzle.clues[3]}&rdquo;</p></div>}
-                  {puzzleClue >= 4 && puzzle.poster && <div className="vf-clue-item vf-clue-poster-reveal"><img src={puzzle.poster} alt="" className="vf-poster-big" /></div>}
-                </div>
-                <div className="vf-input-bottom">
-                  <div className="vf-input-wrap">
-                    <input ref={inputRef} type="text" className="vf-input" placeholder="Type a movie title..." value={puzzleGuess} onChange={e => handlePuzzleSearch(e.target.value)} autoComplete="off" />
-                    <button className="vf-skip" onClick={skipPuzzleClue}>{puzzleClue < 4 ? "Skip →" : "Give up"}</button>
-                  </div>
-                  {puzzleResults.length > 0 && (
-                    <div className="vf-results">
-                      {puzzleResults.map(r => (
-                        <button key={r.id} className="vf-result" onClick={() => submitPuzzleGuess(r.title, r.id)}>
-                          {r.posterUrl && <img src={r.posterUrl} alt="" className="vf-result-poster" />}
-                          <span className="vf-result-title">{r.title}</span>
-                          {r.year && <span className="vf-result-year">({r.year})</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="vf-reveal">
-                <div className="vf-reveal-card">
-                  {puzzle.poster && <img src={puzzle.poster} className="vf-reveal-poster" alt="" />}
-                  <div className="vf-reveal-info">
-                    <h2 className="vf-reveal-title">{puzzle.answer.title as string}</h2>
-                    <p className="vf-reveal-meta">{puzzle.answer.year as number} &bull; {puzzle.answer.director as string}</p>
-                  </div>
-                </div>
-                <div className={`vf-score-banner ${puzzleWon ? "vf-score-win" : "vf-score-lose"}`}>
-                  {puzzleWon ? `⭐ Got it on Clue ${puzzleClue + 1}!` : `Missed it — ${puzzle.answer.title as string}`}
-                </div>
-                <div className="g3-puzzle-actions">
-                  <button className="vf-btn vf-btn-primary" onClick={startPuzzle}>Another Round</button>
-                  <button className="vf-btn vf-btn-secondary" onClick={closeOverlay}>Back to Store</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <PuzzleOverlay
+          puzzle={puzzle} puzzleClue={puzzleClue} puzzleGuess={puzzleGuess}
+          puzzleResults={puzzleResults} puzzleWon={puzzleWon}
+          puzzleBackdropReady={puzzleBackdropReady} puzzleBlur={puzzleBlur}
+          inputRef={inputRef}
+          startPuzzle={startPuzzle} handlePuzzleSearch={handlePuzzleSearch}
+          submitPuzzleGuess={submitPuzzleGuess} skipPuzzleClue={skipPuzzleClue}
+          closeOverlay={closeOverlay}
+        />
       )}
 
       {/* Quote */}
@@ -1410,226 +1311,32 @@ export default function GamePage() {
       {/* Checkout Overlay */}
       {/* NPC Freeform Chat */}
       {overlay === "npc_chat" && npcChatTarget && (
-        <div className="g3-overlay">
-          <div className="g3-overlay-header">
-            <span className="g3-overlay-title">{npcChatTarget.name.toUpperCase()}</span>
-            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
-          </div>
-          <div className="g3-overlay-body" style={{ display: 'flex', flexDirection: 'column', maxHeight: '50vh' }}>
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 8 }}>
-              {npcChatMessages.map((m, i) => (
-                <div key={i} style={{
-                  alignSelf: m.role === 'player' ? 'flex-end' : 'flex-start',
-                  background: m.role === 'player' ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                  border: `2px solid ${m.role === 'player' ? '#ffd700' : 'rgba(255,255,255,0.15)'}`,
-                  padding: '8px 12px',
-                  maxWidth: '80%',
-                  fontSize: '0.5rem',
-                  fontFamily: 'var(--font-pixel, monospace)',
-                  color: '#e0e0e0',
-                }}>
-                  {m.role === 'npc' && <span style={{ color: '#ffd700', display: 'block', marginBottom: 4, fontSize: '0.4rem' }}>{npcChatTarget.name}</span>}
-                  {m.text}
-                </div>
-              ))}
-              {npcChatLoading && <div style={{ color: '#888', fontSize: '0.4rem', fontFamily: 'var(--font-pixel, monospace)' }}>...</div>}
-            </div>
-            <div style={{ display: 'flex', gap: 8, paddingTop: 8, borderTop: '2px solid rgba(255,215,0,0.2)' }}>
-              <input
-                type="text"
-                value={npcChatInput}
-                onChange={e => setNpcChatInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleNpcChatSend(); }}
-                placeholder={`Say something to ${npcChatTarget.name}...`}
-                disabled={npcChatLoading}
-                autoFocus
-                style={{
-                  flex: 1, padding: '8px 12px', fontSize: '16px',
-                  fontFamily: 'var(--font-pixel, monospace)',
-                  background: 'rgba(0,0,0,0.8)', color: '#e0e0e0',
-                  border: '2px solid rgba(255,215,0,0.3)',
-                  outline: 'none',
-                }}
-              />
-              <button
-                onClick={handleNpcChatSend}
-                disabled={npcChatLoading || !npcChatInput.trim()}
-                style={{
-                  padding: '8px 16px', fontSize: '0.5rem',
-                  fontFamily: 'var(--font-pixel, monospace)',
-                  background: '#ffd700', color: '#000', border: 'none',
-                  cursor: 'pointer', fontWeight: 'bold',
-                }}
-              >SEND</button>
-            </div>
-          </div>
-        </div>
+        <NpcChatOverlay
+          npcChatTarget={npcChatTarget}
+          npcChatMessages={npcChatMessages}
+          npcChatInput={npcChatInput}
+          npcChatLoading={npcChatLoading}
+          setNpcChatInput={setNpcChatInput}
+          handleNpcChatSend={handleNpcChatSend}
+          closeOverlay={closeOverlay}
+        />
       )}
 
-      {overlay === "checkout" && (() => {
-        const { score: movieNightScore, breakdown: scoreBreakdown } = calculateMovieNightScore(heldMovies, heldSnacks);
-        const prevHigh = parseInt(localStorage.getItem("fnv_high_score") || "0");
-        const isNewHigh = movieNightScore > prevHigh;
-        if (isNewHigh) localStorage.setItem("fnv_high_score", String(movieNightScore));
-        return (
-          <div className="g3-overlay g3-overlay-center g3-checkout-overlay">
-            <div className="g3-receipt">
-              <div className="g3-receipt-header">
-                <pre>FRIDAY NIGHT VIDEO</pre>
-                <pre>YOUR NEIGHBORHOOD VIDEO STORE</pre>
-                <pre>================================</pre>
-              </div>
-              <div className="g3-receipt-items">
-                {heldMovies.map((movie, i) => (
-                  <div key={i} className="g3-receipt-item">
-                    <span>🎬 {movie.title}</span>
-                    <span className="g3-receipt-item-actions">
-                      <span>$2.99</span>
-                      <button className="g3-receipt-remove" onClick={() => removeHeldMovie(movie.id)}>PUT BACK</button>
-                    </span>
-                  </div>
-                ))}
-                {heldSnacks.map((snack, i) => (
-                  <div key={i} className="g3-receipt-item">
-                    <span>{snack.emoji} {snack.name}</span>
-                    <span>$1.50</span>
-                  </div>
-                ))}
-              </div>
-              <pre>================================</pre>
-              <div className="g3-receipt-total">
-                <span>TOTAL</span>
-                <span>${(heldMovies.length * 2.99 + heldSnacks.length * 1.50).toFixed(2)}</span>
-              </div>
-              <pre>================================</pre>
-              <div className="g3-receipt-score">
-                <div className="g3-receipt-score-label">MOVIE NIGHT SCORE</div>
-                <div className="g3-score-big">{movieNightScore}</div>
-                {isNewHigh && <div className="g3-score-newhigh">NEW HIGH SCORE!</div>}
-                <div className="g3-score-breakdown">
-                  {scoreBreakdown.map((item, i) => (
-                    <div key={i}>{item.label}: +{item.points}</div>
-                  ))}
-                </div>
-                <div className="g3-score-xp">+{Math.floor(movieNightScore / 10)} XP</div>
-              </div>
-              <pre>================================</pre>
-              <pre>HAVE A GREAT FRIDAY NIGHT!</pre>
-              <pre>BE KIND, REWIND</pre>
-              <div className="g3-receipt-buttons">
-                <button className="g3-receipt-btn g3-receipt-btn-primary" onClick={() => {
-                  const state = loadGameState();
-                  state.totalMoviesFound += heldMovies.length;
-                  saveGameState(state);
-                  setOverlay("none");
-                  setHeldMovies([]);
-                  setHeldSnacks([]);
-                }}>
-                  LEAVE THE STORE
-                </button>
-                <button className="g3-receipt-btn g3-receipt-btn-secondary" onClick={() => setOverlay("none")}>
-                  KEEP BROWSING
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {overlay === "checkout" && (
+        <CheckoutOverlay
+          heldMovies={heldMovies}
+          heldSnacks={heldSnacks}
+          removeHeldMovie={removeHeldMovie}
+          setHeldMovies={setHeldMovies}
+          setHeldSnacks={setHeldSnacks}
+          setOverlay={setOverlay}
+        />
+      )}
 
       {/* Quest Log Overlay */}
-      {overlay === "quest_log" && (() => {
-        const available = getAvailableQuests();
-        const active = getActiveQuests();
-        const completed = getCompletedQuests();
-        const qs = getQuestState();
-        return (
-          <div className="g3-overlay g3-overlay-center">
-            <div className="g3-overlay-header">
-              <span className="g3-overlay-title">QUEST LOG</span>
-              <button className="g3-overlay-close" onClick={closeOverlay}>&#10005;</button>
-            </div>
-            <div className="g3-overlay-body g3-quest-log">
-              {/* Active Quests */}
-              {active.length > 0 && (
-                <div className="g3-quest-section">
-                  <div className="g3-quest-section-title">ACTIVE QUESTS</div>
-                  {active.map(quest => {
-                    const progress = qs.questProgress[quest.id] || {};
-                    const doneCount = quest.objectives.filter(o => progress[o.id]).length;
-                    return (
-                      <div key={quest.id} className="g3-quest-card g3-quest-active">
-                        <div className="g3-quest-card-header">
-                          <span className="g3-quest-title">{quest.title}</span>
-                          <span className="g3-quest-progress">{doneCount}/{quest.objectives.length}</span>
-                        </div>
-                        <p className="g3-quest-desc">{quest.description}</p>
-                        <div className="g3-quest-objectives">
-                          {quest.objectives.map(obj => (
-                            <div key={obj.id} className={`g3-quest-obj ${progress[obj.id] ? "g3-quest-obj-done" : ""}`}>
-                              <span className="g3-quest-obj-check">{progress[obj.id] ? "\u2713" : "\u25CB"}</span>
-                              <span>{obj.description}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="g3-quest-reward">
-                          Reward: {quest.reward.xp} XP{quest.reward.propId ? ` + ${PROPS.find(p => p.id === quest.reward.propId)?.name || "Prop"}` : ""}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Available Quests */}
-              {available.length > 0 && (
-                <div className="g3-quest-section">
-                  <div className="g3-quest-section-title">AVAILABLE QUESTS</div>
-                  {available.map(quest => (
-                    <div key={quest.id} className="g3-quest-card g3-quest-available">
-                      <div className="g3-quest-card-header">
-                        <span className="g3-quest-title">{quest.title}</span>
-                        <span className="g3-quest-giver">From: {quest.giverNpc === "vinny" ? "Vinny" : quest.giverNpc === "charlie" ? "Charlie" : "Customer"}</span>
-                      </div>
-                      <p className="g3-quest-desc">{quest.description}</p>
-                      <div className="g3-quest-reward">
-                        Reward: {quest.reward.xp} XP{quest.reward.propId ? ` + ${PROPS.find(p => p.id === quest.reward.propId)?.name || "Prop"}` : ""}
-                      </div>
-                      <button className="g3-quest-accept" onClick={() => {
-                        startQuest(quest.id);
-                        showQuestNotif(`Quest Started: ${quest.title}`);
-                        closeOverlay();
-                      }}>ACCEPT QUEST</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Completed Quests */}
-              {completed.length > 0 && (
-                <div className="g3-quest-section">
-                  <div className="g3-quest-section-title">COMPLETED</div>
-                  {completed.map(quest => (
-                    <div key={quest.id} className="g3-quest-card g3-quest-completed">
-                      <div className="g3-quest-card-header">
-                        <span className="g3-quest-title">{quest.title}</span>
-                        <span className="g3-quest-check-done">\u2713</span>
-                      </div>
-                      <p className="g3-quest-desc">{quest.description}</p>
-                      <div className="g3-quest-reward">
-                        Earned: {quest.reward.xp} XP{quest.reward.propId ? ` + ${PROPS.find(p => p.id === quest.reward.propId)?.name || "Prop"}` : ""}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {active.length === 0 && available.length === 0 && completed.length === 0 && (
-                <div className="g3-quest-empty">No quests yet. Talk to Vinny to get started!</div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
+      {overlay === "quest_log" && (
+        <QuestLogOverlay closeOverlay={closeOverlay} showQuestNotif={showQuestNotif} />
+      )}
 
       {/* RPG-style NPC Dialogue — classic bottom text box */}
       {overlay === "rpg_dialogue" && rpgNode && (
