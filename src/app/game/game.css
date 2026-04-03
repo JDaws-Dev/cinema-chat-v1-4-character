@@ -3542,3 +3542,61 @@
     right: 10px;
   }
 }
+
+/* ── Scene Transition (store <-> apartment) ──────────────── */
+.g3-scene-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: sceneTransitionFade 1.5s steps(6) forwards;
+}
+
+.g3-scene-transition-text {
+  font-family: var(--fnv-font-game);
+  font-size: 1.8rem;
+  color: var(--fnv-gold);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  animation: transitionTextPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes sceneTransitionFade {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes transitionTextPulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+/* ── Apartment overlay (leave button) ────────────────────── */
+.g3-apartment-overlay {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+
+.g3-apartment-leave-btn {
+  font-family: var(--fnv-font-game);
+  font-size: 1rem;
+  padding: 0.75rem 2rem;
+  background: var(--fnv-gold);
+  color: #000;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: background 0.2s;
+}
+
+.g3-apartment-leave-btn:hover {
+  background: #ffe44d;
+}

@@ -532,6 +532,63 @@ export function Store({
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 13.05]}><planeGeometry args={[40, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.054, ROOM_D / 2 + 12.9]}><planeGeometry args={[40, 0.06]} /><meshBasicMaterial color="#ccaa22" /></mesh>
 
+      {/* ── LEFT SIDE STREET (beyond Pizza Palace, x < -16) ── */}
+      {/* Road surface */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-18, -0.06, 5]}><planeGeometry args={[4, 30]} /><meshBasicMaterial color="#111116" /></mesh>
+      {/* Yellow center line */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-18, -0.054, 5]}><planeGeometry args={[0.06, 30]} /><meshBasicMaterial color="#ccaa22" /></mesh>
+      {/* Sidewalk on near side (between Pizza Palace wall and road) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-16.4, -0.04, 5]}><planeGeometry args={[0.8, 30]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
+      {/* Curb */}
+      <mesh position={[-16.8, 0.05, 5]}><boxGeometry args={[0.15, 0.1, 30]} /><meshBasicMaterial color="#555555" /></mesh>
+      {/* Building facade on far side (x=-20) — flat boxes to close world edge */}
+      <mesh position={[-19.9, 1.75, 2]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#5a4a3a" /></mesh>
+      <mesh position={[-19.9, 1.75, 12]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#6a5a4a" /></mesh>
+      {/* Facade roof trim */}
+      <mesh position={[-19.85, 3.6, 7]}><boxGeometry args={[0.3, 0.2, 24]} /><meshBasicMaterial color="#3a3a3a" /></mesh>
+      {/* Facade windows (dark recesses) */}
+      {[-1, 3, 7, 11, 15].map((dz, i) => (
+        <mesh key={`lfacade-win-${i}`} position={[-19.84, 2.0, dz]}><boxGeometry args={[0.05, 1.0, 1.2]} /><meshBasicMaterial color="#1a1a2a" /></mesh>
+      ))}
+      {/* Dumpster */}
+      <mesh position={[-17.5, 0.5, -2]}><boxGeometry args={[1.2, 1.0, 0.8]} /><meshBasicMaterial color="#2a4a2a" /></mesh>
+      <mesh position={[-17.5, 1.05, -2]}><boxGeometry args={[1.3, 0.08, 0.85]} /><meshBasicMaterial color="#1a3a1a" /></mesh>
+      {/* Fire hydrant */}
+      <mesh position={[-16.5, 0.25, 10]}><boxGeometry args={[0.25, 0.5, 0.25]} /><meshBasicMaterial color="#cc2222" /></mesh>
+      <mesh position={[-16.5, 0.55, 10]}><boxGeometry args={[0.35, 0.1, 0.3]} /><meshBasicMaterial color="#cc2222" /></mesh>
+
+      {/* ── RIGHT SIDE STREET (beyond Laundromat, x > 16) ── */}
+      {/* Road surface */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[18, -0.06, 5]}><planeGeometry args={[4, 30]} /><meshBasicMaterial color="#111116" /></mesh>
+      {/* Yellow center line */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[18, -0.054, 5]}><planeGeometry args={[0.06, 30]} /><meshBasicMaterial color="#ccaa22" /></mesh>
+      {/* Sidewalk on near side (between Laundromat wall and road) */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[16.4, -0.04, 5]}><planeGeometry args={[0.8, 30]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
+      {/* Curb */}
+      <mesh position={[16.8, 0.05, 5]}><boxGeometry args={[0.15, 0.1, 30]} /><meshBasicMaterial color="#555555" /></mesh>
+      {/* Building facade on far side (x=+20) — flat boxes to close world edge */}
+      <mesh position={[19.9, 1.75, 2]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#5a4a3a" /></mesh>
+      <mesh position={[19.9, 1.75, 12]}><boxGeometry args={[0.2, 3.5, 10]} /><meshBasicMaterial color="#4a4a5a" /></mesh>
+      {/* Facade roof trim */}
+      <mesh position={[19.85, 3.6, 7]}><boxGeometry args={[0.3, 0.2, 24]} /><meshBasicMaterial color="#3a3a3a" /></mesh>
+      {/* Facade windows (dark recesses) */}
+      {[-1, 3, 7, 11, 15].map((dz, i) => (
+        <mesh key={`rfacade-win-${i}`} position={[19.84, 2.0, dz]}><boxGeometry args={[0.05, 1.0, 1.2]} /><meshBasicMaterial color="#1a1a2a" /></mesh>
+      ))}
+      {/* Mailbox */}
+      <mesh position={[16.5, 0.5, 10]}><boxGeometry args={[0.35, 1.0, 0.3]} /><meshBasicMaterial color="#2244aa" /></mesh>
+      <mesh position={[16.5, 1.05, 10]}><boxGeometry args={[0.4, 0.08, 0.35]} /><meshBasicMaterial color="#1a3388" /></mesh>
+      {/* Street sign */}
+      <mesh position={[17.0, 1.2, 14]}><boxGeometry args={[0.08, 2.4, 0.08]} /><meshBasicMaterial color="#666666" /></mesh>
+      <mesh position={[17.0, 2.3, 14]}><boxGeometry args={[1.0, 0.25, 0.04]} /><meshBasicMaterial color="#227722" /></mesh>
+      {!topDown && <Text position={[17.0, 2.3, 14.03]} fontSize={0.1} color="#ffffff" anchorX="center" anchorY="middle" font={undefined}>OAK ST</Text>}
+
+      {/* ── INVISIBLE COLLISION WALLS at world edges ── */}
+      {/* Left world edge wall (x=-20) */}
+      <mesh position={[-20, 1.5, 5]} visible={false}><boxGeometry args={[0.2, 4, 40]} /><meshBasicMaterial transparent opacity={0} /></mesh>
+      {/* Right world edge wall (x=+20) */}
+      <mesh position={[20, 1.5, 5]} visible={false}><boxGeometry args={[0.2, 4, 40]} /><meshBasicMaterial transparent opacity={0} /></mesh>
+
       {/* Storefront windows + doors + awning — keeping inline for build verification */}
       <mesh position={[0, ROOM_H - 0.25, ROOM_D / 2]}><boxGeometry args={[4, 0.7, 0.15]} /><Mat color={WALL_COLOR} roughness={0.85} /></mesh>
       {/* Upper wall band above windows — from door frame (±1.7) to near side walls (±9.7) */}

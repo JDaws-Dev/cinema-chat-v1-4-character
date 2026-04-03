@@ -3,13 +3,20 @@
 import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { DialogueBox } from "@/components/game3d/DialogueOverlay";
-import { ShelfBrowser } from "@/components/game/ShelfBrowser";
 import { FilmDetailModal } from "@/components/FilmDetailModal";
 import { RewardOverlay } from "@/components/game/RewardOverlay";
 import { CheckoutOverlay } from "@/components/game/overlays/CheckoutOverlay";
 import { QuestLogOverlay } from "@/components/game/overlays/QuestLogOverlay";
 import { PuzzleOverlay } from "@/components/game/overlays/PuzzleOverlay";
 import { NpcChatOverlay } from "@/components/game/overlays/NpcChatOverlay";
+import { ChallengeSelectOverlay } from "@/components/game/overlays/ChallengeSelectOverlay";
+import { TrophyOverlay } from "@/components/game/overlays/TrophyOverlay";
+import { QuizOverlay } from "@/components/game/overlays/QuizOverlay";
+import { ShelfOverlay, type ShelfBrowseState } from "@/components/game/overlays/ShelfOverlay";
+import { RpgDialogueOverlay } from "@/components/game/overlays/RpgDialogueOverlay";
+import { GameHUD } from "@/components/game/GameHUD";
+import { ChallengeHUD } from "@/components/game/ChallengeHUD";
+import { HeldVHSStack } from "@/components/game/HeldVHSStack";
 import {
   SCENARIOS, QUOTES, SYNOPSES,
   getSeen, markSeen, addCorrectAnswer, addWrongAnswer,
@@ -17,7 +24,7 @@ import {
 } from "@/lib/friday-night";
 import { fetchSearch, fetchTrending } from "@/lib/api";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
-import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, completeObjective, completeQuest, isQuestComplete, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
+import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, type MovieProp, completeObjective, completeQuest, isQuestComplete, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, VINNY_LINES, unlockAudio, setCurrentEra } from "@/lib/audio";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
@@ -26,8 +33,7 @@ import { buildCustomerDialogue } from "@/lib/npc-customer-dialogues";
 import { mobileInput } from "@/components/game3d/MobileControls";
 import { setActiveDialogueTarget } from "@/components/game3d/store-characters";
 import { isNpcHostile } from "@/lib/sentiment";
-import { type EraId } from "@/lib/curated-movie-catalog";
-import { useGameClock, formatGameTime, type ClosingAnnouncement } from "@/hooks/useGameClock";
+import { useGameClock, type ClosingAnnouncement } from "@/hooks/useGameClock";
 import { useAudioUI } from "@/hooks/useAudioUI";
 import { useInventory, type HeldMovie, type HeldSnack } from "@/hooks/useInventory";
 import { useChallenge, type ChallengeMovie, type ChallengeType } from "@/hooks/useChallenge";
@@ -45,6 +51,7 @@ const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ def
 const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerson").then(m => ({ default: m.FirstPersonControls })), { ssr: false });
 const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction").then(m => ({ default: m.InteractionSystem })), { ssr: false });
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
+const Apartment = dynamic(() => import("@/components/game3d/Apartment").then(m => ({ default: m.Apartment })), { ssr: false });
 
 const GENRE_IDS: Record<string, string> = { horror: "27", scifi: "878", comedy: "35", drama: "18", action: "28", classics: "36", family: "10751", new: "trending" };
 
@@ -56,7 +63,6 @@ function pickRandom<T>(arr: T[], getId: (t: T) => string): T {
 }
 
 export default function GamePage() {
-  type ShelfBrowseState = { genre: string; shelfId?: string; count?: number; label?: string };
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -87,6 +93,8 @@ export default function GamePage() {
       try { (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.("landscape").catch(() => {}); } catch {}
     }
   }, []);
+  const [inApartment, setInApartment] = useState(false);
+  const [sceneTransition, setSceneTransition] = useState<string | null>(null);
   const [topDown, setTopDown] = useState(false);
   const [shelfBrowse, setShelfBrowse] = useState<ShelfBrowseState | null>(null);
   const [filmId, setFilmId] = useState<number | null>(null);
@@ -147,13 +155,6 @@ export default function GamePage() {
     skipPuzzleClue,
   } = usePuzzle(setOverlay);
 
-  const getHudPosterSrc = useCallback((posterUrl: string) => {
-    if (!posterUrl) return "";
-    return posterUrl.startsWith("https://image.tmdb.org/")
-      ? `/api/image-proxy?url=${encodeURIComponent(posterUrl.replace('/w342/', '/w92/'))}`
-      : posterUrl;
-  }, []);
-
   // Quest tracking system (notifications, XP, tier, quest objectives)
   const {
     notifications, addNotification,
@@ -173,6 +174,23 @@ export default function GamePage() {
       }
     });
   }, [isMobile, topDown]);
+
+  // ── Scene transitions (store <-> apartment) ──────────────
+  const handleLeaveStore = useCallback(() => {
+    setSceneTransition("HEADING HOME...");
+    setTimeout(() => {
+      setInApartment(true);
+      setSceneTransition(null);
+    }, 1500);
+  }, []);
+
+  const handleLeaveApartment = useCallback(() => {
+    setSceneTransition("HEADING TO THE STORE...");
+    setTimeout(() => {
+      setInApartment(false);
+      setSceneTransition(null);
+    }, 1500);
+  }, []);
 
   // Side quest state (uses existing showQuestNotif for notifications)
 
@@ -666,13 +684,6 @@ export default function GamePage() {
     ? ((totalXP - currentTier.minXP) / (nextTier.minXP - currentTier.minXP)) * 100
     : 100;
   const heldStackLabel = `${heldMovies.length}/5 tapes`;
-  const heldViewOffsets = [
-    { x: 0, y: 0, rotation: 8 },
-    { x: 26, y: 12, rotation: 13 },
-    { x: 50, y: 24, rotation: 17 },
-    { x: 72, y: 38, rotation: 20 },
-    { x: 90, y: 52, rotation: 24 },
-  ];
 
   // Q or Backspace to close overlays (ESC exits pointer lock, so don't use it)
   // Number keys 1-4 to select RPG dialogue responses
@@ -749,6 +760,37 @@ export default function GamePage() {
 
   return (
     <div className="g3-container">
+      {/* Scene transition overlay */}
+      {sceneTransition && (
+        <div className="g3-scene-transition">
+          <span className="g3-scene-transition-text">{sceneTransition}</span>
+        </div>
+      )}
+
+      {/* Apartment scene */}
+      {inApartment && !sceneTransition && (
+        <>
+          <Canvas
+            shadows={false}
+            gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false }}
+            camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.6, 2] }}
+            dpr={isMobile ? 1 : [1, 2]}
+            style={{ background: "#1a1a2e", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+          >
+            <Suspense fallback={null}>
+              <Apartment />
+            </Suspense>
+          </Canvas>
+          <div className="g3-apartment-overlay">
+            <button className="g3-apartment-leave-btn" onClick={handleLeaveApartment}>
+              BACK TO THE STORE
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* 3D Store Canvas + HUD (hidden when in apartment) */}
+      {!inApartment && <>
       {/* 3D Canvas */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div onClick={() => { if (isMobile && hoverLabel && !hasOverlay) { mobileInput.interact = true; } }}>
@@ -877,147 +919,27 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Movie Night Challenge — shopping list HUD */}
-      {challenge && !hasOverlay && (
-        <div className="g3-challenge-list">
-          <div className="g3-challenge-header">MOVIE NIGHT LIST</div>
-          {challenge.movies.map((cm, i) => {
-            const found = heldMovies.some(m => m.title.toLowerCase() === cm.title.toLowerCase());
-            const hintShown = challenge.hintsUsed.has(i);
-            return (
-              <div key={i} className={`g3-challenge-item ${found ? "g3-challenge-found" : ""}`}>
-                <span>{found ? "✓" : "○"} {cm.title}</span>
-                {!found && hintShown && (
-                  <span className="g3-challenge-hint">Look in: {cm.genre}</span>
-                )}
-                {!found && !hintShown && (
-                  <button className="g3-challenge-hint-btn" onClick={() => {
-                    setChallenge(prev => {
-                      if (!prev) return prev;
-                      const hints = new Set(prev.hintsUsed);
-                      hints.add(i);
-                      return { ...prev, hintsUsed: hints };
-                    });
-                  }}>?</button>
-                )}
-              </div>
-            );
-          })}
-          <div className="g3-challenge-timer" style={challenge.timeLimit && challengeTimer > (challenge.timeLimit - 15) ? { color: "#ef4444" } : undefined}>
-            {challenge.timeLimit ? `${Math.max(0, challenge.timeLimit - challengeTimer)}s left` : `${challengeTimer}s`}
-          </div>
-        </div>
-      )}
-
-      {/* Vinny's Mystery HUD */}
-      {mysteryClue && !hasOverlay && (
-        <div className="g3-challenge-list">
-          <div className="g3-challenge-header">VINNY&apos;S MYSTERY</div>
-          <div className="g3-mystery-clue">&ldquo;{mysteryClue.clue}&rdquo;</div>
-          {mysteryClue.hints.slice(0, mysteryHintsUsed).map((hint, i) => (
-            <div key={i} className="g3-challenge-hint">{hint}</div>
-          ))}
-          {mysteryHintsUsed < mysteryClue.hints.length && (
-            <button className="g3-challenge-hint-btn" style={{ marginTop: 6, width: "auto", borderRadius: 4, padding: "3px 10px" }} onClick={() => setMysteryHintsUsed(h => h + 1)}>
-              ? Hint ({mysteryHintsUsed}/{mysteryClue.hints.length})
-            </button>
-          )}
-          {mysteryWrongMsg && (
-            <div style={{ fontSize: "0.75rem", color: "#ef4444", marginTop: 8, fontWeight: 600 }}>{mysteryWrongMsg}</div>
-          )}
-        </div>
-      )}
-
-      {/* Challenge complete overlay */}
-      {challengeComplete !== null && (
-        <div className="g3-challenge-complete" onClick={() => setChallengeComplete(null)}>
-          <div className="g3-challenge-complete-card">
-            <div className="g3-challenge-complete-icon">{challengeComplete === -1 ? "⏰" : challengeComplete === 0 ? "🔍" : "🎬"}</div>
-            <div className="g3-challenge-complete-title">{challengeComplete === -1 ? "TIME'S UP!" : challengeComplete === 0 ? "MYSTERY SOLVED!" : "MOVIE NIGHT READY!"}</div>
-            <div className="g3-challenge-complete-time">{challengeComplete === -1 ? "Better luck next time!" : challengeComplete === 0 ? "Vinny's impressed — you nailed it!" : `Found all movies in ${challengeComplete}s`}</div>
-            <button className="g3-splash-btn" onClick={() => setChallengeComplete(null)} style={{ marginTop: 12, padding: "12px 24px", fontSize: "0.9rem" }}>
-              {challengeComplete === -1 ? "TRY AGAIN" : "NICE!"}
-            </button>
-          </div>
-        </div>
-      )}
+      <ChallengeHUD
+        hasOverlay={hasOverlay} challenge={challenge} challengeTimer={challengeTimer}
+        heldMovies={heldMovies} setChallenge={setChallenge}
+        mysteryClue={mysteryClue} mysteryHintsUsed={mysteryHintsUsed}
+        setMysteryHintsUsed={setMysteryHintsUsed} mysteryWrongMsg={mysteryWrongMsg}
+        challengeComplete={challengeComplete} setChallengeComplete={setChallengeComplete}
+      />
 
       {/* Challenge Selection Overlay */}
-      {overlay === "challenge_select" && (() => {
-        const gs = loadGameState();
-        const movieNightCount = gs.challengeCompletions["movie_night"] || 0;
-        const speedRunUnlocked = movieNightCount >= 3;
-        const vinnyPickUnlocked = movieNightCount >= 5;
-        return (
-          <div className="g3-overlay g3-overlay-center">
-            <div className="g3-overlay-header">
-              <span className="g3-overlay-title">CHOOSE YOUR CHALLENGE</span>
-              <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
-            </div>
-            <div className="g3-overlay-body g3-challenge-select">
-              {/* Movie Night — always unlocked */}
-              <button className="g3-challenge-option" onClick={() => { startChallenge("movie_night"); setOverlay("none"); }}>
-                <div className="g3-challenge-option-name">Movie Night</div>
-                <div className="g3-challenge-option-desc">Find 3 movies from the shelves</div>
-                <div className="g3-challenge-option-stats">Completed {movieNightCount} time{movieNightCount !== 1 ? "s" : ""}</div>
-              </button>
-
-              {/* Speed Run — unlocks after 3 Movie Night completions */}
-              <button
-                className={`g3-challenge-option ${!speedRunUnlocked ? "g3-challenge-option-locked" : ""}`}
-                onClick={() => { if (speedRunUnlocked) { startChallenge("speed_run"); setOverlay("none"); } }}
-                disabled={!speedRunUnlocked}
-              >
-                <div className="g3-challenge-option-name">Speed Run</div>
-                <div className="g3-challenge-option-desc">Find 3 movies in under 60 seconds!</div>
-                {speedRunUnlocked ? (
-                  <div className="g3-challenge-option-stats">Completed {gs.challengeCompletions["speed_run"] || 0} time{(gs.challengeCompletions["speed_run"] || 0) !== 1 ? "s" : ""}</div>
-                ) : (
-                  <div className="g3-challenge-option-lock">Complete 3 Movie Nights to unlock</div>
-                )}
-              </button>
-
-              {/* Vinny's Mystery — unlocks after 5 Movie Night completions */}
-              <button
-                className={`g3-challenge-option ${!vinnyPickUnlocked ? "g3-challenge-option-locked" : ""}`}
-                onClick={() => { if (vinnyPickUnlocked) { startMystery(); setOverlay("none"); } }}
-                disabled={!vinnyPickUnlocked}
-              >
-                <div className="g3-challenge-option-name">Vinny&apos;s Mystery</div>
-                <div className="g3-challenge-option-desc">Vinny gives you a cryptic clue — find the movie on the shelves!</div>
-                {vinnyPickUnlocked ? (
-                  <div className="g3-challenge-option-stats">Completed {gs.challengeCompletions["vinnys_mystery"] || 0} time{(gs.challengeCompletions["vinnys_mystery"] || 0) !== 1 ? "s" : ""}</div>
-                ) : (
-                  <div className="g3-challenge-option-lock">Complete 5 Movie Nights to unlock</div>
-                )}
-              </button>
-
-            </div>
-          </div>
-        );
-      })()}
+      {overlay === "challenge_select" && (
+        <ChallengeSelectOverlay
+          startChallenge={startChallenge}
+          startMystery={startMystery}
+          setOverlay={setOverlay}
+          closeOverlay={closeOverlay}
+        />
+      )}
 
       {/* Trophy Collection Overlay */}
       {overlay === "trophy" && (
-        <div className="g3-overlay g3-overlay-center">
-          <div className="g3-overlay-header">
-            <span className="g3-overlay-title">YOUR COLLECTION</span>
-            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
-          </div>
-          <div className="g3-overlay-body g3-trophy-grid">
-            {PROPS.map((prop) => {
-              const owned = hasProp(prop.id);
-              return (
-                <div key={prop.id} className={`g3-trophy-item ${owned ? "g3-trophy-owned" : "g3-trophy-locked"}`}>
-                  <div className="g3-trophy-emoji">{owned ? prop.emoji : "❓"}</div>
-                  <div className="g3-trophy-name">{owned ? prop.name : "???"}</div>
-                  <div className="g3-trophy-movie">{owned ? `From: ${prop.movie}` : "Keep playing to unlock"}</div>
-                  <div className={`g3-trophy-rarity g3-trophy-rarity-${prop.rarity}`}>{prop.rarity}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <TrophyOverlay closeOverlay={closeOverlay} />
       )}
 
       {/* Reward prop unlock overlay */}
@@ -1026,32 +948,7 @@ export default function GamePage() {
       )}
 
       {!hasOverlay && !topDown && heldMovies.length > 0 && (
-        <div className="g3-held-viewmodel" aria-hidden="true">
-          {[...heldMovies].slice(-5).reverse().map((movie, index) => (
-            <div
-              key={`held-vhs-${movie.slotKey ?? movie.id}-${index}`}
-              className="g3-held-vhs"
-              style={{
-                transform: `translate(${heldViewOffsets[index]?.x ?? 0}px, ${heldViewOffsets[index]?.y ?? 0}px) rotate(${heldViewOffsets[index]?.rotation ?? 8}deg)`,
-                zIndex: 20 - index,
-              }}
-            >
-              {movie.posterUrl ? (
-                <img
-                  src={getHudPosterSrc(movie.posterUrl)}
-                  alt=""
-                  className="g3-held-vhs-poster"
-                />
-              ) : (
-                <div className="g3-held-vhs-fallback">{movie.title}</div>
-              )}
-              <div className="g3-held-vhs-spine" />
-            </div>
-          ))}
-          {heldMovies.length > 5 && (
-            <div className="g3-held-vhs-count">+{heldMovies.length - 5}</div>
-          )}
-        </div>
+        <HeldVHSStack heldMovies={heldMovies} />
       )}
 
       {/* Mobile touch controls */}
@@ -1068,130 +965,15 @@ export default function GamePage() {
         </button>
       )}
 
-      {/* HUD top bar */}
-      <div className="g3-hud">
-        <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
-        <span className="g3-hud-hint">
-          {overlay === "rpg_dialogue" ? (isMobile ? "Tap a response · Tap ✕ to leave" : "1-4 to respond · Q to leave") :
-           hasOverlay ? (isMobile ? "Tap ✕ to close" : "Press Q or click ✕ to close") :
-           heldMovies.length > 0 ? `Take your ${heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny!` :
-           challenge ? "" : ""}
-        </span>
-        <div className="g3-hud-right">
-          {!hasOverlay && !topDown && (
-            <button
-              className="g3-screenshot-btn"
-              onClick={() => setTopDown(true)}
-              title="Toggle top-down view (T)"
-            >
-              🗺
-            </button>
-          )}
-          <div className="g3-tier-badge" style={{
-            border: `2px solid ${currentTier.color}`,
-            color: currentTier.color,
-          }}>
-            <span style={{ fontSize: '1.1rem' }}>{currentTier.emoji}</span>
-            <span className="g3-tier-badge-name">{currentTier.name.toUpperCase()}</span>
-            <div className="g3-tier-badge-bar">
-              <div className="g3-tier-badge-fill" style={{ width: `${Math.min(tierProgress, 100)}%`, background: currentTier.color }} />
-            </div>
-            <span className="g3-tier-badge-xp">{totalXP}XP</span>
-          </div>
-          <button className="g3-screenshot-btn" onClick={toggleMute} title="Mute">{audioMuted ? "🔇" : "🔊"}</button>
-        </div>
-      </div>
-
-      {/* Floating XP popup */}
-      {xpPopup && (
-        <div key={xpPopup.key} className="g3-xp-popup">{xpPopup.text}</div>
-      )}
-
-      {!hasOverlay && !topDown && (
-        <div className="g3-status-card">
-          <div className="g3-status-row">
-            <span className="g3-status-label">TIME</span>
-            <span className="g3-status-value">{formatGameTime(gameTime)}</span>
-          </div>
-          <div className="g3-status-row">
-            <span className="g3-status-label">CLOSE</span>
-            <span className="g3-status-value">{closeCountdownLabel}</span>
-          </div>
-          <div className="g3-status-row">
-              <span className="g3-status-label">STACK</span>
-            <span className="g3-status-value">{heldStackLabel}</span>
-          </div>
-          <div className="g3-status-row">
-            <span className="g3-status-label">XP</span>
-            <span className="g3-status-value">{nextTier ? `${totalXP}/${nextTier.minXP}` : `${totalXP} MAX`}</span>
-          </div>
-          {heldMovies.length > 0 && (
-            <button className="g3-status-button" onClick={() => { document.exitPointerLock(); setOverlay("checkout"); }}>
-              View Stack
-            </button>
-          )}
-          {challenge && (
-            <div className="g3-status-row">
-              <span className="g3-status-label">{challenge.timeLimit ? "LEFT" : "ELAPSED"}</span>
-              <span className="g3-status-value">
-                {challenge.timeLimit ? `${Math.max(0, challenge.timeLimit - challengeTimer)}s` : `${challengeTimer}s`}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Challenge indicator — compact top-left */}
-      {challenge && !hasOverlay && (
-        <div className="g3-challenge-indicator">
-          <span className="g3-challenge-indicator-icon">{challenge.type === "vinnys_mystery" ? "🔍" : challenge.type === "speed_run" ? "⚡" : "🎬"}</span>
-          <div className="g3-challenge-indicator-info">
-            <span className="g3-challenge-indicator-name">
-              {challenge.type === "vinnys_mystery" ? "MYSTERY" : challenge.type === "speed_run" ? "SPEED RUN" : "MOVIE NIGHT"}
-            </span>
-            <span className="g3-challenge-indicator-progress">
-              {challenge.type !== "vinnys_mystery" ? `${challenge.movies.filter(cm => heldMovies.some(m => m.title.toLowerCase() === cm.title.toLowerCase())).length}/${challenge.movies.length} found` : "Find the film"}
-            </span>
-          </div>
-          <span className="g3-challenge-indicator-timer" style={{
-            color: challenge.timeLimit && challengeTimer > (challenge.timeLimit - 15) ? "#ef4444" : "#ffd700",
-          }}>
-            {challenge.timeLimit ? `${Math.max(0, challenge.timeLimit - challengeTimer)}s` : `${challengeTimer}s`}
-          </span>
-        </div>
-      )}
-
-      {/* Controls bar — always visible at bottom (desktop only) */}
-      {!hasOverlay && !topDown && !isMobile && (
-        <div className="g3-controls-bar">
-          <span className="g3-key">WASD</span> move
-          <span className="g3-sep">|</span>
-          <span className="g3-key">Mouse</span> look
-          <span className="g3-sep">|</span>
-          <span className="g3-key">E</span> interact
-          <span className="g3-sep">|</span>
-          <span className="g3-key">T</span> map
-          <span className="g3-sep">|</span>
-          <span className="g3-key">J</span> quests
-          <span className="g3-sep">|</span>
-          <span className="g3-key">Shift</span> kneel
-        </div>
-      )}
-
-      {/* Tier-up notification */}
-      {tierUpNotification && (
-        <div className="g3-tier-up-notification" style={{
-          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          padding: '20px 40px', borderRadius: 8,
-          border: '2px solid #ffd700', background: 'rgba(0, 0, 0, 0.9)',
-          color: '#ffd700', fontFamily: 'monospace', fontSize: '1.2rem',
-          textAlign: 'center', zIndex: 100,
-          animation: 'tierUpScale 0.4s ease-out',
-          boxShadow: '0 0 30px rgba(255, 215, 0, 0.3)',
-        }}>
-          🎉 MEMBERSHIP UPGRADED: {tierUpNotification}!
-        </div>
-      )}
+      <GameHUD
+        hasOverlay={hasOverlay} topDown={topDown} isMobile={isMobile}
+        gameTime={gameTime} closeCountdownLabel={closeCountdownLabel} heldStackLabel={heldStackLabel}
+        totalXP={totalXP} currentTier={currentTier} tierProgress={tierProgress} nextTier={nextTier}
+        audioMuted={audioMuted} toggleMute={toggleMute} setTopDown={setTopDown}
+        heldMovies={heldMovies} challenge={challenge} challengeTimer={challengeTimer}
+        setOverlay={setOverlay} overlay={overlay}
+        xpPopup={xpPopup} tierUpNotification={tierUpNotification}
+      />
 
       {/* ── OVERLAYS ────────────────────────────────────────── */}
 
@@ -1210,14 +992,10 @@ export default function GamePage() {
 
       {/* Shelf Browser */}
       {overlay === "shelf" && (
-        <ShelfBrowser
-          genre={shelfBrowse?.genre || ""}
-          shelfId={shelfBrowse?.shelfId}
-          shelfCount={shelfBrowse?.count}
-          label={shelfBrowse?.label}
-          eraId={era as EraId}
-          open
-          onClose={closeOverlay}
+        <ShelfOverlay
+          shelfBrowse={shelfBrowse}
+          era={era}
+          closeOverlay={closeOverlay}
           onFilmClick={(id) => { setPendingPickup(null); setFilmId(id); setOverlay("film_detail"); }}
         />
       )}
@@ -1242,64 +1020,16 @@ export default function GamePage() {
 
       {/* Quote */}
       {overlay === "quote" && quote && (
-        <div className="g3-overlay g3-overlay-center">
-          <div className="g3-overlay-header">
-            <span className="g3-overlay-title">NAME THAT QUOTE</span>
-            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
-          </div>
-          <div className="g3-overlay-body">
-            <div className="fnv-quote-display">&ldquo;{quote.quote}&rdquo;</div>
-            <div className="fnv-options">
-              {quote.options.map((opt, i) => (
-                <button key={i} className={`fnv-option ${quizAnswer !== null ? (i === quote.correctIndex ? "fnv-opt-correct" : i === quizAnswer ? "fnv-opt-wrong" : "fnv-opt-dim") : ""}`}
-                  onClick={() => quizAnswer === null && handleQuizAnswer(i, quote.correctIndex, quote.id)} disabled={quizAnswer !== null}>
-                  <span className="fnv-opt-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                </button>
-              ))}
-            </div>
-            {quizAnswer !== null && (
-              <>
-                <div className="fnv-vinny-greet fnv-vinny-small" style={{ marginTop: 16 }}>
-                  <div className="fnv-vinny-avatar">V</div>
-                  <div className="fnv-vinny-text"><p>{quizAnswer === quote.correctIndex ? quote.vinnyRight : quote.vinnyWrong}</p></div>
-                </div>
-                <button className="vf-btn vf-btn-primary" style={{ marginTop: 12 }} onClick={() => { setQuote(pickRandom(QUOTES, q => q.id)); setQuizAnswer(null); }}>Next Quote</button>
-                <button className="vf-btn vf-btn-ghost" onClick={closeOverlay}>Back to Store</button>
-              </>
-            )}
-          </div>
-        </div>
+        <QuizOverlay mode="quote" quote={quote} synopsis={null} quizAnswer={quizAnswer}
+          setQuote={setQuote} setSynopsis={setSynopsis} setQuizAnswer={setQuizAnswer}
+          handleQuizAnswer={handleQuizAnswer} closeOverlay={closeOverlay} />
       )}
 
       {/* Synopsis */}
       {overlay === "synopsis" && synopsis && (
-        <div className="g3-overlay g3-overlay-center">
-          <div className="g3-overlay-header">
-            <span className="g3-overlay-title">BACK OF THE BOX</span>
-            <button className="g3-overlay-close" onClick={closeOverlay}>✕</button>
-          </div>
-          <div className="g3-overlay-body">
-            <div className="fnv-synopsis-display"><div className="fnv-synopsis-label">📼 TURN THE BOX OVER...</div><p>{synopsis.synopsis}</p></div>
-            <div className="fnv-options">
-              {synopsis.options.map((opt, i) => (
-                <button key={i} className={`fnv-option ${quizAnswer !== null ? (i === synopsis.correctIndex ? "fnv-opt-correct" : i === quizAnswer ? "fnv-opt-wrong" : "fnv-opt-dim") : ""}`}
-                  onClick={() => quizAnswer === null && handleQuizAnswer(i, synopsis.correctIndex, synopsis.id)} disabled={quizAnswer !== null}>
-                  <span className="fnv-opt-letter">{String.fromCharCode(65 + i)}</span>{opt}
-                </button>
-              ))}
-            </div>
-            {quizAnswer !== null && (
-              <>
-                <div className="fnv-vinny-greet fnv-vinny-small" style={{ marginTop: 16 }}>
-                  <div className="fnv-vinny-avatar">V</div>
-                  <div className="fnv-vinny-text"><p>{quizAnswer === synopsis.correctIndex ? synopsis.vinnyRight : synopsis.vinnyWrong}</p></div>
-                </div>
-                <button className="vf-btn vf-btn-primary" style={{ marginTop: 12 }} onClick={() => { setSynopsis(pickRandom(SYNOPSES, s => s.id)); setQuizAnswer(null); }}>Next Box</button>
-                <button className="vf-btn vf-btn-ghost" onClick={closeOverlay}>Back to Store</button>
-              </>
-            )}
-          </div>
-        </div>
+        <QuizOverlay mode="synopsis" quote={null} synopsis={synopsis} quizAnswer={quizAnswer}
+          setQuote={setQuote} setSynopsis={setSynopsis} setQuizAnswer={setQuizAnswer}
+          handleQuizAnswer={handleQuizAnswer} closeOverlay={closeOverlay} />
       )}
       {/* Quest notification toast — stacked */}
       <div className="g3-quest-notif-stack" style={{ position: 'fixed', top: '10px', right: '10px', display: 'flex', flexDirection: 'column', gap: '6px', zIndex: 9999, pointerEvents: 'none' }}>
@@ -1330,6 +1060,7 @@ export default function GamePage() {
           setHeldMovies={setHeldMovies}
           setHeldSnacks={setHeldSnacks}
           setOverlay={setOverlay}
+          onLeaveStore={handleLeaveStore}
         />
       )}
 
@@ -1340,40 +1071,13 @@ export default function GamePage() {
 
       {/* RPG-style NPC Dialogue — classic bottom text box */}
       {overlay === "rpg_dialogue" && rpgNode && (
-        <div className="g3-rpg-overlay">
-          <div className="g3-rpg-box" key={rpgNode.text}>
-            {/* Name plate */}
-            <div className="g3-rpg-nameplate">
-              <span className="g3-rpg-portrait">{rpgNode.portrait || rpgDialogue?.portrait || "?"}</span>
-              <span className="g3-rpg-name">{rpgNode.speaker}</span>
-            </div>
-            {/* Dialogue text — typewriter effect */}
-            <p className="g3-rpg-text">{displayedText}{!typewriterDone && <span className="g3-rpg-cursor">|</span>}</p>
-            {/* Response choices — only shown after typewriter completes */}
-            <div className="g3-rpg-responses">
-              {typewriterDone ? (
-                rpgNode.responses ? (
-                  rpgNode.responses.map((resp, i) => (
-                    <button
-                      key={i}
-                      className="g3-rpg-choice"
-                      onClick={() => handleDialogueResponse(resp)}
-                    >
-                      <span className="g3-rpg-choice-num">{i + 1}</span>
-                      <span className="g3-rpg-choice-text">{resp.text}</span>
-                    </button>
-                  ))
-                ) : (
-                  <button className="g3-rpg-choice g3-rpg-choice-end" onClick={closeOverlay}>
-                    <span className="g3-rpg-choice-num">Q</span>
-                    <span className="g3-rpg-choice-text">End conversation</span>
-                  </button>
-                )
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <RpgDialogueOverlay
+          rpgDialogue={rpgDialogue} rpgNode={rpgNode}
+          displayedText={displayedText} typewriterDone={typewriterDone}
+          handleDialogueResponse={handleDialogueResponse as never} closeOverlay={closeOverlay}
+        />
       )}
+      </>}
     </div>
   );
 }

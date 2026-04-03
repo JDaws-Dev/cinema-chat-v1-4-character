@@ -8,7 +8,7 @@ import { setPlayerPosition } from "@/lib/audio";
 
 const SPEED = 3.5;
 const MOUSE_SENS = 0.002;
-const ROOM_BOUNDS = { minX: -17, maxX: 17, minZ: -6.5, maxZ: 20 }; // full strip mall + parking lot + road
+const ROOM_BOUNDS = { minX: -20, maxX: 20, minZ: -6.5, maxZ: 20 }; // full strip mall + side streets + parking lot + road
 const PLAYER_RADIUS = 0.4;
 
 // Collision boxes derived from layout data — positions stay in sync with editor
@@ -55,6 +55,12 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   colliders.push({ x: 16.2, z: 5.75, hw: 0.2, hd: 1.5 });
   // Back wall of laundromat (z=4.5)
   colliders.push({ x: 13, z: 4.3, hw: 3, hd: 0.2 });
+
+  // ── World-edge invisible walls (side streets) ──
+  // Left world edge (x=-20)
+  colliders.push({ x: -20, z: 5, hw: 0.2, hd: 20 });
+  // Right world edge (x=+20)
+  colliders.push({ x: 20, z: 5, hw: 0.2, hd: 20 });
 
   return colliders;
 }

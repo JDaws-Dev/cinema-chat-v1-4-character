@@ -30,7 +30,18 @@ export interface VHSTape {
   status: VHSTapeStatus;
   rentedAt?: number; // epoch ms, set on checkout
   rewound: boolean;
+  lateFee?: boolean; // set when returned unrewound
 }
+
+export interface ReturnResult {
+  xpDelta: number; // positive = bonus, negative = penalty
+  lateFee: boolean;
+}
+
+// ── XP Constants ────────────────────────────────────────────
+
+const REWIND_BONUS_XP = 10;
+const UNREWOUND_PENALTY_XP = -5;
 
 export interface VHSStateSnapshot {
   tapes: Record<string, VHSTape>; // keyed by slotKey
@@ -141,22 +152,33 @@ export function checkoutTapes(state: VHSStateSnapshot): VHSStateSnapshot {
 export function returnTape(
   state: VHSStateSnapshot,
   slotKey: string
-): VHSStateSnapshot {
+): { state: VHSStateSnapshot; result: ReturnResult } {
   const tape = state.tapes[slotKey];
   if (!tape || tape.status === "on_shelf" || tape.status === "held")
-    return state;
+    return {
+      state,
+      result: { xpDelta: 0, lateFee: false },
+    };
+
+  const isRewound = tape.rewound;
+  const xpDelta = isRewound ? REWIND_BONUS_XP : UNREWOUND_PENALTY_XP;
+  const lateFee = !isRewound;
 
   return {
-    tapes: {
-      ...state.tapes,
-      [slotKey]: {
-        ...tape,
-        status: "on_shelf",
-        rentedAt: undefined,
-        rewound: false,
+    state: {
+      tapes: {
+        ...state.tapes,
+        [slotKey]: {
+          ...tape,
+          status: "on_shelf",
+          rentedAt: undefined,
+          rewound: false,
+          lateFee,
+        },
       },
+      version: state.version + 1,
     },
-    version: state.version + 1,
+    result: { xpDelta, lateFee },
   };
 }
 
@@ -216,6 +238,41 @@ export function getTape(
   return state.tapes[slotKey];
 }
 
+export function getUnrewoundTapes(state: VHSStateSnapshot): VHSTape[] {
+  return Object.values(state.tapes).filter(
+    (t) => t.status === "checked_out" && !t.rewound
+  );
+}
+
+export function getRewoundTapes(state: VHSStateSnapshot): VHSTape[] {
+  return Object.values(state.tapes).filter((t) => t.rewound);
+}
+
+export function getReturnPenalty(
+  state: VHSStateSnapshot,
+  slotKey: string
+): number {
+  const tape = state.tapes[slotKey];
+  if (!tape) return 0;
+  if (
+    (tape.status === "checked_out" || tape.status === "unrewound") &&
+    !tape.rewound
+  ) {
+    return Math.abs(UNREWOUND_PENALTY_XP);
+  }
+  return 0;
+}
+
+export function getReturnBonus(
+  state: VHSStateSnapshot,
+  slotKey: string
+): number {
+  const tape = state.tapes[slotKey];
+  if (!tape) return 0;
+  if (tape.rewound) return REWIND_BONUS_XP;
+  return 0;
+}
+
 // ── React hook ──────────────────────────────────────────────
 
 export function useVHSState() {
@@ -264,13 +321,25 @@ export function useVHSState() {
     setState((prev) => checkoutTapes(prev));
   }, []);
 
-  const doReturn = useCallback((slotKey: string) => {
-    setState((prev) => returnTape(prev, slotKey));
-  }, []);
+  const doReturn = useCallback(
+    (slotKey: string): ReturnResult => {
+      let result: ReturnResult = { xpDelta: 0, lateFee: false };
+      setState((prev) => {
+        const returned = returnTape(prev, slotKey);
+        result = returned.result;
+        return returned.state;
+      });
+      return result;
+    },
+    []
+  );
 
   const doRewind = useCallback((slotKey: string) => {
     setState((prev) => rewindTape(prev, slotKey));
   }, []);
+
+  const unrewoundTapes = getUnrewoundTapes(state);
+  const rewoundTapes = getRewoundTapes(state);
 
   return {
     state,
@@ -283,8 +352,14 @@ export function useVHSState() {
     // Queries (bound to current state for convenience)
     heldTapes: getHeldTapes(state),
     checkedOutTapes: getCheckedOutTapes(state),
+    unrewoundTapes,
+    rewoundTapes,
+    unrewoundCount: unrewoundTapes.length,
+    rewoundCount: rewoundTapes.length,
     getShelfStatus: (slotKey: string) => getShelfStatus(state, slotKey),
     isSlotEmpty: (slotKey: string) => isSlotEmpty(state, slotKey),
     getTape: (slotKey: string) => getTape(state, slotKey),
+    getReturnPenalty: (slotKey: string) => getReturnPenalty(state, slotKey),
+    getReturnBonus: (slotKey: string) => getReturnBonus(state, slotKey),
   };
 }

@@ -61,9 +61,10 @@ interface CheckoutOverlayProps {
   setHeldMovies: React.Dispatch<React.SetStateAction<HeldMovie[]>>;
   setHeldSnacks: React.Dispatch<React.SetStateAction<HeldSnack[]>>;
   setOverlay: (o: Overlay) => void;
+  onLeaveStore?: () => void;
 }
 
-export function CheckoutOverlay({ heldMovies, heldSnacks, removeHeldMovie, setHeldMovies, setHeldSnacks, setOverlay }: CheckoutOverlayProps) {
+export function CheckoutOverlay({ heldMovies, heldSnacks, removeHeldMovie, setHeldMovies, setHeldSnacks, setOverlay, onLeaveStore }: CheckoutOverlayProps) {
   const { score: movieNightScore, breakdown: scoreBreakdown } = calculateMovieNightScore(heldMovies, heldSnacks);
   const prevHigh = parseInt(localStorage.getItem("fnv_high_score") || "0");
   const isNewHigh = movieNightScore > prevHigh;
@@ -122,6 +123,7 @@ export function CheckoutOverlay({ heldMovies, heldSnacks, removeHeldMovie, setHe
             setOverlay("none");
             setHeldMovies([]);
             setHeldSnacks([]);
+            if (onLeaveStore) onLeaveStore();
           }}>
             LEAVE THE STORE
           </button>
