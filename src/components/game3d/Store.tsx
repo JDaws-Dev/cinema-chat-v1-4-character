@@ -13,7 +13,7 @@ import { LayoutDrivenPrefabs } from "./prefabs";
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
 import { Mat, PosterBox, setEraYears, getShelfMovies, setHeldMovieIds, setHeldMovieSlotKeys } from "./store-materials";
 import { StaffPicksShelf } from "./store-shelves";
-import { CharlieCharacter, VinnyCharacter, KenneyModel } from "./store-characters";
+import { CharlieCharacter, VinnyCharacter, TonyCharacter, EarlCharacter, KenneyModel } from "./store-characters";
 import { NPCManager } from "./NPCManager";
 import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
 
@@ -241,6 +241,8 @@ export function Store({
       <VinnyCharacter />
       <NPCManager isMobile={isMobile ?? false} eraId={eraYearsToId(eraYears)} />
       <CharlieCharacter />
+      <TonyCharacter />
+      <EarlCharacter />
       <StaffPicksShelf />
       <NeonSign />
 

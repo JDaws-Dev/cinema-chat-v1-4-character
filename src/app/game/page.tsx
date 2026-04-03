@@ -13,22 +13,20 @@ import {
 } from "@/lib/friday-night";
 import { fetchSearch, fetchTrending } from "@/lib/api";
 import type { SearchResult } from "@/lib/types";
-import { getShelfMovies } from "@/components/game3d/Store";
 import { SecurityCameras } from "@/components/game3d/SecurityCameras";
 import { loadGameState, saveGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, getQuestState, startQuest, completeObjective, completeQuest, isQuestComplete, getAvailableQuests, getActiveQuests, getCompletedQuests, getQuestProgress, getActiveSideQuests, isSideQuestActive, isSideQuestDone, MEMBERSHIP_TIERS, getTotalXP, addXP, getMembershipTier, getNpcRelationship, incrementNpcRelationship } from "@/lib/game-state";
 import { VINNY_QUESTS, QUEST_DIALOGUE, type Quest, CUSTOMER_SIDE_QUESTS } from "@/lib/quest-system";
 import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler, VINNY_LINES, unlockAudio, setCurrentEra, playNpcLine } from "@/lib/audio";
-import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
 import { getRandomDialogue, getRandomQuestDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getPersonalityGreeting, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { buildCustomerDialogue } from "@/lib/npc-customer-dialogues";
 import { mobileInput } from "@/components/game3d/MobileControls";
 import { analyzeSentiment, getXPDelta, updateNpcRapport, isNpcHostile } from "@/lib/sentiment";
-import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
-import { STORE_LAYOUT } from "@/lib/store-layout";
+import { type EraId } from "@/lib/curated-movie-catalog";
 import { useGameClock, formatGameTime, type ClosingAnnouncement } from "@/hooks/useGameClock";
 import { useAudioUI } from "@/hooks/useAudioUI";
 import { useInventory, type HeldMovie, type HeldSnack } from "@/hooks/useInventory";
+import { useChallenge, type ChallengeMovie, type ChallengeType } from "@/hooks/useChallenge";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -122,19 +120,18 @@ export default function GamePage() {
   } = useInventory({ eraYears: selectedEra.years });
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
 
-  // Movie Night Challenge state
-  type ChallengeMovie = { title: string; genre: string };
-  type ChallengeType = "movie_night" | "speed_run" | "vinnys_mystery";
-  const [challenge, setChallenge] = useState<{ movies: ChallengeMovie[]; startTime: number; hintsUsed: Set<number>; type: ChallengeType; timeLimit?: number } | null>(null);
-  const [challengeComplete, setChallengeComplete] = useState<number | null>(null); // elapsed seconds
-  const [challengeTimer, setChallengeTimer] = useState(0);
-  const [propsCount, setPropsCount] = useState({ unlocked: 0, total: 15 });
-  const [rewardProp, setRewardProp] = useState<MovieProp | null>(null);
-
-  // Vinny's Mystery state
-  const [mysteryClue, setMysteryClue] = useState<MovieClue | null>(null);
-  const [mysteryHintsUsed, setMysteryHintsUsed] = useState(0);
-  const [mysteryWrongMsg, setMysteryWrongMsg] = useState<string | null>(null);
+  // Movie Night Challenge state (extracted to useChallenge hook)
+  const {
+    challenge, setChallenge,
+    challengeComplete, setChallengeComplete,
+    challengeTimer,
+    propsCount, setPropsCount,
+    rewardProp, setRewardProp,
+    mysteryClue, setMysteryClue,
+    mysteryHintsUsed, setMysteryHintsUsed,
+    mysteryWrongMsg, setMysteryWrongMsg,
+    startChallenge, startMystery,
+  } = useChallenge(setHeldMovies, setHeldSnacks);
 
   // Audio UI (mute, subtitle, music toggle)
   const { audioMuted, musicOff, setMusicOff, subtitle, setSubtitle, toggleMute } = useAudioUI();
@@ -218,30 +215,13 @@ export default function GamePage() {
     }, []),
   });
 
-  // Load props count + tier on mount
+  // Load tier on mount (props count loaded by useChallenge hook)
   useEffect(() => {
-    setPropsCount(getPropsCount());
     setTotalXP(getTotalXP());
     setCurrentTier(getMembershipTier());
   }, []);
 
-  // Update challenge timer every second + check speed run timeout
-  useEffect(() => {
-    if (!challenge) { setChallengeTimer(0); return; }
-    const iv = setInterval(() => {
-      const elapsed = Math.round((Date.now() - challenge.startTime) / 1000);
-      setChallengeTimer(elapsed);
-      // Speed run timeout
-      if (challenge.timeLimit && elapsed >= challenge.timeLimit) {
-        setChallenge(null);
-        setHeldMovies([]);
-        setChallengeComplete(-1); // -1 signals timeout/failure
-        playSFX("challenge_fail");
-        playRandomLine("challenge_fail");
-      }
-    }, 1000);
-    return () => clearInterval(iv);
-  }, [challenge]);
+  // Challenge timer is now handled by useChallenge hook
 
   useEffect(() => { setStats(loadStats()); }, []);
 
@@ -829,58 +809,9 @@ export default function GamePage() {
     }
   }, [overlay, heldMovies, challenge, mysteryClue, trackQuestMoviePickup, trackQuestNpcTalk, trackQuestGenreVisit]);
 
-  // ── Start a challenge (movie_night or speed_run) ──────
-  const startChallenge = useCallback((challengeType: ChallengeType = "movie_night") => {
-    if (challenge) return;
-    const shelfMovies = getShelfMovies();
-    if (shelfMovies.length < 3) return;
-    const shuffled = [...shelfMovies].sort(() => Math.random() - 0.5);
-    const seen = new Set<string>();
-    const usedGenres = new Set<string>();
-    const picks: ChallengeMovie[] = [];
-    for (const m of shuffled) {
-      if (picks.length >= 3) break;
-      if (seen.has(m.title.toLowerCase()) || usedGenres.has(m.genre)) continue;
-      seen.add(m.title.toLowerCase());
-      usedGenres.add(m.genre);
-      picks.push({ title: m.title, genre: m.genre });
-    }
-    for (const m of shuffled) {
-      if (picks.length >= 3) break;
-      if (seen.has(m.title.toLowerCase())) continue;
-      seen.add(m.title.toLowerCase());
-      picks.push({ title: m.title, genre: m.genre });
-    }
-    if (picks.length < 3) return;
-    setHeldMovies([]);
-    setHeldSnacks([]);
-    playSFX("challenge_start");
-    playRandomLine("challenge_start");
-    setChallenge({
-      movies: picks,
-      startTime: Date.now(),
-      hintsUsed: new Set(),
-      type: challengeType,
-      timeLimit: challengeType === "speed_run" ? 60 : undefined,
-    });
-    setOverlay("none");
-  }, [challenge]);
+  // startChallenge is now provided by useChallenge hook
 
-  // ── Start Vinny's Mystery ──────────────────────────────
-  const startMystery = useCallback(() => {
-    const shelfMovies = getShelfMovies();
-    const available = MOVIE_CLUES.filter(c =>
-      shelfMovies.some(m => m.title.toLowerCase().includes(c.movieTitle.toLowerCase()))
-    );
-    if (available.length === 0) return;
-    const clue = available[Math.floor(Math.random() * available.length)];
-    setMysteryClue(clue);
-    setMysteryHintsUsed(0);
-    setMysteryWrongMsg(null);
-    setHeldMovies([]);
-    setOverlay("none");
-    playRandomLine("challenge_start");
-  }, []);
+  // startMystery is now provided by useChallenge hook
 
   // ── Puzzle (Vinny's Five) ──────────────────────────────
   const startPuzzle = useCallback(async () => {
@@ -1290,7 +1221,7 @@ export default function GamePage() {
             </div>
             <div className="g3-overlay-body g3-challenge-select">
               {/* Movie Night — always unlocked */}
-              <button className="g3-challenge-option" onClick={() => { startChallenge("movie_night"); }}>
+              <button className="g3-challenge-option" onClick={() => { startChallenge("movie_night"); setOverlay("none"); }}>
                 <div className="g3-challenge-option-name">Movie Night</div>
                 <div className="g3-challenge-option-desc">Find 3 movies from the shelves</div>
                 <div className="g3-challenge-option-stats">Completed {movieNightCount} time{movieNightCount !== 1 ? "s" : ""}</div>
@@ -1299,7 +1230,7 @@ export default function GamePage() {
               {/* Speed Run — unlocks after 3 Movie Night completions */}
               <button
                 className={`g3-challenge-option ${!speedRunUnlocked ? "g3-challenge-option-locked" : ""}`}
-                onClick={() => { if (speedRunUnlocked) startChallenge("speed_run"); }}
+                onClick={() => { if (speedRunUnlocked) { startChallenge("speed_run"); setOverlay("none"); } }}
                 disabled={!speedRunUnlocked}
               >
                 <div className="g3-challenge-option-name">Speed Run</div>
@@ -1314,7 +1245,7 @@ export default function GamePage() {
               {/* Vinny's Mystery — unlocks after 5 Movie Night completions */}
               <button
                 className={`g3-challenge-option ${!vinnyPickUnlocked ? "g3-challenge-option-locked" : ""}`}
-                onClick={() => { if (vinnyPickUnlocked) startMystery(); }}
+                onClick={() => { if (vinnyPickUnlocked) { startMystery(); setOverlay("none"); } }}
                 disabled={!vinnyPickUnlocked}
               >
                 <div className="g3-challenge-option-name">Vinny&apos;s Mystery</div>

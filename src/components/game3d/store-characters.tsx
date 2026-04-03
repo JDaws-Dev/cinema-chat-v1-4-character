@@ -826,6 +826,179 @@ export function VinnyCharacter() {
   );
 }
 
+// ── Tony — Pizza Palace clerk (static, behind counter) ──
+export function TonyCharacter() {
+  const ref = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    // Subtle idle sway
+    if (ref.current) {
+      ref.current.position.y = Math.sin(t * 0.7) * 0.01;
+    }
+    if (headRef.current) {
+      headRef.current.rotation.y = Math.sin(t * 0.3) * 0.12;
+    }
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.x = Math.sin(t * 0.5) * 0.1;
+    }
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.x = Math.sin(t * 0.45 + 1.2) * 0.12;
+    }
+  });
+
+  return (
+    <group ref={ref} position={[-13, 0, 4.3]} rotation={[0, Math.PI, 0]} userData={{ interactType: "pizza_clerk", label: "Talk to Tony" }}>
+      {/* Legs */}
+      <mesh position={[-0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} /></mesh>
+      <mesh position={[0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} /></mesh>
+      {/* Shoes */}
+      <mesh position={[-0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
+      <mesh position={[0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
+      {/* Belt */}
+      <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
+      {/* Torso — red shirt */}
+      <mesh position={[0, 0.85, 0]}><boxGeometry args={[0.36, 0.5, 0.22]} /><Mat color="#cc2222" roughness={0.7} /></mesh>
+      {/* Apron — white box over torso front */}
+      <mesh position={[0, 0.78, -0.12]}><boxGeometry args={[0.32, 0.55, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} /></mesh>
+      {/* Apron strap */}
+      <mesh position={[-0.14, 1.05, -0.08]}><boxGeometry args={[0.03, 0.12, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} /></mesh>
+      <mesh position={[0.14, 1.05, -0.08]}><boxGeometry args={[0.03, 0.12, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} /></mesh>
+      {/* Collar */}
+      <mesh position={[0, 1.08, -0.05]}><boxGeometry args={[0.2, 0.05, 0.14]} /><Mat color="#cc2222" roughness={0.6} /></mesh>
+      {/* Name tag */}
+      <mesh position={[0.12, 0.95, -0.12]}><boxGeometry args={[0.14, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>
+      <Text position={[0.12, 0.95, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.028} color="#1a1a1a" anchorX="center" font={undefined}>TONY</Text>
+      {/* Arms */}
+      <group ref={leftArmRef} position={[-0.24, 1.05, 0]}>
+        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#cc2222" roughness={0.7} /></mesh>
+        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#c49a6c" roughness={0.8} /></mesh>
+      </group>
+      <group ref={rightArmRef} position={[0.24, 1.05, 0]}>
+        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#cc2222" roughness={0.7} /></mesh>
+        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#c49a6c" roughness={0.8} /></mesh>
+      </group>
+      {/* Head */}
+      <group ref={headRef} position={[0, 1.35, 0]}>
+        <mesh scale={[1, 1.1, 0.9]}><sphereGeometry args={[0.2, 16, 16]} /><Mat color="#c49a6c" roughness={0.75} /></mesh>
+        {/* Dark hair */}
+        <mesh position={[0, 0.1, 0.02]}><sphereGeometry args={[0.21, 16, 10]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
+        {/* Eyes */}
+        <mesh position={[-0.07, -0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
+        <mesh position={[0.07, -0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
+        <mesh position={[-0.07, -0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        <mesh position={[0.07, -0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        {/* Mustache */}
+        <mesh position={[0, -0.08, -0.19]}><boxGeometry args={[0.12, 0.03, 0.03]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
+        <mesh position={[-0.07, -0.085, -0.18]} rotation={[0, 0, -0.4]}><boxGeometry args={[0.03, 0.025, 0.02]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
+        <mesh position={[0.07, -0.085, -0.18]} rotation={[0, 0, 0.4]}><boxGeometry args={[0.03, 0.025, 0.02]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
+        {/* Mouth */}
+        <mesh position={[0, -0.11, -0.18]}><boxGeometry args={[0.08, 0.015, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
+        {/* Nose */}
+        <mesh position={[0, -0.04, -0.2]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#b8896c" roughness={0.8} /></mesh>
+        {/* Ears */}
+        <mesh position={[-0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#c49a6c" roughness={0.75} /></mesh>
+        <mesh position={[0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#c49a6c" roughness={0.75} /></mesh>
+      </group>
+      {/* Name billboard */}
+      <Billboard position={[0, 1.8, 0]}>
+        <Text fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>TONY</Text>
+      </Billboard>
+      {/* Shadow */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}><circleGeometry args={[0.25, 16]} /><Mat color="#000000" transparent opacity={0.18} /></mesh>
+    </group>
+  );
+}
+
+// ── Earl — Laundromat attendant (static, near folding table) ──
+export function EarlCharacter() {
+  const ref = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (ref.current) {
+      ref.current.position.y = Math.sin(t * 0.6) * 0.01;
+    }
+    if (headRef.current) {
+      headRef.current.rotation.y = Math.sin(t * 0.25) * 0.1;
+    }
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.x = Math.sin(t * 0.4) * 0.08;
+    }
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.x = Math.sin(t * 0.35 + 1.0) * 0.1;
+    }
+  });
+
+  return (
+    <group ref={ref} position={[13, 0, 5.95]} rotation={[0, Math.PI, 0]} userData={{ interactType: "laundro_clerk", label: "Talk to Earl" }}>
+      {/* Legs */}
+      <mesh position={[-0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#2a3a2a" roughness={0.85} /></mesh>
+      <mesh position={[0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#2a3a2a" roughness={0.85} /></mesh>
+      {/* Shoes */}
+      <mesh position={[-0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#3a3a3a" roughness={0.7} /></mesh>
+      <mesh position={[0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#3a3a3a" roughness={0.7} /></mesh>
+      {/* Belt */}
+      <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
+      {/* Torso — gray shirt */}
+      <mesh position={[0, 0.85, 0]}><boxGeometry args={[0.36, 0.5, 0.22]} /><Mat color="#707070" roughness={0.7} /></mesh>
+      {/* Collar */}
+      <mesh position={[0, 1.08, -0.05]}><boxGeometry args={[0.2, 0.05, 0.14]} /><Mat color="#707070" roughness={0.6} /></mesh>
+      {/* Name tag */}
+      <mesh position={[0.12, 0.95, -0.12]}><boxGeometry args={[0.14, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>
+      <Text position={[0.12, 0.95, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.028} color="#1a1a1a" anchorX="center" font={undefined}>EARL</Text>
+      {/* Arms */}
+      <group ref={leftArmRef} position={[-0.24, 1.05, 0]}>
+        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#707070" roughness={0.7} /></mesh>
+        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#d4a574" roughness={0.8} /></mesh>
+      </group>
+      <group ref={rightArmRef} position={[0.24, 1.05, 0]}>
+        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#707070" roughness={0.7} /></mesh>
+        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#d4a574" roughness={0.8} /></mesh>
+      </group>
+      {/* Head — bald */}
+      <group ref={headRef} position={[0, 1.35, 0]}>
+        <mesh scale={[1, 1.1, 0.9]}><sphereGeometry args={[0.2, 16, 16]} /><Mat color="#d4a574" roughness={0.75} /></mesh>
+        {/* Glasses — simple box frames */}
+        <mesh position={[-0.07, 0.01, -0.18]}><boxGeometry args={[0.08, 0.06, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
+        <mesh position={[0.07, 0.01, -0.18]}><boxGeometry args={[0.08, 0.06, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
+        {/* Glasses bridge */}
+        <mesh position={[0, 0.01, -0.19]}><boxGeometry args={[0.03, 0.015, 0.006]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
+        {/* Glasses arms */}
+        <mesh position={[-0.11, 0.01, -0.12]} rotation={[0, 0.3, 0]}><boxGeometry args={[0.005, 0.005, 0.12]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
+        <mesh position={[0.11, 0.01, -0.12]} rotation={[0, -0.3, 0]}><boxGeometry args={[0.005, 0.005, 0.12]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
+        {/* Lens tint */}
+        <mesh position={[-0.07, 0.01, -0.19]}><boxGeometry args={[0.065, 0.045, 0.001]} /><Mat color="#e8e8ff" transparent opacity={0.12} /></mesh>
+        <mesh position={[0.07, 0.01, -0.19]}><boxGeometry args={[0.065, 0.045, 0.001]} /><Mat color="#e8e8ff" transparent opacity={0.12} /></mesh>
+        {/* Eyes (behind glasses) */}
+        <mesh position={[-0.07, 0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
+        <mesh position={[0.07, 0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
+        <mesh position={[-0.07, 0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        <mesh position={[0.07, 0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
+        {/* Mouth */}
+        <mesh position={[0, -0.1, -0.18]}><boxGeometry args={[0.08, 0.015, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
+        {/* Nose */}
+        <mesh position={[0, -0.04, -0.2]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#c49a6a" roughness={0.8} /></mesh>
+        {/* Ears */}
+        <mesh position={[-0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#d4a574" roughness={0.75} /></mesh>
+        <mesh position={[0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#d4a574" roughness={0.75} /></mesh>
+      </group>
+      {/* Name billboard */}
+      <Billboard position={[0, 1.8, 0]}>
+        <Text fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>EARL</Text>
+      </Billboard>
+      {/* Shadow */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}><circleGeometry args={[0.25, 16]} /><Mat color="#000000" transparent opacity={0.18} /></mesh>
+    </group>
+  );
+}
+
 export const NPC_POOL = [
   { id: 'npc-a', shirtColor: '#3498db', hairColor: '#2a1a0a', skinTone: '#d4a574', hairStyle: 'flattop' as const },
   { id: 'npc-b', shirtColor: '#e74c3c', hairColor: '#4a3020', skinTone: '#c49a6c', hairStyle: 'long' as const },
