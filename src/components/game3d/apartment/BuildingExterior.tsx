@@ -21,116 +21,80 @@ const DOOR_EXT_COLOR = "#5a3828";
 const AWNING_COLOR = "#6B4226";
 
 // ── Building Exterior Facade ──
+/*
+ * BuildingFacade — ONLY the 2nd floor (apartment level) exterior.
+ *
+ * The ground floor is the laundromat, rendered by props/Laundromat.tsx
+ * and Store.tsx with the same commercial storefront style as the rest
+ * of the strip mall (glass windows, aluminum frames, signage band).
+ *
+ * The apartment brick facade sits ON TOP of the shared strip mall
+ * roofline, only covering the laundromat section. This makes the
+ * building look like a unified strip mall with one section that has
+ * a 2nd-floor apartment addition.
+ */
 function BuildingFacade() {
   const halfW = APT_W / 2;
   const halfD = APT_D / 2;
 
+  // Apartment level only: y=0 to y=APT_H (local), which is the 2nd floor
+  const aptMidY = APT_H / 2; // center of apartment level (1.4)
+
   return (
     <group>
-      {/* LEFT SIDE WALL — full height */}
-      <mesh position={[-halfW - WALL_T / 2, BLDG_MID_Y, 0]}>
-        <boxGeometry args={[WALL_T, BLDG_FULL_H, APT_D + WALL_T]} />
+      {/* LEFT SIDE WALL — apartment level only */}
+      <mesh position={[-halfW - WALL_T / 2, aptMidY, 0]}>
+        <boxGeometry args={[WALL_T, APT_H, APT_D + WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* RIGHT SIDE WALL — full height, SOLID (no windows — fire code, stair side) */}
-      <mesh position={[halfW + WALL_T / 2, BLDG_MID_Y, 0]}>
-        <boxGeometry args={[WALL_T, BLDG_FULL_H, APT_D + WALL_T]} />
+      {/* RIGHT SIDE WALL — apartment level only, SOLID (fire code, stair side) */}
+      <mesh position={[halfW + WALL_T / 2, aptMidY, 0]}>
+        <boxGeometry args={[WALL_T, APT_H, APT_D + WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* BACK WALL — full height (apartment depth) */}
-      <mesh position={[0, BLDG_MID_Y, -halfD - WALL_T / 2]}>
-        <boxGeometry args={[APT_W, BLDG_FULL_H, WALL_T]} />
+      {/* BACK WALL — apartment level only */}
+      <mesh position={[0, aptMidY, -halfD - WALL_T / 2]}>
+        <boxGeometry args={[APT_W, APT_H, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* ── GROUND-FLOOR EXTENSION — laundromat extends 3m deeper than apartment ── */}
-      {/* Back wall extension (ground floor only, z=-2.5 to z=-5.5 in local) */}
-      <mesh position={[0, BLDG_GROUND + APT_Y / 2, -halfD - 1.5 - WALL_T / 2]}>
-        <boxGeometry args={[APT_W + WALL_T * 2, APT_Y, 3]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Right side wall extension for deeper ground floor */}
-      <mesh position={[halfW + WALL_T / 2, BLDG_GROUND + APT_Y / 2, -halfD - 1.5]}>
-        <boxGeometry args={[WALL_T, APT_Y, 3 + WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Left side wall extension for deeper ground floor */}
-      <mesh position={[-halfW - WALL_T / 2, BLDG_GROUND + APT_Y / 2, -halfD - 1.5]}>
-        <boxGeometry args={[WALL_T, APT_Y, 3 + WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-
-      {/* FRONT WALL — full height with window openings */}
-      {/* Ground floor: far left section */}
-      <mesh position={[-halfW + 0.6, BLDG_GROUND + APT_Y / 2, halfD + WALL_T / 2]}>
-        <boxGeometry args={[1.2, APT_Y, WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Ground floor: far right section */}
-      <mesh position={[halfW - 0.6, BLDG_GROUND + APT_Y / 2, halfD + WALL_T / 2]}>
-        <boxGeometry args={[1.2, APT_Y, WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Ground floor: above laundromat window */}
-      <mesh position={[-0.5, BLDG_GROUND + APT_Y - 0.4, halfD + WALL_T / 2]}>
-        <boxGeometry args={[2.6, 0.8, WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Ground floor: below laundromat window */}
-      <mesh position={[-0.5, BLDG_GROUND + 0.35, halfD + WALL_T / 2]}>
-        <boxGeometry args={[2.6, 0.7, WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Ground floor: between laundromat window and door */}
-      <mesh position={[1.2, BLDG_GROUND + APT_Y / 2, halfD + WALL_T / 2]}>
-        <boxGeometry args={[0.6, APT_Y, WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Ground floor: above laundromat door */}
-      <mesh position={[2.0, BLDG_GROUND + APT_Y - 0.5, halfD + WALL_T / 2]}>
-        <boxGeometry args={[1.0, 1.0, WALL_T]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-
-      {/* Upper floor front wall — with window opening */}
-      {/* Left of apartment window */}
-      <mesh position={[-halfW + 0.8, APT_H / 2, halfD + WALL_T / 2]}>
+      {/* FRONT WALL — apartment level with window opening */}
+      {/* Left of window */}
+      <mesh position={[-halfW + 0.8, aptMidY, halfD + WALL_T / 2]}>
         <boxGeometry args={[1.6, APT_H, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
-      {/* Right of apartment window */}
-      <mesh position={[halfW - 0.8, APT_H / 2, halfD + WALL_T / 2]}>
+      {/* Right of window */}
+      <mesh position={[halfW - 0.8, aptMidY, halfD + WALL_T / 2]}>
         <boxGeometry args={[1.6, APT_H, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
-      {/* Above apartment window */}
+      {/* Above window */}
       <mesh position={[0.5, APT_H - 0.2, halfD + WALL_T / 2]}>
         <boxGeometry args={[1.8, 0.4, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
-      {/* Below apartment window */}
+      {/* Below window */}
       <mesh position={[0.5, 0.25, halfD + WALL_T / 2]}>
         <boxGeometry args={[1.8, 0.5, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
+      {/* NO ground-floor front wall — the laundromat storefront handles that,
+          matching the strip mall's continuous commercial facade */}
 
-      {/* HORIZONTAL FLOOR SEPARATOR BAND */}
-      <mesh position={[0, FLOOR_SEP_Y, halfD + WALL_T / 2 + 0.02]}>
-        <boxGeometry args={[APT_W + WALL_T * 2 + 0.1, 0.15, 0.06]} />
+      {/* TRIM BAND at apartment floor level — sits on top of the strip mall roofline */}
+      <mesh position={[0, 0.02, halfD + WALL_T / 2 + 0.02]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + 0.1, 0.08, 0.06]} />
         <Mat color={TRIM_BAND} />
       </mesh>
-      <mesh position={[-halfW - WALL_T / 2 - 0.02, FLOOR_SEP_Y, 0]}>
-        <boxGeometry args={[0.06, 0.15, APT_D + WALL_T * 2 + 0.1]} />
+      <mesh position={[-halfW - WALL_T / 2 - 0.02, 0.02, 0]}>
+        <boxGeometry args={[0.06, 0.08, APT_D + WALL_T * 2 + 0.1]} />
         <Mat color={TRIM_BAND} />
       </mesh>
-      <mesh position={[halfW + WALL_T / 2 + 0.02, FLOOR_SEP_Y, 0]}>
-        <boxGeometry args={[0.06, 0.15, APT_D + WALL_T * 2 + 0.1]} />
-        <Mat color={TRIM_BAND} />
-      </mesh>
-      <mesh position={[0, FLOOR_SEP_Y, -halfD - WALL_T / 2 - 0.02]}>
-        <boxGeometry args={[APT_W + WALL_T * 2 + 0.1, 0.15, 0.06]} />
+      <mesh position={[halfW + WALL_T / 2 + 0.02, 0.02, 0]}>
+        <boxGeometry args={[0.06, 0.08, APT_D + WALL_T * 2 + 0.1]} />
         <Mat color={TRIM_BAND} />
       </mesh>
 
