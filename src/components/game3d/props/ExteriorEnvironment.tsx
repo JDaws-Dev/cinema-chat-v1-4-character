@@ -3,6 +3,7 @@
 import React from "react";
 import { ROOM_D } from "../store-constants";
 import { DumpsterProp, FireHydrantProp, MailboxProp, StreetSignProp } from "./index";
+import { SmartBox, WORLD_ANCHORS, offsetFrom, BUILDING_CODES } from "../helpers";
 
 /**
  * Exterior environment: sky dome, parking lot, roads, side streets,
@@ -73,6 +74,45 @@ export function ExteriorEnvironment({ topDown }: { topDown: boolean }) {
       ))}
       <MailboxProp position={[16.5, 0, 10]} />
       <StreetSignProp position={[17.0, 0, 14]} label="OAK ST" showText={!topDown} />
+
+      {/* ── Street furniture using SmartBox + WORLD_ANCHORS ── */}
+      {/* Bus stop bench — 3m right of the video store entrance, on the sidewalk */}
+      {(() => {
+        const benchPos = offsetFrom(WORLD_ANCHORS.VIDEO_STORE_ENTRANCE, [3.5, 0, 0.8]);
+        return (
+          <group position={benchPos}>
+            {/* Bench seat */}
+            <SmartBox size={[1.2, 0.05, 0.4]} position={[0, BUILDING_CODES.CHAIR_SEAT, 0]} color="#6B4226" />
+            {/* Bench back */}
+            <SmartBox size={[1.2, 0.4, 0.05]} position={[0, BUILDING_CODES.CHAIR_SEAT, -0.2]} color="#6B4226" />
+            {/* Left leg */}
+            <SmartBox size={[0.05, BUILDING_CODES.CHAIR_SEAT, 0.35]} position={[-0.55, 0, 0]} color="#444" />
+            {/* Right leg */}
+            <SmartBox size={[0.05, BUILDING_CODES.CHAIR_SEAT, 0.35]} position={[0.55, 0, 0]} color="#444" />
+            {/* Armrest left */}
+            <SmartBox size={[0.05, 0.25, 0.4]} position={[-0.55, BUILDING_CODES.CHAIR_SEAT, 0]} color="#444" />
+            {/* Armrest right */}
+            <SmartBox size={[0.05, 0.25, 0.4]} position={[0.55, BUILDING_CODES.CHAIR_SEAT, 0]} color="#444" />
+          </group>
+        );
+      })()}
+
+      {/* Newspaper box — 2m left of the video store entrance, on the sidewalk */}
+      {(() => {
+        const newsPos = offsetFrom(WORLD_ANCHORS.VIDEO_STORE_ENTRANCE, [-2.5, 0, 0.8]);
+        return (
+          <group position={newsPos}>
+            {/* Main box body */}
+            <SmartBox size={[0.45, 1.0, 0.4]} position={[0, 0, 0]} color="#cc2222" />
+            {/* Viewing window */}
+            <SmartBox size={[0.35, 0.25, 0.01]} position={[0, 0.65, 0.2]} color="#88aacc" />
+            {/* Coin slot */}
+            <SmartBox size={[0.1, 0.04, 0.02]} position={[0.1, 0.5, 0.2]} color="#333" />
+            {/* Handle */}
+            <SmartBox size={[0.2, 0.03, 0.03]} position={[0, 0.4, 0.22]} color="#666" />
+          </group>
+        );
+      })()}
 
       {/* Invisible collision walls at world edges */}
       <mesh position={[-20, 1.5, 5]} visible={false}><boxGeometry args={[0.2, 4, 40]} /><meshBasicMaterial transparent opacity={0} /></mesh>
