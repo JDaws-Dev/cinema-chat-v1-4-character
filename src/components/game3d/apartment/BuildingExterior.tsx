@@ -7,7 +7,7 @@ import { Mat } from "../store-materials";
 import {
   APT_W, APT_D, APT_H, APT_Y,
   WALL_T, BLDG_GROUND, BLDG_ROOF, BLDG_FULL_H, BLDG_MID_Y, FLOOR_SEP_Y,
-  TRIM_COLOR,
+  TRIM_COLOR, ROOM_H_COMMERCIAL, FLOOR_SLAB_T, PARAPET_H,
 } from "./ApartmentInterior";
 
 // Exterior colors
@@ -98,9 +98,9 @@ function BuildingFacade() {
         <Mat color={TRIM_BAND} />
       </mesh>
 
-      {/* STRUCTURAL FLOOR SLAB */}
-      <mesh position={[0, -0.1, 0]}>
-        <boxGeometry args={[APT_W + WALL_T * 2 + 0.4, 0.2, APT_D + WALL_T * 2 + 0.4]} />
+      {/* STRUCTURAL FLOOR SLAB — 0.2m thick, bottom at local y = -FLOOR_SLAB_T (world y = ROOM_H_COMMERCIAL) */}
+      <mesh position={[0, -FLOOR_SLAB_T / 2, 0]}>
+        <boxGeometry args={[APT_W + WALL_T * 2 + 0.4, FLOOR_SLAB_T, APT_D + WALL_T * 2 + 0.4]} />
         <Mat color="#9a9080" />
       </mesh>
 
@@ -175,8 +175,8 @@ function BuildingRoof() {
  * - Ground entry at front (high z): open face to walk in from sidewalk
  *
  * Dimensions (real-world based):
- * - 21 steps x 0.19m rise = 3.99m total rise (matches APT_Y = 4m)
- * - 21 steps x 0.28m tread = 5.88m total run
+ * - 20 steps x 0.185m rise = 3.7m total rise (matches APT_Y = 3.7m)
+ * - 20 steps x 0.28m tread = 5.6m total run
  * - Stair width: 1.0m
  * - Outer wall thickness: 0.15m
  * - Enclosure total width: 1.2m (1.0m stairs + 0.05m gap each side + 0.15m outer wall)
@@ -184,17 +184,17 @@ function BuildingRoof() {
  * - Landing: 1.5m deep (z) x 1.2m wide (x)
  * - Door: 0.91m wide x 2.03m tall
  *
- * Coordinate reference (all LOCAL to apartment group at world x=13, y=4, z=5.75):
+ * Coordinate reference (all LOCAL to apartment group at world x=13, y=3.7, z=4.0):
  *   Building right wall outer surface: x = halfW + WALL_T = 3.2
- *   Ground level: y = -APT_Y = -4
+ *   Ground level: y = -APT_Y = -3.7
  *   Apartment floor: y = 0
  *   Front of building (street side): z = halfD = 2.5
  *   Back of building: z = -halfD = -2.5
  *
- *   Stair bottom (ground entry): y=-4, z=2.5
- *   Stair top (last step):       y≈0,  z=2.5 - 5.88 = -3.38
- *   Landing center:               y=0,  z=-4.13
- *   Landing back edge:            y=0,  z=-4.88
+ *   Stair bottom (ground entry): y=-3.7, z=2.5
+ *   Stair top (last step):       y≈0,   z=2.5 - 5.6 = -3.1
+ *   Landing center:               y=0,   z=-3.85
+ *   Landing back edge:            y=0,   z=-4.6
  */
 function ExteriorStairs() {
   const halfW = APT_W / 2;   // 3.0
@@ -203,14 +203,14 @@ function ExteriorStairs() {
   // Building right wall outer surface
   const wallX = halfW + WALL_T; // 3.2
 
-  // Stair geometry
-  const STEPS = 21;
-  const RISE = 0.19;          // per step
-  const TREAD = 0.28;         // per step depth (z)
+  // Stair geometry — derived from APT_Y (3.7m rise from ground to apartment floor)
   const STAIR_W = 1.0;        // tread width (x)
-  const TOTAL_RISE = STEPS * RISE;  // 3.99m
-  const TOTAL_RUN = STEPS * TREAD;  // 5.88m
-  const GND = -APT_Y;         // -4 (ground level in local coords)
+  const RISE = 0.185;         // per step rise (3.7m / 20 steps)
+  const TREAD = 0.28;         // per step depth (z)
+  const STEPS = Math.round(APT_Y / RISE); // 20 steps
+  const TOTAL_RISE = STEPS * RISE;  // 3.7m
+  const TOTAL_RUN = STEPS * TREAD;  // 5.6m
+  const GND = -APT_Y;         // -3.7 (ground level in local coords)
 
   // Enclosure dimensions
   const ENCL_W = 1.2;         // total width of stair structure (x)

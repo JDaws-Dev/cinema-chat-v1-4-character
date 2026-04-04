@@ -8,17 +8,32 @@ import { Mat } from "../store-materials";
 export const APT_W = 6;    // width (x)
 export const APT_D = 5;    // depth (z)
 export const APT_H = 2.8;  // ceiling height
-export const APT_Y = 4;    // one floor above ground
-export const APT_X = 13;
-export const APT_Z = 5.75;
 export const WALL_T = 0.2;
 
+// ── Strip mall integration constants ──
+// Ground floor (commercial) ceiling = ROOM_H = 3.5m
+// Floor slab thickness = 0.2m sits on top of commercial roof: 3.5 to 3.7m
+// Apartment floor starts at 3.7m (top of slab)
+export const ROOM_H_COMMERCIAL = 3.5;
+export const FLOOR_SLAB_T = 0.2;
+export const APT_Y = ROOM_H_COMMERCIAL + FLOOR_SLAB_T; // 3.7m — apartment floor level
+
+// Apartment front wall outer face at world z = 7.0 - 0.3 = 6.7 (0.3m setback from storefront)
+// Front wall outer face in local coords = APT_D/2 + WALL_T = 2.7
+// So APT_Z + 2.7 = 6.7 → APT_Z = 4.0
+export const APT_X = 13;
+export const APT_Z = 4.0;  // set back 0.3m from storefront facade
+
 // Full building height helpers
-export const BLDG_GROUND = -APT_Y;
-export const BLDG_ROOF = APT_H;
-export const BLDG_FULL_H = APT_Y + APT_H;
+export const BLDG_GROUND = -APT_Y;           // -3.7 (ground level in local coords)
+export const BLDG_ROOF = APT_H;              // 2.8 (apartment roof in local coords)
+export const BLDG_FULL_H = APT_Y + APT_H;   // 6.5m total
 export const BLDG_MID_Y = (BLDG_GROUND + BLDG_ROOF) / 2;
 export const FLOOR_SEP_Y = -0.15;
+
+// Parapet constants (shared with Store.tsx)
+export const PARAPET_H = 0.5;  // parapet height above commercial roofline
+export const PARAPET_TOP_Y = ROOM_H_COMMERCIAL + PARAPET_H; // 4.0m world coords
 
 // Colors — warm 90s wood-paneling vibes (interior)
 export const FLOOR_COLOR = "#8B6914";

@@ -305,6 +305,25 @@ export function Store({
       <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
       </>}
 
+      {/* ── CONTINUOUS PARAPET WALL — runs across entire strip mall roofline ── */}
+      {/* Real strip malls have a parapet wall hiding the flat roof. This ties
+          all three storefronts together visually as one building.
+          Height: 0.5m above ROOM_H (y=3.5 to y=4.0)
+          Width: full strip mall span (x=-16 to x=16 = 32m)
+          Front face only, facing the parking lot */}
+      {!topDown && <>
+        {/* Parapet wall body */}
+        <mesh position={[0, ROOM_H + 0.25, ROOM_D / 2 + 0.05]}>
+          <boxGeometry args={[32, 0.5, 0.15]} />
+          <meshBasicMaterial color="#1a2a40" />
+        </mesh>
+        {/* Metal coping cap on top of parapet — thin horizontal strip */}
+        <mesh position={[0, ROOM_H + 0.52, ROOM_D / 2 + 0.05]}>
+          <boxGeometry args={[32.1, 0.04, 0.22]} />
+          <meshBasicMaterial color="#5a6a78" />
+        </mesh>
+      </>}
+
       <PizzaPalace />
       <Laundromat />
 

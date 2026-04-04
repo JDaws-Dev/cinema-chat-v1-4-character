@@ -43,6 +43,7 @@ import { usePuzzle } from "@/hooks/usePuzzle";
 import { useQuestTracking } from "@/hooks/useQuestTracking";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useInteraction } from "@/hooks/useInteraction";
+import { Leva } from "leva";
 import "./game.css";
 
 const MobileControls = dynamic(() => import("@/components/game3d/MobileControls").then(m => ({ default: m.MobileControls })), { ssr: false });
@@ -55,6 +56,8 @@ const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction"
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
 const Apartment = dynamic(() => import("@/components/game3d/Apartment").then(m => ({ default: m.Apartment })), { ssr: false });
 const DebugOverlay = dynamic(() => import("@/components/game3d/DebugOverlay").then(m => ({ default: m.DebugOverlay })), { ssr: false });
+const Perf = dynamic(() => import("r3f-perf").then(m => ({ default: m.Perf })), { ssr: false });
+const OrbitControls = dynamic(() => import("@react-three/drei").then(m => ({ default: m.OrbitControls })), { ssr: false });
 
 
 export default function GamePage() {
@@ -65,6 +68,19 @@ export default function GamePage() {
   const [eraChosen, setEraChosen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [retroMode, setRetroMode] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+
+  // F12 toggles debug mode (perf monitor, orbit controls, grid, axes, leva)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "F12") {
+        e.preventDefault();
+        setDebugMode(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Load retro mode preference from localStorage
   useEffect(() => {
@@ -406,15 +422,35 @@ export default function GamePage() {
             maxNpcs={maxNpcs}
             topDown={topDown}
           />
-          <FirstPersonControls disabled={hasOverlay || topDown} />
-          {topDown && <TopDownCamera />}
-          {!hasOverlay && !topDown && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
+          {debugMode ? <OrbitControls /> : <FirstPersonControls disabled={hasOverlay || topDown} />}
+          {topDown && !debugMode && <TopDownCamera />}
+          {!hasOverlay && !topDown && !debugMode && <InteractionSystem onInteract={handleInteract} onHover={handleHover} />}
           <SecurityCameras />
           <PostEffects mobile={isMobile} retroMode={retroMode} />
           <DebugOverlay />
+          {debugMode && <Perf position="top-left" />}
+          {debugMode && <>
+            <axesHelper args={[10]} />
+            <gridHelper args={[40, 40, '#444', '#222']} />
+          </>}
         </Suspense>
       </Canvas>
       </div>
+
+      <Leva hidden={!debugMode} />
+
+      {/* Debug mode indicator */}
+      {debugMode && (
+        <div style={{
+          position: 'fixed', top: 12, right: 12, zIndex: 9999,
+          background: 'rgba(255, 0, 0, 0.85)', color: '#fff',
+          padding: '4px 12px', borderRadius: 4,
+          fontFamily: 'monospace', fontSize: 13, fontWeight: 700,
+          letterSpacing: 2, pointerEvents: 'none',
+        }}>
+          DEBUG
+        </div>
+      )}
 
       <LoadingOverlay loading={loading} />
 
