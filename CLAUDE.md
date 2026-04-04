@@ -8,10 +8,26 @@
 
 ## Art Style & Scale
 - **Aesthetic:** Stylized 1990s Blockbuster video store — warm, nostalgic, slightly cartoonish
-- **Scale:** 1 unit = 1 meter. Player eye height = 1.6m. Doorways = 2.3m. Ceilings = 3.5m.
+- **Scale:** 1 unit = 1 meter. Y is UP. Position = CENTER of geometry (use SmartBox to avoid this).
 - **Colors:** Navy blue walls (#1a3a6a), gold accents (#ffd700), warm brown shelves, cream apartment walls
 - **Materials:** Use `Mat` component (meshStandardMaterial wrapper) from store-materials.tsx
 - **Lighting:** Warm fluorescent (store), warm ambient (apartment). Max 6 lights per zone.
+
+## 3D Positioning Helpers (src/components/game3d/helpers.tsx)
+- **SmartBox**: position Y = BOTTOM, not center. `<SmartBox size={[2,3,0.2]} position={[0,0,-5]} />`
+- **PivotBottom**: wraps children so Y=0 means floor. `<PivotBottom height={3} position={[0,0,0]}>`
+- **WORLD_ANCHORS**: named reference points. `offsetFrom(WORLD_ANCHORS.LAUNDROMAT_ENTRANCE, [2,0,0])`
+- **BUILDING_CODES**: real measurements. `BUILDING_CODES.COMMERCIAL_CEILING` = 3.5m
+- **snapToGrid(val, 0.5)**: prevents magic decimals
+
+## Building Codes (non-negotiable, from helpers.tsx)
+- Doors: 0.91m × 2.03m (residential), 1.07m × 2.13m (commercial)
+- Ceilings: 3.5m (commercial), 2.8m (residential)
+- Walls: 0.2m (interior), 0.3m (exterior)
+- Stairs: max 0.197m riser, min 0.254m tread, min 0.91m width
+- Counter: 0.91m, Table: 0.75m, Chair seat: 0.45m
+- Person: 1.7m, Eye level: 1.6m
+- NEVER use raw `<mesh>` for furniture — use SmartBox or PivotBottom
 
 ## File Structure
 - `src/components/game3d/` — 3D scene components (Store, Apartment, NPCManager, etc.)
