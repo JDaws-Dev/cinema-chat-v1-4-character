@@ -56,7 +56,8 @@ const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction"
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
 const Apartment = dynamic(() => import("@/components/game3d/Apartment").then(m => ({ default: m.Apartment })), { ssr: false });
 const DebugOverlay = dynamic(() => import("@/components/game3d/DebugOverlay").then(m => ({ default: m.DebugOverlay })), { ssr: false });
-const Perf = dynamic(() => import("r3f-perf").then(m => ({ default: m.Perf })), { ssr: false });
+// r3f-perf crashes Turbopack dev server (binary woff font). Use custom DebugOverlay instead.
+// const Perf = dynamic(() => import("r3f-perf").then(m => ({ default: m.Perf })), { ssr: false });
 const OrbitControls = dynamic(() => import("@react-three/drei").then(m => ({ default: m.OrbitControls })), { ssr: false });
 
 
@@ -428,7 +429,7 @@ export default function GamePage() {
           <SecurityCameras />
           <PostEffects mobile={isMobile} retroMode={retroMode} />
           <DebugOverlay />
-          {debugMode && <Perf position="top-left" />}
+          {/* r3f-perf disabled — crashes Turbopack. Use DebugOverlay (backtick key) instead */}
           {debugMode && <>
             <axesHelper args={[10]} />
             <gridHelper args={[40, 40, '#444', '#222']} />

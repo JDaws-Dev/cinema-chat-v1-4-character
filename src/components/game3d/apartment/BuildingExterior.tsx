@@ -239,8 +239,8 @@ function ExteriorStairs() {
 
   // Enclosure height: ground to apartment floor level (we don't need it taller —
   // the landing railings handle safety above floor level)
-  const enclH = APT_Y;                  // 4.0m (ground to apt floor)
-  const enclMidY = GND + enclH / 2;     // -2.0
+  const enclH = APT_Y;                  // 3.7m (ground to apt floor)
+  const enclMidY = GND + enclH / 2;     // -1.85
 
   return (
     <group>

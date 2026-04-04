@@ -32,16 +32,17 @@ const CAMERAS = [
   { name: "strip_right",  pos: [20, 3, 6],       lookAt: [13, 4, 6],      fov: 60, label: "Strip mall right side" },
   { name: "strip_left",   pos: [-20, 3, 6],      lookAt: [-13, 2, 6],     fov: 60, label: "Strip mall left side" },
   // Apartment — exterior views (positioned to see the 2-story building)
-  { name: "apt_exterior", pos: [18, 4, 14],      lookAt: [13, 4, 5.75],   fov: 50, label: "Apartment building from parking" },
+  // Apartment group now at [13, 3.7, 4.0] — set back 0.3m from storefront, floor at 3.7m
+  { name: "apt_exterior", pos: [18, 4, 14],      lookAt: [13, 4, 4.0],    fov: 50, label: "Apartment building from parking" },
   { name: "apt_stairs",   pos: [18, 2, 10],      lookAt: [16.5, 2, 5],    fov: 55, label: "Apartment stairs close-up" },
-  { name: "building_front",pos: [13, 5, 14],     lookAt: [13, 4, 5.75],   fov: 45, label: "Building front — 2 story view" },
+  { name: "building_front",pos: [13, 5, 14],     lookAt: [13, 4, 4.0],    fov: 45, label: "Building front — 2 story view" },
   { name: "building_right",pos: [24, 5, 2],       lookAt: [16, 2, 2],      fov: 60, label: "Building right side with stairs" },
-  // Apartment — interior views (camera INSIDE at eye level y=5.4)
+  // Apartment — interior views (camera INSIDE at eye level y=5.1 = APT_Y+1.4)
   // lookAt targets aimed at mid-height to capture floor furniture + walls
-  { name: "apt_interior", pos: [14.5, 5.4, 7.5], lookAt: [12, 4.6, 4.5],  fov: 75, label: "Apartment interior from door" },
-  { name: "apt_tv",       pos: [13, 5.4, 7.2],   lookAt: [13, 4.5, 3.25], fov: 60, label: "Apartment TV/VCR area" },
-  { name: "apt_kitchen",  pos: [11.5, 5.4, 5.75],lookAt: [14, 4.6, 4.5],  fov: 65, label: "Apartment kitchen corner" },
-  { name: "apt_overhead", pos: [13, 8.5, 5.75],  lookAt: [13, 4, 5.75],   fov: 65, label: "Apartment overhead" },
+  { name: "apt_interior", pos: [14.5, 5.1, 6.2], lookAt: [12, 4.3, 3.5],  fov: 75, label: "Apartment interior from door" },
+  { name: "apt_tv",       pos: [13, 5.1, 6.0],   lookAt: [13, 4.2, 1.5],  fov: 60, label: "Apartment TV/VCR area" },
+  { name: "apt_kitchen",  pos: [11.5, 5.1, 4.0], lookAt: [14, 4.3, 3.0],  fov: 65, label: "Apartment kitchen corner" },
+  { name: "apt_overhead", pos: [13, 8.5, 4.0],   lookAt: [13, 3.7, 4.0],  fov: 65, label: "Apartment overhead" },
 ];
 
 export function SecurityCameras() {
