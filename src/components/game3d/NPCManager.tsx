@@ -145,7 +145,7 @@ function NPCMesh({
     // ── Positioning (from ManagedNPC — always runs regardless of LOD) ──
     if (groupRef.current) {
       const isWalkingPos = npc.state === "walking" || npc.state === "entering" || npc.state === "leaving";
-      const feetOffset = -0.175 * npc.config.appearance.height;
+      const feetOffset = 0; // Minecraft-style model feet at Y=0
       const swayOffset = isWalkingPos ? 0 : Math.sin(t * (Math.PI * 2 / 6) + swayPhase) * 0.02;
       const squatOffset = (npc.state === "browsing" && browseHeight === "squat") ? -0.3 : 0;
       groupRef.current.position.set(npc.position[0] + swayOffset, feetOffset + squatOffset, npc.position[2]);
@@ -436,93 +436,108 @@ function NPCMesh({
     }
   });
 
-  // ── Priority 10: Body proportion tweaks by personality ──
+  // ── Priority 10: Body proportion tweaks by personality (Minecraft/Crossy Road style) ──
   const pType = npc.config.personalityType;
-  const torsoWidth = pType === "parent" ? 0.40 : 0.35; // parent: wider lower torso
-  const legHeight = pType === "teenager" ? 0.50 : 0.45; // teenager: longer legs
-  const legY = pType === "teenager" ? 0.375 : 0.4; // adjust position for longer legs
-  const armY = pType === "teenager" ? 0.82 : 0.85; // teenager: arms hang lower
-  const headScaleY = pType === "kid" ? 1.2 : 1.0; // kid: larger head relative to body
-  // critic: arm attachment rotated inward 0.1 rad (applied as Z rotation on arms)
-  const armInwardRot = pType === "critic" ? 0.1 : 0;
+  const torsoW = pType === "parent" ? 0.38 : 0.35; // parent: wider
+  const torsoD = pType === "parent" ? 0.22 : 0.2;
+  const legH = pType === "teenager" ? 0.4 : 0.35; // teenager: slightly longer legs
+  const headScale = pType === "kid" ? 1.1 : 1.0; // kid: slightly larger head
 
   return (
-    <group ref={groupRef} scale={height}>
-      {/* Body (torso) */}
-      <RoundedBox ref={torsoRef} args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}>
+    <group ref={groupRef} scale={height * 1.6}>
+      {/* ── Legs (short, stubby — Vinny proportions) ── */}
+      <mesh ref={leftLegRef} position={[-0.08, legH / 2, 0]}>
+        <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
+      </mesh>
+      <mesh ref={rightLegRef} position={[0.08, legH / 2, 0]}>
+        <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
+      </mesh>
+      {/* ── Shoes ── */}
+      <mesh position={[-0.08, 0.025, 0]}>
+        <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
+      </mesh>
+      <mesh position={[0.08, 0.025, 0]}>
+        <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
+      </mesh>
+      {/* ── Belt ── */}
+      <mesh position={[0, legH + 0.02, 0]}>
+        <boxGeometry args={[torsoW + 0.01, 0.04, torsoD + 0.01]} /><meshStandardMaterial color="#2a2a2a" />
+      </mesh>
+      {/* ── Torso (short and wide — matches Vinny) ── */}
+      <RoundedBox ref={torsoRef} args={[torsoW, 0.35, torsoD]} radius={0.03} smoothness={2} position={[0, legH + 0.2, 0]}>
         <meshStandardMaterial color={shirtColor} />
       </RoundedBox>
-      {/* Head — Priority 10: kid gets larger relative head */}
-      <RoundedBox ref={headRef} args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} position={[0, 1.22, 0]} scale={[1, headScaleY, 1]}>
-        <meshStandardMaterial color={skinTone} />
-      </RoundedBox>
-      {/* Eyes */}
-      <mesh ref={leftEyeRef} position={[-0.04, 1.24, -0.11]}>
-        <sphereGeometry args={[0.018, 8, 8]} />
-        <meshStandardMaterial color="#1a1a1a" />
+      {/* ── Arms (short stubby) ── */}
+      <mesh ref={leftArmRef} position={[-(torsoW / 2 + 0.06), legH + 0.25, 0]}>
+        <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
       </mesh>
-      <mesh ref={rightEyeRef} position={[0.04, 1.24, -0.11]}>
-        <sphereGeometry args={[0.018, 8, 8]} />
-        <meshStandardMaterial color="#1a1a1a" />
+      <mesh ref={rightArmRef} position={[(torsoW / 2 + 0.06), legH + 0.25, 0]}>
+        <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
       </mesh>
-      {/* Mouth — animated during conversation */}
-      <mesh ref={mouthRef} position={[0, 1.15, -0.12]}>
-        <boxGeometry args={[0.06, 0.015, 0.02]} />
-        <meshStandardMaterial color={skinTone} />
+      {/* ── Hands ── */}
+      <mesh ref={leftHandRef} position={[-(torsoW / 2 + 0.06), legH + 0.07, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
       </mesh>
-      {/* Hair variants */}
-      {hairStyle === "flattop" && (
-        <mesh position={[0, 1.33, 0]}><boxGeometry args={[0.22, 0.06, 0.22]} /><meshStandardMaterial color={hairColor} /></mesh>
-      )}
-      {hairStyle === "long" && (
-        <mesh position={[0, 1.26, -0.04]}><boxGeometry args={[0.28, 0.2, 0.18]} /><meshStandardMaterial color={hairColor} /></mesh>
-      )}
-      {hairStyle === "cap" && (
-        <mesh position={[0, 1.33, 0.02]}><boxGeometry args={[0.28, 0.06, 0.3]} /><meshStandardMaterial color={hairColor} /></mesh>
-      )}
-      {hairStyle === "ponytail" && (
-        <>
-          <mesh position={[0, 1.3, 0]}><boxGeometry args={[0.26, 0.08, 0.26]} /><meshStandardMaterial color={hairColor} /></mesh>
-          <mesh position={[0, 1.22, -0.15]}><boxGeometry args={[0.06, 0.15, 0.06]} /><meshStandardMaterial color={hairColor} /></mesh>
-        </>
-      )}
-      {hairStyle === "buzzcut" && (
-        <mesh position={[0, 1.32, 0]}><sphereGeometry args={[0.135, 8, 8]} /><meshStandardMaterial color={hairColor} /></mesh>
-      )}
-      {hairStyle === "mohawk" && (
-        <mesh position={[0, 1.38, 0]}><boxGeometry args={[0.04, 0.12, 0.2]} /><meshStandardMaterial color={hairColor} /></mesh>
-      )}
-      {hairStyle === "afro" && (
-        <mesh position={[0, 1.32, 0]}><sphereGeometry args={[0.18, 8, 8]} /><meshStandardMaterial color={hairColor} /></mesh>
-      )}
-      {/* Arms — Priority 10: critic has inward shoulder rounding */}
-      <mesh ref={leftArmRef} position={[-0.24, armY, 0]} rotation={[0, 0, armInwardRot]}>
-        <boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} />
-      </mesh>
-      <mesh ref={rightArmRef} position={[0.24, armY, 0]} rotation={[0, 0, -armInwardRot]}>
-        <boxGeometry args={[0.1, 0.4, 0.1]} /><meshStandardMaterial color={skinTone} />
-      </mesh>
-      {/* Hands — Priority 9: sphere hands with shape toggle (scale set in useFrame) */}
-      <mesh ref={leftHandRef} position={[-0.24, armY - 0.24, 0]}>
-        <sphereGeometry args={[0.035, 8, 8]} />
-        <meshStandardMaterial color={skinTone} />
-      </mesh>
-      <mesh ref={rightHandRef} position={[0.24, armY - 0.24, 0]}>
-        <sphereGeometry args={[0.035, 8, 8]} />
-        <meshStandardMaterial color={skinTone} />
+      <mesh ref={rightHandRef} position={[(torsoW / 2 + 0.06), legH + 0.07, 0]}>
+        <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
       </mesh>
       {/* Priority 9: VHS box in right hand — visible after checking_out */}
-      <mesh ref={vhsBoxRef} position={[0.24, armY - 0.30, -0.03]} visible={false}>
-        <boxGeometry args={[0.08, 0.05, 0.02]} />
-        <meshStandardMaterial color={vhsGenreColor} />
+      <mesh ref={vhsBoxRef} position={[(torsoW / 2 + 0.06), legH + 0.01, -0.03]} visible={false}>
+        <boxGeometry args={[0.08, 0.05, 0.02]} /><meshStandardMaterial color={vhsGenreColor} />
       </mesh>
-      {/* Legs — Priority 10: teenager gets longer legs */}
-      <mesh ref={leftLegRef} position={[-0.08, legY, 0]}>
-        <boxGeometry args={[0.12, legHeight, 0.12]} /><meshStandardMaterial color={pantsColor} />
-      </mesh>
-      <mesh ref={rightLegRef} position={[0.08, legY, 0]}>
-        <boxGeometry args={[0.12, legHeight, 0.12]} /><meshStandardMaterial color={pantsColor} />
-      </mesh>
+      {/* ── Head (BIG, Minecraft-style) ── */}
+      <group ref={headRef} position={[0, legH + 0.65, 0]} scale={headScale}>
+        <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.04} smoothness={2} position={[0, 0, 0]}>
+          <meshStandardMaterial color={skinTone} />
+        </RoundedBox>
+        {/* Hair variants */}
+        {hairStyle === "flattop" && (
+          <mesh position={[0, 0.17, -0.01]}><boxGeometry args={[0.36, 0.06, 0.36]} /><meshStandardMaterial color={hairColor} /></mesh>
+        )}
+        {hairStyle === "long" && (
+          <mesh position={[0, 0.1, -0.04]}><boxGeometry args={[0.36, 0.16, 0.3]} /><meshStandardMaterial color={hairColor} /></mesh>
+        )}
+        {hairStyle === "cap" && (
+          <mesh position={[0, 0.17, 0.02]}><boxGeometry args={[0.37, 0.06, 0.4]} /><meshStandardMaterial color={hairColor} /></mesh>
+        )}
+        {hairStyle === "ponytail" && (
+          <>
+            <mesh position={[0, 0.17, -0.01]}><boxGeometry args={[0.36, 0.06, 0.36]} /><meshStandardMaterial color={hairColor} /></mesh>
+            <mesh position={[0, 0.0, 0.18]}><boxGeometry args={[0.06, 0.15, 0.06]} /><meshStandardMaterial color={hairColor} /></mesh>
+          </>
+        )}
+        {hairStyle === "buzzcut" && (
+          <mesh position={[0, 0.15, 0]}><boxGeometry args={[0.34, 0.04, 0.34]} /><meshStandardMaterial color={hairColor} /></mesh>
+        )}
+        {hairStyle === "mohawk" && (
+          <mesh position={[0, 0.22, 0]}><boxGeometry args={[0.04, 0.1, 0.2]} /><meshStandardMaterial color={hairColor} /></mesh>
+        )}
+        {hairStyle === "afro" && (
+          <mesh position={[0, 0.12, 0]}><boxGeometry args={[0.38, 0.2, 0.38]} /><meshStandardMaterial color={hairColor} /></mesh>
+        )}
+        {/* Eyes */}
+        <mesh position={[-0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><meshStandardMaterial color="#ffffff" />
+        </mesh>
+        {/* Pupils */}
+        <mesh ref={leftEyeRef} position={[-0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><meshStandardMaterial color="#1a1a1a" />
+        </mesh>
+        <mesh ref={rightEyeRef} position={[0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><meshStandardMaterial color="#1a1a1a" />
+        </mesh>
+        {/* Nose */}
+        <mesh position={[0, -0.03, -0.18]}>
+          <sphereGeometry args={[0.02, 8, 8]} /><meshStandardMaterial color={skinTone} />
+        </mesh>
+        {/* Mouth */}
+        <mesh ref={mouthRef} position={[0, -0.1, -0.17]}>
+          <boxGeometry args={[0.06, 0.02, 0.02]} /><meshStandardMaterial color="#c07060" />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -531,7 +546,7 @@ function NPCMesh({
 
 function SpeechBubble({ text }: { text: string }) {
   return (
-    <Html position={[0, 1.7, 0]} center distanceFactor={10} occlude={false}>
+    <Html position={[0, 2.15, 0]} center distanceFactor={10} occlude={false}>
       <div style={BUBBLE_STYLE}>{text}</div>
     </Html>
   );
@@ -568,8 +583,8 @@ function ManagedNPC({
   return (
     <group>
       <NPCMesh npc={npc} groupRef={groupRef} allNpcs={allNpcs} />
-      {/* Name label */}
-      <group position={[npc.position[0], 1.55, npc.position[2]]}>
+      {/* Name label — raised for big-head Minecraft proportions */}
+      <group position={[npc.position[0], 2.0, npc.position[2]]}>
         <Billboard>
           <Text fontSize={0.07} color="#e0e0e0" anchorX="center" font={undefined}>
             {npc.config.name}

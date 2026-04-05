@@ -796,59 +796,101 @@ export function CharlieCharacter() {
   }, []);
 
   return (
-    <group ref={ref} position={startPos} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
-      <mesh ref={leftLegRef} position={[-0.08, 0.3, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a3050" roughness={0.85} /></mesh>
-      <mesh ref={rightLegRef} position={[0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a3050" roughness={0.85} /></mesh>
-      <mesh position={[-0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      <mesh position={[-0.08, 0.01, -0.02]}><boxGeometry args={[0.14, 0.03, 0.19]} /><Mat color="#f0f0f0" roughness={0.6} /></mesh>
-      <mesh position={[0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      <mesh position={[0.08, 0.01, -0.02]}><boxGeometry args={[0.14, 0.03, 0.19]} /><Mat color="#f0f0f0" roughness={0.6} /></mesh>
-      <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      <RoundedBox ref={torsoRef} args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}><Mat color="#0a4a8a" roughness={0.7} /></RoundedBox>
-      <mesh position={[0, 0.85, -0.115]}><boxGeometry args={[0.34, 0.46, 0.02]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
-      <mesh position={[0, 0.85, 0.115]}><boxGeometry args={[0.34, 0.46, 0.02]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
-      <mesh position={[-0.175, 0.85, 0]}><boxGeometry args={[0.02, 0.46, 0.22]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
-      <mesh position={[0.175, 0.85, 0]}><boxGeometry args={[0.02, 0.46, 0.22]} /><Mat color="#1a3a6a" roughness={0.65} /></mesh>
-      <mesh position={[0, 0.75, -0.115]}><boxGeometry args={[0.34, 0.04, 0.01]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
-      <mesh position={[0, 1.08, -0.05]}><boxGeometry args={[0.2, 0.05, 0.14]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
-      <mesh position={[-0.05, 1.1, -0.09]} rotation={[0.3, 0, 0.2]}><boxGeometry args={[0.07, 0.04, 0.02]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
-      <mesh position={[0.05, 1.1, -0.09]} rotation={[0.3, 0, -0.2]}><boxGeometry args={[0.07, 0.04, 0.02]} /><Mat color="#0a4a8a" roughness={0.6} /></mesh>
-      <mesh position={[0.12, 0.92, -0.12]}><boxGeometry args={[0.14, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>
-      <Text position={[0.12, 0.92, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#1a1a1a" anchorX="center" font={undefined}>CHARLIE</Text>
-      <mesh position={[-0.09, 0.97, -0.12]}><boxGeometry args={[0.12, 0.05, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.15} /></mesh>
-      <Text position={[-0.09, 0.97, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.022} color="#ffffff" anchorX="center" font={undefined}>STAFF</Text>
-      <mesh ref={leftArmRef} position={[-0.24, 0.82, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
-      <mesh position={[-0.24, 0.58, 0]}><sphereGeometry args={[0.05, 8, 8]} /><Mat color="#e8c4a0" roughness={0.8} /></mesh>
-      <mesh ref={rightArmRef} position={[0.24, 0.82, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#0a4a8a" roughness={0.7} /></mesh>
-      <mesh position={[0.24, 0.58, 0]}><sphereGeometry args={[0.05, 8, 8]} /><Mat color="#e8c4a0" roughness={0.8} /></mesh>
-      <group ref={headRef} position={[0, 1.3, 0]}>
-        <RoundedBox args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} position={[0, 0, 0]} scale={[1, 1.1, 0.9]}><Mat color="#e8c4a0" roughness={0.75} /></RoundedBox>
-        <mesh position={[0, 0.12, 0]} rotation={[0, 0, 0.08]}><sphereGeometry args={[0.21, 16, 10]} /><Mat color="#1a3a6a" roughness={0.6} /></mesh>
-        <mesh position={[0, 0.06, -0.18]} rotation={[0.15, 0, 0.06]}><boxGeometry args={[0.22, 0.02, 0.12]} /><Mat color="#1a3a6a" roughness={0.6} /></mesh>
-        <mesh position={[0, 0.08, -0.2]} rotation={[0.15, 0, 0]}><boxGeometry args={[0.12, 0.04, 0.01]} /><Mat color="#ffd700" roughness={0.5} /></mesh>
-        <mesh position={[-0.18, -0.02, 0]}><boxGeometry args={[0.06, 0.1, 0.12]} /><Mat color="#c4a45a" roughness={0.9} /></mesh>
-        <mesh position={[0.18, -0.02, 0]}><boxGeometry args={[0.06, 0.1, 0.12]} /><Mat color="#c4a45a" roughness={0.9} /></mesh>
-        <mesh position={[0, -0.02, 0.12]}><boxGeometry args={[0.2, 0.1, 0.06]} /><Mat color="#c4a45a" roughness={0.9} /></mesh>
-        <mesh position={[-0.07, -0.02, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh position={[0.07, -0.02, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh ref={leftEyeRef} position={[-0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        <mesh ref={rightEyeRef} position={[0.07, -0.02, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        <mesh ref={mouthRef} position={[0, -0.1, -0.18]}><boxGeometry args={[0.1, 0.02, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
-        <mesh position={[-0.05, -0.095, -0.18]} rotation={[0, 0, -0.3]}><boxGeometry args={[0.025, 0.012, 0.015]} /><Mat color="#c07060" roughness={0.8} /></mesh>
-        <mesh position={[0.05, -0.095, -0.18]} rotation={[0, 0, 0.3]}><boxGeometry args={[0.025, 0.012, 0.015]} /><Mat color="#c07060" roughness={0.8} /></mesh>
-        <mesh position={[0, -0.05, -0.19]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#d4a574" roughness={0.8} /></mesh>
-        <mesh position={[-0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#e8c4a0" roughness={0.75} /></mesh>
-        <mesh position={[0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#e8c4a0" roughness={0.75} /></mesh>
-        <mesh position={[-0.16, -0.18, -0.02]}><cylinderGeometry args={[0.04, 0.04, 0.025, 12]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
-        <mesh position={[-0.16, -0.18, -0.02]}><cylinderGeometry args={[0.03, 0.03, 0.03, 12]} /><Mat color="#444444" roughness={0.3} /></mesh>
-        <mesh position={[0.16, -0.18, -0.02]}><cylinderGeometry args={[0.04, 0.04, 0.025, 12]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
-        <mesh position={[0.16, -0.18, -0.02]}><cylinderGeometry args={[0.03, 0.03, 0.03, 12]} /><Mat color="#444444" roughness={0.3} /></mesh>
-        <mesh position={[0, -0.12, 0.08]} rotation={[0.3, 0, 0]}><torusGeometry args={[0.16, 0.012, 8, 16, Math.PI]} /><Mat color="#2a2a2a" roughness={0.4} /></mesh>
+    <group ref={ref} position={startPos} scale={1.5} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
+      {/* ── Legs (longer/skinnier than Vinny — he's lean) ── */}
+      <mesh ref={leftLegRef} position={[-0.07, 0.2, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
+        <boxGeometry args={[0.1, 0.4, 0.1]} /><Mat color="#1a3050" roughness={0.85} />
+      </mesh>
+      <mesh ref={rightLegRef} position={[0.07, 0.2, 0]}>
+        <boxGeometry args={[0.1, 0.4, 0.1]} /><Mat color="#1a3050" roughness={0.85} />
+      </mesh>
+      {/* ── Shoes ── */}
+      <mesh position={[-0.07, 0.025, 0]}>
+        <boxGeometry args={[0.11, 0.05, 0.12]} /><Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      <mesh position={[0.07, 0.025, 0]}>
+        <boxGeometry args={[0.11, 0.05, 0.12]} /><Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      {/* ── Belt ── */}
+      <mesh position={[0, 0.42, 0]}>
+        <boxGeometry args={[0.3, 0.04, 0.19]} /><Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      {/* ── Torso (narrow and tall — skinny film student) ── */}
+      <RoundedBox ref={torsoRef} args={[0.28, 0.4, 0.18]} radius={0.03} smoothness={2} position={[0, 0.64, 0]}>
+        <Mat color="#0a4a8a" roughness={0.7} />
+      </RoundedBox>
+      {/* ── Name tag (gold CHARLIE) ── */}
+      <mesh position={[0.08, 0.67, -0.095]}>
+        <boxGeometry args={[0.12, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+      </mesh>
+      <Text position={[0.08, 0.67, -0.105]} rotation={[0, Math.PI, 0]} fontSize={0.022} color="#1a1a1a" anchorX="center" font={undefined}>CHARLIE</Text>
+      {/* ── Staff badge (blue) ── */}
+      <mesh position={[-0.08, 0.7, -0.095]}>
+        <boxGeometry args={[0.1, 0.05, 0.01]} /><Mat color="#2266bb" emissive="#2266bb" emissiveIntensity={0.15} />
+      </mesh>
+      <Text position={[-0.08, 0.7, -0.105]} rotation={[0, Math.PI, 0]} fontSize={0.02} color="#ffffff" anchorX="center" font={undefined}>STAFF</Text>
+      {/* ── Arms (skinny, blue shirt) ── */}
+      <group position={[-0.19, 0.72, 0]}>
+        <mesh ref={leftArmRef} position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.08, 0.3, 0.08]} /><Mat color="#0a4a8a" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} /><Mat color="#e8c4a0" roughness={0.8} />
+        </mesh>
       </group>
-      <Billboard position={[0, 1.75, 0]}>
-        <Text fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>CHARLIE</Text>
+      <group position={[0.19, 0.72, 0]}>
+        <mesh ref={rightArmRef} position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.08, 0.3, 0.08]} /><Mat color="#0a4a8a" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} /><Mat color="#e8c4a0" roughness={0.8} />
+        </mesh>
+      </group>
+      {/* ── Head (BIG, Minecraft-style, slightly less round than Vinny) ── */}
+      <group ref={headRef} position={[0, 1.1, 0]}>
+        {/* Head block */}
+        <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.06} smoothness={2} position={[0, 0, 0]}>
+          <Mat color="#e8c4a0" roughness={0.75} />
+        </RoundedBox>
+        {/* Brown hair — messy on top */}
+        <mesh position={[0, 0.18, -0.01]}>
+          <boxGeometry args={[0.36, 0.08, 0.36]} /><Mat color="#5a3a1a" roughness={0.9} />
+        </mesh>
+        {/* Tall messy tuft */}
+        <mesh position={[0.02, 0.24, -0.02]}>
+          <boxGeometry args={[0.2, 0.06, 0.2]} /><Mat color="#5a3a1a" roughness={0.9} />
+        </mesh>
+        {/* Eyes (no glasses — he's young) */}
+        <mesh position={[-0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
+        </mesh>
+        {/* Pupils */}
+        <mesh ref={leftEyeRef} position={[-0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
+        </mesh>
+        <mesh ref={rightEyeRef} position={[0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
+        </mesh>
+        {/* Nose */}
+        <mesh position={[0, -0.03, -0.18]}>
+          <sphereGeometry args={[0.02, 8, 8]} /><Mat color="#d4a574" roughness={0.8} />
+        </mesh>
+        {/* Mouth */}
+        <mesh ref={mouthRef} position={[0, -0.1, -0.17]}>
+          <boxGeometry args={[0.08, 0.025, 0.02]} /><Mat color="#c07060" roughness={0.8} />
+        </mesh>
+      </group>
+      {/* ── Billboard name label ── */}
+      <Billboard position={[0, 1.6, 0]}>
+        <Text fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>CHARLIE</Text>
       </Billboard>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}><circleGeometry args={[0.25, 16]} /><Mat color="#000000" transparent opacity={0.18} /></mesh>
+      {/* ── Shadow circle ── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+        <circleGeometry args={[0.25, 16]} /><Mat color="#000000" transparent opacity={0.18} />
+      </mesh>
     </group>
   );
 }
@@ -959,7 +1001,7 @@ export function VinnyCharacter() {
   });
 
   return (
-    <group ref={ref} position={[getObjectById("vinny")?.x ?? 7, 0, getObjectById("vinny")?.z ?? 5.8]} scale={1.4} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
+    <group ref={ref} position={[getObjectById("vinny")?.x ?? 7, 0, getObjectById("vinny")?.z ?? 5.8]} scale={1.6} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
       {/* ── Legs (short, stubby, slightly apart) — scaled 1.15x for proper counter height ── */}
       <mesh position={[-0.08, 0.175, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
         <boxGeometry args={[0.12, 0.35, 0.12]} /><Mat color="#c2a66b" roughness={0.85} />
@@ -1093,64 +1135,100 @@ export function TonyCharacter() {
   });
 
   return (
-    <group ref={ref} position={[-13, 0, 4.8]} rotation={[0, Math.PI, 0]} userData={{ interactType: "pizza_clerk", label: "Talk to Tony" }}>
-      {/* Legs */}
-      <mesh position={[-0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} /></mesh>
-      <mesh position={[0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} /></mesh>
-      {/* Shoes */}
-      <mesh position={[-0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      <mesh position={[0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      {/* Belt */}
-      <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      {/* Torso — red shirt */}
-      <RoundedBox args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}><Mat color="#cc2222" roughness={0.7} /></RoundedBox>
-      {/* Apron — white box over torso front */}
-      <mesh position={[0, 0.78, -0.12]}><boxGeometry args={[0.32, 0.55, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} /></mesh>
-      {/* Apron strap */}
-      <mesh position={[-0.14, 1.05, -0.08]}><boxGeometry args={[0.03, 0.12, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} /></mesh>
-      <mesh position={[0.14, 1.05, -0.08]}><boxGeometry args={[0.03, 0.12, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} /></mesh>
-      {/* Collar */}
-      <mesh position={[0, 1.08, -0.05]}><boxGeometry args={[0.2, 0.05, 0.14]} /><Mat color="#cc2222" roughness={0.6} /></mesh>
-      {/* Name tag */}
-      <mesh position={[0.12, 0.95, -0.12]}><boxGeometry args={[0.14, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>
-      <Text position={[0.12, 0.95, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.028} color="#1a1a1a" anchorX="center" font={undefined}>TONY</Text>
-      {/* Arms */}
-      <group ref={leftArmRef} position={[-0.24, 1.05, 0]}>
-        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#cc2222" roughness={0.7} /></mesh>
-        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#c49a6c" roughness={0.8} /></mesh>
+    <group ref={ref} position={[-13, 0, 4.8]} rotation={[0, Math.PI, 0]} scale={1.5} userData={{ interactType: "pizza_clerk", label: "Talk to Tony" }}>
+      {/* ── Legs (short, stubby — like Vinny) ── */}
+      <mesh position={[-0.09, 0.175, 0]} userData={{ interactType: "pizza_clerk", label: "Talk to Tony" }}>
+        <boxGeometry args={[0.13, 0.35, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} />
+      </mesh>
+      <mesh position={[0.09, 0.175, 0]}>
+        <boxGeometry args={[0.13, 0.35, 0.13]} /><Mat color="#1a1a2e" roughness={0.85} />
+      </mesh>
+      {/* ── Shoes ── */}
+      <mesh position={[-0.09, 0.025, 0]}>
+        <boxGeometry args={[0.14, 0.05, 0.15]} /><Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      <mesh position={[0.09, 0.025, 0]}>
+        <boxGeometry args={[0.14, 0.05, 0.15]} /><Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      {/* ── Belt ── */}
+      <mesh position={[0, 0.37, 0]}>
+        <boxGeometry args={[0.4, 0.04, 0.23]} /><Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      {/* ── Torso (wide and burly — broader than Vinny) ── */}
+      <RoundedBox args={[0.38, 0.35, 0.22]} radius={0.03} smoothness={2} position={[0, 0.57, 0]}>
+        <Mat color="#cc2222" roughness={0.7} />
+      </RoundedBox>
+      {/* ── Apron (white box on front of torso) ── */}
+      <mesh position={[0, 0.52, -0.115]}>
+        <boxGeometry args={[0.3, 0.3, 0.02]} /><Mat color="#f5f5f0" roughness={0.6} />
+      </mesh>
+      {/* ── Name tag (gold TONY) ── */}
+      <mesh position={[0.1, 0.6, -0.115]}>
+        <boxGeometry args={[0.12, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+      </mesh>
+      <Text position={[0.1, 0.6, -0.125]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#1a1a1a" anchorX="center" font={undefined}>TONY</Text>
+      {/* ── Arms (red shirt, stubby) ── */}
+      <group ref={leftArmRef} position={[-0.245, 0.65, 0]}>
+        <mesh position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.11, 0.3, 0.11]} /><Mat color="#cc2222" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.055, 8, 8]} /><Mat color="#c49a6c" roughness={0.8} />
+        </mesh>
       </group>
-      <group ref={rightArmRef} position={[0.24, 1.05, 0]}>
-        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#cc2222" roughness={0.7} /></mesh>
-        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#c49a6c" roughness={0.8} /></mesh>
+      <group ref={rightArmRef} position={[0.245, 0.65, 0]}>
+        <mesh position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.11, 0.3, 0.11]} /><Mat color="#cc2222" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.055, 8, 8]} /><Mat color="#c49a6c" roughness={0.8} />
+        </mesh>
       </group>
-      {/* Head */}
-      <group ref={headRef} position={[0, 1.35, 0]}>
-        <RoundedBox args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} scale={[1, 1.1, 0.9]}><Mat color="#c49a6c" roughness={0.75} /></RoundedBox>
-        {/* Dark hair */}
-        <mesh position={[0, 0.1, 0.02]}><sphereGeometry args={[0.21, 16, 10]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
-        {/* Eyes */}
-        <mesh position={[-0.07, -0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh position={[0.07, -0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh position={[-0.07, -0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        <mesh position={[0.07, -0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        {/* Mustache */}
-        <mesh position={[0, -0.08, -0.19]}><boxGeometry args={[0.12, 0.03, 0.03]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
-        <mesh position={[-0.07, -0.085, -0.18]} rotation={[0, 0, -0.4]}><boxGeometry args={[0.03, 0.025, 0.02]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
-        <mesh position={[0.07, -0.085, -0.18]} rotation={[0, 0, 0.4]}><boxGeometry args={[0.03, 0.025, 0.02]} /><Mat color="#1a1a1a" roughness={0.9} /></mesh>
-        {/* Mouth */}
-        <mesh position={[0, -0.11, -0.18]}><boxGeometry args={[0.08, 0.015, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
+      {/* ── Head (BIG, Minecraft-style) ── */}
+      <group ref={headRef} position={[0, 1.02, 0]}>
+        {/* Head block */}
+        <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.04} smoothness={2} position={[0, 0, 0]}>
+          <Mat color="#c49a6c" roughness={0.75} />
+        </RoundedBox>
+        {/* Dark hair (flat on top) */}
+        <mesh position={[0, 0.17, -0.01]}>
+          <boxGeometry args={[0.36, 0.06, 0.36]} /><Mat color="#1a1a1a" roughness={0.9} />
+        </mesh>
+        {/* Eyes (no glasses) */}
+        <mesh position={[-0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
+        </mesh>
+        {/* Pupils */}
+        <mesh position={[-0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
+        </mesh>
         {/* Nose */}
-        <mesh position={[0, -0.04, -0.2]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#b8896c" roughness={0.8} /></mesh>
-        {/* Ears */}
-        <mesh position={[-0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#c49a6c" roughness={0.75} /></mesh>
-        <mesh position={[0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#c49a6c" roughness={0.75} /></mesh>
+        <mesh position={[0, -0.03, -0.18]}>
+          <sphereGeometry args={[0.025, 8, 8]} /><Mat color="#b8896c" roughness={0.8} />
+        </mesh>
+        {/* Bushy mustache (wider than Vinny's) */}
+        <mesh position={[0, -0.07, -0.175]}>
+          <boxGeometry args={[0.18, 0.05, 0.03]} /><Mat color="#1a1a1a" roughness={0.9} />
+        </mesh>
+        {/* Mouth */}
+        <mesh position={[0, -0.1, -0.17]}>
+          <boxGeometry args={[0.08, 0.025, 0.02]} /><Mat color="#c07060" roughness={0.8} />
+        </mesh>
       </group>
-      {/* Name billboard */}
-      <Billboard position={[0, 1.8, 0]}>
-        <Text fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>TONY</Text>
+      {/* ── Billboard name label ── */}
+      <Billboard position={[0, 1.55, 0]}>
+        <Text fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>TONY</Text>
       </Billboard>
-      {/* Shadow */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}><circleGeometry args={[0.25, 16]} /><Mat color="#000000" transparent opacity={0.18} /></mesh>
+      {/* ── Shadow circle ── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+        <circleGeometry args={[0.3, 16]} /><Mat color="#000000" transparent opacity={0.18} />
+      </mesh>
     </group>
   );
 }
@@ -1179,64 +1257,98 @@ export function EarlCharacter() {
   });
 
   return (
-    <group ref={ref} position={[13, 0, 4.45]} rotation={[0, Math.PI, 0]} userData={{ interactType: "laundro_clerk", label: "Talk to Earl" }}>
-      {/* Legs */}
-      <mesh position={[-0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#2a3a2a" roughness={0.85} /></mesh>
-      <mesh position={[0.08, 0.3, 0]}><boxGeometry args={[0.12, 0.6, 0.13]} /><Mat color="#2a3a2a" roughness={0.85} /></mesh>
-      {/* Shoes */}
-      <mesh position={[-0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#3a3a3a" roughness={0.7} /></mesh>
-      <mesh position={[0.08, 0.03, -0.02]}><boxGeometry args={[0.13, 0.07, 0.18]} /><Mat color="#3a3a3a" roughness={0.7} /></mesh>
-      {/* Belt */}
-      <mesh position={[0, 0.6, 0]}><boxGeometry args={[0.3, 0.04, 0.16]} /><Mat color="#2a2a2a" roughness={0.7} /></mesh>
-      {/* Torso — gray shirt */}
-      <RoundedBox args={[0.4, 0.6, 0.25]} radius={0.04} smoothness={2} position={[0, 0.85, 0]}><Mat color="#707070" roughness={0.7} /></RoundedBox>
-      {/* Collar */}
-      <mesh position={[0, 1.08, -0.05]}><boxGeometry args={[0.2, 0.05, 0.14]} /><Mat color="#707070" roughness={0.6} /></mesh>
-      {/* Name tag */}
-      <mesh position={[0.12, 0.95, -0.12]}><boxGeometry args={[0.14, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>
-      <Text position={[0.12, 0.95, -0.135]} rotation={[0, Math.PI, 0]} fontSize={0.028} color="#1a1a1a" anchorX="center" font={undefined}>EARL</Text>
-      {/* Arms */}
-      <group ref={leftArmRef} position={[-0.24, 1.05, 0]}>
-        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#707070" roughness={0.7} /></mesh>
-        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#d4a574" roughness={0.8} /></mesh>
+    <group ref={ref} position={[13, 0, 4.45]} rotation={[0, Math.PI, 0]} scale={1.45} userData={{ interactType: "laundro_clerk", label: "Talk to Earl" }}>
+      {/* ── Legs (short, stubby) ── */}
+      <mesh position={[-0.08, 0.175, 0]} userData={{ interactType: "laundro_clerk", label: "Talk to Earl" }}>
+        <boxGeometry args={[0.12, 0.35, 0.12]} /><Mat color="#2a3a2a" roughness={0.85} />
+      </mesh>
+      <mesh position={[0.08, 0.175, 0]}>
+        <boxGeometry args={[0.12, 0.35, 0.12]} /><Mat color="#2a3a2a" roughness={0.85} />
+      </mesh>
+      {/* ── Shoes ── */}
+      <mesh position={[-0.08, 0.025, 0]}>
+        <boxGeometry args={[0.13, 0.05, 0.14]} /><Mat color="#3a3a3a" roughness={0.7} />
+      </mesh>
+      <mesh position={[0.08, 0.025, 0]}>
+        <boxGeometry args={[0.13, 0.05, 0.14]} /><Mat color="#3a3a3a" roughness={0.7} />
+      </mesh>
+      {/* ── Belt ── */}
+      <mesh position={[0, 0.37, 0]}>
+        <boxGeometry args={[0.34, 0.04, 0.21]} /><Mat color="#2a2a2a" roughness={0.7} />
+      </mesh>
+      {/* ── Torso (normal build) ── */}
+      <RoundedBox args={[0.32, 0.35, 0.2]} radius={0.03} smoothness={2} position={[0, 0.57, 0]}>
+        <Mat color="#707070" roughness={0.7} />
+      </RoundedBox>
+      {/* ── Name tag (gold EARL) ── */}
+      <mesh position={[0.1, 0.6, -0.105]}>
+        <boxGeometry args={[0.12, 0.06, 0.01]} /><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} />
+      </mesh>
+      <Text position={[0.1, 0.6, -0.115]} rotation={[0, Math.PI, 0]} fontSize={0.025} color="#1a1a1a" anchorX="center" font={undefined}>EARL</Text>
+      {/* ── Arms (gray shirt, stubby) ── */}
+      <group ref={leftArmRef} position={[-0.21, 0.65, 0]}>
+        <mesh position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.1, 0.3, 0.1]} /><Mat color="#707070" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.05, 8, 8]} /><Mat color="#b8896c" roughness={0.8} />
+        </mesh>
       </group>
-      <group ref={rightArmRef} position={[0.24, 1.05, 0]}>
-        <mesh position={[0, -0.2, 0]}><boxGeometry args={[0.11, 0.4, 0.12]} /><Mat color="#707070" roughness={0.7} /></mesh>
-        <mesh position={[0, -0.44, 0]}><sphereGeometry args={[0.055, 8, 8]} /><Mat color="#d4a574" roughness={0.8} /></mesh>
+      <group ref={rightArmRef} position={[0.21, 0.65, 0]}>
+        <mesh position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.1, 0.3, 0.1]} /><Mat color="#707070" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.05, 8, 8]} /><Mat color="#b8896c" roughness={0.8} />
+        </mesh>
       </group>
-      {/* Head — bald */}
-      <group ref={headRef} position={[0, 1.35, 0]}>
-        <RoundedBox args={[0.26, 0.26, 0.26]} radius={0.08} smoothness={2} scale={[1, 1.1, 0.9]}><Mat color="#d4a574" roughness={0.75} /></RoundedBox>
-        {/* Glasses — simple box frames */}
-        <mesh position={[-0.07, 0.01, -0.18]}><boxGeometry args={[0.08, 0.06, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
-        <mesh position={[0.07, 0.01, -0.18]}><boxGeometry args={[0.08, 0.06, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
-        {/* Glasses bridge */}
-        <mesh position={[0, 0.01, -0.19]}><boxGeometry args={[0.03, 0.015, 0.006]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
-        {/* Glasses arms */}
-        <mesh position={[-0.11, 0.01, -0.12]} rotation={[0, 0.3, 0]}><boxGeometry args={[0.005, 0.005, 0.12]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
-        <mesh position={[0.11, 0.01, -0.12]} rotation={[0, -0.3, 0]}><boxGeometry args={[0.005, 0.005, 0.12]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} /></mesh>
-        {/* Lens tint */}
-        <mesh position={[-0.07, 0.01, -0.19]}><boxGeometry args={[0.065, 0.045, 0.001]} /><Mat color="#e8e8ff" transparent opacity={0.12} /></mesh>
-        <mesh position={[0.07, 0.01, -0.19]}><boxGeometry args={[0.065, 0.045, 0.001]} /><Mat color="#e8e8ff" transparent opacity={0.12} /></mesh>
+      {/* ── Head (BIG, Minecraft-style — BALD, slightly darker skin) ── */}
+      <group ref={headRef} position={[0, 1.02, 0]}>
+        {/* Head block — no hair, just skin */}
+        <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.04} smoothness={2} position={[0, 0, 0]}>
+          <Mat color="#b8896c" roughness={0.75} />
+        </RoundedBox>
+        {/* Glasses — box frames (similar to Vinny) */}
+        <mesh position={[-0.08, 0.02, -0.176]}>
+          <boxGeometry args={[0.09, 0.07, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.176]}>
+          <boxGeometry args={[0.09, 0.07, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} />
+        </mesh>
+        <mesh position={[0, 0.02, -0.176]}>
+          <boxGeometry args={[0.04, 0.015, 0.01]} /><Mat color="#2a2a2a" roughness={0.3} metalness={0.4} />
+        </mesh>
         {/* Eyes (behind glasses) */}
-        <mesh position={[-0.07, 0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh position={[0.07, 0.01, -0.17]}><sphereGeometry args={[0.025, 8, 8]} /><Mat color="#ffffff" roughness={0.3} /></mesh>
-        <mesh position={[-0.07, 0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        <mesh position={[0.07, 0.01, -0.195]}><sphereGeometry args={[0.013, 8, 8]} /><Mat color="#1a1a1a" /></mesh>
-        {/* Mouth */}
-        <mesh position={[0, -0.1, -0.18]}><boxGeometry args={[0.08, 0.015, 0.02]} /><Mat color="#c07060" roughness={0.8} /></mesh>
+        <mesh position={[-0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.17]}>
+          <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
+        </mesh>
+        {/* Pupils */}
+        <mesh position={[-0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
+        </mesh>
+        <mesh position={[0.08, 0.02, -0.2]}>
+          <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
+        </mesh>
         {/* Nose */}
-        <mesh position={[0, -0.04, -0.2]}><sphereGeometry args={[0.02, 8, 8]} /><Mat color="#c49a6a" roughness={0.8} /></mesh>
-        {/* Ears */}
-        <mesh position={[-0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#d4a574" roughness={0.75} /></mesh>
-        <mesh position={[0.19, 0, 0]}><sphereGeometry args={[0.035, 8, 8]} /><Mat color="#d4a574" roughness={0.75} /></mesh>
+        <mesh position={[0, -0.03, -0.18]}>
+          <sphereGeometry args={[0.025, 8, 8]} /><Mat color="#a07a5a" roughness={0.8} />
+        </mesh>
+        {/* Mouth (no mustache — he's clean-shaven) */}
+        <mesh position={[0, -0.1, -0.17]}>
+          <boxGeometry args={[0.08, 0.025, 0.02]} /><Mat color="#c07060" roughness={0.8} />
+        </mesh>
       </group>
-      {/* Name billboard */}
-      <Billboard position={[0, 1.8, 0]}>
-        <Text fontSize={0.09} color="#ffd700" anchorX="center" font={undefined}>EARL</Text>
+      {/* ── Billboard name label ── */}
+      <Billboard position={[0, 1.55, 0]}>
+        <Text fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>EARL</Text>
       </Billboard>
-      {/* Shadow */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}><circleGeometry args={[0.25, 16]} /><Mat color="#000000" transparent opacity={0.18} /></mesh>
+      {/* ── Shadow circle ── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+        <circleGeometry args={[0.28, 16]} /><Mat color="#000000" transparent opacity={0.18} />
+      </mesh>
     </group>
   );
 }
