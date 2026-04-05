@@ -740,16 +740,50 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  align-items: flex-end;
+  align-items: stretch;
   pointer-events: auto;
   flex-shrink: 0;
   min-width: 240px;
 }
 
-.g3-hud-actions {
+.g3-hud-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.g3-hud-stat {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid rgba(255, 215, 0, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.g3-hud-stat-label {
+  font-size: 0.34rem;
+  color: rgba(255, 215, 0, 0.7);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.g3-hud-stat-value {
+  min-width: 0;
+  font-size: 0.5rem;
+  color: #fff1b2;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.g3-hud-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -830,8 +864,11 @@
 .g3-hud-button {
   display: inline-flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   min-height: 34px;
+  min-width: 0;
+  width: 100%;
   background: rgba(0, 0, 0, 0.78);
   border: 2px solid rgba(255, 215, 0, 0.22);
   border-radius: 0;
@@ -2318,12 +2355,12 @@
   }
 
   .g3-hud-actions {
-    justify-content: stretch;
     gap: 6px;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .g3-hud-button {
-    flex: 1 1 calc(50% - 3px);
     justify-content: center;
     min-height: 32px;
     font-size: 0.38rem;
