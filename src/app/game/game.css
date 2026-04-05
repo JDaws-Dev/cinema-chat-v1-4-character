@@ -3032,38 +3032,58 @@
 }
 
 /* Streaming providers */
+.vhs-back-streaming {
+  margin-top: 10px;
+  padding: 8px 10px 9px;
+  border: 1px solid rgba(255, 215, 0, 0.18);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.vhs-back-streaming-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.64em;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.52);
+  margin-bottom: 6px;
+}
+
 .vhs-back-provider-stack {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .vhs-back-providers {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin-top: 10px;
-  font-size: 0.75em;
+  gap: 6px;
+  font-size: 0.68em;
+  line-height: 1.35;
 }
 
 .vhs-back-provider-logos {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .vhs-back-provider-icon {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 3px;
 }
 
 .vhs-back-provider-text {
   color: #999;
   background: #2a2a3a;
-  padding: 2px 6px;
+  padding: 1px 5px;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 0.84em;
 }
 
 /* Action buttons */
@@ -3211,6 +3231,19 @@
     width: calc(100vw - 24px);
     max-height: 90vh;
     padding: 20px 16px 14px;
+  }
+  .vhs-back-streaming {
+    padding: 7px 8px 8px;
+  }
+  .vhs-back-streaming-kicker {
+    font-size: 0.58em;
+  }
+  .vhs-back-providers {
+    font-size: 0.63em;
+  }
+  .vhs-back-provider-icon {
+    width: 16px;
+    height: 16px;
   }
   .vhs-back-poster {
     width: 80px;

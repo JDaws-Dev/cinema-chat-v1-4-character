@@ -181,21 +181,24 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
 
             {/* Streaming */}
             {providerSections.length > 0 && (
-              <div className="vhs-back-provider-stack">
-                {providerSections.map((section) => (
-                  <div key={section.label} className="vhs-back-providers">
-                    <span className="vhs-back-label">{section.label}:</span>
-                    <span className="vhs-back-provider-logos">
-                      {section.items.map((p) =>
-                        p.logoPath ? (
-                          <img key={`${section.label}-${p.id}`} src={p.logoPath} alt={p.name} title={p.name} className="vhs-back-provider-icon" />
-                        ) : (
-                          <span key={`${section.label}-${p.id}`} className="vhs-back-provider-text">{p.name}</span>
-                        )
-                      )}
-                    </span>
-                  </div>
-                ))}
+              <div className="vhs-back-streaming">
+                <div className="vhs-back-streaming-kicker">WHERE IT'S STREAMING</div>
+                <div className="vhs-back-provider-stack">
+                  {providerSections.map((section) => (
+                    <div key={section.label} className="vhs-back-providers">
+                      <span className="vhs-back-label">{section.label}:</span>
+                      <span className="vhs-back-provider-logos">
+                        {section.items.map((p) =>
+                          p.logoPath ? (
+                            <img key={`${section.label}-${p.id}`} src={p.logoPath} alt={p.name} title={p.name} className="vhs-back-provider-icon" />
+                          ) : (
+                            <span key={`${section.label}-${p.id}`} className="vhs-back-provider-text">{p.name}</span>
+                          )
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
