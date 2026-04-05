@@ -190,7 +190,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                         className="vhs-rent-btn"
                         onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
                       >
-                        TAKE TO HAND
+                        PICK UP
                       </button>
                       <button
                         type="button"
@@ -200,7 +200,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                         TURN OVER
                       </button>
                       <button className="vhs-putback-btn" onClick={onClose}>
-                        PUT IT BACK
+                        PUT BACK
                       </button>
                     </>
                   ) : (
@@ -294,22 +294,22 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                   <div className="vhs-back-actions">
                     {onRent ? (
                       <>
-                        <button
-                          className="vhs-rent-btn"
-                          onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
-                        >
-                          TAKE TO HAND
-                        </button>
+                      <button
+                        className="vhs-rent-btn"
+                        onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
+                      >
+                        PICK UP
+                      </button>
                         <button
                           type="button"
                           className="vhs-turn-btn"
                           onClick={() => setIsFlipped(false)}
                         >
-                          SEE FRONT
+                          TURN OVER
                         </button>
-                        <button className="vhs-putback-btn" onClick={onClose}>
-                          PUT IT BACK
-                        </button>
+                      <button className="vhs-putback-btn" onClick={onClose}>
+                        PUT BACK
+                      </button>
                       </>
                     ) : (
                       <>
@@ -318,7 +318,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                           className="vhs-turn-btn"
                           onClick={() => setIsFlipped(false)}
                         >
-                          SEE FRONT
+                          TURN OVER
                         </button>
                         <button
                           onClick={toggleWatchlist}
