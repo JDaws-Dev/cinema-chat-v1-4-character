@@ -53,6 +53,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
   const [loading, setLoading] = useState(false);
   const [onList, setOnList] = useState(false);
   const [userRating, setUserRating] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
     if (!filmId) return;
@@ -77,6 +78,13 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
   }, [film]);
 
   const barcode = useMemo(() => barcodeWidths(film?.title ?? ""), [film?.title]);
+
+  useEffect(() => {
+    if (!film) return;
+    setIsFlipped(false);
+    const timer = window.setTimeout(() => setIsFlipped(true), 260);
+    return () => window.clearTimeout(timer);
+  }, [film?.id]);
 
   if (!filmId) return null;
 
@@ -128,7 +136,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
 
       {/* VHS Back Case */}
       <div
-        className="vhs-back"
+        className="vhs-back vhs-case-shell"
         style={{ "--genre-color": genreColor } as React.CSSProperties}
         onClick={(e) => e.stopPropagation()}
       >
@@ -141,106 +149,141 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
             {/* Close X */}
             <button onClick={onClose} className="vhs-back-close" aria-label="Close">&times;</button>
 
-            {/* VHS Tape Window — the iconic cassette reels graphic */}
-            <div className="vhs-tape-window">
-              <div className="vhs-tape-reel" />
-              <div className="vhs-tape-film" />
-              <div className="vhs-tape-reel" />
-            </div>
-
-            {/* Title banner — big and bold like a real VHS */}
-            <h2 className="vhs-back-title">{film.title.toUpperCase()}</h2>
-
-            {/* Meta line */}
-            <p className="vhs-back-meta">
-              {film.year} &bull; {film.runtime ? `${film.runtime} min` : ''} &bull; {film.genres.slice(0, 2).join(' / ')}
-            </p>
-
-            {/* Rating badge */}
-            {film.voteAverage && (
-              <div className="vhs-rating-badge">
-                ★ {(film.voteAverage / 2).toFixed(1)}
+            <div className={`vhs-case ${isFlipped ? "vhs-case--flipped" : ""}`}>
+              <div className="vhs-case-face vhs-case-front">
+                <div className="vhs-case-front-badge">PICK UP THE CASE</div>
+                <div className="vhs-case-front-art">
+                  {film.backdropUrl ? (
+                    <img src={film.backdropUrl} alt="" className="vhs-case-front-backdrop" />
+                  ) : film.posterUrl ? (
+                    <img src={film.posterUrl} alt="" className="vhs-case-front-backdrop" />
+                  ) : (
+                    <div className="vhs-case-front-placeholder" />
+                  )}
+                  <div className="vhs-case-front-shade" />
+                  {film.posterUrl && (
+                    <img src={film.posterUrl} alt={film.title} className="vhs-case-front-poster" />
+                  )}
+                </div>
+                <div className="vhs-case-front-copy">
+                  <h2 className="vhs-case-front-title">{film.title.toUpperCase()}</h2>
+                  {film.tagline && (
+                    <p className="vhs-case-front-tagline">“{film.tagline}”</p>
+                  )}
+                  <p className="vhs-case-front-meta">
+                    {film.year} &bull; {film.runtime ? `${film.runtime} min` : ""} &bull; {film.genres.slice(0, 2).join(" / ")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="vhs-case-flip-btn"
+                  onClick={() => setIsFlipped(true)}
+                >
+                  TURN IT OVER
+                </button>
               </div>
-            )}
 
-            {/* Poster + Synopsis side by side */}
-            <div className="vhs-back-body">
-              {film.posterUrl && (
-                <img src={film.posterUrl} alt={film.title} className="vhs-back-poster" />
-              )}
-              <div className="vhs-back-text">
-                {film.overview && (
-                  <p className="vhs-back-synopsis">{film.overview}</p>
+              <div className="vhs-case-face vhs-case-back">
+                {/* VHS Tape Window — the iconic cassette reels graphic */}
+                <div className="vhs-tape-window">
+                  <div className="vhs-tape-reel" />
+                  <div className="vhs-tape-film" />
+                  <div className="vhs-tape-reel" />
+                </div>
+
+                {/* Title banner — big and bold like a real VHS */}
+                <h2 className="vhs-back-title">{film.title.toUpperCase()}</h2>
+
+                {/* Meta line */}
+                <p className="vhs-back-meta">
+                  {film.year} &bull; {film.runtime ? `${film.runtime} min` : ''} &bull; {film.genres.slice(0, 2).join(' / ')}
+                </p>
+
+                {/* Rating badge */}
+                {film.voteAverage && (
+                  <div className="vhs-rating-badge">
+                    ★ {(film.voteAverage / 2).toFixed(1)}
+                  </div>
                 )}
-                <div className="vhs-back-credits">
-                  {film.director && <p><span className="vhs-back-label">DIR:</span> {film.director}</p>}
-                  {topCast && <p><span className="vhs-back-label">CAST:</span> {topCast}</p>}
-                </div>
-              </div>
-            </div>
 
-            {/* Streaming */}
-            {providerSections.length > 0 && (
-              <div className="vhs-back-streaming">
-                <div className="vhs-back-streaming-kicker">WHERE IT'S STREAMING</div>
-                <div className="vhs-back-provider-stack">
-                  {providerSections.map((section) => (
-                    <div key={section.label} className="vhs-back-providers">
-                      <span className="vhs-back-label">{section.label}:</span>
-                      <span className="vhs-back-provider-logos">
-                        {section.items.map((p) =>
-                          p.logoPath ? (
-                            <img key={`${section.label}-${p.id}`} src={p.logoPath} alt={p.name} title={p.name} className="vhs-back-provider-icon" />
-                          ) : (
-                            <span key={`${section.label}-${p.id}`} className="vhs-back-provider-text">{p.name}</span>
-                          )
-                        )}
-                      </span>
+                {/* Poster + Synopsis side by side */}
+                <div className="vhs-back-body">
+                  {film.posterUrl && (
+                    <img src={film.posterUrl} alt={film.title} className="vhs-back-poster" />
+                  )}
+                  <div className="vhs-back-text">
+                    {film.overview && (
+                      <p className="vhs-back-synopsis">{film.overview}</p>
+                    )}
+                    <div className="vhs-back-credits">
+                      {film.director && <p><span className="vhs-back-label">DIR:</span> {film.director}</p>}
+                      {topCast && <p><span className="vhs-back-label">CAST:</span> {topCast}</p>}
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                {/* Streaming */}
+                {providerSections.length > 0 && (
+                  <div className="vhs-back-streaming">
+                    <div className="vhs-back-streaming-kicker">WHERE IT'S STREAMING</div>
+                    <div className="vhs-back-provider-stack">
+                      {providerSections.map((section) => (
+                        <div key={section.label} className="vhs-back-providers">
+                          <span className="vhs-back-label">{section.label}:</span>
+                          <span className="vhs-back-provider-logos">
+                            {section.items.map((p) =>
+                              p.logoPath ? (
+                                <img key={`${section.label}-${p.id}`} src={p.logoPath} alt={p.name} title={p.name} className="vhs-back-provider-icon" />
+                              ) : (
+                                <span key={`${section.label}-${p.id}`} className="vhs-back-provider-text">{p.name}</span>
+                              )
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="vhs-back-actions">
+                  {onRent ? (
+                    <>
+                      <button
+                        className="vhs-rent-btn"
+                        onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
+                      >
+                        TAKE TO HAND
+                      </button>
+                      <button className="vhs-putback-btn" onClick={onClose}>
+                        PUT IT BACK
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={toggleWatchlist}
+                        className={`vhs-back-pick-btn ${onList ? "vhs-back-pick-btn--active" : ""}`}
+                      >
+                        {onList ? "\u2605 On Watchlist" : "\u2606 Pick this movie"}
+                      </button>
+                      <StarRating rating={userRating} onRate={handleRate} size="sm" />
+                    </>
+                  )}
+                </div>
+
+                {/* Footer: barcode + year */}
+                <div className="vhs-back-footer">
+                  <div className="vhs-back-barcode" aria-hidden="true">
+                    {barcode.map((w, i) => (
+                      <span key={i} style={{ width: w }} />
+                    ))}
+                  </div>
+                  <span className="vhs-back-copyright">
+                    {film.year ? `\u00A9${film.year}` : ""}
+                  </span>
                 </div>
               </div>
-            )}
-
-            {/* Actions */}
-            <div className="vhs-back-actions">
-              {onRent ? (
-                <>
-                  <button
-                    className="vhs-rent-btn"
-                    onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
-                  >
-                    ▶ GRAB THIS
-                  </button>
-                  <button className="vhs-putback-btn" onClick={onClose}>
-                    PUT IT BACK
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={toggleWatchlist}
-                    className={`vhs-back-pick-btn ${onList ? "vhs-back-pick-btn--active" : ""}`}
-                  >
-                    {onList ? "\u2605 On Watchlist" : "\u2606 Pick this movie"}
-                  </button>
-                  <StarRating rating={userRating} onRate={handleRate} size="sm" />
-                </>
-              )}
-            </div>
-
-            {/* Similar films removed — keep it simple */}
-
-            {/* Footer: barcode + year */}
-            <div className="vhs-back-footer">
-              <div className="vhs-back-barcode" aria-hidden="true">
-                {barcode.map((w, i) => (
-                  <span key={i} style={{ width: w }} />
-                ))}
-              </div>
-              <span className="vhs-back-copyright">
-                {film.year ? `\u00A9${film.year}` : ""}
-              </span>
             </div>
           </>
         )}
