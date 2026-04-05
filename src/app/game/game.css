@@ -2982,12 +2982,13 @@
   gap: 6px;
 }
 
-.vhs-case-front-actions {
+.vhs-case-actions {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   margin-top: auto;
+  padding-top: 0;
   flex-wrap: wrap;
 }
 
@@ -3201,16 +3202,6 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.vhs-back-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 0;
-  flex-wrap: wrap;
-}
-
 .vhs-back-pick-btn,
 .vhs-rent-btn,
 .vhs-putback-btn,
@@ -3300,7 +3291,7 @@
     width: 96px;
     align-self: flex-end;
   }
-  .vhs-back-actions {
+  .vhs-case-actions {
     gap: 8px;
   }
   .vhs-rent-btn,
@@ -3309,7 +3300,7 @@
   .vhs-turn-btn {
     width: 100%;
   }
-  .vhs-case-front-actions {
+  .vhs-case-actions {
     flex-direction: column;
     align-items: stretch;
   }

@@ -136,7 +136,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
   const caseArtUrl = film?.posterUrl || film?.backdropUrl || null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" onClick={onClose}>
       {/* Backdrop overlay */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
@@ -173,7 +173,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                     {film.year} &bull; {film.runtime ? `${film.runtime} min` : ""} &bull; {film.genres.slice(0, 2).join(" / ")}
                   </p>
                 </div>
-                <div className="vhs-case-front-actions">
+                <div className="vhs-case-actions">
                   {onRent ? (
                     <>
                       <button
@@ -242,7 +242,7 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                     </aside>
                   </div>
 
-                  <div className="vhs-back-actions">
+                  <div className="vhs-case-actions">
                     {onRent ? (
                       <>
                         <button
