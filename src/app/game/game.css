@@ -3042,12 +3042,11 @@
   width: 100%;
   height: 100%;
   padding: 12px;
-  background:
-    linear-gradient(180deg, #ece0c4 0%, #ddcfaf 100%);
+  background: #e4d3b2;
   border-radius: 8px;
   border: 1px solid rgba(76, 57, 29, 0.28);
   color: #241b12;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
+  box-shadow: none;
 }
 
 .vhs-back-paper-kicker {
@@ -3206,9 +3205,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: auto;
-  padding-top: 2px;
+  padding-top: 0;
   flex-wrap: wrap;
 }
 
