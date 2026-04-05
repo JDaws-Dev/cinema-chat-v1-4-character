@@ -107,3 +107,99 @@
 
 ### Retro Rewind Press Wave
 Still active (March 2026). Narrow window to ride it with targeted press outreach.
+
+---
+
+## Addendum -- 2026-04-05
+
+### Latest Research: World Models, 3D Building, and QA
+
+#### External notes
+- **Google DeepMind -- Genie 2**: the strongest takeaway is not "generate the whole shipped game with AI." It is **rapid interactive prototyping from a single concept image**, then using agent tasks to test whether the world stays spatially coherent. Useful lesson for us: concept art and rough blockouts are acceptable inputs early, but final game spaces still need human-authored geometry, landmark design, and explicit collision rules.
+- **Google DeepMind -- Gemini 2.0 / agents in games**: the useful pattern is **agent-plus-environment evaluation**. The demo framing is consistent: give an agent a concrete world task like "open the blue door" or "go behind the house" and see whether the environment remains legible and consistent under action.
+- **Playwright visual comparison docs**: strongest QA pattern is to keep **reference screenshots in a stable environment**, then compare future runs against those baselines. Cross-machine screenshot drift is real, so screenshot QA should be generated and compared in the same local or CI environment.
+- **Playwright projects docs**: desktop and mobile should be treated as separate test targets, not just CSS breakpoints. We should run the same high-value interactions on at least one desktop profile and one mobile profile.
+
+#### Direct implications for Friday Night Video
+- Use AI/world-model research for **layout ideation, interaction scenarios, and evaluation prompts**, not for final authored geometry.
+- Treat every major 3D change as both a **visual design problem** and a **navigation/readability problem**.
+- QA should verify whether a player or agent can:
+  - identify the focal landmark in 5 seconds
+  - move through the space without clipping
+  - interpret signage correctly from the intended side
+  - complete a shelf, counter, or doorway interaction without camera or UI confusion
+
+### Repo-Specific 3D Building Process
+
+This repo now has a clearer working process, combining the external research above with the in-repo guides:
+- Start with **real-world reference and proportions**, especially for storefronts, stairs, counter lines, shelf height, and signage placement.
+- Build the **largest readable masses first**:
+  - overall building envelope
+  - parapet/sign band
+  - storefront openings
+  - stairs / landings / sidewalk continuity
+- Only add secondary detail after the massing reads correctly from the parking lot camera and the street-level player view.
+- Anchor all gameplay-critical objects to a clear physical owner:
+  - signs belong to walls or counters
+  - NPCs belong to walkable lanes
+  - VHS interactions belong to fixed browse points or held-view states
+- Never trust "it compiles" as proof that the 3D space works. The visual read and collision read must both be checked.
+
+### QA Workflow for This Project
+
+#### Required pass after meaningful gameplay or UI changes
+1. Run `npm run build`.
+2. Run the live game locally and test the main route:
+   - `http://localhost:3001/game`
+3. Run visual QA capture when spatial work changes:
+   - `npm run visual-qa`
+4. Check desktop and mobile separately.
+5. Verify at least these interaction classes:
+   - navigation through aisles
+   - counter approach and checkout
+   - NPC blocking / idle / browse behavior
+   - VHS inspect / pick up / put back flow
+   - HUD readability with no overlap
+
+#### Practical visual checks
+- **Parking lot read test**: can you identify the building, brand sign, and front entrance immediately?
+- **Landmark test**: is the counter still the brightest and clearest destination when the objective says to return to Vinny?
+- **Shelf test**: can the player see top, middle, and bottom VHS rows without camera judder?
+- **Collision test**: can the player avoid walking through racks, counters, and NPC bodies?
+- **Facing test**: are customer-facing signs actually facing customers, and clerk-facing signs facing Vinny/counter staff?
+- **HUD test**: can you understand the current objective in one glance on desktop and on mobile?
+
+#### Good QA habit from the current work
+- Build after each real fix.
+- Hard refresh when validating visual UI changes.
+- Compare the local result against an actual screenshot, not memory.
+- If the screen still looks "filtered," inspect for global overlays before changing local component styling.
+
+### Shipped Changes on 2026-04-05
+
+These are now reflected in the live `main` branch:
+- Removed the **global CRT scanline overlay** from the game-wide UI layer.
+- Reworked the **VHS case inspection flow** into a cleaner front/back case presentation with shared actions.
+- Reduced the VHS back cover to a more fixed, box-like layout and removed the in-case streaming panel.
+- Simplified the **HUD** from a dense multi-block header into a flatter hierarchy that works better on desktop and mobile.
+- Removed the HUD's CRT toggle after removing the global CRT overlay.
+- Lowered and stabilized **crouch / kneel** behavior so the bottom VHS rack is readable.
+- Improved several **NPC collision and presentation issues**, including blocking against player movement and reducing some head/rig mismatches.
+
+### Open Follow-Ups
+- HUD may still need one more desktop reduction pass if the mission band is judged too loud.
+- Named character polish (especially Charlie / Vinny) still needs a dedicated appearance and animation cleanup pass.
+- A proper automated browser QA setup should be added with Playwright projects for:
+  - desktop Chromium
+  - mobile Safari emulation
+  - mobile Chrome emulation
+
+### Sources Consulted
+- Google DeepMind: Genie 2 -- https://deepmind.google/blog/genie-2-a-large-scale-foundation-world-model/
+- Google DeepMind: Gemini 2.0 -- https://blog.google/innovation-and-ai/models-and-research/google-deepmind/google-gemini-ai-update-december-2024/
+- Playwright visual comparisons -- https://playwright.dev/docs/next/test-snapshots
+- Playwright projects -- https://playwright.dev/docs/test-projects
+- In-repo references:
+  - `3D-DESIGN-GUIDE.md`
+  - `DESIGN-3D-ARCHITECTURE-METHODOLOGY.md`
+  - `HUD-DESIGN.md`
