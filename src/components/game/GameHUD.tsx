@@ -93,82 +93,39 @@ export function GameHUD({
     objectiveProgressLabel = heldStackLabel;
   }
 
+  const clampedTierProgress = Math.min(Math.max(tierProgress, 0), 100);
+  const statusPills = [
+    { label: "Time", value: formatGameTime(gameTime) },
+    { label: "Close", value: closeCountdownLabel },
+    { label: "Stack", value: heldStackLabel },
+    { label: "Member", value: `${currentTier.emoji} ${currentTier.name}` },
+  ];
+  const tierStatus = nextTier
+    ? `${totalXP} XP · ${Math.round(clampedTierProgress)}% to ${nextTier.name}`
+    : `${totalXP} XP · Max tier`;
+
   return (
     <>
       {/* HUD top bar */}
       <div className="g3-hud">
-        <div className="g3-hud-brand">
-          <div className="g3-hud-logo" aria-hidden="true">
-            <span className="g3-hud-logo-left" />
-            <span className="g3-hud-logo-right" />
+        <div className="g3-hud-topline">
+          <div className="g3-hud-brand">
+            <div className="g3-hud-logo" aria-hidden="true">
+              <span className="g3-hud-logo-left" />
+              <span className="g3-hud-logo-right" />
+            </div>
+            <div className="g3-hud-brand-copy">
+              <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
+              <span className="g3-hud-brand-subtitle">Neighborhood video store · {eraLabel}</span>
+            </div>
           </div>
-          <div className="g3-hud-brand-copy">
-            <span className="g3-hud-title">FRIDAY NIGHT VIDEO</span>
-            <span className="g3-hud-brand-subtitle">Neighborhood video store · {eraLabel}</span>
-          </div>
-        </div>
-        <div className="g3-hud-marquee">
-          <div className="g3-hud-chip-row">
-            <span className="g3-hud-chip">{storeMode}</span>
-            {challenge && (
-              <span className="g3-hud-chip">
-                {challenge.type === "vinnys_mystery" ? "Mystery hunt" : challenge.type === "speed_run" ? "Speed run" : "Movie night"}
+          <div className="g3-hud-pills" aria-label="Shift status">
+            {statusPills.map((pill) => (
+              <span key={pill.label} className="g3-hud-pill">
+                <span className="g3-hud-pill-label">{pill.label}</span>
+                <span className="g3-hud-pill-value">{pill.value}</span>
               </span>
-            )}
-            {heldMovies.length > 0 && <span className="g3-hud-chip">{heldStackLabel}</span>}
-          </div>
-          <div className="g3-hud-mission">
-            <div className="g3-hud-mission-copy">
-              <span className="g3-hud-mission-label">Now Playing</span>
-              <span className="g3-hud-hint">{objectiveTitle}</span>
-              <span className="g3-hud-mission-subtitle">{objectiveSubtitle}</span>
-            </div>
-            <div className="g3-hud-mission-meter">
-              <div className="g3-hud-mission-meter-track">
-                <div
-                  className="g3-hud-mission-meter-fill"
-                  style={{ width: `${Math.min(Math.max(objectiveProgressPercent, 0), 100)}%` }}
-                />
-              </div>
-              <span className="g3-hud-mission-meter-label">{objectiveProgressLabel}</span>
-            </div>
-          </div>
-        </div>
-        <div className="g3-hud-right">
-          <div className="g3-tier-badge" style={{
-            border: `2px solid ${currentTier.color}`,
-            color: currentTier.color,
-          }}>
-            <span className="g3-tier-badge-emoji">{currentTier.emoji}</span>
-            <div className="g3-tier-badge-copy">
-              <span className="g3-tier-badge-name">{currentTier.name.toUpperCase()}</span>
-              <span className="g3-tier-badge-xp">{totalXP} XP</span>
-            </div>
-            <div className="g3-tier-badge-bar" aria-hidden="true">
-              <div className="g3-tier-badge-fill" style={{ width: `${Math.min(tierProgress, 100)}%`, background: currentTier.color }} />
-            </div>
-          </div>
-          <div className="g3-hud-stats" aria-label="Shift status">
-            <div className="g3-hud-stat">
-              <span className="g3-hud-stat-label">Time</span>
-              <span className="g3-hud-stat-value">{formatGameTime(gameTime)}</span>
-            </div>
-            <div className="g3-hud-stat">
-              <span className="g3-hud-stat-label">Close</span>
-              <span className="g3-hud-stat-value">{closeCountdownLabel}</span>
-            </div>
-            <div className="g3-hud-stat">
-              <span className="g3-hud-stat-label">Stack</span>
-              <span className="g3-hud-stat-value">{heldStackLabel}</span>
-            </div>
-            <div className="g3-hud-stat">
-              <span className="g3-hud-stat-label">{challenge ? (challenge.timeLimit ? "Timer" : "Quest") : "Next"}</span>
-              <span className="g3-hud-stat-value">
-                {challenge
-                  ? (challenge.timeLimit ? `${Math.max(0, challenge.timeLimit - challengeTimer)}s` : `${challengeTimer}s`)
-                  : nextTier ? `${nextTier.name} @ ${nextTier.minXP} XP` : "Max tier"}
-              </span>
-            </div>
+            ))}
           </div>
           <div className="g3-hud-actions">
             {!hasOverlay && !topDown && heldMovies.length > 0 && (
@@ -195,6 +152,24 @@ export function GameHUD({
               <span className="g3-hud-button-label">{audioMuted ? "Muted" : "Audio"}</span>
               <span className="g3-hud-button-key">{audioMuted ? "OFF" : "ON"}</span>
             </button>
+          </div>
+        </div>
+        <div className="g3-hud-mission">
+          <div className="g3-hud-mission-copy">
+            <span className="g3-hud-mission-label">Now Playing · {storeMode}</span>
+            <span className="g3-hud-hint">{objectiveTitle}</span>
+            <span className="g3-hud-mission-subtitle">{objectiveSubtitle}</span>
+          </div>
+          <div className="g3-hud-mission-side">
+            <span className="g3-hud-mission-side-primary">{currentTier.emoji} {currentTier.name}</span>
+            <span className="g3-hud-mission-side-secondary">{tierStatus}</span>
+            <div className="g3-hud-mission-meter-track">
+              <div
+                className="g3-hud-mission-meter-fill"
+                style={{ width: `${Math.min(Math.max(objectiveProgressPercent, 0), 100)}%` }}
+              />
+            </div>
+            <span className="g3-hud-mission-meter-label">{objectiveProgressLabel}</span>
           </div>
         </div>
       </div>
