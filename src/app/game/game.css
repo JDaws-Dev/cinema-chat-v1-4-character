@@ -2965,6 +2965,7 @@
   object-fit: cover;
   display: block;
   filter: saturate(0.96) contrast(1.02) brightness(0.92);
+  image-rendering: auto;
 }
 
 .vhs-case-front-placeholder {
@@ -3002,6 +3003,14 @@
   gap: 6px;
 }
 
+.vhs-case-front-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
 .vhs-case-front-title {
   margin: 0;
   color: #f5f0e0;
@@ -3028,14 +3037,12 @@
   text-transform: uppercase;
 }
 
-.vhs-case-flip-btn {
-  align-self: flex-start;
-  margin-top: auto;
+.vhs-turn-btn {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.72rem;
   font-weight: bold;
   padding: 8px 12px;
-  border-radius: 999px;
+  border-radius: 3px;
   border: 1px solid rgba(255, 215, 0, 0.36);
   background: rgba(255, 215, 0, 0.08);
   color: #ffe69c;
@@ -3044,7 +3051,7 @@
   letter-spacing: 0.12em;
 }
 
-.vhs-case-flip-btn:hover {
+.vhs-turn-btn:hover {
   background: rgba(255, 215, 0, 0.16);
 }
 
@@ -3083,6 +3090,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  image-rendering: auto;
 }
 
 .vhs-back-still-placeholder {
@@ -3094,13 +3102,6 @@
   object-position: center top;
 }
 
-.vhs-back-blurb {
-  padding: 8px 10px;
-  border: 1px solid rgba(59, 40, 19, 0.16);
-  background: rgba(255, 248, 232, 0.42);
-  flex-shrink: 0;
-}
-
 .vhs-back-paper-kicker {
   display: inline-block;
   font-size: 0.58rem;
@@ -3108,18 +3109,6 @@
   text-transform: uppercase;
   color: rgba(88, 58, 20, 0.74);
   margin-bottom: 5px;
-}
-
-.vhs-back-review {
-  margin: 0;
-  font-size: 0.79rem;
-  line-height: 1.35;
-  color: #2f2013;
-  font-style: italic;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
 }
 
 .vhs-back-header-block {
@@ -3187,10 +3176,7 @@
   color: #322115;
   font-size: 0.78rem;
   line-height: 1.45;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 7;
-  overflow: hidden;
+  display: block;
 }
 
 .vhs-back-credits {
@@ -3418,9 +3404,6 @@
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  .vhs-back-synopsis {
-    -webkit-line-clamp: 5;
-  }
   .vhs-back-actions {
     gap: 8px;
   }
@@ -3432,6 +3415,10 @@
   .vhs-back-provider-icon {
     width: 16px;
     height: 16px;
+  }
+  .vhs-case-front-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

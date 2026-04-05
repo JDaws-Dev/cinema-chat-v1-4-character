@@ -48,24 +48,6 @@ function barcodeWidths(seed: string): number[] {
   return widths;
 }
 
-function buildBackCoverCopy(text: string): string {
-  const trimmed = text.trim();
-  if (!trimmed) return "";
-  const sentences = trimmed.split(/(?<=[.!?])\s+/).filter(Boolean);
-  const selected: string[] = [];
-  let count = 0;
-
-  for (const sentence of sentences) {
-    if (count >= 280) break;
-    selected.push(sentence);
-    count += sentence.length;
-    if (selected.length >= 2) break;
-  }
-
-  const copy = (selected.join(" ") || trimmed).trim();
-  return copy.length > 300 ? `${copy.slice(0, 297).trimEnd()}...` : copy;
-}
-
 export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmDetailModalProps) {
   const [film, setFilm] = useState<FilmDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -103,6 +85,15 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
   }, [film]);
 
   const barcode = useMemo(() => barcodeWidths(film?.title ?? ""), [film?.title]);
+  const synopsisStyle = useMemo(() => {
+    const length = film?.overview.length ?? 0;
+    if (length > 900) return { fontSize: "0.56rem", lineHeight: 1.16 };
+    if (length > 700) return { fontSize: "0.6rem", lineHeight: 1.18 };
+    if (length > 560) return { fontSize: "0.64rem", lineHeight: 1.22 };
+    if (length > 420) return { fontSize: "0.68rem", lineHeight: 1.26 };
+    if (length > 320) return { fontSize: "0.72rem", lineHeight: 1.3 };
+    return undefined;
+  }, [film?.overview]);
 
   if (!filmId) return null;
 
@@ -142,10 +133,6 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
 
   const topCast = film?.cast.slice(0, 4).map((c) => c.name).join(", ") ?? null;
   const leadStudio = film?.productionCompanies[0] ?? null;
-  const coverBlurb = film?.tagline?.trim()
-    || film?.overview.split(/(?<=[.!?])\s+/)[0]?.trim()
-    || null;
-  const backCoverCopy = film?.overview ? buildBackCoverCopy(film.overview) : "";
   const providerSections = film ? [
     { label: "STREAM", items: film.providers.flatrate },
     { label: "RENT", items: film.providers.rent },
@@ -196,13 +183,36 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                     {film.year} &bull; {film.runtime ? `${film.runtime} min` : ""} &bull; {film.genres.slice(0, 2).join(" / ")}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="vhs-case-flip-btn"
-                  onClick={() => setIsFlipped(true)}
-                >
-                  TURN IT OVER
-                </button>
+                <div className="vhs-case-front-actions">
+                  {onRent ? (
+                    <>
+                      <button
+                        className="vhs-rent-btn"
+                        onClick={() => onRent({ id: film.id, title: film.title, posterUrl: film.posterUrl || "", genre: film.genres[0] || "" })}
+                      >
+                        TAKE TO HAND
+                      </button>
+                      <button
+                        type="button"
+                        className="vhs-turn-btn"
+                        onClick={() => setIsFlipped(true)}
+                      >
+                        TURN OVER
+                      </button>
+                      <button className="vhs-putback-btn" onClick={onClose}>
+                        PUT IT BACK
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="vhs-turn-btn"
+                      onClick={() => setIsFlipped(true)}
+                    >
+                      TURN OVER
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="vhs-case-face vhs-case-back">
@@ -228,13 +238,6 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                     </div>
                   </div>
 
-                  {coverBlurb && (
-                    <div className="vhs-back-blurb">
-                      <span className="vhs-back-paper-kicker">FEATURE PRESENTATION</span>
-                      <p className="vhs-back-review">"{coverBlurb}"</p>
-                    </div>
-                  )}
-
                   <div className="vhs-back-header-block">
                     <h2 className="vhs-back-title">{film.title.toUpperCase()}</h2>
                     <p className="vhs-back-meta">
@@ -250,8 +253,8 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                   <div className="vhs-back-copy-grid">
                     <div className="vhs-back-main">
                       <div className="vhs-back-copy-block">
-                        <span className="vhs-back-paper-kicker">BACK COVER COPY</span>
-                        <p className="vhs-back-synopsis">{backCoverCopy || "No synopsis on file."}</p>
+                        <span className="vhs-back-paper-kicker">SYNOPSIS</span>
+                        <p className="vhs-back-synopsis" style={synopsisStyle}>{film.overview || "No synopsis on file."}</p>
                       </div>
                       <div className="vhs-back-credits">
                         {film.director && <p><span className="vhs-back-label">Director:</span> {film.director}</p>}
@@ -297,12 +300,26 @@ export function FilmDetailModal({ filmId, onClose, onSelectFilm, onRent }: FilmD
                         >
                           TAKE TO HAND
                         </button>
+                        <button
+                          type="button"
+                          className="vhs-turn-btn"
+                          onClick={() => setIsFlipped(false)}
+                        >
+                          SEE FRONT
+                        </button>
                         <button className="vhs-putback-btn" onClick={onClose}>
                           PUT IT BACK
                         </button>
                       </>
                     ) : (
                       <>
+                        <button
+                          type="button"
+                          className="vhs-turn-btn"
+                          onClick={() => setIsFlipped(false)}
+                        >
+                          SEE FRONT
+                        </button>
                         <button
                           onClick={toggleWatchlist}
                           className={`vhs-back-pick-btn ${onList ? "vhs-back-pick-btn--active" : ""}`}
