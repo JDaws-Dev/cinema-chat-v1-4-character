@@ -959,7 +959,7 @@ export function VinnyCharacter() {
   });
 
   return (
-    <group ref={ref} position={[getObjectById("vinny")?.x ?? 7, 0, getObjectById("vinny")?.z ?? 5.8]} scale={1.15} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
+    <group ref={ref} position={[getObjectById("vinny")?.x ?? 7, 0, getObjectById("vinny")?.z ?? 5.8]} scale={1.4} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
       {/* ── Legs (short, stubby, slightly apart) — scaled 1.15x for proper counter height ── */}
       <mesh position={[-0.08, 0.175, 0]} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
         <boxGeometry args={[0.12, 0.35, 0.12]} /><Mat color="#c2a66b" roughness={0.85} />
