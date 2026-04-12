@@ -84,12 +84,10 @@ export function BuildingShell() {
           Without infill, there's a black void visible from the parking lot.
           ══════════════════════════════════════════════════════════ */}
 
-      {/* 2ND FLOOR FACADE — single solid brick wall covering the ENTIRE front
-          of the 2-story section. Sits FORWARD of the storefront (z=7.2) so it's
-          never occluded by awning/soffit geometry. Spans from commercial ceiling
-          (y=3.5) to apartment roof (y=6.5), covering laundromat + stair section. */}
-      <mesh position={[14.5, (CEIL_H + 6.5) / 2, FRONT_Z + 0.2]}>
-        <boxGeometry args={[STAIR_X - 10 + 0.4, 6.5 - CEIL_H, 0.4]} />
+      {/* 2ND FLOOR FACADE — brick wall above laundromat storefront ONLY.
+          Stops at x=16 (laundromat right edge) — does NOT extend over the stairway. */}
+      <mesh position={[13, (CEIL_H + 6.5) / 2, FRONT_Z + 0.2]}>
+        <boxGeometry args={[6.2, 6.5 - CEIL_H, 0.4]} />
         <Mat color={BRICK} roughness={0.9} />
       </mesh>
 
