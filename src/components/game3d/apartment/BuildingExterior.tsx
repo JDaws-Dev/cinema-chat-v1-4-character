@@ -238,10 +238,9 @@ function ExteriorStairs() {
   const enclLen = enclFrontZ - enclBackZ;
   const enclMidZ = (enclFrontZ + enclBackZ) / 2;
 
-  // Enclosure height: ground to apartment floor level (we don't need it taller —
-  // the landing railings handle safety above floor level)
-  const enclH = APT_Y;                  // 3.7m (ground to apt floor)
-  const enclMidY = GND + enclH / 2;     // -1.85
+  // Enclosure height: ground to APARTMENT ROOF — fully closes the stair structure
+  const enclH = APT_Y + APT_H;          // 6.5m (ground to apt roof)
+  const enclMidY = GND + enclH / 2;     // -0.45
 
   return (
     <group>
@@ -261,9 +260,20 @@ function ExteriorStairs() {
         <Mat color={BRICK_COLOR} />
       </mesh>
 
+      {/* FRONT WALL — closes the front of the stair enclosure above the entry opening */}
+      {/* Full-height panel from door lintel to roof */}
+      <mesh position={[stairCX, GND + (2.5 + enclH) / 2, enclFrontZ]}>
+        <boxGeometry args={[ENCL_W, enclH - 2.5, WALL_THICK]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
       {/* FRONT ENTRY COLUMNS — frame the ground-level entry opening */}
       {/* Outer entry column */}
       <mesh position={[outerX - WALL_THICK / 2, GND + 1.25, enclFrontZ]}>
+        <boxGeometry args={[WALL_THICK, 2.5, 0.2]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Inner entry column (between laundromat and stair) */}
+      <mesh position={[wallX + WALL_THICK / 2, GND + 1.25, enclFrontZ]}>
         <boxGeometry args={[WALL_THICK, 2.5, 0.2]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
