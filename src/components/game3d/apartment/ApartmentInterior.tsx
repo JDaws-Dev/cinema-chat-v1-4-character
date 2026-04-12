@@ -18,11 +18,11 @@ export const ROOM_H_COMMERCIAL = 3.5;
 export const FLOOR_SLAB_T = 0.2;
 export const APT_Y = ROOM_H_COMMERCIAL + FLOOR_SLAB_T; // 3.7m — apartment floor level
 
-// Apartment front wall outer face at world z = 7.0 - 0.3 = 6.7 (0.3m setback from storefront)
+// Apartment front wall outer face FLUSH with storefront at world z = 7.0
 // Front wall outer face in local coords = APT_D/2 + WALL_T = 2.7
-// So APT_Z + 2.7 = 6.7 → APT_Z = 4.0
+// So APT_Z + 2.7 = 7.0 → APT_Z = 4.3
 export const APT_X = 13;
-export const APT_Z = 4.0;  // set back 0.3m from storefront facade
+export const APT_Z = 4.3;  // flush with storefront facade (no setback)
 
 // Full building height helpers
 export const BLDG_GROUND = -APT_Y;           // -3.7 (ground level in local coords)

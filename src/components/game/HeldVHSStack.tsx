@@ -34,6 +34,8 @@ export function HeldVHSStack({ heldMovies }: HeldVHSStackProps) {
             zIndex: 20 - index,
           }}
         >
+          <div className="g3-held-vhs-shell" />
+          <div className="g3-held-vhs-top" />
           {movie.posterUrl ? (
             <img
               src={getHudPosterSrc(movie.posterUrl)}
@@ -43,6 +45,10 @@ export function HeldVHSStack({ heldMovies }: HeldVHSStackProps) {
           ) : (
             <div className="g3-held-vhs-fallback">{movie.title}</div>
           )}
+          <div className="g3-held-vhs-label">
+            <span className="g3-held-vhs-label-kicker">RENTAL</span>
+            <span className="g3-held-vhs-label-title">{movie.title}</span>
+          </div>
           <div className="g3-held-vhs-spine" />
         </div>
       ))}

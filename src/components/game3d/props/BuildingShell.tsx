@@ -67,12 +67,30 @@ export function BuildingShell() {
       </mesh>
 
       {/* ══════════════════════════════════════════════════════════
-          2. ROOF CAP — flat commercial roof over the entire building
-          (Apartment section has its own roof from BuildingExterior)
+          2. ROOF CAP — flat commercial roof, SPLIT to avoid covering apartment section
+          Left section: Pizza Palace + Video Store (x=-16 to x=10)
+          Apartment section (x=10 to x=16) has its own roof from BuildingExterior
           ══════════════════════════════════════════════════════════ */}
-      <mesh position={[(LEFT_X + RIGHT_X) / 2, CEIL_H, (FRONT_Z + BACK_WALL_Z) / 2]}>
-        <boxGeometry args={[buildingWidth + WALL_T * 2, 0.15, buildingDepth + WALL_T]} />
+      {/* Left roof: Pizza Palace + Video Store */}
+      <mesh position={[(LEFT_X + 10) / 2, CEIL_H, (FRONT_Z + BACK_WALL_Z) / 2]}>
+        <boxGeometry args={[10 - LEFT_X + WALL_T, 0.15, buildingDepth + WALL_T]} />
         <Mat color={ROOF_COLOR} roughness={0.95} />
+      </mesh>
+
+      {/* ══════════════════════════════════════════════════════════
+          2B. FACADE INFILL — closes the gap between storefront and apartment
+          The laundromat storefront ends at z=7, y=3.5.
+          The apartment front wall starts at z=6.7, y=3.7.
+          Without infill, there's a black void visible from the parking lot.
+          ══════════════════════════════════════════════════════════ */}
+
+      {/* 2ND FLOOR FACADE — single solid brick wall covering the ENTIRE front
+          of the 2-story section. Sits FORWARD of the storefront (z=7.2) so it's
+          never occluded by awning/soffit geometry. Spans from commercial ceiling
+          (y=3.5) to apartment roof (y=6.5), covering laundromat + stair section. */}
+      <mesh position={[14.5, (CEIL_H + 6.5) / 2, FRONT_Z + 0.2]}>
+        <boxGeometry args={[STAIR_X - 10 + 0.4, 6.5 - CEIL_H, 0.4]} />
+        <Mat color={BRICK} roughness={0.9} />
       </mesh>
 
       {/* ══════════════════════════════════════════════════════════

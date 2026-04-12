@@ -59,7 +59,7 @@ const PREFAB_HEIGHTS: Record<string, number> = {
   "prop/bargain-bin": 0.6,
   "prop/trash-can": 0.7,
   "prop/crt-tv": 1.2,
-  "exterior/car": 1.0,
+  "exterior/car": 1.45,
   "exterior/lamp-post": 3.2,
 };
 

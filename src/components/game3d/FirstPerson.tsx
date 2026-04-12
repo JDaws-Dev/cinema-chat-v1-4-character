@@ -234,7 +234,7 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     const inStairX = camera.position.x > 16.0 && camera.position.x < 17.6;
     const inStairZ = camera.position.z > 2.2 && camera.position.z < 8.5;
     const inApartment = camera.position.x > 10 && camera.position.x < 16 &&
-                        camera.position.z > 1.5 && camera.position.z < 6.5 &&
+                        camera.position.z > 1.8 && camera.position.z < 6.8 &&
                         camera.position.y > 3.0;
     // Landing world coords: x=16.2..17.4, z=0.87..2.37
     const inLanding = camera.position.x > 16.0 && camera.position.x < 17.6 &&

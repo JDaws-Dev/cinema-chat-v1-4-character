@@ -45,6 +45,10 @@ export function unregisterNPCPosition(id: string) {
   npcPositions.delete(id);
 }
 
+export function getRegisteredNPCPositions() {
+  return Array.from(npcPositions.values());
+}
+
 export function setPlayerPosition(x: number, z: number) {
   if (!audioContext) return;
   const listener = audioContext.listener;

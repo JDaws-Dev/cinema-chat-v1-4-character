@@ -70,6 +70,7 @@ export default function GamePage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [retroMode, setRetroMode] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const reviewCaptureRequested = useRef(false);
 
   // F12 toggles debug mode (perf monitor, orbit controls, grid, axes, leva)
   useEffect(() => {
@@ -121,6 +122,23 @@ export default function GamePage() {
       setTimeout(() => window.scrollTo(0, 1), 100);
       // Lock orientation if supported
       try { (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.("landscape").catch(() => {}); } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("autostart") === "1") {
+      const requestedEra = params.get("era");
+      if (requestedEra && ERA_OPTIONS.some((option) => option.id === requestedEra)) {
+        setEra(requestedEra);
+      }
+      setShowTutorial(false);
+      setEraChosen(true);
+      setStarted(true);
+      setLoading(true);
+    }
+    if (params.get("debug") === "1") {
+      setDebugMode(true);
     }
   }, []);
   const [inApartment, setInApartment] = useState(false);
@@ -358,6 +376,39 @@ export default function GamePage() {
     : 100;
   const heldStackLabel = `${heldMovies.length}/5 tapes`;
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const captureCam = params.get("captureCam");
+    if (!captureCam || reviewCaptureRequested.current || !started || loading || !eraChosen || inApartment) {
+      return;
+    }
+
+    let cancelled = false;
+    reviewCaptureRequested.current = true;
+
+    const tryCapture = async (attempt = 0) => {
+      if (cancelled) return;
+      const captureFn = (window as Window & { __securityCams?: (cams?: string[]) => Promise<string[]> }).__securityCams;
+      if (typeof captureFn === "function") {
+        try {
+          await captureFn([captureCam]);
+        } catch (err) {
+          console.error("Review capture failed:", err);
+        }
+        return;
+      }
+      if (attempt < 40) {
+        window.setTimeout(() => { void tryCapture(attempt + 1); }, 500);
+      }
+    };
+
+    void tryCapture();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [started, loading, eraChosen, inApartment]);
+
   // Keyboard shortcuts (Q/Backspace close, 1-4 dialogue, T top-down, C screenshot, J quest log)
   useKeyboardShortcuts({ overlay, closeOverlay, rpgNode, handleDialogueResponse, setTopDown, setOverlay });
 
@@ -544,6 +595,7 @@ export default function GamePage() {
 
       <GameHUD
         hasOverlay={hasOverlay} topDown={topDown} isMobile={isMobile}
+        eraLabel={selectedEra.displayYear}
         gameTime={gameTime} closeCountdownLabel={closeCountdownLabel} heldStackLabel={heldStackLabel}
         totalXP={totalXP} currentTier={currentTier} tierProgress={tierProgress} nextTier={nextTier}
         audioMuted={audioMuted} toggleMute={toggleMute} setTopDown={setTopDown}

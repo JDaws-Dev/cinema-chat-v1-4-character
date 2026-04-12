@@ -6,6 +6,78 @@ import { getObjectById } from "@/lib/store-layout";
 import { Mat } from "./store-materials";
 import { KenneyModel } from "./store-characters";
 
+function CounterFaceSign({
+  position,
+  label,
+  width,
+  height,
+  fontSize,
+}: {
+  position: [number, number, number];
+  label: string;
+  width: number;
+  height: number;
+  fontSize: number;
+}) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0, -0.02]}>
+        <boxGeometry args={[width + 0.1, height + 0.08, 0.02]} />
+        <Mat color="#4a2d16" roughness={0.75} />
+      </mesh>
+      <RoundedBox args={[width, height, 0.04]} radius={0.015} smoothness={2}>
+        <Mat color="#13284c" roughness={0.55} />
+      </RoundedBox>
+      {[-1, 1].map((side) => (
+        <mesh key={`bolt-${label}-${side}`} position={[side * (width / 2 - 0.08), 0, 0.025]}>
+          <cylinderGeometry args={[0.016, 0.016, 0.012, 8]} />
+          <Mat color="#caa43a" roughness={0.35} metalness={0.6} />
+        </mesh>
+      ))}
+      <Text position={[0, 0, 0.028]} rotation={[0, Math.PI, 0]} fontSize={fontSize} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+        {label}
+      </Text>
+    </group>
+  );
+}
+
+function CounterTopStandSign({
+  position,
+  label,
+  width,
+  height,
+  fontSize,
+}: {
+  position: [number, number, number];
+  label: string;
+  width: number;
+  height: number;
+  fontSize: number;
+}) {
+  return (
+    <group position={position}>
+      <mesh position={[-width * 0.34, 0.02, 0]}>
+        <boxGeometry args={[0.04, 0.36, 0.04]} />
+        <Mat color="#8a6738" roughness={0.6} />
+      </mesh>
+      <mesh position={[width * 0.34, 0.02, 0]}>
+        <boxGeometry args={[0.04, 0.36, 0.04]} />
+        <Mat color="#8a6738" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.22, 0]}>
+        <boxGeometry args={[width + 0.08, height + 0.08, 0.025]} />
+        <Mat color="#4a2d16" roughness={0.72} />
+      </mesh>
+      <RoundedBox args={[width, height, 0.05]} radius={0.015} smoothness={2} position={[0, 0.22, 0.015]}>
+        <Mat color="#16325c" roughness={0.5} />
+      </RoundedBox>
+      <Text position={[0, 0.22, 0.045]} rotation={[0, Math.PI, 0]} fontSize={fontSize} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>
+        {label}
+      </Text>
+    </group>
+  );
+}
+
 export function Counter({
   position,
   rotation = [0, 0, 0],
@@ -47,7 +119,7 @@ export function Counter({
         </group>
         );
       })}
-      <Text position={[0, 0.73, -0.78]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>CANDY & SNACKS</Text>
+      <CounterFaceSign position={[0, 0.76, -0.77]} label="CANDY & SNACKS" width={2.7} height={0.18} fontSize={0.055} />
 
       <group position={[-1.5, 0.95, 0]}>
         <RoundedBox args={[0.55, 0.35, 0.4]} radius={0.03} smoothness={3}><Mat color="#2a2a2a" roughness={0.4} /></RoundedBox>
@@ -58,7 +130,7 @@ export function Counter({
         <mesh position={[0, -0.12, -0.05]}><boxGeometry args={[0.5, 0.08, 0.35]} /><Mat color="#333" roughness={0.5} /></mesh>
       </group>
 
-      <Text position={[0, 1.00, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>CHECKOUT</Text>
+      <CounterTopStandSign position={[0, 0.9, -0.28]} label="CHECKOUT" width={1.75} height={0.22} fontSize={0.085} />
 
       <group position={[2.15, 1.0, 0.16]} rotation={[0, -0.2, 0]}>
         <mesh rotation={[0.35, 0, 0]}><boxGeometry args={[0.3, 0.18, 0.02]} /><Mat color="#f4efe2" roughness={0.65} /></mesh>
@@ -83,7 +155,10 @@ export function Counter({
       })}
 
       <mesh position={[2.3, 1.00, -0.2]}><boxGeometry args={[0.5, 0.25, 0.35]} /><Mat color="#2a2a3a" roughness={0.7} /></mesh>
-      <Text position={[2.3, 1.00, -0.385]} rotation={[0, Math.PI, 0]} fontSize={0.05} color="#888" anchorX="center" anchorY="middle" font={undefined}>RETURNS</Text>
+      <group position={[2.3, 1.00, -0.385]}>
+        <mesh><boxGeometry args={[0.34, 0.1, 0.02]} /><Mat color="#e7dec8" roughness={0.75} /></mesh>
+        <Text position={[0, 0, 0.016]} rotation={[0, Math.PI, 0]} fontSize={0.048} color="#5a4b36" anchorX="center" anchorY="middle" font={undefined}>RETURNS</Text>
+      </group>
 
       {/* Monitor on counter — base sits on surface at y=0.90 */}
       <group position={[0.5, 1.10, 0.3]}>
@@ -100,10 +175,17 @@ export function Counter({
         <mesh key={`vhs-stack-${i}`} position={[-0.5, 1.00 + i * 0.04, -0.2]} rotation={[0, (i * 0.15), 0]}><boxGeometry args={[0.2, 0.035, 0.12]} /><Mat color={["#1a3a6a", "#6a1a3a", "#3a6a1a", "#5a3a6a"][i]} roughness={0.6} /></mesh>
       ))}
 
-      <Text position={[2, 1.25, -0.6]} rotation={[0, Math.PI, 0]} fontSize={0.06} color="#ffd700" anchorX="center" font={undefined}>MEMBERSHIP CARDS</Text>
+      <CounterTopStandSign position={[2.05, 0.9, -0.28]} label="MEMBERSHIP CARDS" width={1.45} height={0.18} fontSize={0.048} />
       {[-0.15, 0, 0.15].map((dx, i) => (
         <mesh key={`form-stack-${i}`} position={[2.05 + dx, 0.97 + i * 0.01, -0.1 + i * 0.03]} rotation={[0, -0.1 + i * 0.08, 0]}><boxGeometry args={[0.22, 0.02, 0.14]} /><Mat color={i === 1 ? "#f1eddc" : "#ece6d4"} roughness={0.8} /></mesh>
       ))}
+      <group position={[1.22, 0.93, -0.3]}>
+        <mesh position={[0, 0.09, 0]} rotation={[-0.38, 0, 0]}><boxGeometry args={[0.52, 0.28, 0.02]} /><Mat color="#efe7d2" roughness={0.8} /></mesh>
+        <mesh position={[0, -0.01, 0.05]}><boxGeometry args={[0.44, 0.02, 0.16]} /><Mat color="#c9a85a" roughness={0.55} /></mesh>
+        <Text position={[0, 0.13, -0.006]} rotation={[-0.38, Math.PI, 0]} fontSize={0.04} color="#b32020" anchorX="center" anchorY="middle" font={undefined}>LATE FEES</Text>
+        <Text position={[0, 0.085, -0.006]} rotation={[-0.38, Math.PI, 0]} fontSize={0.021} color="#3a2a1a" anchorX="center" anchorY="middle" font={undefined}>$2 A NIGHT</Text>
+        <Text position={[0, 0.045, -0.006]} rotation={[-0.38, Math.PI, 0]} fontSize={0.017} color="#5a4b36" anchorX="center" anchorY="middle" font={undefined}>Be kind, rewind.</Text>
+      </group>
     </group>
   );
 }

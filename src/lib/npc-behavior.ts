@@ -17,6 +17,8 @@
  *   - Street:       z ~ 16+
  */
 
+import { getLayoutColliders } from "./store-layout";
+
 // ═══════════════════════════════════════════════════════════════
 // §1 — WAYPOINT GRAPH
 // ═══════════════════════════════════════════════════════════════
@@ -117,8 +119,8 @@ export const WAYPOINTS: Record<string, Waypoint> = {
 
   // ── VIDEO STORE — SHELF BROWSING SPOTS ─────────────────
   // Row 1 (back): Action/Adventure left, Comedy right
-  'vs-shelf-row1-left':   { id: 'vs-shelf-row1-left',   type: 'shelf', zone: 'video_store', position: [-4, 0, -4.2], neighbors: ['vs-aisle-back-center', 'vs-shelf-row2-left'],  loiterRange: [5, 15], facingAngle: Math.PI },
-  'vs-shelf-row1-right':  { id: 'vs-shelf-row1-right',  type: 'shelf', zone: 'video_store', position: [4, 0, -4.2],  neighbors: ['vs-aisle-back-center', 'vs-shelf-row2-right'], loiterRange: [5, 15], facingAngle: Math.PI },
+  'vs-shelf-row1-left':   { id: 'vs-shelf-row1-left',   type: 'shelf', zone: 'video_store', position: [-4.8, 0, -3.75], neighbors: ['vs-aisle-back-center', 'vs-shelf-row2-left'],  loiterRange: [5, 15], facingAngle: Math.PI },
+  'vs-shelf-row1-right':  { id: 'vs-shelf-row1-right',  type: 'shelf', zone: 'video_store', position: [4.8, 0, -3.75],  neighbors: ['vs-aisle-back-center', 'vs-shelf-row2-right'], loiterRange: [5, 15], facingAngle: Math.PI },
 
   // Row 2: Horror left, Drama right
   'vs-shelf-row2-left':   { id: 'vs-shelf-row2-left',   type: 'shelf', zone: 'video_store', position: [-4, 0, -1.5], neighbors: ['vs-aisle-row2-center', 'vs-shelf-row1-left', 'vs-shelf-row3-left'],  loiterRange: [5, 15], facingAngle: Math.PI },
@@ -173,6 +175,44 @@ export const WAYPOINTS: Record<string, Waypoint> = {
   // Vending machines (back-right corner)
   'lm-vending':  { id: 'lm-vending',  type: 'soda', zone: 'laundromat', position: lm(2.5, 0, -5), neighbors: ['lm-dryer-1', 'lm-folding-table-2'], loiterRange: [3, 6] },
 };
+
+const NPC_COLLISION_RADIUS = 0.28;
+const NPC_COLLIDERS = getLayoutColliders().map((collider) => ({
+  x: collider.x,
+  z: collider.z,
+  hw: collider.hw,
+  hd: collider.hd,
+}));
+
+function collidesWithNpcCollider(x: number, z: number) {
+  for (const collider of NPC_COLLIDERS) {
+    if (
+      x + NPC_COLLISION_RADIUS > collider.x - collider.hw &&
+      x - NPC_COLLISION_RADIUS < collider.x + collider.hw &&
+      z + NPC_COLLISION_RADIUS > collider.z - collider.hd &&
+      z - NPC_COLLISION_RADIUS < collider.z + collider.hd
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function resolveNpcMovement(currentX: number, currentZ: number, nextX: number, nextZ: number) {
+  if (!collidesWithNpcCollider(nextX, nextZ)) {
+    return { x: nextX, z: nextZ, blocked: false };
+  }
+
+  if (!collidesWithNpcCollider(nextX, currentZ)) {
+    return { x: nextX, z: currentZ, blocked: false };
+  }
+
+  if (!collidesWithNpcCollider(currentX, nextZ)) {
+    return { x: currentX, z: nextZ, blocked: false };
+  }
+
+  return { x: currentX, z: currentZ, blocked: true };
+}
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -1025,9 +1065,24 @@ function tickMovement(npc: ActiveNPC, dt: number): void {
     const step = speed * dt;
     const nx = dx / dist;
     const nz = dz / dist;
-    npc.position[0] += nx * Math.min(step, dist);
-    npc.position[2] += nz * Math.min(step, dist);
-    // Face movement direction
+    const move = Math.min(step, dist);
+    const resolved = resolveNpcMovement(
+      npc.position[0],
+      npc.position[2],
+      npc.position[0] + nx * move,
+      npc.position[2] + nz * move,
+    );
+    npc.position[0] = resolved.x;
+    npc.position[2] = resolved.z;
+
+    if (resolved.blocked && dist < 0.5) {
+      npc.position[0] = tx;
+      npc.position[2] = tz;
+      npc.pathIndex++;
+      return;
+    }
+
+    // Face movement direction — +PI so face meshes (at -Z local) point forward
     npc.facing = Math.atan2(nx, nz) + Math.PI;
   }
 }

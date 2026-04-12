@@ -79,12 +79,12 @@ function NPCMesh({
   groupRef: React.RefObject<THREE.Group | null>;
   allNpcs: ActiveNPC[];
 }) {
-  const leftLegRef = useRef<THREE.Mesh>(null);
-  const rightLegRef = useRef<THREE.Mesh>(null);
-  const leftArmRef = useRef<THREE.Mesh>(null);
-  const rightArmRef = useRef<THREE.Mesh>(null);
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
   const torsoRef = useRef<THREE.Mesh>(null);
-  const headRef = useRef<THREE.Mesh>(null);
+  const headRef = useRef<THREE.Group>(null);
   const leftEyeRef = useRef<THREE.Mesh>(null);
   const rightEyeRef = useRef<THREE.Mesh>(null);
   const mouthRef = useRef<THREE.Mesh>(null);
@@ -445,20 +445,24 @@ function NPCMesh({
 
   return (
     <group ref={groupRef} scale={height * 1.6}>
+      <group rotation={[0, Math.PI, 0]}>
       {/* ── Legs (short, stubby — Vinny proportions) ── */}
-      <mesh ref={leftLegRef} position={[-0.08, legH / 2, 0]}>
-        <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
-      </mesh>
-      <mesh ref={rightLegRef} position={[0.08, legH / 2, 0]}>
-        <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
-      </mesh>
-      {/* ── Shoes ── */}
-      <mesh position={[-0.08, 0.025, 0]}>
-        <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
-      </mesh>
-      <mesh position={[0.08, 0.025, 0]}>
-        <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
-      </mesh>
+      <group ref={leftLegRef} position={[-0.08, legH, 0]}>
+        <mesh position={[0, -legH / 2, 0]}>
+          <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
+        </mesh>
+        <mesh position={[0, -legH + 0.025, 0]}>
+          <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
+        </mesh>
+      </group>
+      <group ref={rightLegRef} position={[0.08, legH, 0]}>
+        <mesh position={[0, -legH / 2, 0]}>
+          <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
+        </mesh>
+        <mesh position={[0, -legH + 0.025, 0]}>
+          <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
+        </mesh>
+      </group>
       {/* ── Belt ── */}
       <mesh position={[0, legH + 0.02, 0]}>
         <boxGeometry args={[torsoW + 0.01, 0.04, torsoD + 0.01]} /><meshStandardMaterial color="#2a2a2a" />
@@ -468,25 +472,28 @@ function NPCMesh({
         <meshStandardMaterial color={shirtColor} />
       </RoundedBox>
       {/* ── Arms (short stubby) ── */}
-      <mesh ref={leftArmRef} position={[-(torsoW / 2 + 0.06), legH + 0.25, 0]}>
-        <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
-      </mesh>
-      <mesh ref={rightArmRef} position={[(torsoW / 2 + 0.06), legH + 0.25, 0]}>
-        <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
-      </mesh>
-      {/* ── Hands ── */}
-      <mesh ref={leftHandRef} position={[-(torsoW / 2 + 0.06), legH + 0.07, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
-      </mesh>
-      <mesh ref={rightHandRef} position={[(torsoW / 2 + 0.06), legH + 0.07, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
-      </mesh>
-      {/* Priority 9: VHS box in right hand — visible after checking_out */}
-      <mesh ref={vhsBoxRef} position={[(torsoW / 2 + 0.06), legH + 0.01, -0.03]} visible={false}>
-        <boxGeometry args={[0.08, 0.05, 0.02]} /><meshStandardMaterial color={vhsGenreColor} />
-      </mesh>
+      <group ref={leftArmRef} position={[-(torsoW / 2 + 0.06), legH + 0.4, 0]}>
+        <mesh position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
+        </mesh>
+        <mesh ref={leftHandRef} position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
+        </mesh>
+      </group>
+      <group ref={rightArmRef} position={[(torsoW / 2 + 0.06), legH + 0.4, 0]}>
+        <mesh position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
+        </mesh>
+        <mesh ref={rightHandRef} position={[0, -0.33, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
+        </mesh>
+        {/* Priority 9: VHS box in right hand — visible after checking_out */}
+        <mesh ref={vhsBoxRef} position={[0, -0.39, -0.03]} visible={false}>
+          <boxGeometry args={[0.08, 0.05, 0.02]} /><meshStandardMaterial color={vhsGenreColor} />
+        </mesh>
+      </group>
       {/* ── Head (BIG, Minecraft-style) ── */}
-      <group ref={headRef} position={[0, legH + 0.65, 0]} scale={headScale}>
+      <group ref={headRef} position={[0, legH + 0.54, 0]} scale={headScale}>
         <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.04} smoothness={2} position={[0, 0, 0]}>
           <meshStandardMaterial color={skinTone} />
         </RoundedBox>
@@ -537,6 +544,7 @@ function NPCMesh({
         <mesh ref={mouthRef} position={[0, -0.1, -0.17]}>
           <boxGeometry args={[0.06, 0.02, 0.02]} /><meshStandardMaterial color="#c07060" />
         </mesh>
+      </group>
       </group>
     </group>
   );

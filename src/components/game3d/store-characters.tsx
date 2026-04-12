@@ -149,10 +149,10 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
   personality?: NpcPersonality;
 }) {
   const ref = useRef<THREE.Group>(null);
-  const leftLegRef = useRef<THREE.Mesh>(null);
-  const rightLegRef = useRef<THREE.Mesh>(null);
-  const leftArmRef = useRef<THREE.Mesh>(null);
-  const rightArmRef = useRef<THREE.Mesh>(null);
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
   const speed = 0.8; // units per second
   const startIdx = useMemo(() => {
     // Pick nearest waypoint as starting index
@@ -274,14 +274,18 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
   return (
     <group ref={ref} position={startPos} userData={{ interactType: "customer", label: personality ? getPersonalityLabel(personality) : "Talk to Customer", personalityType: personality?.type, personality }}>
       {/* Legs */}
-      <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
-        <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <Mat color="#3a3a4a" roughness={0.8} />
-      </mesh>
-      <mesh ref={rightLegRef} position={[0.06, 0.3, 0]}>
-        <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <Mat color="#3a3a4a" roughness={0.8} />
-      </mesh>
+      <group ref={leftLegRef} position={[-0.06, 0.6, 0]}>
+        <mesh position={[0, -0.3, 0]}>
+          <boxGeometry args={[0.1, 0.6, 0.12]} />
+          <Mat color="#3a3a4a" roughness={0.8} />
+        </mesh>
+      </group>
+      <group ref={rightLegRef} position={[0.06, 0.6, 0]}>
+        <mesh position={[0, -0.3, 0]}>
+          <boxGeometry args={[0.1, 0.6, 0.12]} />
+          <Mat color="#3a3a4a" roughness={0.8} />
+        </mesh>
+      </group>
       {/* Body — slightly varied proportions */}
       <mesh position={[0, 0.8, 0]}>
         <boxGeometry args={[0.34, 0.44, 0.22]} />
@@ -302,39 +306,38 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
         <Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
       {/* Left arm with VHS tape in hand */}
-      <mesh ref={leftArmRef} position={[-0.22, 0.78, 0]}>
-        <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <Mat color={shirtColor} roughness={0.7} />
-      </mesh>
-      {/* Left hand */}
-      <mesh position={[-0.22, 0.58, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <Mat color={skinTone} roughness={0.8} />
-      </mesh>
-      {/* VHS tape in left hand */}
-      <mesh position={[-0.22, 0.52, -0.02]}>
-        <boxGeometry args={[0.1, 0.06, 0.02]} />
-        <Mat color={vhsColor} roughness={0.6} />
-      </mesh>
-      {/* VHS label stripe */}
-      <mesh position={[-0.22, 0.52, -0.035]}>
-        <boxGeometry args={[0.08, 0.02, 0.005]} />
-        <Mat color="#f0f0e0" roughness={0.5} />
-      </mesh>
+      <group ref={leftArmRef} position={[-0.22, 0.955, 0]}>
+        <mesh position={[0, -0.175, 0]}>
+          <boxGeometry args={[0.1, 0.35, 0.1]} />
+          <Mat color={shirtColor} roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.375, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <Mat color={skinTone} roughness={0.8} />
+        </mesh>
+        <mesh position={[0, -0.435, -0.02]}>
+          <boxGeometry args={[0.1, 0.06, 0.02]} />
+          <Mat color={vhsColor} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, -0.435, -0.035]}>
+          <boxGeometry args={[0.08, 0.02, 0.005]} />
+          <Mat color="#f0f0e0" roughness={0.5} />
+        </mesh>
+      </group>
 
       {/* Right arm */}
-      <mesh ref={rightArmRef} position={[0.22, 0.78, 0]}>
-        <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <Mat color={shirtColor} roughness={0.7} />
-      </mesh>
-      {/* Right hand */}
-      <mesh position={[0.22, 0.58, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <Mat color={skinTone} roughness={0.8} />
-      </mesh>
-      {/* Shopping bag (some customers) */}
-      {hasBag && (
-        <group position={[0.22, 0.42, 0]}>
+      <group ref={rightArmRef} position={[0.22, 0.955, 0]}>
+        <mesh position={[0, -0.175, 0]}>
+          <boxGeometry args={[0.1, 0.35, 0.1]} />
+          <Mat color={shirtColor} roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.375, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <Mat color={skinTone} roughness={0.8} />
+        </mesh>
+        {/* Shopping bag (some customers) */}
+        {hasBag && (
+          <group position={[0, -0.535, 0]}>
           {/* Bag body */}
           <mesh position={[0, 0, 0]}>
             <boxGeometry args={[0.1, 0.14, 0.06]} />
@@ -345,8 +348,9 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
             <torusGeometry args={[0.03, 0.005, 6, 8, Math.PI]} />
             <Mat color="#c0b090" roughness={0.7} />
           </mesh>
-        </group>
-      )}
+          </group>
+        )}
+      </group>
 
       {/* Head — slightly taller */}
       <mesh position={[0, 1.2, 0]} scale={[1, 1.1, 0.9]}>
@@ -547,41 +551,46 @@ export function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         if (rightArmRef.current) rightArmRef.current.rotation.x = swing * 0.6;
       }
     }
+
+    registerNPCPosition(kidId, ref.current.position.x, ref.current.position.z);
   });
 
   // Unregister NPC avoidance on unmount
   useEffect(() => {
-    return () => { npcPositions.delete(kidId); };
+    return () => { unregisterNPCPosition(kidId); npcPositions.delete(kidId); };
   }, [kidId]);
 
   return (
     <group ref={ref} position={startPos} scale={0.65} userData={{ interactType: "customer", label: "Talk to Kid", personalityType: "kid" as PersonalityType, personality: PERSONALITIES.kid }}>
       {/* Legs — shorter kid proportions */}
-      <mesh ref={leftLegRef} position={[-0.06, 0.3, 0]}>
-        <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <Mat color="#4a6fa5" roughness={0.8} />
-      </mesh>
-      <mesh ref={rightLegRef} position={[0.06, 0.3, 0]}>
-        <boxGeometry args={[0.1, 0.6, 0.12]} />
-        <Mat color="#4a6fa5" roughness={0.8} />
-      </mesh>
-      {/* Sneakers — colorful kid shoes */}
-      <mesh position={[-0.06, 0.03, -0.02]}>
-        <boxGeometry args={[0.12, 0.07, 0.16]} />
-        <Mat color="#e74c3c" roughness={0.7} />
-      </mesh>
-      <mesh position={[-0.06, 0.01, -0.02]}>
-        <boxGeometry args={[0.13, 0.03, 0.17]} />
-        <Mat color="#f0f0f0" roughness={0.6} />
-      </mesh>
-      <mesh position={[0.06, 0.03, -0.02]}>
-        <boxGeometry args={[0.12, 0.07, 0.16]} />
-        <Mat color="#e74c3c" roughness={0.7} />
-      </mesh>
-      <mesh position={[0.06, 0.01, -0.02]}>
-        <boxGeometry args={[0.13, 0.03, 0.17]} />
-        <Mat color="#f0f0f0" roughness={0.6} />
-      </mesh>
+      <group ref={leftLegRef} position={[-0.06, 0.6, 0]}>
+        <mesh position={[0, -0.3, 0]}>
+          <boxGeometry args={[0.1, 0.6, 0.12]} />
+          <Mat color="#4a6fa5" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, -0.57, -0.02]}>
+          <boxGeometry args={[0.12, 0.07, 0.16]} />
+          <Mat color="#e74c3c" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.59, -0.02]}>
+          <boxGeometry args={[0.13, 0.03, 0.17]} />
+          <Mat color="#f0f0f0" roughness={0.6} />
+        </mesh>
+      </group>
+      <group ref={rightLegRef} position={[0.06, 0.6, 0]}>
+        <mesh position={[0, -0.3, 0]}>
+          <boxGeometry args={[0.1, 0.6, 0.12]} />
+          <Mat color="#4a6fa5" roughness={0.8} />
+        </mesh>
+        <mesh position={[0, -0.57, -0.02]}>
+          <boxGeometry args={[0.12, 0.07, 0.16]} />
+          <Mat color="#e74c3c" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.59, -0.02]}>
+          <boxGeometry args={[0.13, 0.03, 0.17]} />
+          <Mat color="#f0f0f0" roughness={0.6} />
+        </mesh>
+      </group>
       {/* Body */}
       <mesh position={[0, 0.8, 0]}>
         <boxGeometry args={[0.34, 0.44, 0.22]} />
@@ -607,25 +616,27 @@ export function KidCustomer({ startPos, shirtColor, hairColor, skinTone }: {
         <Mat color="#d35400" roughness={0.8} />
       </mesh>
       {/* Left arm */}
-      <mesh ref={leftArmRef} position={[-0.22, 0.78, 0]}>
-        <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <Mat color={shirtColor} roughness={0.7} />
-      </mesh>
-      {/* Left hand */}
-      <mesh position={[-0.22, 0.58, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <Mat color={skinTone} roughness={0.8} />
-      </mesh>
+      <group ref={leftArmRef} position={[-0.22, 0.955, 0]}>
+        <mesh position={[0, -0.175, 0]}>
+          <boxGeometry args={[0.1, 0.35, 0.1]} />
+          <Mat color={shirtColor} roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.375, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <Mat color={skinTone} roughness={0.8} />
+        </mesh>
+      </group>
       {/* Right arm */}
-      <mesh ref={rightArmRef} position={[0.22, 0.78, 0]}>
-        <boxGeometry args={[0.1, 0.35, 0.1]} />
-        <Mat color={shirtColor} roughness={0.7} />
-      </mesh>
-      {/* Right hand */}
-      <mesh position={[0.22, 0.58, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <Mat color={skinTone} roughness={0.8} />
-      </mesh>
+      <group ref={rightArmRef} position={[0.22, 0.955, 0]}>
+        <mesh position={[0, -0.175, 0]}>
+          <boxGeometry args={[0.1, 0.35, 0.1]} />
+          <Mat color={shirtColor} roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.375, 0]}>
+          <sphereGeometry args={[0.04, 8, 8]} />
+          <Mat color={skinTone} roughness={0.8} />
+        </mesh>
+      </group>
       {/* Head — rounder kid proportions */}
       <mesh position={[0, 1.18, 0]} scale={[1, 1.1, 0.9]}>
         <sphereGeometry args={[0.17, 12, 14]} />
@@ -659,10 +670,10 @@ export function CharlieCharacter() {
   const ref = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const torsoRef = useRef<THREE.Mesh>(null);
-  const leftLegRef = useRef<THREE.Mesh>(null);
-  const rightLegRef = useRef<THREE.Mesh>(null);
-  const leftArmRef = useRef<THREE.Mesh>(null);
-  const rightArmRef = useRef<THREE.Mesh>(null);
+  const leftLegRef = useRef<THREE.Group>(null);
+  const rightLegRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
   const leftEyeRef = useRef<THREE.Mesh>(null);
   const rightEyeRef = useRef<THREE.Mesh>(null);
   const mouthRef = useRef<THREE.Mesh>(null);
@@ -789,28 +800,33 @@ export function CharlieCharacter() {
         mouthRef.current.scale.y = 1;
       }
     }
+
+    registerNPCPosition(charlieId, ref.current.position.x, ref.current.position.z);
   });
 
   useEffect(() => {
-    return () => { npcPositions.delete(charlieId); };
+    return () => { unregisterNPCPosition(charlieId); npcPositions.delete(charlieId); };
   }, []);
 
   return (
     <group ref={ref} position={startPos} scale={1.5} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
       {/* ── Legs (longer/skinnier than Vinny — he's lean) ── */}
-      <mesh ref={leftLegRef} position={[-0.07, 0.2, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
-        <boxGeometry args={[0.1, 0.4, 0.1]} /><Mat color="#1a3050" roughness={0.85} />
-      </mesh>
-      <mesh ref={rightLegRef} position={[0.07, 0.2, 0]}>
-        <boxGeometry args={[0.1, 0.4, 0.1]} /><Mat color="#1a3050" roughness={0.85} />
-      </mesh>
-      {/* ── Shoes ── */}
-      <mesh position={[-0.07, 0.025, 0]}>
-        <boxGeometry args={[0.11, 0.05, 0.12]} /><Mat color="#2a2a2a" roughness={0.7} />
-      </mesh>
-      <mesh position={[0.07, 0.025, 0]}>
-        <boxGeometry args={[0.11, 0.05, 0.12]} /><Mat color="#2a2a2a" roughness={0.7} />
-      </mesh>
+      <group ref={leftLegRef} position={[-0.07, 0.4, 0]} userData={{ interactType: "charlie", label: "Talk to Charlie" }}>
+        <mesh position={[0, -0.2, 0]}>
+          <boxGeometry args={[0.1, 0.4, 0.1]} /><Mat color="#1a3050" roughness={0.85} />
+        </mesh>
+        <mesh position={[0, -0.375, 0]}>
+          <boxGeometry args={[0.11, 0.05, 0.12]} /><Mat color="#2a2a2a" roughness={0.7} />
+        </mesh>
+      </group>
+      <group ref={rightLegRef} position={[0.07, 0.4, 0]}>
+        <mesh position={[0, -0.2, 0]}>
+          <boxGeometry args={[0.1, 0.4, 0.1]} /><Mat color="#1a3050" roughness={0.85} />
+        </mesh>
+        <mesh position={[0, -0.375, 0]}>
+          <boxGeometry args={[0.11, 0.05, 0.12]} /><Mat color="#2a2a2a" roughness={0.7} />
+        </mesh>
+      </group>
       {/* ── Belt ── */}
       <mesh position={[0, 0.42, 0]}>
         <boxGeometry args={[0.3, 0.04, 0.19]} /><Mat color="#2a2a2a" roughness={0.7} />
@@ -830,16 +846,16 @@ export function CharlieCharacter() {
       </mesh>
       <Text position={[-0.08, 0.7, -0.105]} rotation={[0, Math.PI, 0]} fontSize={0.02} color="#ffffff" anchorX="center" font={undefined}>STAFF</Text>
       {/* ── Arms (skinny, blue shirt) ── */}
-      <group position={[-0.19, 0.72, 0]}>
-        <mesh ref={leftArmRef} position={[0, -0.15, 0]}>
+      <group ref={leftArmRef} position={[-0.19, 0.87, 0]}>
+        <mesh position={[0, -0.15, 0]}>
           <boxGeometry args={[0.08, 0.3, 0.08]} /><Mat color="#0a4a8a" roughness={0.7} />
         </mesh>
         <mesh position={[0, -0.33, 0]}>
           <sphereGeometry args={[0.04, 8, 8]} /><Mat color="#e8c4a0" roughness={0.8} />
         </mesh>
       </group>
-      <group position={[0.19, 0.72, 0]}>
-        <mesh ref={rightArmRef} position={[0, -0.15, 0]}>
+      <group ref={rightArmRef} position={[0.19, 0.87, 0]}>
+        <mesh position={[0, -0.15, 0]}>
           <boxGeometry args={[0.08, 0.3, 0.08]} /><Mat color="#0a4a8a" roughness={0.7} />
         </mesh>
         <mesh position={[0, -0.33, 0]}>
@@ -847,7 +863,7 @@ export function CharlieCharacter() {
         </mesh>
       </group>
       {/* ── Head (BIG, Minecraft-style, slightly less round than Vinny) ── */}
-      <group ref={headRef} position={[0, 1.1, 0]}>
+      <group ref={headRef} position={[0, 0.98, 0]}>
         {/* Head block */}
         <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.06} smoothness={2} position={[0, 0, 0]}>
           <Mat color="#e8c4a0" roughness={0.75} />
@@ -930,6 +946,7 @@ export function VinnyCharacter() {
       // Priority 4: Weight shift — subtle X oscillation on ~6s cycle
       const vinnyBaseX = getObjectById("vinny")?.x ?? 7;
       ref.current.position.x = vinnyBaseX + Math.sin(t * (Math.PI * 2 / 6)) * 0.02;
+      registerNPCPosition("vinny", ref.current.position.x, ref.current.position.z);
     }
     if (leftArmRef.current) {
       leftArmRef.current.rotation.x = Math.sin(t * 0.6) * 0.15;
@@ -1000,6 +1017,10 @@ export function VinnyCharacter() {
     }
   });
 
+  useEffect(() => {
+    return () => { unregisterNPCPosition("vinny"); };
+  }, []);
+
   return (
     <group ref={ref} position={[getObjectById("vinny")?.x ?? 7, 0, getObjectById("vinny")?.z ?? 5.8]} scale={1.6} userData={{ interactType: "vinny", label: "Talk to Vinny" }}>
       {/* ── Legs (short, stubby, slightly apart) — scaled 1.15x for proper counter height ── */}
@@ -1052,7 +1073,7 @@ export function VinnyCharacter() {
         </mesh>
       </group>
       {/* ── Head (BIG, Minecraft-style) ── */}
-      <group ref={headRef} position={[0, 1.02, 0]}>
+      <group ref={headRef} position={[0, 0.93, 0]}>
         {/* Head block */}
         <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.04} smoothness={2} position={[0, 0, 0]}>
           <Mat color="#d4a574" roughness={0.75} />

@@ -90,9 +90,9 @@ export const WORLD_ANCHORS = {
   STRIP_MALL_BACK: [0, 0, -7] as [number, number, number],
 
   // Apartment
-  APARTMENT_DOOR: [16.2, 3.7, 0.87] as [number, number, number],  // world coords of apt door
+  APARTMENT_DOOR: [16.2, 3.7, 0.57] as [number, number, number],  // world coords of apt door (APT_Z shifted +0.3)
   APARTMENT_STAIRS_BOTTOM: [16.8, 0, 8.25] as [number, number, number],  // ground entry to stairs
-  APARTMENT_INTERIOR: [13, 3.7, 4] as [number, number, number],  // center of apartment
+  APARTMENT_INTERIOR: [13, 3.7, 4.3] as [number, number, number],  // center of apartment (APT_Z=4.3)
 
   // Parking lot
   PARKING_LOT_CENTER: [0, 0, 12] as [number, number, number],

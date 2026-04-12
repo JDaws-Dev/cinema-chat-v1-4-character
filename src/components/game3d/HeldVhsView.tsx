@@ -86,6 +86,10 @@ export function HeldVhsView({
               <boxGeometry args={CASE_SIZE} />
               <Mat color="#101216" roughness={0.5} />
             </mesh>
+            <mesh position={[0, 0.01, CASE_SIZE[2] / 2 + 0.002]}>
+              <planeGeometry args={[0.19, 0.28]} />
+              <meshBasicMaterial color="#0e1624" toneMapped={false} />
+            </mesh>
             <mesh position={[0, 0, CASE_SIZE[2] / 2 + 0.001]}>
               <planeGeometry args={[0.18, 0.26]} />
               <meshBasicMaterial color="#f1ead2" toneMapped={false} />
@@ -106,7 +110,7 @@ export function HeldVhsView({
             </Text>
             <mesh position={[CASE_SIZE[0] / 2 + 0.001, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
               <planeGeometry args={[CASE_SIZE[2], CASE_SIZE[1] - 0.04]} />
-              <meshBasicMaterial color="#dad2b8" toneMapped={false} />
+              <meshBasicMaterial color="#d6ceb4" toneMapped={false} />
             </mesh>
             <mesh
               position={[CASE_SIZE[0] / 2 + 0.002, 0.08, 0]}
@@ -115,6 +119,16 @@ export function HeldVhsView({
               <planeGeometry args={[CASE_SIZE[2], 0.08]} />
               <meshBasicMaterial color={accent} toneMapped={false} />
             </mesh>
+            <Text
+              position={[0, 0.08, CASE_SIZE[2] / 2 + 0.006]}
+              fontSize={0.018}
+              color={accent}
+              anchorX="center"
+              anchorY="middle"
+              maxWidth={0.14}
+            >
+              WHERE TO WATCH
+            </Text>
           </group>
         );
       })}
