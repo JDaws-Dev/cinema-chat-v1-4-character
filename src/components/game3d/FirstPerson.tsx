@@ -244,23 +244,31 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     const JUMP_VELOCITY = 5.5;
 
     // Determine ground height at current position
-    // Stair world coords: x=16.2..17.4, z=2.37..8.25 (front=8.25 ground, back=2.37 apt level)
-    const inStairX = camera.position.x > 16.0 && camera.position.x < 17.6;
-    const inStairZ = camera.position.z > 2.2 && camera.position.z < 8.5;
+    // Stair world coords — derived from APT_Z=4.3:
+    //   Bottom entry (ground): z = APT_Z + halfD = 4.3 + 2.5 = 6.8
+    //   Top step:              z = APT_Z + (halfD - totalRun) = 4.3 + (2.5 - 5.6) = 1.1
+    //   Landing center:        z = APT_Z + (topZ - landD/2) = 4.3 + (-3.1 - 0.75) = 0.45
+    //   Stair X center:        x = APT_X + (halfW + enclW/2) = 13 + (3 + 0.6) = 16.6
+    const STAIR_BOT_Z = 7.0;   // ground entry (slightly forward of actual 6.8 for approach)
+    const STAIR_TOP_Z = 1.1;   // top step
+    const LANDING_Z = 0.45;    // landing center
+
+    const inStairX = camera.position.x > 16.0 && camera.position.x < 17.8;
+    const inStairZ = camera.position.z > STAIR_TOP_Z - 0.3 && camera.position.z < STAIR_BOT_Z + 1.5;
     const inApartment = camera.position.x > 10 && camera.position.x < 16 &&
-                        camera.position.z > 1.8 && camera.position.z < 6.8 &&
+                        camera.position.z > 1.8 && camera.position.z < 7.0 &&
                         camera.position.y > 3.0;
-    // Landing world coords: x=16.2..17.4, z=0.87..2.37
-    const inLanding = camera.position.x > 16.0 && camera.position.x < 17.6 &&
-                      camera.position.z > 0.6 && camera.position.z < 2.6 &&
+    // Landing: from top step to landing back edge
+    const inLanding = camera.position.x > 16.0 && camera.position.x < 17.8 &&
+                      camera.position.z > LANDING_Z - 1.0 && camera.position.z < STAIR_TOP_Z + 0.3 &&
                       camera.position.y > 3.0;
 
     let groundY: number;
     if (inLanding) {
       groundY = APT_FLOOR_Y;
     } else if (inStairX && inStairZ) {
-      // Stairs ramp: z=8.25 is ground level, z=2.37 is apartment level
-      const stairProgress = 1 - Math.max(0, Math.min(1, (camera.position.z - 2.37) / (8.25 - 2.37)));
+      // Stairs ramp: STAIR_BOT_Z is ground level, STAIR_TOP_Z is apartment level
+      const stairProgress = 1 - Math.max(0, Math.min(1, (camera.position.z - STAIR_TOP_Z) / (STAIR_BOT_Z - STAIR_TOP_Z)));
       groundY = GROUND_Y + stairProgress * (APT_FLOOR_Y - GROUND_Y);
     } else if (inApartment) {
       groundY = APT_FLOOR_Y;

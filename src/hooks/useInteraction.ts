@@ -388,7 +388,7 @@ export function useInteraction(params: UseInteractionParams) {
         ((x: number, y: number, z: number, lx?: number, lz?: number) => void) | undefined;
       if (tp) {
         playSFX("door_chime");
-        tp(14.5, 3.7 + 1.6, 6.0, 13, 4.3); // inside apt, near door, looking in
+        tp(14.5, 3.7 + 1.6, 5.5, 13, 4.3); // inside apt near door, facing center
       }
     } else if (type === "apartment_exit") {
       // Teleport player from apartment back to stair landing
@@ -396,7 +396,7 @@ export function useInteraction(params: UseInteractionParams) {
         ((x: number, y: number, z: number, lx?: number, lz?: number) => void) | undefined;
       if (tp) {
         playSFX("door_chime");
-        tp(16.8, 3.7 + 1.6, 1.5, 16.8, 6); // on landing, facing down stairs
+        tp(16.8, 3.7 + 1.6, 0.8, 16.8, 6); // on landing, facing down stairs
       }
     }
   }, [overlay, heldMovies, challenge, mysteryClue, mysteryHintsUsed, currentTier, totalXP, era,
