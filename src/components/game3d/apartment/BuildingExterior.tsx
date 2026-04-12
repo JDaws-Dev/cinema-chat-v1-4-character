@@ -260,20 +260,9 @@ function ExteriorStairs() {
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* FRONT WALL — closes the front of the stair enclosure above the entry opening */}
-      {/* Full-height panel from door lintel to roof */}
-      <mesh position={[stairCX, GND + (2.5 + enclH) / 2, enclFrontZ]}>
-        <boxGeometry args={[ENCL_W, enclH - 2.5, WALL_THICK]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* FRONT ENTRY COLUMNS — frame the ground-level entry opening */}
-      {/* Outer entry column */}
+      {/* FRONT — open stairway (no wall blocking the stairs) */}
+      {/* Entry columns only — frame the ground-level opening */}
       <mesh position={[outerX - WALL_THICK / 2, GND + 1.25, enclFrontZ]}>
-        <boxGeometry args={[WALL_THICK, 2.5, 0.2]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-      {/* Inner entry column (between laundromat and stair) */}
-      <mesh position={[wallX + WALL_THICK / 2, GND + 1.25, enclFrontZ]}>
         <boxGeometry args={[WALL_THICK, 2.5, 0.2]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
