@@ -40,6 +40,9 @@ const CAMERAS = [
   { name: "apt_stairs",    pos: [18, 3, 10],       lookAt: [16.5, 2, 5],    fov: 55, label: "Apartment stairs close-up" },
   { name: "building_front",pos: [13, 6, 14],       lookAt: [13, 4, 4],      fov: 50, label: "Building front — 2 story view" },
   { name: "building_right",pos: [22, 5, 4],        lookAt: [16, 3, 4],      fov: 60, label: "Building right side with stairs" },
+  // ── Back alley (verify building shell is solid) ──
+  { name: "back_alley",    pos: [0, 3, -10],       lookAt: [0, 2, -7],      fov: 80, label: "Back alley — full width" },
+  { name: "back_alley_r",  pos: [15, 2, -10],      lookAt: [10, 2, -7],     fov: 60, label: "Back alley — right side" },
   // ── Apartment interior (eye level y=5.1 inside apt bounds) ──
   { name: "apt_interior",  pos: [14.5, 5.1, 6.2],  lookAt: [12, 4.3, 3.5],  fov: 75, label: "Apartment interior from door" },
   { name: "apt_tv",        pos: [13, 5.1, 6.0],    lookAt: [13, 4.2, 1.5],  fov: 60, label: "Apartment TV/VCR area" },

@@ -10,6 +10,7 @@ import { playSFX } from "@/lib/audio";
 import { getObjectById } from "@/lib/store-layout";
 import { LayoutDrivenPrefabs } from "./prefabs";
 import { NeonSignProp, AisleSignProp, AISLE_SIGNS, AisleFloorMarkings, FloorRugProp, PizzaPalace, Laundromat, CeilingFixtures, ExteriorEnvironment } from "./props";
+import { BuildingShell } from "./props/BuildingShell";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
@@ -330,6 +331,7 @@ export function Store({
 
       <PizzaPalace />
       <Laundromat />
+      <BuildingShell />
 
       {/* Apartment above laundromat */}
       <Apartment />
