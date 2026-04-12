@@ -4,13 +4,24 @@ import React from "react";
 import { ROOM_H } from "../store-constants";
 import { Mat } from "../store-materials";
 
-/** Fluorescent ceiling light fixture (reusable) */
+/** Fluorescent ceiling light fixture — housing + glowing diffuser tube */
 function Fixture({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
+      {/* Housing */}
       <mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh>
-      <mesh position={[0, -0.04, 0]}><boxGeometry args={[1.6, 0.03, 0.08]} /><meshBasicMaterial color="#fffae8" /></mesh>
-      <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#e8e8e0" roughness={0.2} /></mesh>
+      {/* Diffuser panel (slightly translucent) */}
+      <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#f0efe8" roughness={0.2} /></mesh>
+      {/* Glowing tube — emissive for bloom pickup */}
+      <mesh position={[0, -0.04, 0]}>
+        <boxGeometry args={[1.6, 0.03, 0.06]} />
+        <meshStandardMaterial
+          color="#fffae8"
+          emissive="#fff8e0"
+          emissiveIntensity={2.5}
+          toneMapped={false}
+        />
+      </mesh>
     </group>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Text, useGLTF } from "@react-three/drei";
+import { Text, useGLTF, Environment } from "@react-three/drei";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { hasProp, PROPS } from "@/lib/game-state";
@@ -238,6 +238,8 @@ export function Store({
 
   return (
     <group>
+      {/* Environment map removed — hemisphere + ambient provide sufficient fill at lower cost */}
+
       {/* ── MERGED STATIC ARCHITECTURE (walls, floor, ceiling, accents, baseboards) ── */}
       <MergedArchitecture topDown={topDown} />
       {/* Entrance mat floor (different color, not merged) */}
@@ -248,17 +250,19 @@ export function Store({
       {[-4, 0, 4].map(z => (<mesh key={`cgz${z}`} position={[0, ROOM_H - 0.03, z]}><boxGeometry args={[ROOM_W, 0.01, 0.02]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
       </>}
 
-      {/* ── LIGHTING (minimal for performance) ── */}
-      <ambientLight intensity={1.1} color="#f0eadc" />
-      <hemisphereLight args={["#fff6e4", "#4a5070", 0.6]} />
-      <directionalLight position={[5, 8, 3]} intensity={1.2} color="#fff1dc" />
-      <directionalLight position={[-3, 6, -8]} intensity={0.3} color="#c8d4e8" />
-
-      {/* Side wall accent lights — illuminate shelves and posters on left/right walls */}
-      <pointLight position={[-ROOM_W / 2 + 1, 2.2, -3]} intensity={0.6} distance={8} color="#fff4d0" />
-      <pointLight position={[-ROOM_W / 2 + 1, 2.2, 3]} intensity={0.6} distance={8} color="#fff4d0" />
-      <pointLight position={[ROOM_W / 2 - 1, 2.2, -3]} intensity={0.6} distance={8} color="#fff4d0" />
-      <pointLight position={[ROOM_W / 2 - 1, 2.2, 3]} intensity={0.6} distance={8} color="#fff4d0" />
+      {/* ── LIGHTING — max 6 dynamic lights (perf budget) ── */}
+      {/* Warm ambient fill */}
+      <ambientLight intensity={1.6} color="#f5edd8" />
+      {/* Hemisphere: warm ceiling → cool floor for depth without extra lights */}
+      <hemisphereLight args={["#fff6e4", "#3a4560", 0.9]} />
+      {/* Key directional: simulates all overhead fluorescent panels in one light */}
+      <directionalLight position={[2, 8, 1]} intensity={1.8} color="#fff3dc" />
+      {/* Cool fill from back — separates shelves from wall */}
+      <directionalLight position={[-4, 5, -8]} intensity={0.4} color="#c0d0e8" />
+      {/* Counter warm spot */}
+      <pointLight position={[7, 2.8, 5.5]} intensity={0.8} distance={8} color="#ffe8c0" />
+      {/* Center aisle fill — single light covers all three shelf rows */}
+      <pointLight position={[0, 3.2, -1]} intensity={1.0} distance={12} color="#fff8e0" />
 
       {/* Fluorescent ceiling fixtures (hidden in top-down) */}
       {!topDown && <CeilingFixtures />}

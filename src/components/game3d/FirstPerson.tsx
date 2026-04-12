@@ -4,12 +4,15 @@ import { useRef, useEffect, useCallback } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { mobileInput } from "./MobileControls";
-import { setPlayerPosition } from "@/lib/audio";
+import { getRegisteredNPCPositions, setPlayerPosition } from "@/lib/audio";
 
 const SPEED = 3.5;
 const MOUSE_SENS = 0.002;
 const ROOM_BOUNDS = { minX: -20, maxX: 20, minZ: -6.5, maxZ: 20 }; // full strip mall + side streets + parking lot + road
 const PLAYER_RADIUS = 0.4;
+const NPC_COLLISION_RADIUS = 0.72;
+const CROUCH_OFFSET = 0.96;
+const CROUCH_DAMPING = 16;
 
 // Collision boxes derived from layout data — positions stay in sync with editor
 import { getLayoutColliders } from "@/lib/store-layout";
@@ -50,8 +53,8 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   colliders.push({ x: 11.5, z: 7.2, hw: 1.5, hd: 0.2 });
   // Front wall — right of door (x=14.15 to x=16, z=7)
   colliders.push({ x: 15.1, z: 7.2, hw: 0.9, hd: 0.2 });
-  // Right wall of laundromat (x=16) — extends from front z=7 to back z=0.25 (world)
-  colliders.push({ x: 16.2, z: 2.5, hw: 0.2, hd: 5 });
+  // Right wall of laundromat (x=16) — deep interior only, clears stair path AND apartment door (z=0.87)
+  colliders.push({ x: 16.1, z: -1.5, hw: 0.1, hd: 1 });  // z=-2.5 to z=-0.5 only
   // Back wall of laundromat (z=0.25 — deeper interior, was z=4.5)
   colliders.push({ x: 13, z: 0.05, hw: 3, hd: 0.2 });
 
@@ -80,13 +83,26 @@ function collidesWithAny(px: number, pz: number): boolean {
   return false;
 }
 
+function collidesWithNpc(px: number, pz: number): boolean {
+  for (const npc of getRegisteredNPCPositions()) {
+    const dx = px - npc.x;
+    const dz = pz - npc.z;
+    if (dx * dx + dz * dz < NPC_COLLISION_RADIUS * NPC_COLLISION_RADIUS) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function FirstPersonControls({ disabled = false }: { disabled?: boolean }) {
   const { camera, gl } = useThree();
   const keys = useRef(new Set<string>());
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const locked = useRef(false);
   const initialized = useRef(false);
+  const standingEyeY = useRef(1.6);
   const velocityY = useRef(0);
+  const crouchAmount = useRef(0);
   const lookVelocityX = useRef(0);
   const lookVelocityY = useRef(0);
 
@@ -100,6 +116,7 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     // Set spawn position only on very first mount
     if (!initialized.current) {
       camera.position.set(0, 1.6, 19); // Out in the street — full strip mall view
+      standingEyeY.current = 1.6;
       camera.lookAt(0, 3.5, 7); // Face toward store signage
       camera.getWorldDirection(new THREE.Vector3()); // force update
       euler.current.setFromQuaternion(camera.quaternion); // sync euler to camera
@@ -191,23 +208,23 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
       const clampedZ = Math.max(ROOM_BOUNDS.minZ, Math.min(ROOM_BOUNDS.maxZ, newZ));
 
       // Try full movement first
-      if (!collidesWithAny(clampedX, clampedZ)) {
+      if (!collidesWithAny(clampedX, clampedZ) && !collidesWithNpc(clampedX, clampedZ)) {
         camera.position.x = clampedX;
         camera.position.z = clampedZ;
       }
       // Try sliding along X only
-      else if (!collidesWithAny(clampedX, camera.position.z)) {
+      else if (!collidesWithAny(clampedX, camera.position.z) && !collidesWithNpc(clampedX, camera.position.z)) {
         camera.position.x = clampedX;
       }
       // Try sliding along Z only
-      else if (!collidesWithAny(camera.position.x, clampedZ)) {
+      else if (!collidesWithAny(camera.position.x, clampedZ) && !collidesWithNpc(camera.position.x, clampedZ)) {
         camera.position.z = clampedZ;
       }
       // Blocked both ways — don't move
     }
 
     // ── Vertical movement: stairs, jump, gravity ──
-    const APT_FLOOR_Y = 4 + 1.6; // apartment floor y=4 + eye height 1.6
+    const APT_FLOOR_Y = 3.7 + 1.6; // apartment floor y=3.7 + eye height 1.6
     const GROUND_Y = 1.6;
     const GRAVITY = 12;
     const JUMP_VELOCITY = 5.5;
@@ -217,8 +234,8 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     const inStairX = camera.position.x > 16.0 && camera.position.x < 17.6;
     const inStairZ = camera.position.z > 2.2 && camera.position.z < 8.5;
     const inApartment = camera.position.x > 10 && camera.position.x < 16 &&
-                        camera.position.z > 3 && camera.position.z < 8.5 &&
-                        camera.position.y > 3.5;
+                        camera.position.z > 1.5 && camera.position.z < 6.5 &&
+                        camera.position.y > 3.0;
     // Landing world coords: x=16.2..17.4, z=0.87..2.37
     const inLanding = camera.position.x > 16.0 && camera.position.x < 17.6 &&
                       camera.position.z > 0.6 && camera.position.z < 2.6 &&
@@ -237,32 +254,33 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
       groundY = GROUND_Y;
     }
 
+    const crouchTarget = keys.current.has("shift") && velocityY.current === 0 ? CROUCH_OFFSET : 0;
+    crouchAmount.current = THREE.MathUtils.damp(crouchAmount.current, crouchTarget, CROUCH_DAMPING, delta);
+    const stanceGroundY = groundY - crouchAmount.current;
+
     // Jump: spacebar triggers jump if on the ground
     if (!velocityY.current && (keys.current.has(" ") || keys.current.has("space"))) {
-      if (Math.abs(camera.position.y - groundY) < 0.2) {
+      if (!keys.current.has("shift") && Math.abs(standingEyeY.current - groundY) < 0.12) {
         velocityY.current = JUMP_VELOCITY;
       }
     }
 
-    // Apply gravity and velocity
-    if (velocityY.current || camera.position.y > groundY + 0.1) {
+    // Apply gravity against the real floor height; crouch is only a held view offset.
+    if (velocityY.current || standingEyeY.current > groundY + 0.1) {
       velocityY.current -= GRAVITY * delta;
-      camera.position.y += velocityY.current * delta;
+      standingEyeY.current += velocityY.current * delta;
       // Land
-      if (camera.position.y <= groundY) {
-        camera.position.y = groundY;
+      if (standingEyeY.current <= groundY) {
+        standingEyeY.current = groundY;
         velocityY.current = 0;
       }
     } else {
       // On the ground — snap to ground height (smooth for stairs)
-      camera.position.y += (groundY - camera.position.y) * 0.2;
+      standingEyeY.current += (groundY - standingEyeY.current) * 0.2;
       velocityY.current = 0;
     }
 
-    // Crouch mechanic: hold Shift to lower camera
-    if (keys.current.has("shift") && velocityY.current === 0) {
-      camera.position.y -= 0.8;
-    }
+    camera.position.y = standingEyeY.current - crouchAmount.current;
 
     // Update spatial audio listener to match player position
     setPlayerPosition(camera.position.x, camera.position.z);

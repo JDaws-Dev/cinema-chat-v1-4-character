@@ -5,58 +5,50 @@ import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 
-// Toon shading gradient — warm amber-tinted 6-step for cozy 90s retail feel
-export const toonGradientTexture = (() => {
-  if (typeof document === "undefined") return null; // SSR guard
-  // Warm amber-tinted gradient for cozy 90s retail feel (RGBA, 4 bytes per pixel)
-  const warmGradient = new Uint8Array([
-    35, 28, 18, 255,    // deep warm shadow
-    75, 60, 40, 255,    // warm mid-shadow
-    125, 105, 75, 255,  // warm midtone
-    170, 150, 115, 255, // warm highlight
-    210, 195, 160, 255, // bright warm
-    255, 248, 230, 255, // near-white warm
-  ]);
-  const tex = new THREE.DataTexture(warmGradient, 6, 1, THREE.RGBAFormat);
-  tex.minFilter = THREE.NearestFilter;
-  tex.magFilter = THREE.NearestFilter;
-  tex.needsUpdate = true;
-  return tex;
-})();
+// ── Legacy export for any code that references it ──
+export const toonGradientTexture = null;
 
-// ── Shared material cache — one MeshToonMaterial per unique param set ──
-const matCache = new Map<string, THREE.MeshToonMaterial>();
+// ── Shared PBR material cache — one MeshStandardMaterial per unique param set ──
+const matCache = new Map<string, THREE.MeshStandardMaterial>();
 
-function getSharedMaterial(color: string, gradientMap: THREE.Texture | null, opts?: {
+function getSharedMaterial(color: string, opts?: {
+  roughness?: number;
+  metalness?: number;
   transparent?: boolean;
   opacity?: number;
   side?: THREE.Side;
   emissive?: string;
   emissiveIntensity?: number;
-}): THREE.MeshToonMaterial {
-  const key = `${color}|${opts?.transparent ?? false}|${opts?.opacity ?? 1}|${opts?.side ?? 0}|${opts?.emissive ?? ''}|${opts?.emissiveIntensity ?? 0}`;
+}): THREE.MeshStandardMaterial {
+  const r = opts?.roughness ?? 0.7;
+  const m = opts?.metalness ?? 0.0;
+  const key = `${color}|${r}|${m}|${opts?.transparent ?? false}|${opts?.opacity ?? 1}|${opts?.side ?? 0}|${opts?.emissive ?? ''}|${opts?.emissiveIntensity ?? 0}`;
   let mat = matCache.get(key);
   if (!mat) {
-    const matConfig: Record<string, unknown> = { color, gradientMap: gradientMap ?? undefined };
-    if (opts?.transparent !== undefined) matConfig.transparent = opts.transparent;
-    if (opts?.opacity !== undefined) matConfig.opacity = opts.opacity;
-    if (opts?.side !== undefined) matConfig.side = opts.side;
-    if (opts?.emissive !== undefined) matConfig.emissive = new THREE.Color(opts.emissive);
-    if (opts?.emissiveIntensity !== undefined) matConfig.emissiveIntensity = opts.emissiveIntensity;
-    mat = new THREE.MeshToonMaterial(matConfig as THREE.MeshToonMaterialParameters);
+    mat = new THREE.MeshStandardMaterial({
+      color,
+      roughness: r,
+      metalness: m,
+      ...(opts?.transparent !== undefined && { transparent: opts.transparent }),
+      ...(opts?.opacity !== undefined && { opacity: opts.opacity }),
+      ...(opts?.side !== undefined && { side: opts.side }),
+      ...(opts?.emissive !== undefined && { emissive: new THREE.Color(opts.emissive) }),
+      ...(opts?.emissiveIntensity !== undefined && { emissiveIntensity: opts.emissiveIntensity }),
+    });
     matCache.set(key, mat);
   }
   return mat;
 }
 
-/** Drop-in material — meshToonMaterial everywhere (cel-shaded), cached & shared */
+/** Drop-in PBR material — MeshStandardMaterial with proper roughness/metalness, cached & shared */
 export function Mat(props: Record<string, unknown>) {
   const { roughness, metalness, color, transparent, opacity, side, emissive, emissiveIntensity, ...rest } = props;
   const material = useMemo(
     () => getSharedMaterial(
       (color as string) ?? '#ffffff',
-      toonGradientTexture,
       {
+        roughness: (roughness as number) ?? 0.7,
+        metalness: (metalness as number) ?? 0.0,
         transparent: transparent as boolean | undefined,
         opacity: opacity as number | undefined,
         side: side as THREE.Side | undefined,
@@ -64,7 +56,7 @@ export function Mat(props: Record<string, unknown>) {
         emissiveIntensity: emissiveIntensity as number | undefined,
       }
     ),
-    [color, transparent, opacity, side, emissive, emissiveIntensity]
+    [color, roughness, metalness, transparent, opacity, side, emissive, emissiveIntensity]
   );
   return <primitive object={material} attach="material" {...rest} />;
 }

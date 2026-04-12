@@ -1,6 +1,6 @@
 "use client";
 
-import { EffectComposer, Bloom, Vignette, Noise, ChromaticAberration, Scanline, N8AO, Pixelation } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Vignette, Noise, ChromaticAberration, N8AO, Pixelation } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import { Vector2 } from "three";
 
@@ -24,13 +24,7 @@ export function PostEffects({ mobile = false, retroMode = false }: { mobile?: bo
 
   return (
     <EffectComposer multisampling={0}>
-      <N8AO
-        aoRadius={0.5}
-        distanceFalloff={0.5}
-        intensity={1.5}
-        quality="low"
-        halfRes
-      />
+      {/* N8AO removed — too expensive with PBR materials. Hemisphere light handles ambient depth. */}
       <Bloom
         intensity={0.3}
         luminanceThreshold={0.8}
@@ -38,20 +32,11 @@ export function PostEffects({ mobile = false, retroMode = false }: { mobile?: bo
         mipmapBlur
       />
       <Vignette darkness={0.5} offset={0.25} />
-      <Noise
-        premultiply
-        blendFunction={BlendFunction.ADD}
-        opacity={0.03}
-      />
+      {/* Noise/scanlines removed — made artwork look grainy */}
       <ChromaticAberration
         offset={CHROMA_OFFSET}
         radialModulation={false}
         modulationOffset={0}
-      />
-      <Scanline
-        blendFunction={BlendFunction.OVERLAY}
-        density={1.25}
-        opacity={0.06}
       />
       {retroMode ? <Pixelation granularity={3} /> : <></>}
     </EffectComposer>
