@@ -112,6 +112,20 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     gl.domElement.requestPointerLock();
   }, [gl, disabled]);
 
+  // ── Global teleport function — used by apartment door interaction ──
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__teleportPlayer = (x: number, y: number, z: number, lookX?: number, lookZ?: number) => {
+      camera.position.set(x, y, z);
+      standingEyeY.current = y;
+      velocityY.current = 0;
+      if (lookX !== undefined && lookZ !== undefined) {
+        camera.lookAt(lookX, y, lookZ);
+        euler.current.setFromQuaternion(camera.quaternion);
+      }
+    };
+    return () => { delete (window as unknown as Record<string, unknown>).__teleportPlayer; };
+  }, [camera]);
+
   useEffect(() => {
     // Set spawn position only on very first mount
     if (!initialized.current) {

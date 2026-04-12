@@ -354,7 +354,8 @@ function ExteriorStairs() {
           5. APARTMENT DOOR — on building right wall, at the landing
              Faces toward the stairs (+x direction, rotated 90deg)
           ══════════════════════════════════════════════════════════════ */}
-      <group position={[wallX + 0.02, 1.015, landCZ]} rotation={[0, Math.PI / 2, 0]}>
+      <group position={[wallX + 0.02, 1.015, landCZ]} rotation={[0, Math.PI / 2, 0]}
+        userData={{ interactType: "apartment_door", label: "Enter Apartment 2A" }}>
         {/* Door frame */}
         <mesh position={[-0.47, 0, 0]}>
           <boxGeometry args={[0.06, 2.1, 0.1]} />

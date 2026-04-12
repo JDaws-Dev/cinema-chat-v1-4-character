@@ -382,6 +382,22 @@ export function useInteraction(params: UseInteractionParams) {
       trackQuestGenreVisit(browseState.genre);
     } else if (type === "tv") {
       startPuzzle();
+    } else if (type === "apartment_door") {
+      // Teleport player from stair landing INTO apartment interior
+      const tp = (window as unknown as Record<string, unknown>).__teleportPlayer as
+        ((x: number, y: number, z: number, lx?: number, lz?: number) => void) | undefined;
+      if (tp) {
+        playSFX("door_chime");
+        tp(14.5, 3.7 + 1.6, 6.0, 13, 4.3); // inside apt, near door, looking in
+      }
+    } else if (type === "apartment_exit") {
+      // Teleport player from apartment back to stair landing
+      const tp = (window as unknown as Record<string, unknown>).__teleportPlayer as
+        ((x: number, y: number, z: number, lx?: number, lz?: number) => void) | undefined;
+      if (tp) {
+        playSFX("door_chime");
+        tp(16.8, 3.7 + 1.6, 1.5, 16.8, 6); // on landing, facing down stairs
+      }
     }
   }, [overlay, heldMovies, challenge, mysteryClue, mysteryHintsUsed, currentTier, totalXP, era,
       setHeldSnacks, setPickupFlash, setPickupTitle, setPendingPickup, setFilmId, setOverlay,
