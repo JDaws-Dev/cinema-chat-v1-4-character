@@ -323,9 +323,9 @@ function ExteriorStairs() {
         <Mat color={STAIR_COLOR} />
       </mesh>
 
-      {/* Landing support structure — solid fill from ground to landing underside */}
-      <mesh position={[stairCX, GND + APT_Y / 2 - 0.12, landCZ]}>
-        <boxGeometry args={[LAND_W, APT_Y - 0.12, LAND_D]} />
+      {/* Landing support structure — solid fill from ground to landing slab (no gap) */}
+      <mesh position={[stairCX, GND + APT_Y / 2, landCZ]}>
+        <boxGeometry args={[LAND_W, APT_Y, LAND_D]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
