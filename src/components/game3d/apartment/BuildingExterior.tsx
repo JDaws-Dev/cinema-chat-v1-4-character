@@ -55,9 +55,9 @@ function BuildingFacade() {
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* BACK WALL — apartment level, extended right to cover stair enclosure */}
-      <mesh position={[0.6, aptMidY, -halfD - WALL_T / 2]}>
-        <boxGeometry args={[APT_W + 1.2, APT_H, WALL_T]} />
+      {/* BACK WALL — apartment level only, does NOT extend into stairway */}
+      <mesh position={[0, aptMidY, -halfD - WALL_T / 2]}>
+        <boxGeometry args={[APT_W, APT_H, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
