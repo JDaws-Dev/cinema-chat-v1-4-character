@@ -250,7 +250,7 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
     //   Landing center:        z = APT_Z + (topZ - landD/2) = 4.3 + (-3.1 - 0.75) = 0.45
     //   Stair X center:        x = APT_X + (halfW + enclW/2) = 13 + (3 + 0.6) = 16.6
     const STAIR_BOT_Z = 7.0;   // ground entry (slightly forward of actual 6.8 for approach)
-    const STAIR_TOP_Z = 1.1;   // top step
+    const STAIR_TOP_Z = 1.5;   // top step (actual=1.48, must reach full height HERE so player steps onto landing)
     const LANDING_Z = 0.45;    // landing center
 
     const inStairX = camera.position.x > 16.0 && camera.position.x < 17.8;
@@ -259,8 +259,9 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
                         camera.position.z > 1.8 && camera.position.z < 7.0 &&
                         camera.position.y > 3.0;
     // Landing: from top step to landing back edge
+    // Landing zone — extends forward to overlap with top 2 stairs for smooth transition
     const inLanding = camera.position.x > 16.0 && camera.position.x < 17.8 &&
-                      camera.position.z > LANDING_Z - 1.0 && camera.position.z < STAIR_TOP_Z + 0.3 &&
+                      camera.position.z > LANDING_Z - 1.0 && camera.position.z < STAIR_TOP_Z + 0.5 &&
                       camera.position.y > 3.0;
 
     let groundY: number;
