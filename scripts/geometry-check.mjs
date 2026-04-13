@@ -72,7 +72,7 @@ const COLLIDERS = [
   { x: 11.5, z: 7.2, hw: 1.5, hd: 0.2, label: "LM front left" },
   { x: 15.1, z: 7.2, hw: 0.9, hd: 0.2, label: "LM front right" },
   { x: 16.1, z: -1.5, hw: 0.1, hd: 1, label: "LM right wall" },
-  { x: 13, z: 0.05, hw: 3, hd: 0.2, label: "LM back wall" },
+  { x: 12.75, z: 0.05, hw: 2.75, hd: 0.2, label: "LM back wall" },
   { x: -20, z: 5, hw: 0.2, hd: 20, label: "World left" },
   { x: 20, z: 5, hw: 0.2, hd: 20, label: "World right" },
 ];

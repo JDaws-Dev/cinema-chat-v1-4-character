@@ -16,6 +16,7 @@
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
+    "@recast-navigation/three": "^0.43.1",
     "convex": "^1.34.0",
     "leva": "^0.10.1",
     "next": "16.2.1",
@@ -24,7 +25,9 @@
     "r3f-perf": "^7.2.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "recast-navigation": "^0.43.1",
     "three": "^0.183.2",
+    "three-mesh-bvh": "^0.9.9",
     "youtube-caption-extractor": "^1.9.1"
   },
   "devDependencies": {

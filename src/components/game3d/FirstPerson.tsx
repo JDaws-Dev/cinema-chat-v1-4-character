@@ -55,8 +55,8 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   colliders.push({ x: 15.1, z: 7.2, hw: 0.9, hd: 0.2 });
   // Right wall of laundromat (x=16) — deep interior only, clears stair path AND apartment door (z=0.87)
   colliders.push({ x: 16.1, z: -1.5, hw: 0.1, hd: 1 });  // z=-2.5 to z=-0.5 only
-  // Back wall of laundromat (z=0.25 — deeper interior, was z=4.5)
-  colliders.push({ x: 13, z: 0.05, hw: 3, hd: 0.2 });
+  // Back wall of laundromat — shortened to x=10..15.5 to leave stair corridor (x=16+) clear
+  colliders.push({ x: 12.75, z: 0.05, hw: 2.75, hd: 0.2 });
 
   // ── World-edge invisible walls (side streets) ──
   // Left world edge (x=-20)
