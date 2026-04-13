@@ -48,10 +48,10 @@ function BuildingFacade() {
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* RIGHT SIDE WALL — apartment level only, SOLID (fire code, stair side)
-          Extended in Z to cover the stair landing area (landCZ ≈ -4.13 local) */}
-      <mesh position={[halfW + WALL_T / 2, aptMidY, -0.8]}>
-        <boxGeometry args={[WALL_T, APT_H, APT_D + WALL_T + 3.6]} />
+      {/* RIGHT SIDE WALL — apartment level only, STOPS at building edge (z=halfD).
+          Does NOT extend into the stairway — the enclosure walls handle that side. */}
+      <mesh position={[halfW + WALL_T / 2, aptMidY, 0]}>
+        <boxGeometry args={[WALL_T, APT_H, APT_D + WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
