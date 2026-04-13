@@ -322,9 +322,11 @@ function ExteriorStairs() {
         <Mat color={STAIR_COLOR} />
       </mesh>
 
-      {/* Landing support structure — solid fill from ground to landing slab (no gap) */}
-      <mesh position={[stairCX, GND + APT_Y / 2, landCZ]}>
-        <boxGeometry args={[LAND_W, APT_Y, LAND_D]} />
+      {/* Landing support — ONLY under the landing platform, set back from stair run
+          so it doesn't block the player walking up. Extends from ground to just
+          below the landing floor slab (y=-3.7 to y=-0.18 local). */}
+      <mesh position={[stairCX, GND + (APT_Y - 0.24) / 2, landCZ - 0.3]}>
+        <boxGeometry args={[LAND_W, APT_Y - 0.24, LAND_D * 0.6]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
 
