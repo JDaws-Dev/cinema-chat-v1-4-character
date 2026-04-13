@@ -301,9 +301,10 @@ function ExteriorStairs() {
           4. TOP LANDING / PORCH — covered platform at apartment level
           ══════════════════════════════════════════════════════════════ */}
 
-      {/* Landing floor slab */}
-      <mesh position={[stairCX, -0.06, landCZ]}>
-        <boxGeometry args={[LAND_W, 0.12, LAND_D]} />
+      {/* Landing floor slab — thin, pulled back from stair edge so it doesn't
+          appear as a wall when viewed from below on the stairs */}
+      <mesh position={[stairCX, -0.02, landCZ - 0.3]}>
+        <boxGeometry args={[LAND_W, 0.04, LAND_D * 0.7]} />
         <Mat color={STAIR_COLOR} />
       </mesh>
 
