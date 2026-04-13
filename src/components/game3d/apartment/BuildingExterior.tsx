@@ -273,22 +273,7 @@ function ExteriorStairs() {
         <Mat color={STAIR_COLOR} />
       </mesh>
 
-      {/* ══════════════════════════════════════════════════════════════
-          2. SOLID UNDERSIDE — angled panel closing the stair soffit
-          ══════════════════════════════════════════════════════════════ */}
-      {(() => {
-        const angle = Math.atan2(TOTAL_RISE, TOTAL_RUN);
-        const hyp = Math.sqrt(TOTAL_RISE * TOTAL_RISE + TOTAL_RUN * TOTAL_RUN);
-        return (
-          <mesh
-            position={[stairCX, GND + TOTAL_RISE / 2 - 0.15, botZ - TOTAL_RUN / 2]}
-            rotation={[angle, 0, 0]}
-          >
-            <boxGeometry args={[STAIR_W + 0.04, 0.12, hyp]} />
-            <Mat color="#666666" />
-          </mesh>
-        );
-      })()}
+      {/* SOFFIT REMOVED — was blocking stair path visually */}
 
       {/* ══════════════════════════════════════════════════════════════
           3. STAIR TREADS — 21 individual steps (tread + riser)
@@ -322,34 +307,8 @@ function ExteriorStairs() {
         <Mat color={STAIR_COLOR} />
       </mesh>
 
-      {/* Landing support — ONLY under the landing platform, set back from stair run
-          so it doesn't block the player walking up. Extends from ground to just
-          below the landing floor slab (y=-3.7 to y=-0.18 local). */}
-      <mesh position={[stairCX, GND + (APT_Y - 0.24) / 2, landCZ - 0.3]}>
-        <boxGeometry args={[LAND_W, APT_Y - 0.24, LAND_D * 0.6]} />
-        <Mat color={BRICK_COLOR} />
-      </mesh>
-
-      {/* Landing roof/awning */}
-      <mesh position={[stairCX, APT_H - 0.3, landCZ]}>
-        <boxGeometry args={[LAND_W + 0.3, 0.10, LAND_D + 0.3]} />
-        <Mat color={ROOF_COLOR} />
-      </mesh>
-      {/* Awning fascia — front edge */}
-      <mesh position={[stairCX, APT_H - 0.35, landCZ + LAND_D / 2 + 0.15]}>
-        <boxGeometry args={[LAND_W + 0.3, 0.15, 0.06]} />
-        <Mat color={FASCIA_COLOR} />
-      </mesh>
-      {/* Awning fascia — outer edge */}
-      <mesh position={[outerX + 0.15, APT_H - 0.35, landCZ]}>
-        <boxGeometry args={[0.06, 0.15, LAND_D + 0.3]} />
-        <Mat color={FASCIA_COLOR} />
-      </mesh>
-      {/* Awning fascia — back edge */}
-      <mesh position={[stairCX, APT_H - 0.35, landCZ - LAND_D / 2 - 0.15]}>
-        <boxGeometry args={[LAND_W + 0.3, 0.15, 0.06]} />
-        <Mat color={FASCIA_COLOR} />
-      </mesh>
+      {/* LANDING SUPPORT + AWNING REMOVED — were blocking stair path.
+          The landing slab alone provides the floor. The enclosure walls provide shelter. */}
 
       {/* ══════════════════════════════════════════════════════════════
           5. APARTMENT DOOR — on building right wall, at the landing
