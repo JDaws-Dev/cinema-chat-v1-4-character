@@ -62,7 +62,19 @@ function loadState(): VHSStateSnapshot {
     if (raw) {
       const parsed = JSON.parse(raw) as VHSStateSnapshot;
       if (parsed && typeof parsed.version === "number" && parsed.tapes) {
-        return parsed;
+        // Sanitize stale state from previous session: any tape still in
+        // "held" status when the tab was closed is no longer in the player's
+        // hand on a fresh load. Drop them back to "on_shelf" so the player
+        // doesn't start a new session holding ghost tapes.
+        const cleanedTapes: typeof parsed.tapes = {};
+        for (const [k, t] of Object.entries(parsed.tapes)) {
+          if (t.status === "held") {
+            cleanedTapes[k] = { ...t, status: "on_shelf", rentedAt: undefined };
+          } else {
+            cleanedTapes[k] = t;
+          }
+        }
+        return { ...parsed, tapes: cleanedTapes };
       }
     }
   } catch {
@@ -278,12 +290,15 @@ export function getReturnBonus(
 export function useVHSState() {
   const [state, setState] = useState<VHSStateSnapshot>(() => loadState());
   const stateRef = useRef(state);
-  stateRef.current = state;
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // Persist on every change
   useEffect(() => {
     saveState(state);
-  }, [state.version]);
+  }, [state]);
 
   // Listen for cross-tab changes
   useEffect(() => {
@@ -321,18 +336,32 @@ export function useVHSState() {
     setState((prev) => checkoutTapes(prev));
   }, []);
 
-  const doReturn = useCallback(
-    (slotKey: string): ReturnResult => {
-      let result: ReturnResult = { xpDelta: 0, lateFee: false };
-      setState((prev) => {
-        const returned = returnTape(prev, slotKey);
-        result = returned.result;
-        return returned.state;
-      });
-      return result;
-    },
-    []
-  );
+  const doReturn = useCallback((slotKey: string): ReturnResult => {
+    const returned = returnTape(stateRef.current, slotKey);
+    if (returned.state !== stateRef.current) {
+      stateRef.current = returned.state;
+      setState(returned.state);
+    }
+    return returned.result;
+  }, []);
+
+  const doReturnCheckedOut = useCallback((): ReturnResult[] => {
+    const results: ReturnResult[] = [];
+    let nextState = stateRef.current;
+
+    for (const tape of getCheckedOutTapes(nextState)) {
+      const returned = returnTape(nextState, tape.slotKey);
+      nextState = returned.state;
+      results.push(returned.result);
+    }
+
+    if (nextState !== stateRef.current) {
+      stateRef.current = nextState;
+      setState(nextState);
+    }
+
+    return results;
+  }, []);
 
   const doRewind = useCallback((slotKey: string) => {
     setState((prev) => rewindTape(prev, slotKey));
@@ -348,6 +377,7 @@ export function useVHSState() {
     dropTape: doDrop,
     checkoutTapes: doCheckout,
     returnTape: doReturn,
+    returnCheckedOutTapes: doReturnCheckedOut,
     rewindTape: doRewind,
     // Queries (bound to current state for convenience)
     heldTapes: getHeldTapes(state),

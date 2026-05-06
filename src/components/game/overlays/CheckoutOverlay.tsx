@@ -58,13 +58,13 @@ interface CheckoutOverlayProps {
   heldMovies: HeldMovie[];
   heldSnacks: HeldSnack[];
   removeHeldMovie: (id: number) => void;
-  setHeldMovies: React.Dispatch<React.SetStateAction<HeldMovie[]>>;
   setHeldSnacks: React.Dispatch<React.SetStateAction<HeldSnack[]>>;
   setOverlay: (o: Overlay) => void;
+  onCheckout?: () => void;
   onLeaveStore?: () => void;
 }
 
-export function CheckoutOverlay({ heldMovies, heldSnacks, removeHeldMovie, setHeldMovies, setHeldSnacks, setOverlay, onLeaveStore }: CheckoutOverlayProps) {
+export function CheckoutOverlay({ heldMovies, heldSnacks, removeHeldMovie, setHeldSnacks, setOverlay, onCheckout, onLeaveStore }: CheckoutOverlayProps) {
   const { score: movieNightScore, breakdown: scoreBreakdown } = calculateMovieNightScore(heldMovies, heldSnacks);
   const prevHigh = parseInt(localStorage.getItem("fnv_high_score") || "0");
   const isNewHigh = movieNightScore > prevHigh;
@@ -120,12 +120,14 @@ export function CheckoutOverlay({ heldMovies, heldSnacks, removeHeldMovie, setHe
             const state = loadGameState();
             state.totalMoviesFound += heldMovies.length;
             saveGameState(state);
-            setOverlay("none");
-            setHeldMovies([]);
+            onCheckout?.();
+            // Head home — close overlay; page.tsx triggers the apartment scene
+            // via onLeaveStore. VHS state now carries checked-out tapes into the apartment.
             setHeldSnacks([]);
+            setOverlay("none");
             if (onLeaveStore) onLeaveStore();
           }}>
-            LEAVE THE STORE
+            HEAD HOME
           </button>
           <button className="g3-receipt-btn g3-receipt-btn-secondary" onClick={() => setOverlay("none")}>
             KEEP BROWSING

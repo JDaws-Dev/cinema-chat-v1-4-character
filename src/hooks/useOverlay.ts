@@ -15,7 +15,9 @@ export type Overlay =
   | "rpg_dialogue"
   | "quest_log"
   | "checkout"
-  | "npc_chat";
+  | "npc_chat"
+  | "vinny_menu"
+  | "watch_at_home";
 
 /**
  * Manages which overlay is currently open and provides a unified close helper.

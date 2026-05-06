@@ -23,6 +23,7 @@ interface GameHUDProps {
   toggleMute: () => void;
   setTopDown: (v: boolean) => void;
   heldMovies: HeldMovie[];
+  shiftActive: boolean;
   challenge: ChallengeState | null;
   challengeTimer: number;
   setOverlay: Dispatch<SetStateAction<Overlay>>;
@@ -39,7 +40,7 @@ export function GameHUD({
   gameTime, closeCountdownLabel, heldStackLabel,
   totalXP, currentTier, tierProgress, nextTier,
   audioMuted, toggleMute, setTopDown,
-  heldMovies, challenge, challengeTimer,
+  heldMovies, shiftActive, challenge, challengeTimer,
   setOverlay, overlay,
   xpPopup, tierUpNotification,
 }: GameHUDProps) {
@@ -48,29 +49,31 @@ export function GameHUD({
       ? (isMobile ? "Tap a response · Tap X to leave" : "1-4 to respond · Q to leave")
       : hasOverlay
         ? (isMobile ? "Tap X to close" : "Press Q or click X to close")
-        : heldMovies.length > 0
+        : shiftActive
+          ? "Put the return stack back on the right genre shelves"
+          : heldMovies.length > 0
           ? `Take your ${heldMovies.length === 1 ? "movie" : `${heldMovies.length} movies`} to Vinny`
           : "";
 
-  let storeMode = "Open floor";
-  let objectiveTitle = "Browse the aisles and see what tonight's regulars are after";
-  let objectiveSubtitle = "Follow the aisle placards, glowing front counter, and neon signs to stay oriented.";
+  let storeMode = "Store floor";
+  let objectiveTitle = "Find a tape worth taking to Vinny";
+  let objectiveSubtitle = "Use aisle signs and the front counter to stay oriented.";
   let objectiveProgressPercent = nextTier ? Math.min(Math.max(tierProgress, 0), 100) : 100;
   let objectiveProgressLabel = nextTier ? `${Math.round(Math.min(Math.max(tierProgress, 0), 100))}% to ${nextTier.name}` : "Top tier unlocked";
 
   if (overlay === "rpg_dialogue") {
     storeMode = "Conversation";
-    objectiveTitle = "Talk it out and pick a response that moves the night forward";
-    objectiveSubtitle = "Clear choices keep the scene readable and make the interaction feel intentional.";
+    objectiveTitle = "Pick a response";
+    objectiveSubtitle = interactionHint;
   } else if (hasOverlay) {
     storeMode = "Overlay open";
-    objectiveTitle = "Finish this interaction, then step back onto the floor";
+    objectiveTitle = "Finish this interaction";
     objectiveSubtitle = interactionHint || "Close the panel when you're ready to move again.";
   } else if (challenge) {
     storeMode = "Challenge live";
     if (challenge.type === "vinnys_mystery") {
-      objectiveTitle = "Use the clue, signage, and shelf layout to find Vinny's mystery tape";
-      objectiveSubtitle = "The best 3D spaces reward landmark-based navigation instead of forcing blind scanning.";
+      objectiveTitle = "Find Vinny's mystery tape";
+      objectiveSubtitle = "Use the clue and aisle signs.";
       objectiveProgressPercent = Math.min(100, 35 + mysteryHintWeight(challengeTimer));
       objectiveProgressLabel = "Clue hunt active";
     } else {
@@ -79,26 +82,34 @@ export function GameHUD({
       ).length;
       objectiveTitle =
         challenge.type === "speed_run"
-          ? "Move fast, read the room, and clear the run before the clock wins"
-          : "Build the perfect movie night stack and bring it back to the counter";
+          ? "Beat the clock"
+          : "Build the perfect movie night stack";
       objectiveSubtitle = `${foundCount}/${challenge.movies.length} target tapes found${challenge.timeLimit ? ` · ${Math.max(0, challenge.timeLimit - challengeTimer)}s left` : ""}`;
       objectiveProgressPercent = challenge.movies.length > 0 ? (foundCount / challenge.movies.length) * 100 : 0;
       objectiveProgressLabel = `${foundCount}/${challenge.movies.length} found`;
     }
+  } else if (shiftActive) {
+    const returned = Math.max(0, 5 - heldMovies.length);
+    storeMode = "Return shift";
+    objectiveTitle = "Return Vinny's stack before the clock runs out";
+    objectiveSubtitle = "Match each tape to its genre shelf.";
+    objectiveProgressPercent = (returned / 5) * 100;
+    objectiveProgressLabel = `${returned}/5 returned`;
   } else if (heldMovies.length > 0) {
     storeMode = "Checkout run";
-    objectiveTitle = "Bring your stack to Vinny and lock in tonight's rental";
-    objectiveSubtitle = `${heldStackLabel} ready · the front counter is the brightest landmark in the store.`;
+    objectiveTitle = "Bring your stack to Vinny";
+    objectiveSubtitle = `${heldStackLabel} ready.`;
     objectiveProgressPercent = (heldMovies.length / 5) * 100;
     objectiveProgressLabel = heldStackLabel;
   }
 
   const clampedTierProgress = Math.min(Math.max(tierProgress, 0), 100);
+  // Tier pill removed — tier system was cosmetic-only and gated freeform Vinny chat
+  // behind grinding. Hidden from HUD; underlying state still exists for prop math.
   const statusPills = [
     { label: "Time", value: formatGameTime(gameTime) },
     { label: "Close", value: closeCountdownLabel },
     { label: "Stack", value: heldStackLabel },
-    { label: "Member", value: `${currentTier.emoji} ${currentTier.name}` },
   ];
   const tierStatus = nextTier
     ? `${totalXP} XP · ${Math.round(clampedTierProgress)}% to ${nextTier.name}`
@@ -128,7 +139,7 @@ export function GameHUD({
             ))}
           </div>
           <div className="g3-hud-actions">
-            {!hasOverlay && !topDown && heldMovies.length > 0 && (
+            {!hasOverlay && !topDown && heldMovies.length > 0 && !shiftActive && (
               <button
                 className="g3-hud-button"
                 onClick={() => { document.exitPointerLock(); setOverlay("checkout"); }}
@@ -160,17 +171,8 @@ export function GameHUD({
             <span className="g3-hud-hint">{objectiveTitle}</span>
             <span className="g3-hud-mission-subtitle">{objectiveSubtitle}</span>
           </div>
-          <div className="g3-hud-mission-side">
-            <span className="g3-hud-mission-side-primary">{currentTier.emoji} {currentTier.name}</span>
-            <span className="g3-hud-mission-side-secondary">{tierStatus}</span>
-            <div className="g3-hud-mission-meter-track">
-              <div
-                className="g3-hud-mission-meter-fill"
-                style={{ width: `${Math.min(Math.max(objectiveProgressPercent, 0), 100)}%` }}
-              />
-            </div>
-            <span className="g3-hud-mission-meter-label">{objectiveProgressLabel}</span>
-          </div>
+          {/* Tier badge + XP-to-next-tier meter removed — tier system was cosmetic
+              and inferred a "grind" loop that doesn't fit a one-session game. */}
         </div>
       </div>
 
@@ -180,19 +182,7 @@ export function GameHUD({
       )}
 
       {/* Tier-up notification */}
-      {tierUpNotification && (
-        <div className="g3-tier-up-notification" style={{
-          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          padding: '20px 40px', borderRadius: 8,
-          border: '2px solid #ffd700', background: 'rgba(0, 0, 0, 0.9)',
-          color: '#ffd700', fontFamily: 'monospace', fontSize: '1.2rem',
-          textAlign: 'center', zIndex: 100,
-          animation: 'tierUpScale 0.4s ease-out',
-          boxShadow: '0 0 30px rgba(255, 215, 0, 0.3)',
-        }}>
-          🎉 MEMBERSHIP UPGRADED: {tierUpNotification}!
-        </div>
-      )}
+      {/* Tier-up notification removed — tiers no longer surfaced. */}
     </>
   );
 }

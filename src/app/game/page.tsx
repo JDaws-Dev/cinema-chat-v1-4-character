@@ -13,6 +13,9 @@ import { TrophyOverlay } from "@/components/game/overlays/TrophyOverlay";
 import { QuizOverlay } from "@/components/game/overlays/QuizOverlay";
 import { ShelfOverlay, type ShelfBrowseState } from "@/components/game/overlays/ShelfOverlay";
 import { RpgDialogueOverlay } from "@/components/game/overlays/RpgDialogueOverlay";
+import { VinnyMenuOverlay } from "@/components/game/overlays/VinnyMenuOverlay";
+import { WatchAtHomeOverlay } from "@/components/game/overlays/WatchAtHomeOverlay";
+import { getRandomDialogue, getVinnyTierGreeting } from "@/lib/npc-dialogues";
 import { EraSelectorOverlay } from "@/components/game/overlays/EraSelectorOverlay";
 import { TutorialOverlay } from "@/components/game/overlays/TutorialOverlay";
 import { DialogueOverlay as VinnyDialogueOverlay } from "@/components/game/overlays/DialogueOverlay";
@@ -23,6 +26,7 @@ import { LoadingOverlay } from "@/components/game/LoadingOverlay";
 import { NotificationStack } from "@/components/game/NotificationStack";
 import { GameHUD } from "@/components/game/GameHUD";
 import { ChallengeHUD } from "@/components/game/ChallengeHUD";
+import { ReturnShiftHUD } from "@/components/game/ReturnShiftHUD";
 import { HeldVHSStack } from "@/components/game/HeldVHSStack";
 import {
   markSeen, addCorrectAnswer, addWrongAnswer,
@@ -37,7 +41,8 @@ import { useGameClock, type ClosingAnnouncement } from "@/hooks/useGameClock";
 import { useAudioUI } from "@/hooks/useAudioUI";
 import { useInventory } from "@/hooks/useInventory";
 import { useChallenge } from "@/hooks/useChallenge";
-import { useOverlay, type Overlay } from "@/hooks/useOverlay";
+import { useReturnShift } from "@/hooks/useReturnShift";
+import { useOverlay } from "@/hooks/useOverlay";
 import { useDialogue } from "@/hooks/useDialogue";
 import { usePuzzle } from "@/hooks/usePuzzle";
 import { useQuestTracking } from "@/hooks/useQuestTracking";
@@ -54,7 +59,7 @@ const Store = dynamic(() => import("@/components/game3d/Store").then(m => ({ def
 const FirstPersonControls = dynamic(() => import("@/components/game3d/FirstPerson").then(m => ({ default: m.FirstPersonControls })), { ssr: false });
 const InteractionSystem = dynamic(() => import("@/components/game3d/Interaction").then(m => ({ default: m.InteractionSystem })), { ssr: false });
 const PostEffects = dynamic(() => import("@/components/game3d/PostEffects").then(m => ({ default: m.PostEffects })), { ssr: false });
-const Apartment = dynamic(() => import("@/components/game3d/Apartment").then(m => ({ default: m.Apartment })), { ssr: false });
+const SimpleApartment = dynamic(() => import("@/components/game3d/SimpleApartment").then(m => ({ default: m.SimpleApartment })), { ssr: false });
 const DebugOverlay = dynamic(() => import("@/components/game3d/DebugOverlay").then(m => ({ default: m.DebugOverlay })), { ssr: false });
 // r3f-perf crashes Turbopack dev server (binary woff font). Use custom DebugOverlay instead.
 // const Perf = dynamic(() => import("r3f-perf").then(m => ({ default: m.Perf })), { ssr: false });
@@ -143,6 +148,8 @@ export default function GamePage() {
   }, []);
   const [inApartment, setInApartment] = useState(false);
   const [sceneTransition, setSceneTransition] = useState<string | null>(null);
+  // Apartment-only state: which tape is currently in the player's hand.
+  const [apartmentHeldTape, setApartmentHeldTape] = useState<{ id: number; title: string; slotKey?: string } | null>(null);
   const [topDown, setTopDown] = useState(false);
   const [shelfBrowse, setShelfBrowse] = useState<ShelfBrowseState | null>(null);
   const [filmId, setFilmId] = useState<number | null>(null);
@@ -155,6 +162,8 @@ export default function GamePage() {
   // VHS pickup inventory (movies, snacks, pickup flash)
   const {
     heldMovies, setHeldMovies,
+    checkedOutMovies,
+    rewoundMovieIds,
     heldSnacks, setHeldSnacks,
     pendingPickup, setPendingPickup,
     spawnedMissingSlotKeys,
@@ -162,6 +171,9 @@ export default function GamePage() {
     pickupFlash, setPickupFlash,
     pickupTitle, setPickupTitle,
     removeHeldMovie,
+    checkoutHeldMovies,
+    rewindMovieTape,
+    returnCheckedOutMovies,
   } = useInventory({ eraYears: selectedEra.years });
   const [hoverLabel, setHoverLabel] = useState<string | null>(null);
 
@@ -211,12 +223,33 @@ export default function GamePage() {
     trackQuestGenreVisit, trackQuestMoviePickup, trackQuestNpcTalk,
   } = useQuestTracking({ setPropsCount, setRewardProp });
 
+  const {
+    shiftActive,
+    shiftTimer,
+    shiftTapes,
+    returnedCount,
+    startShift,
+  } = useReturnShift({
+    heldMovies,
+    setHeldMovies,
+    addNotification,
+    handleTierUp,
+    triggerXpPopup,
+  });
+
   const resumePointerLock = useCallback(() => {
     if (isMobile || topDown) return;
     requestAnimationFrame(() => {
       const canvas = document.querySelector("canvas");
       if (canvas instanceof HTMLCanvasElement && document.pointerLockElement !== canvas) {
-        canvas.requestPointerLock?.();
+        try {
+          const lockRequest = canvas.requestPointerLock?.();
+          if (lockRequest instanceof Promise) {
+            lockRequest.catch(() => {});
+          }
+        } catch {
+          // Pointer lock is unavailable in some browser automation contexts.
+        }
       }
     });
   }, [isMobile, topDown]);
@@ -231,12 +264,25 @@ export default function GamePage() {
   }, []);
 
   const handleLeaveApartment = useCallback(() => {
+    // Capture rewind status for Vinny's next-visit reaction.
+    // If player rewound at least one tape, treat as "did the right thing".
+    // If they had tapes and rewound none, Vinny calls it out next visit.
+    const tapeCount = checkedOutMovies.length;
+    if (tapeCount > 0) {
+      const allRewound = rewoundMovieIds.size >= tapeCount;
+      localStorage.setItem("fnv_last_rewound", allRewound ? "true" : "false");
+    }
     setSceneTransition("HEADING TO THE STORE...");
     setTimeout(() => {
+      returnCheckedOutMovies();
       setInApartment(false);
       setSceneTransition(null);
+      // Clear inventory + apartment state so the next visit starts fresh.
+      setHeldMovies([]);
+      setHeldSnacks([]);
+      setApartmentHeldTape(null);
     }, 1500);
-  }, []);
+  }, [checkedOutMovies.length, returnCheckedOutMovies, rewoundMovieIds, setHeldMovies, setHeldSnacks]);
 
   // Side quest state (uses existing showQuestNotif for notifications)
 
@@ -286,25 +332,44 @@ export default function GamePage() {
   });
 
   // Wire up the overlay close callback (needs rpgDialogue from useDialogue)
-  overlayCloseRef.current = () => {
-    // Track NPC relationship when ending a dialogue
-    if (overlay === "rpg_dialogue" && rpgDialogue) {
-      const npcType = rpgDialogue.npc?.toLowerCase() || "customer";
-      incrementNpcRelationship(npcType);
-    }
-    // Clear mouth animation signal when dialogue closes
-    setActiveDialogueTarget(null);
-    setPuzzle(null);
-    setQuote(null);
-    setSynopsis(null);
-    setQuizAnswer(null);
-    setRpgDialogue(null);
-    setRpgNode(null);
-    setRpgHistory([]);
-    setFilmId(null);
-    setPendingPickup(null);
-    setShelfBrowse(null);
-  };
+  useEffect(() => {
+    overlayCloseRef.current = () => {
+      // Track NPC relationship when ending a dialogue
+      if (overlay === "rpg_dialogue" && rpgDialogue) {
+        const npcType = rpgDialogue.npc?.toLowerCase() || "customer";
+        incrementNpcRelationship(npcType);
+      }
+      // Clear mouth animation signal when dialogue closes
+      setActiveDialogueTarget(null);
+      setPuzzle(null);
+      setQuote(null);
+      setSynopsis(null);
+      setQuizAnswer(null);
+      setRpgDialogue(null);
+      setRpgNode(null);
+      setRpgHistory([]);
+      setFilmId(null);
+      setPendingPickup(null);
+      setShelfBrowse(null);
+    };
+
+    return () => {
+      overlayCloseRef.current = null;
+    };
+  }, [
+    overlay,
+    rpgDialogue,
+    setFilmId,
+    setPendingPickup,
+    setPuzzle,
+    setQuizAnswer,
+    setQuote,
+    setRpgDialogue,
+    setRpgHistory,
+    setRpgNode,
+    setShelfBrowse,
+    setSynopsis,
+  ]);
 
   // ── Hover callback from 3D interaction system ─────────
   const handleHover = useCallback((label: string | null) => {
@@ -361,12 +426,33 @@ export default function GamePage() {
     setTimeout(() => setPickupTitle(null), 1500);
     playSFX("vhs_pickup");
     trackQuestMoviePickup(movie.title, movie.genre);
-    if (Math.random() < 0.3) playRandomLine("pickup");
+    // Challenge match feedback — celebrate when this pickup matches an active challenge target.
+    if (challenge) {
+      const isTarget = challenge.movies.some(cm => cm.title.toLowerCase() === movie.title.toLowerCase());
+      if (isTarget) {
+        const heldMatchCount = challenge.movies.filter(cm =>
+          cm.title.toLowerCase() === movie.title.toLowerCase() ||
+          heldMovies.some(h => h.title.toLowerCase() === cm.title.toLowerCase())
+        ).length;
+        playSFX("challenge_complete");
+        addNotification(`🎬 Match ${heldMatchCount}/${challenge.movies.length} — ${movie.title}!`);
+      }
+    } else if (mysteryClue) {
+      const isMysteryTarget =
+        movie.title.toLowerCase().includes(mysteryClue.movieTitle.toLowerCase()) ||
+        mysteryClue.movieTitle.toLowerCase().includes(movie.title.toLowerCase());
+      if (isMysteryTarget) {
+        playSFX("challenge_complete");
+        addNotification(`🔍 You think this is the one? Take it to Vinny.`);
+      }
+    } else if (Math.random() < 0.3) {
+      playRandomLine("pickup");
+    }
     // Close modal and resume
     setOverlay("none");
     setFilmId(null);
     resumePointerLock();
-  }, [addNotification, heldMovies.length, pendingPickup, resumePointerLock, trackQuestMoviePickup]);
+  }, [addNotification, heldMovies, challenge, mysteryClue, pendingPickup, resumePointerLock, trackQuestMoviePickup]);
 
   const nextTier = currentTier === MEMBERSHIP_TIERS[MEMBERSHIP_TIERS.length - 1]
     ? null
@@ -430,19 +516,101 @@ export default function GamePage() {
           <Canvas
             shadows={false}
             gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false }}
-            camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.6, 2] }}
+            camera={{ fov: 70, near: 0.1, far: 50, position: [1, 1.6, 1] }}
             dpr={isMobile ? 1 : [1, 2]}
-            style={{ background: "#1a1a2e", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+            style={{ background: "#0a0a14", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
           >
             <Suspense fallback={null}>
-              <Apartment />
+              <SimpleApartment heldMovies={checkedOutMovies} rewoundIds={rewoundMovieIds} />
+              <FirstPersonControls
+                disabled={false}
+                initialSpawn={[1, 1.6, 2.4]}
+                initialLookAt={[0, 1.4, 0]}
+              />
+              <InteractionSystem
+                onInteract={(type, data) => {
+                  if (type === "apartment_door") {
+                    setApartmentHeldTape(null);
+                    handleLeaveApartment();
+                    return;
+                  }
+                  if (type === "apartment_tape") {
+                    if (apartmentHeldTape) {
+                      addNotification("You're already holding a tape. Use the VCR or put it back.");
+                      return;
+                    }
+                    try {
+                      const parsed = JSON.parse(data ?? "{}");
+                      if (parsed.rewound) {
+                        addNotification(`${parsed.title} is already rewound. Vinny will be pleased.`);
+                        return;
+                      }
+                      setApartmentHeldTape({ id: parsed.id, title: parsed.title, slotKey: parsed.slotKey });
+                      playSFX("vhs_pickup");
+                      addNotification(`Picked up ${parsed.title}. Take it to the VCR.`);
+                    } catch { /* ignore */ }
+                    return;
+                  }
+                  if (type === "vcr") {
+                    if (!apartmentHeldTape) {
+                      addNotification("Grab a tape from the counter first.");
+                      return;
+                    }
+                    rewindMovieTape(apartmentHeldTape);
+                    playSFX("vhs_pickup");
+                    addNotification(`↺ Rewinding ${apartmentHeldTape.title}...`);
+                    setTimeout(() => {
+                      addNotification(`${apartmentHeldTape.title} is rewound. Be kind, you did the right thing.`);
+                    }, 1400);
+                    setApartmentHeldTape(null);
+                    return;
+                  }
+                }}
+                onHover={handleHover}
+              />
             </Suspense>
           </Canvas>
-          <div className="g3-apartment-overlay">
-            <button className="g3-apartment-leave-btn" onClick={handleLeaveApartment}>
+          {/* Apartment HUD */}
+          <div
+            style={{
+              position: "absolute", top: 12, left: 12, right: 12,
+              display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+              pointerEvents: "none", zIndex: 12,
+              fontFamily: "var(--font-pixel, monospace)",
+            }}
+          >
+            <div style={{ background: "rgba(10,10,20,0.85)", border: "2px solid rgba(255,215,0,0.3)", padding: "10px 16px", color: "#ffd700", fontSize: "0.6rem", letterSpacing: 1 }}>
+              YOUR APARTMENT · {checkedOutMovies.length === 0 ? "no tapes tonight" : `${checkedOutMovies.length} ${checkedOutMovies.length === 1 ? "tape" : "tapes"} · ${rewoundMovieIds.size} rewound`}
+            </div>
+            <button
+              className="g3-apartment-leave-btn"
+              onClick={() => { setApartmentHeldTape(null); handleLeaveApartment(); }}
+              style={{ pointerEvents: "auto" }}
+            >
               BACK TO THE STORE
             </button>
           </div>
+          {/* Held tape HUD */}
+          {apartmentHeldTape && (
+            <div
+              style={{
+                position: "absolute", bottom: 90, left: "50%", transform: "translateX(-50%)",
+                background: "rgba(10,10,20,0.9)", border: "2px solid #ffd700", padding: "10px 18px",
+                color: "#ffd700", fontFamily: "var(--font-pixel, monospace)", fontSize: "0.65rem",
+                letterSpacing: 1, zIndex: 12,
+              }}
+            >
+              📼 Holding: {apartmentHeldTape.title} · Walk to the VCR and press E
+            </div>
+          )}
+          {/* Crosshair + hover label inside apartment */}
+          {!hoverLabel && <div className="g3-crosshair" />}
+          {hoverLabel && (
+            <>
+              <div className="g3-crosshair g3-crosshair-active" />
+              <div className="g3-hover-label">{hoverLabel}</div>
+            </>
+          )}
         </>
       )}
 
@@ -554,6 +722,14 @@ export default function GamePage() {
         setMysteryHintsUsed={setMysteryHintsUsed} mysteryWrongMsg={mysteryWrongMsg}
         challengeComplete={challengeComplete} setChallengeComplete={setChallengeComplete}
       />
+      <ReturnShiftHUD
+        hasOverlay={hasOverlay}
+        shiftActive={shiftActive}
+        shiftTimer={shiftTimer}
+        shiftTapes={shiftTapes}
+        heldMovies={heldMovies}
+        returnedCount={returnedCount}
+      />
 
       {/* Challenge Selection Overlay */}
       {overlay === "challenge_select" && (
@@ -582,16 +758,8 @@ export default function GamePage() {
       {/* Mobile touch controls */}
       {!hasOverlay && <MobileControls hoverLabel={hoverLabel} />}
 
-      {/* Mobile quest log button */}
-      {isMobile && !hasOverlay && (
-        <button
-          className="g3-mobile-quest-btn"
-          onClick={() => { document.exitPointerLock(); setOverlay("quest_log"); }}
-          aria-label="Quest Log"
-        >
-          📜
-        </button>
-      )}
+      {/* Mobile quest log button removed — quests/challenges merged; the
+          challenge HUD is always visible during a challenge, no log needed. */}
 
       <GameHUD
         hasOverlay={hasOverlay} topDown={topDown} isMobile={isMobile}
@@ -599,7 +767,7 @@ export default function GamePage() {
         gameTime={gameTime} closeCountdownLabel={closeCountdownLabel} heldStackLabel={heldStackLabel}
         totalXP={totalXP} currentTier={currentTier} tierProgress={tierProgress} nextTier={nextTier}
         audioMuted={audioMuted} toggleMute={toggleMute} setTopDown={setTopDown}
-        heldMovies={heldMovies} challenge={challenge} challengeTimer={challengeTimer}
+        heldMovies={heldMovies} shiftActive={shiftActive} challenge={challenge} challengeTimer={challengeTimer}
         setOverlay={setOverlay} overlay={overlay}
         xpPopup={xpPopup} tierUpNotification={tierUpNotification}
         retroMode={retroMode} toggleRetroMode={toggleRetroMode}
@@ -675,10 +843,23 @@ export default function GamePage() {
           heldMovies={heldMovies}
           heldSnacks={heldSnacks}
           removeHeldMovie={removeHeldMovie}
-          setHeldMovies={setHeldMovies}
           setHeldSnacks={setHeldSnacks}
           setOverlay={setOverlay}
+          onCheckout={checkoutHeldMovies}
           onLeaveStore={handleLeaveStore}
+        />
+      )}
+
+      {overlay === "watch_at_home" && (
+        <WatchAtHomeOverlay
+          heldMovies={heldMovies}
+          onComplete={() => {
+            // Player has finished watching + decided to rewind or not.
+            // Clear inventory and put them back at the entrance for a new session.
+            setHeldMovies([]);
+            setHeldSnacks([]);
+            setOverlay("none");
+          }}
         />
       )}
 
@@ -693,6 +874,51 @@ export default function GamePage() {
           rpgDialogue={rpgDialogue} rpgNode={rpgNode}
           displayedText={displayedText} typewriterDone={typewriterDone}
           handleDialogueResponse={handleDialogueResponse as never} closeOverlay={closeOverlay}
+        />
+      )}
+
+      {/* Vinny menu — shown when player presses E on Vinny */}
+      {overlay === "vinny_menu" && (
+        <VinnyMenuOverlay
+          heldMovies={heldMovies}
+          shiftActive={shiftActive}
+          setOverlay={setOverlay}
+          closeOverlay={closeOverlay}
+          onTalk={() => {
+            const tree = getRandomDialogue("vinny");
+            const tierGreeting = getVinnyTierGreeting(currentTier.name);
+            const openerWithTier = { ...tree.opener, text: tierGreeting + " " + tree.opener.text };
+            setRpgDialogue(tree);
+            setRpgNode(openerWithTier);
+            setRpgHistory([{ speaker: openerWithTier.speaker, portrait: openerWithTier.portrait, text: openerWithTier.text }]);
+            setActiveDialogueTarget("vinny");
+            setOverlay("rpg_dialogue");
+          }}
+          onChat={() => {
+            setNpcChatTarget({ name: "Vinny", personalityType: "movie_buff", npcManagerId: "vinny" });
+            setActiveDialogueTarget("vinny");
+            setOverlay("npc_chat");
+          }}
+          onCheckout={() => {
+            if (shiftActive) {
+              playVinnyLine("Not those. Those are tonight's returns.", "Vinny");
+              return;
+            }
+            playSFX("cash_register");
+            setOverlay("checkout");
+          }}
+          onChallenge={() => {
+            if (shiftActive) {
+              addNotification("Finish Vinny's return shift first.");
+              return;
+            }
+            setOverlay("challenge_select");
+          }}
+          onReturnShift={() => {
+            if (startShift()) {
+              setOverlay("none");
+            }
+          }}
         />
       )}
       </>}

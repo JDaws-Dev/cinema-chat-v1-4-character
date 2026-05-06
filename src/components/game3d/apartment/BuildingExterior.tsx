@@ -61,25 +61,40 @@ function BuildingFacade() {
         <Mat color={BRICK_COLOR} />
       </mesh>
 
-      {/* FRONT WALL — apartment level with window opening */}
-      {/* Left of window */}
-      <mesh position={[-halfW + 0.8, aptMidY, halfD + WALL_T / 2]}>
-        <boxGeometry args={[1.6, APT_H, WALL_T]} />
+      {/* FRONT WALL — apartment level with TWO window openings (centered at x=±1.5).
+          Geometry: APT_W=6, halfW=3. Window holes at x=[-2,-1] and x=[1,2], y=[0.7,2.2] each.
+          Wall segments below are sized so the holes are exactly where the glass renders. */}
+      {/* Far-left wall column (x=[-3, -2]) */}
+      <mesh position={[-2.5, aptMidY, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.0, APT_H, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
-      {/* Right of window */}
-      <mesh position={[halfW - 0.8, aptMidY, halfD + WALL_T / 2]}>
-        <boxGeometry args={[1.6, APT_H, WALL_T]} />
+      {/* Middle wall column (x=[-1, 1]) */}
+      <mesh position={[0, aptMidY, halfD + WALL_T / 2]}>
+        <boxGeometry args={[2.0, APT_H, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
-      {/* Above window */}
-      <mesh position={[0.5, APT_H - 0.2, halfD + WALL_T / 2]}>
-        <boxGeometry args={[1.8, 0.4, WALL_T]} />
+      {/* Far-right wall column (x=[2, 3]) */}
+      <mesh position={[2.5, aptMidY, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.0, APT_H, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
-      {/* Below window */}
-      <mesh position={[0.5, 0.25, halfD + WALL_T / 2]}>
-        <boxGeometry args={[1.8, 0.5, WALL_T]} />
+      {/* Above each window (y=[2.2, 2.8]) */}
+      <mesh position={[-1.5, 2.5, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.0, 0.6, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      <mesh position={[1.5, 2.5, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.0, 0.6, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      {/* Below each window (y=[0, 0.7]) */}
+      <mesh position={[-1.5, 0.35, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.0, 0.7, WALL_T]} />
+        <Mat color={BRICK_COLOR} />
+      </mesh>
+      <mesh position={[1.5, 0.35, halfD + WALL_T / 2]}>
+        <boxGeometry args={[1.0, 0.7, WALL_T]} />
         <Mat color={BRICK_COLOR} />
       </mesh>
       {/* NO ground-floor front wall — the laundromat storefront handles that,
@@ -105,17 +120,28 @@ function BuildingFacade() {
         <Mat color="#9a9080" />
       </mesh>
 
-      {/* EXTERIOR WINDOW FRAME (apartment level, front) */}
-      <group position={[0.5, 1.4, halfD + WALL_T + 0.02]}>
-        <mesh position={[0, 0.65, 0]}><boxGeometry args={[1.7, 0.08, 0.06]} /><Mat color={TRIM_COLOR} /></mesh>
-        <mesh position={[0, -0.65, 0.02]}><boxGeometry args={[1.7, 0.08, 0.1]} /><Mat color={TRIM_COLOR} /></mesh>
-        <mesh position={[-0.82, 0, 0]}><boxGeometry args={[0.08, 1.4, 0.06]} /><Mat color={TRIM_COLOR} /></mesh>
-        <mesh position={[0.82, 0, 0]}><boxGeometry args={[0.08, 1.4, 0.06]} /><Mat color={TRIM_COLOR} /></mesh>
-        <mesh>
-          <planeGeometry args={[1.5, 1.2]} />
-          <Mat color="#4a6a8a" transparent opacity={0.2} side={THREE.DoubleSide} />
-        </mesh>
-      </group>
+      {/* EXTERIOR WINDOW FRAMES — two windows centered at x=±1.5, y=1.45.
+          Each window hole is 1m wide × 1.5m tall (x=[-2,-1] / x=[1,2], y=[0.7,2.2]).
+          Glass plane (1.0×1.5) fills the hole; trim sits slightly forward of brick face. */}
+      {[-1.5, 1.5].map((cx) => (
+        <group key={`apt-window-${cx}`} position={[cx, 1.45, halfD + WALL_T + 0.02]}>
+          {/* Top trim */}
+          <mesh position={[0, 0.78, 0]}><boxGeometry args={[1.1, 0.08, 0.06]} /><Mat color={TRIM_COLOR} /></mesh>
+          {/* Sill */}
+          <mesh position={[0, -0.78, 0.02]}><boxGeometry args={[1.1, 0.1, 0.12]} /><Mat color={TRIM_COLOR} /></mesh>
+          {/* Left mullion */}
+          <mesh position={[-0.52, 0, 0]}><boxGeometry args={[0.08, 1.5, 0.06]} /><Mat color={TRIM_COLOR} /></mesh>
+          {/* Right mullion */}
+          <mesh position={[0.52, 0, 0]}><boxGeometry args={[0.08, 1.5, 0.06]} /><Mat color={TRIM_COLOR} /></mesh>
+          {/* Center mullion (vertical divider — gives the window a 2-pane look) */}
+          <mesh position={[0, 0, 0]}><boxGeometry args={[0.04, 1.5, 0.04]} /><Mat color={TRIM_COLOR} /></mesh>
+          {/* Glass — slightly inset, double-sided so visible from inside */}
+          <mesh position={[0, 0, -0.01]}>
+            <planeGeometry args={[1.0, 1.5]} />
+            <Mat color="#4a6a8a" transparent opacity={0.25} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      ))}
 
       {/* Door, awning, and porch light are now part of ExteriorStairs for alignment */}
     </group>

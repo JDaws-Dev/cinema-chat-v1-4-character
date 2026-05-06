@@ -20,10 +20,15 @@ export function useKeyboardShortcuts({
   setOverlay,
 }: KeyboardShortcutsParams) {
   // Q or Backspace to close overlays (ESC exits pointer lock, so don't use it)
-  // Number keys 1-4 to select RPG dialogue responses
+  // Number keys 1-4 to select RPG dialogue responses.
+  // CRITICAL: skip when an input/textarea is focused — otherwise typing "q" or
+  // hitting Backspace to delete a character would close the chat overlay.
   useEffect(() => {
     if (overlay === "none") return;
     const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const inEditable = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable;
+      if (inEditable) return;
       if (e.key === "q" || e.key === "Q" || e.key === "Backspace") {
         e.preventDefault();
         closeOverlay();
@@ -71,16 +76,6 @@ export function useKeyboardShortcuts({
     return () => window.removeEventListener("keydown", handler);
   }, [overlay]);
 
-  // J to open quest log
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "TEXTAREA") return;
-      if ((e.key === "j" || e.key === "J") && overlay === "none") {
-        document.exitPointerLock();
-        setOverlay("quest_log");
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [overlay, setOverlay]);
+  // J quest-log shortcut removed — quest system collapsed into challenges,
+  // and challenge HUD is always visible while a challenge is active.
 }

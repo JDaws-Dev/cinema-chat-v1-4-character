@@ -9,17 +9,17 @@ import { hasProp, PROPS } from "@/lib/game-state";
 import { playSFX } from "@/lib/audio";
 import { getObjectById } from "@/lib/store-layout";
 import { LayoutDrivenPrefabs } from "./prefabs";
-import { NeonSignProp, AisleSignProp, AISLE_SIGNS, AisleFloorMarkings, FloorRugProp, PizzaPalace, Laundromat, CeilingFixtures, ExteriorEnvironment } from "./props";
+import { NeonSignProp, AisleSignProp, AISLE_SIGNS, AisleFloorMarkings, FloorRugProp, Laundromat, CeilingFixtures, ExteriorEnvironment } from "./props";
 import { BuildingShell } from "./props/BuildingShell";
 
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
 import { Mat, PosterBox, setEraYears, getShelfMovies, setHeldMovieIds, setHeldMovieSlotKeys } from "./store-materials";
 import { StaffPicksShelf } from "./store-shelves";
-import { CharlieCharacter, VinnyCharacter, TonyCharacter, EarlCharacter, KenneyModel } from "./store-characters";
+import { CharlieCharacter, VinnyCharacter, EarlCharacter, KenneyModel } from "./store-characters";
 import { NPCManager } from "./NPCManager";
 import { AnimatedEntranceDoor, AnimatedEmployeeDoor, Baseboard } from "./store-walls";
-import { Apartment } from "./Apartment";
+// Apartment removed — was a sprawling second-floor zone we couldn't get the design right on.
 
 // Re-export for external consumers
 export { setEraYears, getShelfMovies };
@@ -251,19 +251,23 @@ export function Store({
       {[-4, 0, 4].map(z => (<mesh key={`cgz${z}`} position={[0, ROOM_H - 0.03, z]}><boxGeometry args={[ROOM_W, 0.01, 0.02]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
       </>}
 
-      {/* ── LIGHTING — max 6 dynamic lights (perf budget) ── */}
-      {/* Warm ambient fill */}
-      <ambientLight intensity={1.6} color="#f5edd8" />
+      {/* ── LIGHTING — zone spots to break flat ambient (≤ 8 lights, mobile perf-safe) ── */}
+      {/* Reduced ambient so zone spots can pool — was 1.6, felt flat */}
+      <ambientLight intensity={1.1} color="#f5edd8" />
       {/* Hemisphere: warm ceiling → cool floor for depth without extra lights */}
-      <hemisphereLight args={["#fff6e4", "#3a4560", 0.9]} />
+      <hemisphereLight args={["#fff6e4", "#3a4560", 0.7]} />
       {/* Key directional: simulates all overhead fluorescent panels in one light */}
-      <directionalLight position={[2, 8, 1]} intensity={1.8} color="#fff3dc" />
+      <directionalLight position={[2, 8, 1]} intensity={1.7} color="#fff3dc" />
       {/* Cool fill from back — separates shelves from wall */}
-      <directionalLight position={[-4, 5, -8]} intensity={0.4} color="#c0d0e8" />
-      {/* Counter warm spot */}
-      <pointLight position={[7, 2.8, 5.5]} intensity={0.8} distance={8} color="#ffe8c0" />
-      {/* Center aisle fill — single light covers all three shelf rows */}
-      <pointLight position={[0, 3.2, -1]} intensity={1.0} distance={12} color="#fff8e0" />
+      <directionalLight position={[-4, 5, -8]} intensity={0.45} color="#c0d0e8" />
+      {/* Back aisle warm zone — HORROR/CLASSICS area */}
+      <pointLight position={[-5, 2.9, -4.5]} intensity={1.2} distance={7.5} decay={1.8} color="#ffd9a0" />
+      {/* Middle aisle warm zone — COMEDY/ACTION */}
+      <pointLight position={[5, 2.9, -1.5]} intensity={1.1} distance={7.5} decay={1.8} color="#ffd9a0" />
+      {/* Front aisle warm zone — NEW RELEASES near entrance */}
+      <pointLight position={[0, 2.9, 2.5]} intensity={1.0} distance={7.0} decay={1.8} color="#ffe4b8" />
+      {/* Counter warm spot — stronger focal pool */}
+      <pointLight position={[7, 2.8, 5.5]} intensity={1.3} distance={6} decay={1.7} color="#ffc888" />
 
       {/* Fluorescent ceiling fixtures (hidden in top-down) */}
       {!topDown && <CeilingFixtures />}
@@ -275,7 +279,7 @@ export function Store({
       <VinnyCharacter />
       <NPCManager isMobile={isMobile ?? false} eraId={eraYearsToId(eraYears)} />
       <CharlieCharacter />
-      <TonyCharacter />
+      {/* TonyCharacter removed with Pizza Palace */}
       <EarlCharacter />
       <StaffPicksShelf />
       <NeonSignProp />
@@ -300,14 +304,16 @@ export function Store({
       <RecentReturnsStack movies={recentReturnMovies} />
 
       {/* ── EXTERIOR (sky, parking, roads, streets, collision walls) ── */}
-      <ExteriorEnvironment topDown={topDown} />
+      {!topDown && <ExteriorEnvironment topDown={topDown} />}
 
-      {/* Fascia + signage (hidden in top-down) */}
+      {/* Fascia + signage (hidden in top-down) — height capped to 0.6m so it
+          stays in the commercial-ceiling band (y=3.6 to y=4.2) and doesn't
+          obscure the apartment windows above (which start at y=4.4). */}
       {!topDown && <>
-      <mesh position={[0, ROOM_H + 0.8, ROOM_D / 2 + 0.22]}><boxGeometry args={[ROOM_W + 12, 2.0, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
-      <mesh position={[0, ROOM_H + 1.2, ROOM_D / 2 - 0.12]}><boxGeometry args={[ROOM_W + 12, 0.15, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>
-      <mesh position={[0, ROOM_H + 1.1, ROOM_D / 2 + 0.27]}><boxGeometry args={[ROOM_W + 12.2, 0.08, 0.05]} /><meshBasicMaterial color="#444450" /></mesh>
-      <group position={[0, ROOM_H + 1.35, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.35, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.16} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
+      <mesh position={[0, ROOM_H + 0.4, ROOM_D / 2 + 0.22]}><boxGeometry args={[ROOM_W + 12, 0.6, 0.3]} /><meshBasicMaterial color="#1a1a28" /></mesh>
+      <mesh position={[0, ROOM_H + 0.7, ROOM_D / 2 - 0.12]}><boxGeometry args={[ROOM_W + 12, 0.1, 0.8]} /><meshBasicMaterial color="#2a2a30" /></mesh>
+      <mesh position={[0, ROOM_H + 0.7, ROOM_D / 2 + 0.27]}><boxGeometry args={[ROOM_W + 12.2, 0.06, 0.05]} /><meshBasicMaterial color="#444450" /></mesh>
+      <group position={[0, ROOM_H + 0.55, ROOM_D / 2 + 0.15]}><mesh><boxGeometry args={[3.5, 0.18, 0.05]} /><meshBasicMaterial color="#222230" /></mesh><Text position={[0, 0, 0.035]} fontSize={0.09} color="#888899" anchorX="center" anchorY="middle">1987 STRIP MALL PLAZA<meshBasicMaterial color="#888899" toneMapped={false} /></Text></group>
       </>}
 
       {/* ── CONTINUOUS PARAPET WALL — runs across entire strip mall roofline ── */}
@@ -329,26 +335,25 @@ export function Store({
         </mesh>
       </>}
 
-      <PizzaPalace />
-      <Laundromat />
-      <BuildingShell />
+      {/* PizzaPalace removed — couldn't get the design right; not core to the gameplay */}
+      {!topDown && <Laundromat />}
+      {!topDown && <BuildingShell />}
 
-      {/* Apartment above laundromat */}
-      <Apartment />
+      {/* Apartment removed — same reason as Pizza Palace */}
 
       {/* Storefront windows + doors + awning — WALL_COLOR panels merged into MergedArchitecture */}
       {/* Upper wall band above windows — from door frame (±1.7) to near side walls (±9.7) */}
-      <mesh position={[-5.7, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[8, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>
-      <mesh position={[5.7, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[8, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>
+      {!topDown && <mesh position={[-5.7, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[8, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>}
+      {!topDown && <mesh position={[5.7, ROOM_H - 0.4, ROOM_D / 2]}><boxGeometry args={[8, 1.0, 0.15]} /><Mat color="#0e1a38" roughness={0.85} /></mesh>}
       {/* Door frame pillars */}
-      <mesh position={[-1.7, 1.4, ROOM_D / 2 + 0.02]}><boxGeometry args={[0.12, 2.8, 0.06]} /><Mat color="#3a3a4a" roughness={0.4} metalness={0.5} /></mesh>
-      <mesh position={[1.7, 1.4, ROOM_D / 2 + 0.02]}><boxGeometry args={[0.12, 2.8, 0.06]} /><Mat color="#3a3a4a" roughness={0.4} metalness={0.5} /></mesh>
+      {!topDown && <mesh position={[-1.7, 1.4, ROOM_D / 2 + 0.02]}><boxGeometry args={[0.12, 2.8, 0.06]} /><Mat color="#3a3a4a" roughness={0.4} metalness={0.5} /></mesh>}
+      {!topDown && <mesh position={[1.7, 1.4, ROOM_D / 2 + 0.02]}><boxGeometry args={[0.12, 2.8, 0.06]} /><Mat color="#3a3a4a" roughness={0.4} metalness={0.5} /></mesh>}
       {/* Glass windows — from door frame (1.7) to 1 unit inside side wall (9.3) */}
-      <mesh position={[-5.5, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[7.6, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>
-      <mesh position={[5.5, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[7.6, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>
+      {!topDown && <mesh position={[-5.5, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[7.6, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>}
+      {!topDown && <mesh position={[5.5, 1.4, ROOM_D / 2 + 0.01]}><planeGeometry args={[7.6, 2.2]} /><Mat color="#d4c8a0" transparent opacity={0.24} roughness={0.02} metalness={0.4} side={THREE.DoubleSide} /></mesh>}
       {/* Window sills */}
-      <mesh position={[-5.5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[7.6, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
-      <mesh position={[5.5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[7.6, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>
+      {!topDown && <mesh position={[-5.5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[7.6, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>}
+      {!topDown && <mesh position={[5.5, 0.28, ROOM_D / 2 + 0.05]}><boxGeometry args={[7.6, 0.06, 0.1]} /><Mat color="#2a2a3a" roughness={0.5} /></mesh>}
 
       {/* Neon OPEN sign — double-sided so it reads correctly from both inside and outside */}
       <group position={[5, 2.0, ROOM_D / 2 - 0.05]}>

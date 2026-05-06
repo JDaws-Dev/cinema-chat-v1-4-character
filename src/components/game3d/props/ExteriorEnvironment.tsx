@@ -27,8 +27,20 @@ export function ExteriorEnvironment({ topDown }: { topDown: boolean }) {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, ROOM_D / 2 + 0.8]}><planeGeometry args={[36, 1.5]} /><meshBasicMaterial color="#4a4a4a" /></mesh>
       {/* Curb edge */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, ROOM_D / 2 + 0.5]}><planeGeometry args={[36, 1.5]} /><meshBasicMaterial color="#2a2520" /></mesh>
-      {/* Parking lines */}
-      {[-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15].map((px, i) => (<mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}><planeGeometry args={[0.06, 4]} /><meshBasicMaterial color="#555555" /></mesh>))}
+      {/* Parking lines — bright white stripes between each space, plus front bumper line */}
+      {[-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15].map((px, i) => (
+        <mesh key={`pline-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 6]}>
+          <planeGeometry args={[0.12, 4.2]} />
+          <meshBasicMaterial color="#e8e2c8" />
+        </mesh>
+      ))}
+      {/* Front-of-space bumper-stop line (perpendicular, at the storefront-facing edge of each space) */}
+      {[-13.5, -10.5, -7.5, -4.5, -1.5, 1.5, 4.5, 7.5, 10.5, 13.5].map((px, i) => (
+        <mesh key={`pbump-${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[px, -0.035, ROOM_D / 2 + 3.95]}>
+          <planeGeometry args={[2.6, 0.12]} />
+          <meshBasicMaterial color="#e8e2c8" />
+        </mesh>
+      ))}
 
       {/* Exterior nighttime lighting */}
       <pointLight position={[0, 3.2, ROOM_D / 2 + 1.2]} intensity={0.7} distance={10} color="#ffe0a0" />

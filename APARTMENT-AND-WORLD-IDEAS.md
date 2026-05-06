@@ -1,6 +1,13 @@
 # Apartment And World Ideas
 
-This note captures the new direction discussed after the current VHS/state work.
+> **STATUS (April 2026):** Mostly shipped, but in a different form than originally planned.
+> The apartment is no longer integrated into the strip mall above the laundromat —
+> after multiple geometry issues, that approach was scrapped. The apartment is now a
+> standalone scene (`SimpleApartment.tsx`) that loads after checkout. Pizza Palace
+> was removed entirely (replaced with a "FOR LEASE" placard). Trophy shelf still
+> lives in the store. See CLAUDE.md and README.md for current state.
+
+This note captures the original direction discussed after the VHS/state work.
 
 ## Apartment Direction
 

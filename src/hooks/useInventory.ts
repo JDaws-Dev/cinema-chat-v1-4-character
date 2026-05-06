@@ -5,9 +5,8 @@ import { getCuratedShelfPosterData, getEraIdFromYears } from "@/lib/curated-movi
 import { STORE_LAYOUT } from "@/lib/store-layout";
 import {
   useVHSState,
-  pickUpTape as vhsPickUp,
-  dropTape as vhsDrop,
   type VHSStateSnapshot,
+  type VHSTape,
 } from "@/lib/vhs-state";
 
 export type HeldMovie = { id: number; title: string; posterUrl: string; genre: string; slotKey?: string };
@@ -17,9 +16,8 @@ export type HeldSnack = { name: string; emoji: string };
  * Derive the HeldMovie[] array from VHS state so the rest of the app
  * sees the same shape it always has.
  */
-function heldMoviesFromVHS(state: VHSStateSnapshot): HeldMovie[] {
-  return Object.values(state.tapes)
-    .filter((t) => t.status === "held")
+function moviesFromTapes(tapes: VHSTape[]): HeldMovie[] {
+  return tapes
     .map((t) => ({
       id: t.id,
       title: t.title,
@@ -29,11 +27,25 @@ function heldMoviesFromVHS(state: VHSStateSnapshot): HeldMovie[] {
     }));
 }
 
+function heldMoviesFromVHS(state: VHSStateSnapshot): HeldMovie[] {
+  return moviesFromTapes(Object.values(state.tapes).filter((t) => t.status === "held"));
+}
+
+function checkedOutMoviesFromVHS(state: VHSStateSnapshot): HeldMovie[] {
+  return moviesFromTapes(
+    Object.values(state.tapes).filter(
+      (t) => t.status === "checked_out" || t.status === "rewound" || t.status === "unrewound",
+    ),
+  );
+}
+
 export function useInventory({ eraYears }: { eraYears: string }) {
   const vhs = useVHSState();
 
   // Derive heldMovies from VHS state — this is the canonical source now
   const heldMovies = heldMoviesFromVHS(vhs.state);
+  const checkedOutMovies = checkedOutMoviesFromVHS(vhs.state);
+  const rewoundMovieIds = new Set(vhs.rewoundTapes.map((tape) => tape.id));
 
   const [pendingPickup, setPendingPickup] = useState<{ id: number; title: string; posterUrl: string; slotKey?: string } | null>(null);
   const [spawnedMissingSlotKeys, setSpawnedMissingSlotKeys] = useState<string[]>([]);
@@ -44,7 +56,9 @@ export function useInventory({ eraYears }: { eraYears: string }) {
 
   // Keep a ref to spawnedMissingSlotKeys so removeHeldMovie closure is current
   const spawnedRef = useRef(spawnedMissingSlotKeys);
-  spawnedRef.current = spawnedMissingSlotKeys;
+  useEffect(() => {
+    spawnedRef.current = spawnedMissingSlotKeys;
+  }, [spawnedMissingSlotKeys]);
 
   /**
    * setHeldMovies — compatibility shim that accepts the same
@@ -83,7 +97,7 @@ export function useInventory({ eraYears }: { eraYears: string }) {
         }
       }
     },
-    [vhs.state, vhs.dropTape, vhs.pickUpTape],
+    [vhs],
   );
 
   const removeHeldMovie = useCallback(
@@ -105,8 +119,19 @@ export function useInventory({ eraYears }: { eraYears: string }) {
         vhs.dropTape(movie.slotKey);
       }
     },
-    [vhs.state, vhs.dropTape],
+    [vhs],
   );
+
+  const checkoutHeldMovies = useCallback(() => {
+    vhs.checkoutTapes();
+  }, [vhs]);
+
+  const rewindMovieTape = useCallback((movie: Pick<HeldMovie, "id" | "slotKey">) => {
+    const slotKey = movie.slotKey ?? Object.values(vhs.state.tapes).find((tape) => tape.id === movie.id)?.slotKey;
+    if (slotKey) vhs.rewindTape(slotKey);
+  }, [vhs]);
+
+  const returnCheckedOutMovies = useCallback(() => vhs.returnCheckedOutTapes(), [vhs]);
 
   // Spawn missing slot keys from gondola shelves for the selected era
   useEffect(() => {
@@ -164,6 +189,8 @@ export function useInventory({ eraYears }: { eraYears: string }) {
   return {
     heldMovies,
     setHeldMovies,
+    checkedOutMovies,
+    rewoundMovieIds,
     heldSnacks,
     setHeldSnacks,
     pendingPickup,
@@ -176,5 +203,8 @@ export function useInventory({ eraYears }: { eraYears: string }) {
     pickupTitle,
     setPickupTitle,
     removeHeldMovie,
+    checkoutHeldMovies,
+    rewindMovieTape,
+    returnCheckedOutMovies,
   };
 }

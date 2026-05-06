@@ -6,9 +6,10 @@ import { toonGradientTexture } from "./store-materials";
 
 /**
  * Shared VHS box geometry — reused across all instanced renderers.
- * Avoids creating a new BoxGeometry per mesh or per InstancedMesh.
+ * Bumped from 0.15 × 0.26 × 0.025 → 0.20 × 0.34 × 0.035 so titles read clearly
+ * from a normal browsing distance (was too small to read on shelf).
  */
-const sharedVHSGeometry = new THREE.BoxGeometry(0.15, 0.26, 0.025);
+const sharedVHSGeometry = new THREE.BoxGeometry(0.20, 0.34, 0.035);
 
 /**
  * Material cache — one meshToonMaterial per color string.

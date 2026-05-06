@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Text } from "@react-three/drei";
 import { Mat } from "../store-materials";
 import { ROOM_H } from "../store-constants";
 
@@ -47,8 +48,10 @@ export function BuildingShell() {
           Spans from Pizza Palace left edge to Laundromat right edge
           ══════════════════════════════════════════════════════════ */}
 
-      {/* Back wall — full width, ground to ceiling */}
-      <mesh position={[(LEFT_X + RIGHT_X) / 2, CEIL_H / 2, BACK_WALL_Z - WALL_T / 2]}>
+      {/* Back wall — full width, ground to ceiling.
+          Front face pulled back 5cm so it doesn't z-fight with the store's
+          interior back wall (PlaneGeometry at z=BACK_WALL_Z in MergedArchitecture). */}
+      <mesh position={[(LEFT_X + RIGHT_X) / 2, CEIL_H / 2, BACK_WALL_Z - WALL_T / 2 - 0.05]}>
         <boxGeometry args={[buildingWidth + WALL_T, CEIL_H, WALL_T]} />
         <Mat color={BRICK} roughness={0.9} />
       </mesh>
@@ -77,19 +80,11 @@ export function BuildingShell() {
         <Mat color={ROOF_COLOR} roughness={0.95} />
       </mesh>
 
-      {/* ══════════════════════════════════════════════════════════
-          2B. FACADE INFILL — closes the gap between storefront and apartment
-          The laundromat storefront ends at z=7, y=3.5.
-          The apartment front wall starts at z=6.7, y=3.7.
-          Without infill, there's a black void visible from the parking lot.
-          ══════════════════════════════════════════════════════════ */}
-
-      {/* 2ND FLOOR FACADE — brick wall above laundromat storefront ONLY.
-          Stops at x=16 (laundromat right edge) — does NOT extend over the stairway. */}
-      <mesh position={[13, (CEIL_H + 6.5) / 2, FRONT_Z + 0.2]}>
-        <boxGeometry args={[6.2, 6.5 - CEIL_H, 0.4]} />
-        <Mat color={BRICK} roughness={0.9} />
-      </mesh>
+      {/* Removed: 2ND FLOOR FACADE INFILL.
+          The apartment's BuildingFacade front wall is already flush with the
+          storefront at z=7.0 (APT_Z + halfD + WALL_T = 4.3 + 2.5 + 0.2). The
+          0.4m-thick brick infill at z=7.2 sat directly in front of that wall
+          and obscured the apartment windows entirely. */}
 
       {/* ══════════════════════════════════════════════════════════
           3. SERVICE DOORS — one per tenant on the back wall
@@ -226,17 +221,55 @@ export function BuildingShell() {
            but the adjacent store sides need their interior walls too)
           ══════════════════════════════════════════════════════════ */}
 
-      {/* Pizza Palace right wall (shared with video store left wall at x=-10) */}
-      {/* This is the interior face of the shared wall, visible from pizza side */}
-      <mesh position={[-10 + 0.01, CEIL_H / 2, (BACK_WALL_Z + FRONT_Z) / 2]}>
-        <planeGeometry args={[buildingDepth, CEIL_H]} />
-        <Mat color="#4a3030" roughness={0.85} side={2} />
-      </mesh>
+      {/* Removed: shared interior walls at x=±10.
+          MergedArchitecture renders the video store's blue walls at x=±10, and
+          PizzaPalace/Laundromat each render their own interior walls. The shared
+          walls here were redundant and (a) misoriented as horizontal slabs through
+          z=0 originally, (b) painted brown over the store's blue walls when fixed
+          with DoubleSide. Cleaner to drop them entirely. */}
 
-      {/* Laundromat left wall (shared with video store right wall at x=+10) */}
-      <mesh position={[10 - 0.01, CEIL_H / 2, (BACK_WALL_Z + FRONT_Z) / 2]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[buildingDepth, CEIL_H]} />
-        <Mat color="#3a4a5a" roughness={0.85} side={2} />
+      {/* ══════════════════════════════════════════════════════════
+          6. PIZZA-PALACE-SLOT FOR LEASE PLACEHOLDER
+          The Pizza Palace was removed; this fills the visual gap on the
+          left side of the strip mall with a boarded-up storefront and a
+          "FOR LEASE" sign so the absence reads as intentional.
+          ══════════════════════════════════════════════════════════ */}
+
+      {/* Boarded-up front wall — covers x=[-16, -10] at the storefront line */}
+      <mesh position={[-13, ROOM_H / 2, FRONT_Z - 0.05]}>
+        <boxGeometry args={[6, ROOM_H, 0.12]} />
+        <Mat color="#3a2820" roughness={0.95} />
+      </mesh>
+      {/* Horizontal plywood slats for that boarded-up look */}
+      {[0.6, 1.4, 2.2, 3.0].map((y, i) => (
+        <mesh key={`board-${i}`} position={[-13, y, FRONT_Z + 0.01]}>
+          <boxGeometry args={[6.2, 0.08, 0.04]} />
+          <Mat color="#2a1810" roughness={0.95} />
+        </mesh>
+      ))}
+      {/* FOR LEASE placard */}
+      <group position={[-13, 1.8, FRONT_Z + 0.05]}>
+        <mesh>
+          <boxGeometry args={[2.4, 1.2, 0.04]} />
+          <Mat color="#f1ead4" roughness={0.7} />
+        </mesh>
+        <Text position={[0, 0.28, 0.025]} fontSize={0.32} color="#8a1010" anchorX="center" anchorY="middle" font={undefined}>
+          FOR LEASE
+        </Text>
+        <Text position={[0, -0.05, 0.025]} fontSize={0.1} color="#3a2010" anchorX="center" anchorY="middle" font={undefined}>
+          GREAT LOCATION
+        </Text>
+        <Text position={[0, -0.2, 0.025]} fontSize={0.08} color="#3a2010" anchorX="center" anchorY="middle" font={undefined}>
+          ASK INSIDE FOR DETAILS
+        </Text>
+        <Text position={[0, -0.42, 0.025]} fontSize={0.07} color="#5a3020" anchorX="center" anchorY="middle" font={undefined}>
+          (555) 867-5309
+        </Text>
+      </group>
+      {/* Awning above the entrance — empty hooks where signage used to be */}
+      <mesh position={[-13, ROOM_H - 0.25, FRONT_Z + 0.15]}>
+        <boxGeometry args={[6.2, 0.5, 0.4]} />
+        <Mat color="#1a1818" roughness={0.85} />
       </mesh>
     </group>
   );

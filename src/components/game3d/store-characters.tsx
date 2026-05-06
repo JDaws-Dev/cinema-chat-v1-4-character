@@ -6,8 +6,8 @@ import { Text, useGLTF, Billboard, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { registerNPCPosition, unregisterNPCPosition } from "@/lib/audio";
 import { type NpcPersonality, type PersonalityType, PERSONALITIES, getRandomAdultPersonality, getPersonalityLabel } from "@/lib/npc-personalities";
-import { getObjectById } from "@/lib/store-layout";
-import { SHELF_ROWS } from "./store-constants";
+import { getObjectById, getLayoutColliders } from "@/lib/store-layout";
+import { ROOM_W, ROOM_D, SHELF_ROWS } from "./store-constants";
 import { Mat } from "./store-materials";
 
 // ── Global dialogue target signal ─────────────────────────────
@@ -123,8 +123,39 @@ export const SHELF_BOUNDS = SHELF_ROWS.map(s => {
   };
 });
 
+// All layout-defined obstacles inside the video store (counter, trophy shelf, new-releases-wall,
+// return bin, etc.) with NPC-radius padding. Computed once at module load.
+const NPC_RADIUS = 0.25;
+const STORE_X_HALF = ROOM_W / 2;
+const STORE_Z_HALF = ROOM_D / 2;
+type AABB = { minX: number; maxX: number; minZ: number; maxZ: number };
+const LAYOUT_OBSTACLE_BOUNDS: AABB[] = getLayoutColliders()
+  // Skip shelf-row gondolas (already in SHELF_BOUNDS) and exterior props
+  .filter(c => !c.id.startsWith("shelf-row"))
+  // Skip exterior objects (cars, lamps, exterior buildings) — NPCs only walk inside the store
+  .filter(c => {
+    const obj = getObjectById(c.id);
+    return obj?.category !== "exterior" && obj?.category !== "door" && obj?.category !== "wall";
+  })
+  .map(c => ({
+    minX: c.x - c.hw - NPC_RADIUS,
+    maxX: c.x + c.hw + NPC_RADIUS,
+    minZ: c.z - c.hd - NPC_RADIUS,
+    maxZ: c.z + c.hd + NPC_RADIUS,
+  }));
+
 export function npcCollidesShelf(px: number, pz: number): boolean {
+  // Store walls — keep NPCs inside the room
+  if (px < -STORE_X_HALF + NPC_RADIUS) return true;
+  if (px > STORE_X_HALF - NPC_RADIUS) return true;
+  if (pz < -STORE_Z_HALF + NPC_RADIUS) return true;
+  if (pz > STORE_Z_HALF - NPC_RADIUS) return true;
+  // Gondola shelves (rotated AABBs)
   for (const b of SHELF_BOUNDS) {
+    if (px > b.minX && px < b.maxX && pz > b.minZ && pz < b.maxZ) return true;
+  }
+  // All other in-store layout obstacles (counter, trophy shelf, NR wall, return bin, etc.)
+  for (const b of LAYOUT_OBSTACLE_BOUNDS) {
     if (px > b.minX && px < b.maxX && pz > b.minZ && pz < b.maxZ) return true;
   }
   return false;
@@ -153,6 +184,13 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
   const rightLegRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
+  const stubHeadRef = useRef<THREE.Group>(null); // unattached; hook null-checks
+  const leftEyeRef = useRef<THREE.Mesh>(null);
+  const rightEyeRef = useRef<THREE.Mesh>(null);
+  const seed = useMemo(() => seedFromId(id), [id]);
+  useLifelikeIdle(seed, torsoRef, stubHeadRef, ref, undefined);
+  useBlink(seed, leftEyeRef, rightEyeRef);
   const speed = 0.8; // units per second
   const startIdx = useMemo(() => {
     // Pick nearest waypoint as starting index
@@ -194,6 +232,23 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
       // Still bob slightly while waiting
       ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.01;
       resetLimbs();
+      // In the LAST 0.4s of the wait, smoothly rotate to face the next waypoint
+      // so the NPC isn't visibly walking backwards on the first movement frame.
+      if (waitTimer.current < 0.4) {
+        const next = NPC_WAYPOINTS[waypointIdx.current];
+        const ndx = next[0] - ref.current.position.x;
+        const ndz = next[1] - ref.current.position.z;
+        const ndist = Math.sqrt(ndx * ndx + ndz * ndz);
+        if (ndist > 0.01) {
+          const targetRot = Math.atan2(ndx / ndist, ndz / ndist) + Math.PI;
+          // Shortest-arc lerp toward target
+          const cur = ref.current.rotation.y;
+          let diff = targetRot - cur;
+          while (diff > Math.PI) diff -= 2 * Math.PI;
+          while (diff < -Math.PI) diff += 2 * Math.PI;
+          ref.current.rotation.y = cur + diff * Math.min(1, dt * 8);
+        }
+      }
       return;
     }
 
@@ -217,8 +272,11 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
           const d = Math.abs(npcZ - sz);
           if (d < nearestDist) { nearestDist = d; nearestZ = sz; }
         }
-        // Face toward the shelf: if shelf z < npc z, face -z (PI), else face +z (0)
-        ref.current.rotation.y = nearestZ < npcZ ? Math.PI : 0;
+        // Face toward the shelf. Model's default forward is -z, so rotation=0
+        // points the face toward the shelf when the shelf is at LOWER z (more
+        // negative) than the NPC. Rotation=π flips to face +z. Was inverted —
+        // resulted in NPCs browsing with the back of their head to the shelf.
+        ref.current.rotation.y = nearestZ < npcZ ? 0 : Math.PI;
       } else {
         // Quick pause
         isBrowsing.current = false;
@@ -233,19 +291,34 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
       const newX = ref.current.position.x + nx * speed * dt;
       const newZ = ref.current.position.z + nz * speed * dt;
 
-      // NPC-to-NPC avoidance: pause if too close
-      if (npcTooCloseToOther(id, newX, newZ)) {
+      // Try axis-separated movement; when blocked by another NPC on one axis, slide on the other.
+      const blockedByOtherX = npcTooCloseToOther(id, newX, ref.current.position.z);
+      const blockedByOtherZ = npcTooCloseToOther(id, ref.current.position.x, newZ);
+      let movedThisFrame = false;
+      if (!blockedByOtherX && !npcCollidesShelf(newX, ref.current.position.z)) {
+        ref.current.position.x = newX;
+        movedThisFrame = true;
+      }
+      if (!blockedByOtherZ && !npcCollidesShelf(ref.current.position.x, newZ)) {
+        ref.current.position.z = newZ;
+        movedThisFrame = true;
+      }
+
+      if (!movedThisFrame) {
+        // Fully blocked — short pause, then try again
         waitTimer.current = 0.3 + Math.random() * 0.3;
         waitDuration.current = waitTimer.current;
         resetLimbs();
       } else {
-        // Shelf collision: slide along edges
-        if (!npcCollidesShelf(newX, ref.current.position.z)) ref.current.position.x = newX;
-        if (!npcCollidesShelf(ref.current.position.x, newZ)) ref.current.position.z = newZ;
         // Walk bob
         ref.current.position.y = Math.abs(Math.sin(t * 2)) * 0.02;
-        // Face direction of movement (model faces -z, so add PI)
-        ref.current.rotation.y = Math.atan2(nx, nz) + Math.PI;
+        // Face direction of movement, lerped so direction changes don't snap (model faces -z, add PI)
+        const targetRot = Math.atan2(nx, nz) + Math.PI;
+        const cur = ref.current.rotation.y;
+        let diff = targetRot - cur;
+        while (diff > Math.PI) diff -= 2 * Math.PI;
+        while (diff < -Math.PI) diff += 2 * Math.PI;
+        ref.current.rotation.y = cur + diff * Math.min(1, dt * 10);
         // Leg swing animation
         const swing = Math.sin(t * 8) * 0.3;
         if (leftLegRef.current) leftLegRef.current.rotation.x = swing;
@@ -287,7 +360,7 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
         </mesh>
       </group>
       {/* Body — slightly varied proportions */}
-      <mesh position={[0, 0.8, 0]}>
+      <mesh ref={torsoRef} position={[0, 0.8, 0]}>
         <boxGeometry args={[0.34, 0.44, 0.22]} />
         <Mat color={shirtColor} roughness={0.7} />
       </mesh>
@@ -432,11 +505,11 @@ export function NPCCustomer({ id, startPos, shirtColor, hairColor, skinTone, hai
       </mesh>
 
       {/* Simple face — two dot eyes */}
-      <mesh position={[-0.05, 1.22, -0.14]}>
+      <mesh ref={leftEyeRef} position={[-0.05, 1.22, -0.14]}>
         <sphereGeometry args={[0.018, 8, 8]} />
         <Mat color="#1a1a1a" />
       </mesh>
-      <mesh position={[0.05, 1.22, -0.14]}>
+      <mesh ref={rightEyeRef} position={[0.05, 1.22, -0.14]}>
         <sphereGeometry args={[0.018, 8, 8]} />
         <Mat color="#1a1a1a" />
       </mesh>
@@ -1137,6 +1210,12 @@ export function TonyCharacter() {
   const headRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
+  const leftEyeRef = useRef<THREE.Mesh>(null);
+  const rightEyeRef = useRef<THREE.Mesh>(null);
+  const tonySeed = useMemo(() => seedFromId("tony"), []);
+  useLifelikeIdle(tonySeed, torsoRef, headRef, ref, undefined);
+  useBlink(tonySeed, leftEyeRef, rightEyeRef);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -1176,7 +1255,7 @@ export function TonyCharacter() {
         <boxGeometry args={[0.4, 0.04, 0.23]} /><Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
       {/* ── Torso (wide and burly — broader than Vinny) ── */}
-      <RoundedBox args={[0.38, 0.35, 0.22]} radius={0.03} smoothness={2} position={[0, 0.57, 0]}>
+      <RoundedBox ref={torsoRef} args={[0.38, 0.35, 0.22]} radius={0.03} smoothness={2} position={[0, 0.57, 0]}>
         <Mat color="#cc2222" roughness={0.7} />
       </RoundedBox>
       {/* ── Apron (white box on front of torso) ── */}
@@ -1223,10 +1302,10 @@ export function TonyCharacter() {
           <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
         </mesh>
         {/* Pupils */}
-        <mesh position={[-0.08, 0.02, -0.2]}>
+        <mesh ref={leftEyeRef} position={[-0.08, 0.02, -0.2]}>
           <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
         </mesh>
-        <mesh position={[0.08, 0.02, -0.2]}>
+        <mesh ref={rightEyeRef} position={[0.08, 0.02, -0.2]}>
           <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
         </mesh>
         {/* Nose */}
@@ -1260,6 +1339,12 @@ export function EarlCharacter() {
   const headRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Mesh>(null);
+  const leftEyeRef = useRef<THREE.Mesh>(null);
+  const rightEyeRef = useRef<THREE.Mesh>(null);
+  const earlSeed = useMemo(() => seedFromId("earl"), []);
+  useLifelikeIdle(earlSeed, torsoRef, headRef, ref, undefined);
+  useBlink(earlSeed, leftEyeRef, rightEyeRef);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -1298,7 +1383,7 @@ export function EarlCharacter() {
         <boxGeometry args={[0.34, 0.04, 0.21]} /><Mat color="#2a2a2a" roughness={0.7} />
       </mesh>
       {/* ── Torso (normal build) ── */}
-      <RoundedBox args={[0.32, 0.35, 0.2]} radius={0.03} smoothness={2} position={[0, 0.57, 0]}>
+      <RoundedBox ref={torsoRef} args={[0.32, 0.35, 0.2]} radius={0.03} smoothness={2} position={[0, 0.57, 0]}>
         <Mat color="#707070" roughness={0.7} />
       </RoundedBox>
       {/* ── Name tag (gold EARL) ── */}
@@ -1347,10 +1432,10 @@ export function EarlCharacter() {
           <sphereGeometry args={[0.03, 8, 8]} /><Mat color="#ffffff" roughness={0.3} />
         </mesh>
         {/* Pupils */}
-        <mesh position={[-0.08, 0.02, -0.2]}>
+        <mesh ref={leftEyeRef} position={[-0.08, 0.02, -0.2]}>
           <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
         </mesh>
-        <mesh position={[0.08, 0.02, -0.2]}>
+        <mesh ref={rightEyeRef} position={[0.08, 0.02, -0.2]}>
           <sphereGeometry args={[0.018, 8, 8]} /><Mat color="#1a1a1a" />
         </mesh>
         {/* Nose */}

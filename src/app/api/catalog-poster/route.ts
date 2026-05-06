@@ -1,6 +1,58 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { getCatalogMovieById, ensureCatalogLoaded } from "@/lib/curated-movie-catalog";
+import { isTmdbConfigured, tmdbFetch, posterUrl as tmdbPosterUrl } from "@/lib/tmdb";
+
+// In-flight dedupe so the same id doesn't trigger two TMDB lookups in parallel.
+const inflight = new Map<number, Promise<ArrayBuffer | null>>();
+
+async function fetchTmdbPosterByTitle(
+  title: string,
+  year: number,
+  cacheDir: string,
+  id: number,
+): Promise<ArrayBuffer | null> {
+  if (!isTmdbConfigured()) return null;
+  if (inflight.has(id)) return inflight.get(id)!;
+
+  const promise = (async () => {
+    try {
+      const res = await tmdbFetch("/search/movie", {
+        query: title,
+        year: String(year),
+        include_adult: "false",
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const hit = (data.results || []).find(
+        (r: { title?: string; release_date?: string; poster_path?: string }) => {
+          if (!r.poster_path) return false;
+          const ry = parseInt((r.release_date || "").slice(0, 4), 10);
+          return Math.abs(ry - year) <= 1;
+        },
+      ) || (data.results || []).find((r: { poster_path?: string }) => r.poster_path);
+      const poster = hit?.poster_path;
+      if (!poster) return null;
+      const url = tmdbPosterUrl(poster, "w342");
+      if (!url) return null;
+      const imgRes = await fetch(url);
+      if (!imgRes.ok) return null;
+      const buf = await imgRes.arrayBuffer();
+      // Cache for next time so we don't keep hitting TMDB.
+      try {
+        await mkdir(cacheDir, { recursive: true });
+        await writeFile(path.join(cacheDir, `${id}.jpg`), Buffer.from(buf));
+      } catch { /* cache failure is non-fatal */ }
+      return buf;
+    } catch {
+      return null;
+    } finally {
+      inflight.delete(id);
+    }
+  })();
+  inflight.set(id, promise);
+  return promise;
+}
 
 const GENRE_COLORS: Record<string, { bg: string; fg: string; accent: string }> = {
   Action: { bg: "#7f1d1d", fg: "#fff7ed", accent: "#fb923c" },
@@ -84,8 +136,21 @@ export async function GET(req: Request) {
         });
       }
     } catch {
-      // Fall back to generated art below.
+      // Fall back to TMDB title search below.
     }
+  }
+
+  // No explicit posterUrl (curated catalog only has ~12 hardcoded ones; e.g.
+  // "Hook" has no posterUrl). Try TMDB search-by-title-and-year, cache the
+  // result to disk so subsequent requests serve from cache.
+  const tmdbBuf = await fetchTmdbPosterByTitle(movie.title, movie.year, cacheDir, id);
+  if (tmdbBuf) {
+    return new Response(tmdbBuf, {
+      headers: {
+        "Content-Type": "image/jpeg",
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
   }
 
   const primaryGenre = movie.genres[0] || "Drama";

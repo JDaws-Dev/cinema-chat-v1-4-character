@@ -38,16 +38,6 @@ function buildColliders(): { x: number; z: number; hw: number; hd: number }[] {
   // Back wall (z=-7)
   colliders.push({ x: 0, z: -7.2, hw: 10, hd: 0.2 });
 
-  // ── Pizza Palace walls (x=-16 to x=-10) — 8m deep ──
-  // Left wall of pizza place (x=-16) — extends from front z=7 to back z=0 (world)
-  colliders.push({ x: -16.2, z: 2, hw: 0.2, hd: 5.5 });
-  // Front wall — left of pizza door (x=-16 to x=-13, z=7.3)
-  colliders.push({ x: -14.75, z: 7.3, hw: 1.25, hd: 0.2 });
-  // Front wall — right of pizza door (x=-12 to x=-10, z=7.3)
-  colliders.push({ x: -11, z: 7.3, hw: 1, hd: 0.2 });
-  // Back wall of pizza place (z=0 — deeper interior, was z=4.5)
-  colliders.push({ x: -13, z: -0.2, hw: 3, hd: 0.2 });
-
   // ── Laundromat walls (x=10 to x=16) — 8m deep ──
   // Front wall — left of door (x=10 to x=12.85, z=7)
   colliders.push({ x: 11.5, z: 7.2, hw: 1.5, hd: 0.2 });
@@ -94,7 +84,15 @@ function collidesWithNpc(px: number, pz: number): boolean {
   return false;
 }
 
-export function FirstPersonControls({ disabled = false }: { disabled?: boolean }) {
+export function FirstPersonControls({
+  disabled = false,
+  initialSpawn,
+  initialLookAt,
+}: {
+  disabled?: boolean;
+  initialSpawn?: [number, number, number];
+  initialLookAt?: [number, number, number];
+}) {
   const { camera, gl } = useThree();
   const keys = useRef(new Set<string>());
   const euler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
@@ -109,7 +107,14 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   // Pointer lock
   const requestLock = useCallback(() => {
     if (disabled) return;
-    gl.domElement.requestPointerLock();
+    try {
+      const lockRequest = gl.domElement.requestPointerLock?.();
+      if (lockRequest instanceof Promise) {
+        lockRequest.catch(() => {});
+      }
+    } catch {
+      // Browser automation/headless contexts can reject pointer lock.
+    }
   }, [gl, disabled]);
 
   // ── Global teleport function — used by apartment door interaction ──
@@ -129,11 +134,17 @@ export function FirstPersonControls({ disabled = false }: { disabled?: boolean }
   useEffect(() => {
     // Set spawn position only on very first mount
     if (!initialized.current) {
-      camera.position.set(0, 1.6, 19); // Out in the street — full strip mall view
-      standingEyeY.current = 1.6;
-      camera.lookAt(0, 3.5, 7); // Face toward store signage
-      camera.getWorldDirection(new THREE.Vector3()); // force update
-      euler.current.setFromQuaternion(camera.quaternion); // sync euler to camera
+      const sx = initialSpawn?.[0] ?? -0.85;
+      const sy = initialSpawn?.[1] ?? 1.6;
+      const sz = initialSpawn?.[2] ?? 10.6; // default: welcome-mat view through the left door
+      const lx = initialLookAt?.[0] ?? -0.85;
+      const ly = initialLookAt?.[1] ?? 1.55;
+      const lz = initialLookAt?.[2] ?? 0.5;
+      camera.position.set(sx, sy, sz);
+      standingEyeY.current = sy;
+      camera.lookAt(lx, ly, lz);
+      camera.getWorldDirection(new THREE.Vector3());
+      euler.current.setFromQuaternion(camera.quaternion);
       initialized.current = true;
     }
 

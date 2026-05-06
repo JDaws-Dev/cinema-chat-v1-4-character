@@ -52,24 +52,22 @@ export function InteractionSystem({ onInteract, onHover }: InteractionProps) {
       raycaster.current.setFromCamera(new THREE.Vector2(0, 0), camera);
       const intersects = raycaster.current.intersectObjects(scene.children, true);
 
-      let found = false;
+      let nextLabel: string | null = null;
       for (const hit of intersects) {
         if (hit.distance > 4) continue; // only interact with nearby objects
         const obj = hit.object;
         const name = obj.userData?.interactType || findParentData(obj);
         if (name) {
-          setHoverLabel(obj.userData?.label || findParentLabel(obj) || name);
-          found = true;
+          nextLabel = obj.userData?.label || findParentLabel(obj) || name;
           break;
         }
       }
-      if (!found) setHoverLabel(null);
+      setHoverLabel(nextLabel);
 
       // Notify parent of hover changes
-      const currentLabel = found ? hoverLabel : null;
-      if (currentLabel !== prevLabel.current) {
-        prevLabel.current = currentLabel;
-        onHover?.(currentLabel);
+      if (nextLabel !== prevLabel.current) {
+        prevLabel.current = nextLabel;
+        onHover?.(nextLabel);
       }
     }
 

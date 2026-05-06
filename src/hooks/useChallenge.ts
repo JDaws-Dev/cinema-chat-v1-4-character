@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getShelfMovies } from "@/components/game3d/Store";
 import { getPropsCount, PROPS, unlockProp, hasProp, type MovieProp, loadGameState, recordChallengeCompletion } from "@/lib/game-state";
 import { type MovieClue, MOVIE_CLUES } from "@/lib/movie-clues";
-import { playSFX, playRandomLine } from "@/lib/audio";
+import { playSFX, playRandomLine, playVinnyLine } from "@/lib/audio";
 
 export type ChallengeMovie = { title: string; genre: string };
 export type ChallengeType = "movie_night" | "speed_run" | "vinnys_mystery";
@@ -108,7 +108,17 @@ export function useChallenge(
     setHeldMovies([]);
     setHeldSnacks([]);
     playSFX("challenge_start");
-    playRandomLine("challenge_start");
+    // Vinny actually NAMES the movies — much better than a generic "go go go!"
+    // Subtitle fires from playVinnyLine, so player sees the list even if audio
+    // is muted or still loading.
+    const titles = picks.map(p => p.title);
+    const list = titles.length === 3
+      ? `${titles[0]}, ${titles[1]}, and ${titles[2]}`
+      : titles.join(", ");
+    const intro = challengeType === "speed_run"
+      ? `60 seconds on the clock — find ${list}. Go!`
+      : `Tonight's picks — see if you can grab ${list}.`;
+    playVinnyLine(intro, "Vinny");
     setChallenge({
       movies: picks,
       startTime: Date.now(),
@@ -130,7 +140,9 @@ export function useChallenge(
     setMysteryHintsUsed(0);
     setMysteryWrongMsg(null);
     setHeldMovies([]);
-    playRandomLine("challenge_start");
+    playSFX("challenge_start");
+    // Vinny actually says the cryptic clue out loud (subtitle + voice).
+    playVinnyLine(`Here's one for you: ${clue.clue} Bring me the movie when you've got it.`, "Vinny");
   }, [setHeldMovies]);
 
   return {

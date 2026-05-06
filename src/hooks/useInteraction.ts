@@ -7,7 +7,7 @@ import {
   type QuoteChallenge, type SynopsisChallenge,
 } from "@/lib/friday-night";
 import { loadGameState, recordChallengeCompletion, getPropsCount, PROPS, unlockProp, completeObjective, completeQuest, getActiveSideQuests, getNpcRelationship, type MovieProp } from "@/lib/game-state";
-import { playRandomLine, playVinnyLine, playSFX, setSubtitleHandler } from "@/lib/audio";
+import { playRandomLine, playVinnyLine, playSFX } from "@/lib/audio";
 import { getRandomDialogue, getVinnyTierGreeting, generateTriviaDialogue, getRelationshipGreeting, type DialogueTree, type DialogueNode } from "@/lib/npc-dialogues";
 import { PERSONALITIES, getRandomPersonality, type PersonalityType } from "@/lib/npc-personalities";
 import { buildCustomerDialogue } from "@/lib/npc-customer-dialogues";
@@ -225,32 +225,18 @@ export function useInteraction(params: UseInteractionParams) {
           return;
         }
       }
-      if (heldMovies.length > 0) {
-        playRandomLine("checkout");
-        playSFX("cash_register");
-        setOverlay("checkout");
-        return;
-      }
-      playRandomLine("greetings");
-      const roll = Math.random();
-      if (roll < 0.5) {
-        const tree = getRandomDialogue("vinny");
-        const tierGreeting = getVinnyTierGreeting(currentTier.name);
-        const openerWithTier = { ...tree.opener, text: tierGreeting + " " + tree.opener.text };
-        setRpgDialogue(tree);
-        setRpgNode(openerWithTier);
-        setRpgHistory([{ speaker: openerWithTier.speaker, portrait: openerWithTier.portrait, text: openerWithTier.text }]);
-        setActiveDialogueTarget("vinny");
-        setOverlay("rpg_dialogue");
-      } else if (roll < 0.8) {
-        setQuote(pickRandom(QUOTES, q => q.id));
-        setQuizAnswer(null);
-        setOverlay("quote");
+      // Open the Vinny menu — lets the player choose checkout, chat, challenge,
+      // freeform recommendation, or quest log instead of being force-routed to
+      // checkout whenever they happen to be holding a tape.
+      // Rewind callback: if last visit ended without rewinding, Vinny calls it out.
+      const lastRewound = typeof window !== "undefined" ? localStorage.getItem("fnv_last_rewound") : null;
+      if (lastRewound === "false") {
+        playVinnyLine("Hey, you didn't rewind last time. C'mon. Be kind.", "Vinny");
+        localStorage.setItem("fnv_last_rewound", "acknowledged");
       } else {
-        setSynopsis(pickRandom(SYNOPSES, s => s.id));
-        setQuizAnswer(null);
-        setOverlay("synopsis");
+        playRandomLine("greetings");
       }
+      setOverlay("vinny_menu");
     } else if (type === "customer") {
       let personalityType: PersonalityType | undefined;
       let npcManagerId: string | undefined;
@@ -267,7 +253,9 @@ export function useInteraction(params: UseInteractionParams) {
 
       if (npcManagerId && isNpcHostile(npcManagerId)) {
         playVinnyLine("...", npcName || "Customer");
-        setSubtitleHandler((text: string) => { /* already handled */ });
+        // Removed: setSubtitleHandler no-op override. It clobbered the global
+        // subtitle callback set by useAudioUI and silenced subtitles for the
+        // rest of the session after a single hostile-customer interaction.
         const refusalNode: DialogueNode = {
           speaker: npcName || "Customer",
           portrait: "?",
@@ -303,7 +291,9 @@ export function useInteraction(params: UseInteractionParams) {
       const personality = (personalityType && PERSONALITIES[personalityType]) || getRandomPersonality();
       const relLevel = getNpcRelationship(npcManagerId || "customer");
       npcName = personality.name;
-      const canFreeChat = totalXP >= 500;
+      // Freeform chat unlocked from minute one — was gated behind 500 XP, but
+      // freeform chat is the killer feature; gating it behind grinding hurt MVP.
+      const canFreeChat = true;
 
       const personalityTree = buildCustomerDialogue(personality, npcName, relLevel, canFreeChat, era);
 
@@ -377,6 +367,32 @@ export function useInteraction(params: UseInteractionParams) {
           browseState = { genre: data };
         }
       }
+
+      // Drop-where-they-belong: if the player is holding any tape whose genre
+      // matches THIS shelf, return those tapes to their original slots and skip
+      // the browse overlay. Tapes that don't belong stay in hand.
+      const shelfGenreKey = (browseState.genre || "").toLowerCase();
+      const matching = heldMovies.filter(
+        (m) => (m.genre || "").toLowerCase() === shelfGenreKey,
+      );
+      if (matching.length > 0) {
+        const remaining = heldMovies.filter(
+          (m) => !matching.some((mm) => mm.id === m.id),
+        );
+        setHeldMovies(remaining);
+        playSFX("vhs_pickup");
+        const label = (browseState.label || browseState.genre || "shelf").toUpperCase();
+        const titles = matching.map((m) => m.title).join(", ");
+        // Reuse the quest-notif channel — it surfaces a transient toast.
+        showQuestNotif(`Put ${matching.length === 1 ? "back" : `${matching.length} tapes back`} on ${label}: ${titles}`);
+        return;
+      }
+      // Hint when player has tapes but none belong to this shelf.
+      if (heldMovies.length > 0) {
+        const label = (browseState.label || browseState.genre || "this shelf").toUpperCase();
+        showQuestNotif(`Those tapes don't belong on ${label}.`);
+      }
+
       setShelfBrowse(browseState);
       setOverlay("shelf");
       trackQuestGenreVisit(browseState.genre);

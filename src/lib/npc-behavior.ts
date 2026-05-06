@@ -404,7 +404,7 @@ export const GOAL_DEFINITIONS: Record<GoalType, GoalDefinition> = {
 
   grab_pizza: {
     type: 'grab_pizza',
-    weight: 20,
+    weight: 0,
     label: 'Grab a slice',
     steps: [
       { target: 'door-pizza-int', arrivalState: 'walking' },
@@ -435,7 +435,7 @@ export const GOAL_DEFINITIONS: Record<GoalType, GoalDefinition> = {
 
   browse_then_pizza: {
     type: 'browse_then_pizza',
-    weight: 10,
+    weight: 0,
     label: 'Browse movies, then pizza',
     steps: [
       { target: 'door-video-int', arrivalState: 'walking' },
@@ -469,7 +469,7 @@ export const GOAL_DEFINITIONS: Record<GoalType, GoalDefinition> = {
 
   pizza_then_movie: {
     type: 'pizza_then_movie',
-    weight: 5,
+    weight: 0,
     label: 'Pizza first, then rent a movie',
     steps: [
       { target: 'door-pizza-int', arrivalState: 'walking' },
@@ -789,8 +789,8 @@ function prePopulateNPCs(state: NPCManagerState, isMobile: boolean): void {
     { waypointId: 'vs-shelf-row1-left',  npcState: 'browsing', goal: 'rent_movie',    goalStepIndex: 1, timerRange: [5, 12] },
     { waypointId: 'vs-shelf-row2-right', npcState: 'browsing', goal: 'just_browsing',  goalStepIndex: 2, timerRange: [4, 10] },
     { waypointId: 'vs-shelf-row3-left',  npcState: 'browsing', goal: 'rent_movie',    goalStepIndex: 2, timerRange: [3, 8] },
-    // 1 eating pizza
-    { waypointId: 'pp-booth-1',          npcState: 'eating',   goal: 'grab_pizza',     goalStepIndex: 2, timerRange: [30, 60] },
+    // Pizza Palace is currently removed from the rendered world, so keep NPCs in visible zones.
+    { waypointId: 'vs-aisle-front-left', npcState: 'browsing', goal: 'just_browsing',  goalStepIndex: 1, timerRange: [6, 14] },
     // 1 waiting for laundry
     { waypointId: 'lm-chair-1',          npcState: 'waiting',  goal: 'do_laundry',     goalStepIndex: 2, timerRange: [30, 60] },
     // 1 at the new releases wall

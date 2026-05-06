@@ -79,11 +79,14 @@ export function useDialogue(config: DialogueConfig) {
     setTypewriterDone(true);
   }, [rpgNode]);
 
-  // Play ElevenLabs voice when an NPC speaks in RPG dialogue
+  // Play ElevenLabs voice when an NPC speaks in RPG dialogue.
+  // For named NPCs (Vinny / Charlie / Tony / Earl) the personality type is unused —
+  // playNpcLine resolves the voice from the named-NPC table first. Falling back to
+  // "movie_buff" lets the call go through when the dialogue isn't initiated via
+  // the freeform-chat flow that sets npcChatTarget.
   useEffect(() => {
     if (!rpgNode || rpgNode.speaker === "You") return;
-    const personalityType = npcChatTarget?.personalityType;
-    if (!personalityType) return;
+    const personalityType = npcChatTarget?.personalityType ?? "movie_buff";
     const npcName = rpgDialogue?.npc || rpgNode.speaker;
     playNpcLine(npcName, rpgNode.text, personalityType);
   }, [rpgNode, npcChatTarget?.personalityType, rpgDialogue?.npc]);

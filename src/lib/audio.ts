@@ -339,7 +339,7 @@ async function playRandomCustomerClip() {
   const { speaker, text } = eraLine;
 
   const wordCount = text.split(/\s+/).length;
-  const duration = Math.max(2500, wordCount * 350);
+  const duration = Math.min(10000, Math.max(2500, wordCount * 350));
   subtitleCallback?.(`${speaker}: "${text}"`, duration);
 
   // Check if this line matches a legacy audio clip (exact text match)
@@ -393,7 +393,7 @@ async function playRandomConversation() {
 
     const { speaker, text } = eraConv.lines[i];
     const wordCount = text.split(/\s+/).length;
-    const subtitleDuration = Math.max(2500, wordCount * 350);
+    const subtitleDuration = Math.min(10000, Math.max(2500, wordCount * 350));
     subtitleCallback?.(`${speaker}: "${text}"`, subtitleDuration);
 
     // Check if this exact line matches a legacy conversation clip
@@ -511,7 +511,7 @@ export async function playVinnyLine(text: string, speaker = "Vinny"): Promise<vo
 
   // Always show subtitle, even when muted
   const wordCount = text.split(/\s+/).length;
-  const duration = Math.max(2000, wordCount * 400); // ~400ms per word
+  const duration = Math.min(10000, Math.max(2000, wordCount * 400)); // ~400ms per word, capped at 10s
   subtitleCallback?.(`${speaker}: "${text}"`, duration);
 
   if (muted) return;
@@ -570,7 +570,7 @@ export async function playNpcLine(
   npcPlayingSet.add(npcId);
 
   const wordCount = text.split(/\s+/).length;
-  const fallbackDuration = Math.max(2000, wordCount * 400);
+  const fallbackDuration = Math.min(10000, Math.max(2000, wordCount * 400));
 
   // Show subtitle immediately
   // Show speaker name (strip npc- prefix if config id)

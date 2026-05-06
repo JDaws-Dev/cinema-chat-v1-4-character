@@ -24,6 +24,7 @@ const CAMERAS = [
   { name: "overhead",      pos: [0, 3.15, 0],      lookAt: [0, 0, 0],       fov: 96, label: "Overhead (top-down)" },
   { name: "entrance",      pos: [0, 2, 9],         lookAt: [0, 1.5, 0],     fov: 70, label: "From parking lot" },
   { name: "back_wall",     pos: [0, 2, -6],        lookAt: [0, 1.5, 3],     fov: 70, label: "From back wall" },
+  { name: "back_wall_face",pos: [0, 1.7, 0],       lookAt: [0, 1.7, -7],    fov: 65, label: "Looking AT back wall (verify z-fighting)" },
   { name: "left_wall",     pos: [-9, 2, 0],        lookAt: [5, 1.5, 0],     fov: 70, label: "Left wall looking right" },
   { name: "right_wall",    pos: [9, 2, 0],         lookAt: [-5, 1.5, 0],    fov: 70, label: "Right wall looking left" },
   { name: "counter",       pos: [4, 2, 4],         lookAt: [7, 1.0, 5.5],   fov: 65, label: "Counter area" },

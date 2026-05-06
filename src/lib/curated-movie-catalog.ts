@@ -71,7 +71,7 @@ const EMPTY_PROVIDERS: StreamingProviders = {
   link: null,
 };
 
-const CATALOG_POSTER_REV = "2026-04-02c";
+const CATALOG_POSTER_REV = "2026-04-26-tmdb-fallback";
 
 const KNOWN_POSTERS: Record<string, string> = {
   "Jaws": "https://image.tmdb.org/t/p/w342/lxM6kqilAdpdhqUl2biYp5frUxE.jpg",
@@ -245,7 +245,10 @@ function getDisplayPosterUrl(movie: CatalogMovie): string {
 }
 
 function compareForShelf(a: CatalogMovie, b: CatalogMovie): number {
-  return b.year - a.year;
+  // Sort by title alphabetically so shelves group franchise sequels and
+  // similar-name films together (e.g., Cat's Eye then Critters then Cujo).
+  // Was year-desc which scattered the alphabet across shelves.
+  return a.title.localeCompare(b.title, undefined, { sensitivity: "base", ignorePunctuation: true });
 }
 
 function dedupeById(movies: CatalogMovie[]): CatalogMovie[] {

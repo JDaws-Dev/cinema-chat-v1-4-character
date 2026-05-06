@@ -69,24 +69,35 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
     if (genre === "new_releases" || genre === "staff_picks" || genre === "new") {
       fetchTrending("week")
         .then((data) => {
-          setFilms(
-            data.movies.slice(0, limit).map((m: TrendingMovie) => ({
-              id: m.id,
-              title: m.title,
-              year: m.year,
-              posterUrl: m.posterUrl,
-            }))
-          );
+          const sorted = [...data.movies]
+            .map((m: TrendingMovie) => ({ id: m.id, title: m.title, year: m.year, posterUrl: m.posterUrl }))
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .slice(0, limit);
+          setFilms(sorted);
         })
         .catch(() => {})
         .finally(() => setLoading(false));
     } else if (genre === "classics") {
-      // Classics: pre-1980 highly rated films
-      fetchSearch({ decade: "1960", ratingMin: 7 })
-        .then((data) => {
-          setFilms(data.results.slice(0, limit).map((r: SearchResult) => ({
-            id: r.id, title: r.title, year: r.year, posterUrl: r.posterUrl,
-          })));
+      // Classics: pre-1970 highly rated films (per design — old Hollywood / TCM).
+      Promise.all([
+        fetchSearch({ decade: "1960", ratingMin: 7 }),
+        fetchSearch({ decade: "1950", ratingMin: 7 }),
+        fetchSearch({ decade: "1940", ratingMin: 7 }),
+        fetchSearch({ decade: "1930", ratingMin: 7 }),
+      ])
+        .then((decades) => {
+          const all = decades.flatMap((d) => d.results || []);
+          const seen = new Set<number>();
+          const sorted = all
+            .map((r: SearchResult) => ({ id: r.id, title: r.title, year: r.year, posterUrl: r.posterUrl }))
+            .filter((m) => {
+              if (seen.has(m.id)) return false;
+              seen.add(m.id);
+              return true;
+            })
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .slice(0, limit);
+          setFilms(sorted);
         })
         .catch(() => {})
         .finally(() => setLoading(false));
@@ -98,14 +109,17 @@ export function ShelfBrowser({ genre, eraId, shelfId, shelfCount, label, open, o
       }
       fetchSearch({ genreId, ratingMin: 6 })
         .then((data) => {
-          setFilms(
-            data.results.slice(0, limit).map((r: SearchResult) => ({
-              id: r.id,
-              title: r.title,
-              year: r.year,
-              posterUrl: r.posterUrl,
-            }))
-          );
+          const seen = new Set<number>();
+          const sorted = data.results
+            .map((r: SearchResult) => ({ id: r.id, title: r.title, year: r.year, posterUrl: r.posterUrl }))
+            .filter((m: { id: number }) => {
+              if (seen.has(m.id)) return false;
+              seen.add(m.id);
+              return true;
+            })
+            .sort((a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title))
+            .slice(0, limit);
+          setFilms(sorted);
         })
         .catch(() => {})
         .finally(() => setLoading(false));

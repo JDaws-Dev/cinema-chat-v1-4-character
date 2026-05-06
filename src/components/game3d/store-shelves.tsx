@@ -79,26 +79,35 @@ export function ShelfUnit({
   rotY?: number;
   interaction?: LayoutInteraction;
 }) {
-  const frontPosters = usePosterUrls(genre, 18, `${shelfId}:front`); // 6 tapes x 3 tiers = 18
-  const backPosters = usePosterUrls(backGenre || genre, 18, `${shelfId}:back`);
+  const frontPosters = usePosterUrls(genre, 15, `${shelfId}:front`); // 5 tapes x 3 tiers = 15
+  const backPosters = usePosterUrls(backGenre || genre, 15, `${shelfId}:back`);
   const genreKey = genre.toLowerCase().replace(/[- ]/g, "");
   const backGenreKey = (backGenre || genre).toLowerCase().replace(/[- ]/g, "");
   const bColor = backColor || color;
-  const userData = buildInteractionUserData(interaction, {
+  // Front-side interaction (used by raycasts hitting the gondola from -z):
+  const frontUserData = buildInteractionUserData(interaction, {
     type: "shelf",
     label: `Browse ${genre}`,
-    data: JSON.stringify({ genre: genreKey, shelfId, count: 18, label: genre }),
+    data: JSON.stringify({ genre: genreKey, shelfId: `${shelfId}:front`, count: 15, label: genre }),
   });
+  // Back-side interaction (only when the gondola has a backGenre):
+  const backUserData = backGenre ? buildInteractionUserData(undefined, {
+    type: "shelf",
+    label: `Browse ${backGenre}`,
+    data: JSON.stringify({ genre: backGenreKey, shelfId: `${shelfId}:back`, count: 15, label: backGenre }),
+  }) : frontUserData;
 
   const positions = useMemo(() => {
     const result: { x: number; y: number; z: number; side: string; idx: number }[] = [];
-    const count = 6;
-    const spacing = 0.35; // wider gaps, fewer tapes for perf
+    const count = 5; // fewer per tier so the bigger tapes don't crowd
+    const spacing = 0.42; // increased to keep gaps after tape grew 0.15 → 0.20 wide
     const startX = -(count - 1) * spacing * 0.5;
     let idx = 0;
     for (const side of ["front", "back"] as const) {
-      const z = side === "front" ? -0.16 : 0.16; // narrower shelf (0.35 deep)
-      for (const y of [1.17, 0.67, 0.19]) { // sit on shelf boards at y=0.04, 0.54, 1.04
+      const z = side === "front" ? -0.16 : 0.16;
+      // Tapes sit on shelf boards at y=0.02, 0.50, 1.0; bumped Y centers so the
+      // taller (0.34m) tape rests on top of each board instead of clipping it.
+      for (const y of [1.21, 0.71, 0.23]) {
         for (let i = 0; i < count; i++) {
           result.push({ x: startX + i * spacing, y, z, side, idx: idx++ });
         }
@@ -108,11 +117,18 @@ export function ShelfUnit({
   }, []);
 
   return (
-    <group position={[x, 0, z]} rotation={[0, rotY, 0]} userData={userData}>
+    <group position={[x, 0, z]} rotation={[0, rotY, 0]}>
       {/* Gondola shelf — open frame with visible shelf boards, narrower (0.35 deep) */}
-      {/* Back panel — thin vertical board running the length */}
-      <mesh position={[0, 0.75, 0]} userData={userData}>
-        <boxGeometry args={[2.8, 1.5, 0.04]} />
+      {/* Back panel — split into a front face + back face so raycasts on each
+          side of the gondola hit the matching genre (was a single mesh with
+          frontUserData on both sides, which made the back side open the front
+          genre's browser). */}
+      <mesh position={[0, 0.75, -0.02]} userData={frontUserData}>
+        <boxGeometry args={[2.8, 1.5, 0.02]} />
+        <Mat color={SHELF_COLOR} roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 0.75, 0.02]} userData={backUserData}>
+        <boxGeometry args={[2.8, 1.5, 0.02]} />
         <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
       {/* Side panels */}
@@ -148,7 +164,7 @@ export function ShelfUnit({
         <mesh key={`board-${i}`} position={[0, sy, 0]} geometry={sharedPlankGeometry} material={sharedPlankMaterial} />
       ))}
 
-      {/* VHS Boxes — PosterBoxes rendered individually, fallbacks instanced for perf */}
+      {/* VHS Boxes — PosterBoxes when loaded, solid-color placeholders otherwise so shelves never look bare */}
       {(() => {
         const posterElements: React.ReactNode[] = [];
 
@@ -170,6 +186,15 @@ export function ShelfUnit({
                 movieId={poster.id}
                 genreColor={sideColor}
                 slotKey={`${shelfId}:${pos.side}:${sideIdx}`}
+              />
+            );
+          } else {
+            posterElements.push(
+              <SharedVHSBox
+                key={`${pos.side}-${pos.idx}-placeholder`}
+                position={[pos.x, pos.y, pos.z]}
+                rotation={[0, flipRot, 0]}
+                color={sideColor}
               />
             );
           }
@@ -236,7 +261,7 @@ export function WallShelf({
         {genre}
       </Text>
 
-      {/* VHS tapes on each tier */}
+      {/* VHS tapes on each tier — placeholder box if poster not yet loaded */}
       {[0.32, 0.82, 1.32].map((ty, tier) => {
         const startX = -(tapeCount - 1) * 0.22 * 0.5;
         return Array.from({ length: tapeCount }).map((_, i) => {
@@ -247,7 +272,11 @@ export function WallShelf({
               position={[startX + i * 0.22, ty, 0.12]}
               movieTitle={poster.title} movieId={poster.id} genreColor={color}
               slotKey={`${shelfId}:tier-${tier}:slot-${i}`} />
-          ) : null;
+          ) : (
+            <SharedVHSBox key={`wt-${tier}-${i}-placeholder`}
+              position={[startX + i * 0.22, ty, 0.12]}
+              color={color} />
+          );
         });
       })}
     </group>
@@ -401,9 +430,9 @@ export function NewReleasesWall({
 
   return (
     <group position={position} userData={userData}>
-      {/* Shelf unit — centered, not full wall */}
-      <mesh position={[0, 1.0, 0]}>
-        <boxGeometry args={[8, 2.0, 0.3]} />
+      {/* Back panel — thin + pulled forward off the back wall to avoid z-fighting */}
+      <mesh position={[0, 1.0, 0.08]}>
+        <boxGeometry args={[8, 2.0, 0.04]} />
         <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
       {/* Top */}

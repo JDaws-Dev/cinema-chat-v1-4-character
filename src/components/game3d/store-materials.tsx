@@ -263,7 +263,7 @@ export function setEraYears(years: string) {
 }
 
 // Global registry of movies actually loaded on shelves — challenge picks from this
-const shelfMovieRegistry: Map<string, { title: string; genre: string; id: number }> = new Map();
+const shelfMovieRegistry: Map<string, { title: string; genre: string; id: number; posterUrl: string }> = new Map();
 
 /**
  * heldMovieSlotKeys is the union of:
@@ -294,7 +294,7 @@ function getHeldMovieIdsFromVHS(): Set<number> {
   }
 }
 
-export function getShelfMovies(): { title: string; genre: string; id: number }[] {
+export function getShelfMovies(): { title: string; genre: string; id: number; posterUrl: string }[] {
   return Array.from(shelfMovieRegistry.values());
 }
 
@@ -336,8 +336,10 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
       let cancelled = false;
       getCuratedShelfPosterData(genre, currentEraId, placementKey, count).then((localPosters) => {
         if (!cancelled) {
+          // Sort alphabetically so franchise sequels cluster (per user request).
+          const sorted = [...localPosters].sort((a, b) => a.title.localeCompare(b.title));
           setPosters(
-            localPosters.map((poster) => ({
+            sorted.map((poster) => ({
               url: poster.url,
               title: poster.title,
               id: poster.id,
@@ -362,9 +364,13 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
           seen.add(m.id as number);
           return true;
         });
-        const uniquePosters = unique.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url);
+        const uniquePosters = unique
+          .map((m: Record<string, unknown>) => ({
+            url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
+          }))
+          .filter((p: PosterData) => p.url)
+          .sort((a, b) => a.title.localeCompare(b.title))
+          .slice(0, count);
         // Cycle/repeat to fill all slots if not enough unique results
         if (uniquePosters.length === 0) {
           setPosters(buildFallbackPosters(count, `NEW_${startYear}_${endYear}`));
@@ -379,16 +385,21 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
         setPosters(buildFallbackPosters(count, `NEW_${startYear}_${endYear}`));
       });
     } else if (genreId === "classics") {
-      // Classics: pre-1980 highly-rated films (TCM style)
+      // Classics: pre-1970 highly-rated films (per design — old Hollywood / TCM)
       Promise.all([
         fetch(`/api/search?decade=1960&ratingMin=7&page=1`).then(r => r.json()),
         fetch(`/api/search?decade=1950&ratingMin=7&page=1`).then(r => r.json()),
-        fetch(`/api/search?decade=1970&ratingMin=7&page=1`).then(r => r.json()),
-      ]).then(([s60, s50, s70]) => {
-        const all = [...(s60.results || []), ...(s50.results || []), ...(s70.results || [])];
-        const uniquePosters = all.slice(0, count).map((m: Record<string, unknown>) => ({
-          url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-        })).filter((p: PosterData) => p.url);
+        fetch(`/api/search?decade=1940&ratingMin=7&page=1`).then(r => r.json()),
+        fetch(`/api/search?decade=1930&ratingMin=7&page=1`).then(r => r.json()),
+      ]).then((decades) => {
+        const all = decades.flatMap((d) => d.results || []);
+        const sorted = all
+          .map((m: Record<string, unknown>) => ({
+            url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
+          }))
+          .filter((p: PosterData) => p.url)
+          .sort((a, b) => a.title.localeCompare(b.title));
+        const uniquePosters = sorted.slice(0, count);
         if (uniquePosters.length === 0) {
           setPosters(buildFallbackPosters(count, `CLASSICS_${startYear}_${endYear}`));
         } else if (uniquePosters.length > 0 && uniquePosters.length < count) {
@@ -435,9 +446,19 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
           fetch(`/api/search?genreId=${genreId}&ratingMin=5&releaseDateGte=${startYear}-01-01&releaseDateLte=${endYear}-12-31&page=3`).then(r => r.json()),
         ]).then(([p1, p2, p3]) => {
           const all = [...(p1.results || []), ...(p2.results || []), ...(p3.results || [])];
-          const allPosters = all.map((m: Record<string, unknown>) => ({
-            url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
-          })).filter((p: PosterData) => p.url);
+          // Dedupe by id, then sort alphabetically by title so franchise
+          // sequels (e.g., Child's Play 1/2/3) cluster together on the shelf.
+          const seen = new Set<number>();
+          const allPosters = all
+            .map((m: Record<string, unknown>) => ({
+              url: (m.posterUrl as string) || "", title: (m.title as string) || "", id: (m.id as number) || 0,
+            }))
+            .filter((p: PosterData) => {
+              if (!p.url || seen.has(p.id)) return false;
+              seen.add(p.id);
+              return true;
+            })
+            .sort((a, b) => a.title.localeCompare(b.title));
           if (allPosters.length === 0) {
             setPosters(buildFallbackPosters(count, cacheKey));
             return;
@@ -456,7 +477,7 @@ export function usePosterUrls(genre: string, count: number, placementKey = ""): 
     const genreName = genre.charAt(0).toUpperCase() + genre.slice(1).toLowerCase().replace(/-/g, " ");
     for (const p of posters) {
       if (p.title && p.id) {
-        shelfMovieRegistry.set(`${p.id}`, { title: p.title, genre: genreName, id: p.id });
+        shelfMovieRegistry.set(`${p.id}`, { title: p.title, genre: genreName, id: p.id, posterUrl: p.url });
       }
     }
   }, [posters, genre]);
@@ -541,20 +562,22 @@ export function PosterBox({
       rotation={[0, rotation, 0]}
       userData={userData}
     >
+      {/* VHS body bumped to 0.20 × 0.34 × 0.035 so the poster on the front
+          face reads at a normal browsing distance. Was 0.15 × 0.26 × 0.025. */}
       {!isUnavailable && (
         <mesh userData={userData}>
-          <boxGeometry args={[0.15, 0.26, 0.025]} />
+          <boxGeometry args={[0.20, 0.34, 0.035]} />
           <meshBasicMaterial color="#1a1a2a" />
         </mesh>
       )}
       {isUnavailable && (
         <>
-          <mesh position={[0, -0.115, 0]}>
-            <boxGeometry args={[0.16, 0.02, 0.03]} />
+          <mesh position={[0, -0.155, 0]}>
+            <boxGeometry args={[0.21, 0.025, 0.04]} />
             <meshBasicMaterial color="#3b2f2a" />
           </mesh>
           <mesh position={[0, 0, -0.001]} rotation={[0, Math.PI, 0]}>
-            <planeGeometry args={[0.14, 0.25]} />
+            <planeGeometry args={[0.19, 0.33]} />
             <meshBasicMaterial
               color="#f7e7b7"
               map={checkedOutTexture}
@@ -564,8 +587,8 @@ export function PosterBox({
         </>
       )}
       {!isUnavailable && (
-        <mesh position={[0, 0, -0.0135]} rotation={[0, Math.PI, 0]}>
-          <planeGeometry args={[0.14, 0.25]} />
+        <mesh position={[0, 0, -0.019]} rotation={[0, Math.PI, 0]}>
+          <planeGeometry args={[0.19, 0.33]} />
           <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
         </mesh>
       )}

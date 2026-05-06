@@ -1,5 +1,12 @@
 # Friday Night Video — Full Game Design
 
+> **STATUS (April 2026):** Historical design doc. The shipped game has diverged
+> significantly from this plan after a deliberate MVP-tightening pass: XP/tier
+> system removed from UI, weekly challenges dropped, quest log merged into
+> challenges, Pizza Palace + apartment-above-laundromat cut, customer-job
+> "Return Shift" challenge added. For the live state of the game, see CLAUDE.md
+> and README.md. Treat this file as a record of intent, not a roadmap.
+
 ## Vision
 A **video store sim** where you're a new hire at Friday Night Video. Vinny (the legendary clerk) is training you. Customers walk in with requests, you browse shelves and recommend films, Vinny quizzes you, and you collect iconic movie artifacts. The store evolves as you rank up.
 
