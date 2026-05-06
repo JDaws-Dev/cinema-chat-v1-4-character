@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { RoundedBox, Text } from "@react-three/drei";
+import { RoundedBox, Text, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import {
   getVisibleLayoutObjects,
@@ -393,6 +393,77 @@ type CarPaint = {
   label?: string;
 };
 
+type VehicleModelName =
+  | "sedan"
+  | "van"
+  | "suv"
+  | "hatchback-sports"
+  | "taxi"
+  | "police"
+  | "delivery";
+
+type VehicleModelSpec = {
+  model: VehicleModelName;
+  size: [number, number, number];
+  targetHeight: number;
+  visualScale?: number;
+  widthScale?: number;
+};
+
+const VEHICLE_MODEL_SPECS: Record<string, VehicleModelSpec> = {
+  "car-sedan": {
+    model: "sedan",
+    size: [1.5, 1.3, 2.55],
+    targetHeight: 1.36,
+    visualScale: 1.12,
+  },
+  "car-van": {
+    model: "van",
+    size: [1.5, 1.35, 2.75],
+    targetHeight: 1.55,
+    visualScale: 1.12,
+  },
+  "car-suv": {
+    model: "suv",
+    size: [1.5, 1.3, 2.7],
+    targetHeight: 1.52,
+    visualScale: 1.1,
+    widthScale: 1.14,
+  },
+  "car-hatchback": {
+    model: "hatchback-sports",
+    size: [1.3, 1.1, 2.85],
+    targetHeight: 1.24,
+    visualScale: 1.1,
+    widthScale: 1.08,
+  },
+  "car-taxi": {
+    model: "taxi",
+    size: [1.5, 1.5, 2.75],
+    targetHeight: 1.48,
+    visualScale: 1.12,
+  },
+  "car-sedan2": {
+    model: "sedan",
+    size: [1.5, 1.3, 2.55],
+    targetHeight: 1.34,
+    visualScale: 1.1,
+  },
+  "car-police": {
+    model: "police",
+    size: [1.5, 1.3, 3.1],
+    targetHeight: 1.42,
+    visualScale: 1.08,
+  },
+  "car-delivery": {
+    model: "delivery",
+    size: [1.5, 1.65, 3.25],
+    targetHeight: 1.82,
+    visualScale: 1.1,
+    widthScale: 1.12,
+  },
+};
+
 function CarShadow({
   length,
   width,
@@ -406,7 +477,7 @@ function CarShadow({
     <mesh
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, 0.015, 0]}
-      scale={[length * 0.46, width * 0.68, 1]}
+      scale={[length * 0.54, width * 0.76, 1]}
     >
       <circleGeometry args={[1, 20]} />
       <meshBasicMaterial
@@ -485,16 +556,62 @@ function CarWheel({
   return (
     <group position={position}>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[radius, radius, thickness, 14]} />
+        <cylinderGeometry args={[radius, radius, thickness, 18]} />
         <Mat color="#181a1f" roughness={0.82} />
       </mesh>
       <mesh position={[0, 0, thickness * 0.04]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[radius * 0.56, radius * 0.56, thickness * 1.06, 12]} />
+        <cylinderGeometry args={[radius * 0.62, radius * 0.62, thickness * 1.08, 16]} />
         <Mat color={hubColor} roughness={0.3} metalness={0.45} />
       </mesh>
       <mesh position={[0, 0, thickness * 0.08]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[radius * 0.22, radius * 0.22, thickness * 1.12, 10]} />
         <Mat color="#c9d0d8" roughness={0.22} metalness={0.72} />
+      </mesh>
+      {[0, Math.PI / 3, (Math.PI * 2) / 3].map((rot) => (
+        <mesh key={`spoke-${rot}`} position={[0, 0, thickness * 0.11]} rotation={[Math.PI / 2, 0, rot]}>
+          <boxGeometry args={[radius * 1.0, radius * 0.08, thickness * 1.16]} />
+          <Mat color="#d7dde5" roughness={0.24} metalness={0.68} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function CarMirror({
+  x,
+  y,
+  z,
+  color,
+}: {
+  x: number;
+  y: number;
+  z: number;
+  color: string;
+}) {
+  return (
+    <group position={[x, y, z]}>
+      <mesh position={[0, 0, z > 0 ? 0.055 : -0.055]}>
+        <boxGeometry args={[0.09, 0.08, 0.12]} />
+        <Mat color={color} roughness={0.42} metalness={0.18} />
+      </mesh>
+      <mesh position={[0.015, 0.006, z > 0 ? 0.115 : -0.115]}>
+        <boxGeometry args={[0.055, 0.045, 0.012]} />
+        <meshBasicMaterial color="#92a8b8" />
+      </mesh>
+    </group>
+  );
+}
+
+function CarPlate({ x, y, z, rear = false }: { x: number; y: number; z: number; rear?: boolean }) {
+  return (
+    <group position={[x, y, z]}>
+      <mesh>
+        <boxGeometry args={[0.014, 0.12, 0.36]} />
+        <meshBasicMaterial color={rear ? "#f4e5a0" : "#d8e4ed"} />
+      </mesh>
+      <mesh position={[rear ? -0.008 : 0.008, 0, 0]}>
+        <boxGeometry args={[0.006, 0.06, 0.22]} />
+        <meshBasicMaterial color="#1a3760" />
       </mesh>
     </group>
   );
@@ -535,6 +652,73 @@ function CarWheelSet({
   );
 }
 
+function VehicleModelPrefab({
+  obj,
+  spec,
+}: {
+  obj: ResolvedLayoutObject;
+  spec: VehicleModelSpec;
+}) {
+  const { scene } = useGLTF(`/models/${spec.model}.glb`);
+  const vehicle = React.useMemo(() => scene.clone(true), [scene]);
+  const [modelWidth, modelHeight, modelLength] = spec.size;
+  const visualScale = spec.visualScale ?? 1.1;
+  const targetLength = Math.max((obj.w ?? modelLength) * visualScale, modelLength * 1.55);
+  const targetWidth = Math.max(
+    (obj.d ?? modelWidth) * (spec.widthScale ?? visualScale),
+    modelWidth * 1.18
+  );
+  const targetHeight = spec.targetHeight;
+  const modelScale: [number, number, number] = [
+    targetWidth / modelWidth,
+    targetHeight / modelHeight,
+    targetLength / modelLength,
+  ];
+  const bumperY = Math.max(targetHeight * 0.28, 0.42);
+  const lampZ = targetWidth * 0.32;
+  const trimZ = targetWidth * 0.34;
+  const bodyEnd = targetLength * 0.5;
+
+  return (
+    <group position={[obj.x, obj.y, obj.z]} rotation={[0, obj.rotY ?? 0, 0]}>
+      <CarShadow length={targetLength} width={targetWidth} opacity={0.3} />
+      <primitive
+        object={vehicle}
+        position={[0, 0.02, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        scale={modelScale}
+      />
+
+      <mesh position={[bodyEnd + 0.02, bumperY - 0.12, 0]}>
+        <boxGeometry args={[0.05, 0.1, trimZ * 1.55]} />
+        <Mat color="#d4d7dc" roughness={0.28} metalness={0.58} />
+      </mesh>
+      <mesh position={[-bodyEnd - 0.02, bumperY - 0.12, 0]}>
+        <boxGeometry args={[0.05, 0.1, trimZ * 1.45]} />
+        <Mat color="#c4c8ce" roughness={0.32} metalness={0.5} />
+      </mesh>
+      {([-1, 1] as const).map((side) => (
+        <React.Fragment key={`vehicle-lamps-${side}`}>
+          <CarLight
+            position={[bodyEnd + 0.045, bumperY, side * lampZ]}
+            size={[0.035, 0.11, 0.18]}
+            color="#fff0b5"
+            opacity={0.95}
+          />
+          <CarLight
+            position={[-bodyEnd - 0.045, bumperY, side * lampZ]}
+            size={[0.035, 0.13, 0.18]}
+            color="#ef4444"
+            opacity={0.95}
+          />
+        </React.Fragment>
+      ))}
+      <CarPlate x={bodyEnd + 0.055} y={bumperY - 0.02} z={0} />
+      <CarPlate x={-bodyEnd - 0.055} y={bumperY - 0.01} z={0} rear />
+    </group>
+  );
+}
+
 function PassengerCar({
   obj,
   paint,
@@ -542,20 +726,21 @@ function PassengerCar({
   obj: ResolvedLayoutObject;
   paint: CarPaint;
 }) {
-  const length = Math.max(obj.w ?? 2.9, 2.4);
-  const width = Math.max(obj.d ?? 1.35, 1.15);
+  const visualScale = 1.18;
+  const length = Math.max((obj.w ?? 2.9) * visualScale, 3.05);
+  const width = Math.max((obj.d ?? 1.35) * visualScale, 1.48);
   const isSUV = paint.kind === "suv";
   const isHatchback = paint.kind === "hatchback";
   const isTaxi = paint.kind === "taxi";
   const isPolice = paint.kind === "police";
 
-  const wheelRadius = width * (isSUV ? 0.166 : 0.158);
-  const wheelThickness = Math.max(width * 0.12, 0.11);
+  const wheelRadius = width * (isSUV ? 0.18 : 0.17);
+  const wheelThickness = Math.max(width * 0.145, 0.15);
   const wheelBase = length * (isHatchback ? 0.27 : isSUV ? 0.3 : 0.29);
-  const trackHalf = width * 0.365;
+  const trackHalf = width * 0.405;
 
-  const bodyWidth = width * (isSUV ? 0.94 : 0.9);
-  const bodyHeight = isSUV ? 0.46 : 0.42;
+  const bodyWidth = width * (isSUV ? 0.98 : 0.94);
+  const bodyHeight = isSUV ? 0.58 : 0.5;
   const bodyY = wheelRadius + bodyHeight * 0.44 + 0.02;
   const hoodLength = length * (isSUV ? 0.22 : 0.2);
   const hoodHeight = bodyHeight * (isSUV ? 0.6 : 0.52);
@@ -567,7 +752,7 @@ function PassengerCar({
   const rearTilt = isHatchback ? 0.4 : isSUV ? 0.08 : 0.16;
 
   const greenhouseLength = length * (isHatchback ? 0.54 : isSUV ? 0.52 : 0.48);
-  const greenhouseWidth = width * (isSUV ? 0.76 : 0.72);
+  const greenhouseWidth = width * (isSUV ? 0.8 : 0.76);
   const greenhouseX = isHatchback ? -length * 0.02 : isSUV ? -length * 0.01 : length * 0.02;
   const greenhouseFloorY = bodyY + bodyHeight * 0.34;
   const greenhouseFloorHeight = isSUV ? 0.18 : 0.15;
@@ -578,7 +763,7 @@ function PassengerCar({
   const roofTopY = roofY + roofHeight / 2;
   const sideGlassZ = greenhouseWidth / 2 + 0.014;
   const sideWindowY = bodyY + bodyHeight * 0.6;
-  const sideWindowHeight = isSUV ? 0.26 : 0.22;
+  const sideWindowHeight = isSUV ? 0.32 : 0.27;
   const frontWindowLength = greenhouseLength * (isSUV ? 0.28 : 0.3);
   const rearWindowLength = isHatchback ? greenhouseLength * 0.34 : isSUV ? greenhouseLength * 0.24 : greenhouseLength * 0.18;
   const frontWindowX = greenhouseX + greenhouseLength * (isSUV ? 0.14 : 0.15);
@@ -590,8 +775,8 @@ function PassengerCar({
   const sidePanelHeight = bodyHeight * 0.38;
   const sidePanelY = bodyY + bodyHeight * 0.01;
   const sidePanelZ = bodyWidth / 2 + 0.016;
-  const fenderWidth = 0.13;
-  const fenderHeight = wheelRadius * 0.9;
+  const fenderWidth = 0.18;
+  const fenderHeight = wheelRadius * 1.02;
   const fenderY = wheelRadius + fenderHeight * 0.36;
 
   const policeDoorColor = paint.secondaryColor ?? "#eef2f5";
@@ -880,6 +1065,18 @@ function PassengerCar({
         thickness={wheelThickness}
         hubColor={paint.trimColor}
       />
+
+      {([-1, 1] as const).map((side) => (
+        <CarMirror
+          key={`mirror-${side}`}
+          x={length * 0.23}
+          y={bodyY + bodyHeight * 0.3}
+          z={side * (bodyWidth / 2 + 0.08)}
+          color={paint.trimColor}
+        />
+      ))}
+      <CarPlate x={length * 0.493} y={bodyY - 0.01} z={0} />
+      <CarPlate x={-length * 0.505} y={bodyY} z={0} rear />
     </group>
   );
 }
@@ -891,24 +1088,25 @@ function VanCar({
   obj: ResolvedLayoutObject;
   paint: CarPaint;
 }) {
-  const length = Math.max(obj.w ?? 2.9, 2.5);
-  const width = Math.max(obj.d ?? 1.35, 1.18);
+  const visualScale = 1.2;
+  const length = Math.max((obj.w ?? 2.9) * visualScale, 3.4);
+  const width = Math.max((obj.d ?? 1.35) * visualScale, 1.55);
   const isDelivery = paint.kind === "delivery";
 
-  const wheelRadius = width * 0.158;
-  const wheelThickness = Math.max(width * 0.12, 0.11);
+  const wheelRadius = width * 0.172;
+  const wheelThickness = Math.max(width * 0.15, 0.16);
   const wheelBase = length * 0.3;
-  const trackHalf = width * 0.365;
+  const trackHalf = width * 0.405;
 
-  const baseHeight = isDelivery ? 0.46 : 0.42;
-  const baseWidth = width * 0.94;
+  const baseHeight = isDelivery ? 0.62 : 0.55;
+  const baseWidth = width * 0.98;
   const baseY = wheelRadius + baseHeight * 0.44 + 0.02;
   const hoodLength = length * 0.18;
   const hoodHeight = baseHeight * 0.48;
   const hoodY = baseY + baseHeight * 0.1;
   const cabLength = length * 0.28;
-  const shellWidth = width * (isDelivery ? 0.82 : 0.78);
-  const shellHeight = isDelivery ? 0.5 : 0.38;
+  const shellWidth = width * (isDelivery ? 0.86 : 0.82);
+  const shellHeight = isDelivery ? 0.7 : 0.54;
   const shellX = isDelivery ? -length * 0.04 : -length * 0.02;
   const shellY = baseY + baseHeight * 0.55;
   const roofHeight = isDelivery ? 0.12 : 0.1;
@@ -917,14 +1115,14 @@ function VanCar({
   const roofY = shellY + shellHeight * 0.42;
   const roofTopY = roofY + roofHeight / 2;
   const glassZ = shellWidth / 2 + 0.014;
-  const sideWindowHeight = isDelivery ? 0.24 : 0.22;
+  const sideWindowHeight = isDelivery ? 0.32 : 0.3;
   const frontWindowX = shellX + length * 0.16;
   const rearWindowX = shellX - length * (isDelivery ? 0.1 : 0.16);
   const sidePanelZ = baseWidth / 2 + 0.014;
   const cargoPanelColor = paint.secondaryColor ?? "#e7dbc5";
   const pillarColor = paint.roofColor;
-  const fenderWidth = 0.14;
-  const fenderHeight = wheelRadius * 0.92;
+  const fenderWidth = 0.19;
+  const fenderHeight = wheelRadius * 1.02;
   const fenderY = wheelRadius + fenderHeight * 0.36;
 
   return (
@@ -1132,11 +1330,28 @@ function VanCar({
         thickness={wheelThickness}
         hubColor={paint.trimColor}
       />
+
+      {([-1, 1] as const).map((side) => (
+        <CarMirror
+          key={`van-mirror-${side}`}
+          x={length * 0.22}
+          y={baseY + baseHeight * 0.32}
+          z={side * (baseWidth / 2 + 0.08)}
+          color={paint.trimColor}
+        />
+      ))}
+      <CarPlate x={length * 0.493} y={baseY - 0.01} z={0} />
+      <CarPlate x={-length * 0.505} y={baseY} z={0} rear />
     </group>
   );
 }
 
 function CarPrefab({ obj }: { obj: ResolvedLayoutObject }) {
+  const vehicleSpec = VEHICLE_MODEL_SPECS[obj.id];
+  if (vehicleSpec) {
+    return <VehicleModelPrefab obj={obj} spec={vehicleSpec} />;
+  }
+
   const palette: Record<string, CarPaint> = {
     "car-sedan": {
       kind: "sedan",
