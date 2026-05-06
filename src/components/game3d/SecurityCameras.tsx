@@ -16,39 +16,36 @@ import * as THREE from "three";
 
 // Camera definitions — position, lookAt target, and label
 // Store bounds: x=-10..+10, z=-7..+7, y=0..3.5
-// Pizza Palace: x=-16..-10, z=0..7   |  Laundromat: x=10..16, z=0.25..7.75
+// Vacant slot: x=-16..-10, z=0..7   |  Laundromat: x=10..16, z=0.25..7.75
 // Sidewalk: z=7.05..8.55  |  Parking: z=3.5..17.5  |  Street: z=19.5..25.5
-// Apartment: x=10..16, y=3.7..6.5, z=1.5..6.5
 const CAMERAS = [
   // ── Store interior (all positions safely inside x=-9.5..+9.5, z=-6.5..+6.5) ──
-  { name: "overhead",      pos: [0, 3.15, 0],      lookAt: [0, 0, 0],       fov: 96, label: "Overhead (top-down)" },
+  { name: "overhead",      pos: [0, 3.35, 0.1],    lookAt: [0, 0.15, 0.1],  fov: 112, label: "Center ceiling overview" },
   { name: "entrance",      pos: [0, 2, 9],         lookAt: [0, 1.5, 0],     fov: 70, label: "From parking lot" },
   { name: "back_wall",     pos: [0, 2, -6],        lookAt: [0, 1.5, 3],     fov: 70, label: "From back wall" },
   { name: "back_wall_face",pos: [0, 1.7, 0],       lookAt: [0, 1.7, -7],    fov: 65, label: "Looking AT back wall (verify z-fighting)" },
-  { name: "left_wall",     pos: [-9, 2, 0],        lookAt: [5, 1.5, 0],     fov: 70, label: "Left wall looking right" },
-  { name: "right_wall",    pos: [9, 2, 0],         lookAt: [-5, 1.5, 0],    fov: 70, label: "Right wall looking left" },
+  { name: "left_wall",     pos: [-8.1, 2, 0],      lookAt: [5, 1.45, 0],    fov: 64, label: "Left aisle looking right" },
+  { name: "right_wall",    pos: [8.1, 2, 0],       lookAt: [-5, 1.45, 0],   fov: 64, label: "Right aisle looking left" },
   { name: "counter",       pos: [4, 2, 4],         lookAt: [7, 1.0, 5.5],   fov: 65, label: "Counter area" },
   { name: "ceiling_front", pos: [-4, 3.2, 5],      lookAt: [4, 0, -2],      fov: 85, label: "Ceiling front corner" },
   { name: "ceiling_back",  pos: [4, 3.2, -5],      lookAt: [-4, 0, 3],      fov: 85, label: "Ceiling back corner" },
   // ── Exterior & strip mall (cameras in parking lot z>9, or wide angles from street) ──
   { name: "exterior",      pos: [0, 3, 12],        lookAt: [0, 2, 7],       fov: 75, label: "Exterior wide" },
   { name: "exterior_wide", pos: [0, 10, 22],       lookAt: [0, 2, 5],       fov: 80, label: "Exterior birds-eye" },
+  { name: "parking_close", pos: [0, 2.1, 17.4],    lookAt: [0, 0.9, 12.0],  fov: 72, label: "Parking row close-up" },
+  { name: "car_row_left",  pos: [-12, 2.2, 17],    lookAt: [-2, 0.9, 12],   fov: 66, label: "Left parking row" },
+  { name: "car_row_right", pos: [12, 2.2, 17],     lookAt: [2, 0.9, 12],    fov: 66, label: "Right parking row" },
   { name: "side_elev",     pos: [18, 2.5, 10],     lookAt: [0, 1.7, 7],     fov: 55, label: "Side elevation" },
   { name: "strip_right",   pos: [18, 3, 12],       lookAt: [13, 2, 7],      fov: 60, label: "Strip mall right side" },
   { name: "strip_left",    pos: [-18, 3, 12],      lookAt: [-13, 2, 7],     fov: 60, label: "Strip mall left side" },
-  // ── Apartment exterior (cameras outside building envelope) ──
-  { name: "apt_exterior",  pos: [18, 5, 14],       lookAt: [13, 4, 4],      fov: 55, label: "Apartment building from parking" },
-  { name: "apt_stairs",    pos: [18, 3, 10],       lookAt: [16.5, 2, 5],    fov: 55, label: "Apartment stairs close-up" },
-  { name: "building_front",pos: [13, 6, 14],       lookAt: [13, 4, 4],      fov: 50, label: "Building front — 2 story view" },
-  { name: "building_right",pos: [22, 5, 4],        lookAt: [16, 3, 4],      fov: 60, label: "Building right side with stairs" },
+  { name: "laundro_entry", pos: [11.2, 2.2, 12.4], lookAt: [13, 1.35, 7],   fov: 62, label: "Laundromat entry" },
+  { name: "laundro_inside",pos: [13.2, 2.35, 6.6], lookAt: [13.1, 1.2, 1.4], fov: 74, label: "Laundromat interior" },
+  { name: "vacant_front",  pos: [-13, 2.5, 11.2],  lookAt: [-13, 1.8, 7],   fov: 62, label: "Vacant storefront" },
   // ── Back alley (verify building shell is solid) ──
-  { name: "back_alley",    pos: [0, 3, -10],       lookAt: [0, 2, -7],      fov: 80, label: "Back alley — full width" },
-  { name: "back_alley_r",  pos: [15, 2, -10],      lookAt: [10, 2, -7],     fov: 60, label: "Back alley — right side" },
-  // ── Apartment interior (eye level y=5.1 inside apt bounds) ──
-  { name: "apt_interior",  pos: [14.5, 5.1, 6.2],  lookAt: [12, 4.3, 3.5],  fov: 75, label: "Apartment interior from door" },
-  { name: "apt_tv",        pos: [13, 5.1, 6.0],    lookAt: [13, 4.2, 1.5],  fov: 60, label: "Apartment TV/VCR area" },
-  { name: "apt_kitchen",   pos: [11.5, 5.1, 4.0],  lookAt: [14, 4.3, 3.0],  fov: 65, label: "Apartment kitchen corner" },
-  { name: "apt_overhead",  pos: [13, 8.5, 4.0],    lookAt: [13, 3.7, 4.0],  fov: 65, label: "Apartment overhead" },
+  { name: "back_alley",    pos: [0, 2.25, -11.3],  lookAt: [0, 1.15, -7.35], fov: 82, label: "Back alley — service doors" },
+  { name: "back_alley_l",  pos: [-15, 2, -10.5],   lookAt: [-9, 1.35, -7.35], fov: 62, label: "Back alley — vacant side" },
+  { name: "back_alley_r",  pos: [15, 2, -10.5],    lookAt: [9, 1.35, -7.35], fov: 62, label: "Back alley — laundromat side" },
+  { name: "service_doors", pos: [0, 1.55, -9.9],   lookAt: [0, 1.2, -7.35], fov: 54, label: "Video store service door" },
 ];
 
 export function SecurityCameras() {
