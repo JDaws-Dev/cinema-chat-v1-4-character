@@ -60,13 +60,27 @@
         document.getElementById("hint-mobile").style.display = "block";
       }
       var __pendingUnity = null;
+      function unlockUnityAudio() {
+        try {
+          var m = __pendingUnity && __pendingUnity.Module;
+          if (!m) return;
+          var ctx = (m.WEBAudio && m.WEBAudio.audioContext) ||
+                    (m.WebAudio && m.WebAudio.audioContext) ||
+                    (m.SDL2 && m.SDL2.audio && m.SDL2.audio.audioContext);
+          if (ctx && ctx.state !== "running" && typeof ctx.resume === "function") {
+            ctx.resume();
+          }
+        } catch (e) {}
+      }
       document.getElementById("hint-start").addEventListener("click", function () {
         document.getElementById("control-hint").style.display = "none";
+        unlockUnityAudio();
         if (__pendingUnity && isMobile) {
-          // user gesture path → request fullscreen so mobile fills the screen
           try { __pendingUnity.SetFullscreen(1); } catch (e) {}
         }
       });
+      // Safety net: any tap/click on the canvas also tries to unlock audio
+      document.addEventListener("pointerdown", unlockUnityAudio, { passive: true });
       var canvas = document.querySelector("#unity-canvas");
 
       // Shows a temporary message banner/ribbon for a few seconds, or
