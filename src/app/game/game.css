@@ -2483,6 +2483,63 @@
   transition: background 0.15s, transform 0.1s;
 }
 
+/* Faint always-on indicators showing where the joystick zones are */
+.mobile-stick-hint {
+  position: fixed;
+  bottom: 32px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 215, 0, 0.18);
+  background: radial-gradient(circle at center, rgba(255,215,0,0.04), transparent 70%);
+  z-index: 9;
+  pointer-events: none;
+}
+.mobile-stick-hint::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 18px; height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: rgba(255, 215, 0, 0.18);
+}
+.mobile-stick-hint-left  { left: 28px; }
+.mobile-stick-hint-right { right: 28px; }
+
+/* One-time "HOW TO PLAY" card */
+.mobile-hint-card {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0,0,0,0.78);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-hint-box {
+  max-width: 320px; padding: 22px 24px;
+  background: #0a1830; border: 2px solid #ffd700;
+  font-family: 'Courier New', monospace; color: #f0e9c8;
+  text-align: left; line-height: 1.55;
+}
+.mobile-hint-box h3 {
+  margin: 0 0 14px; padding: 0;
+  font-size: 1.05rem; letter-spacing: 0.18em;
+  color: #ffd700; text-align: center;
+}
+.mobile-hint-box p {
+  margin: 6px 0; font-size: 0.88rem; color: #f0e9c8;
+}
+.mobile-hint-box .mobile-hint-tip {
+  margin-top: 14px; font-size: 0.78rem; color: #ffd700; opacity: 0.85;
+  font-style: italic; text-align: center;
+}
+.mobile-hint-box button {
+  display: block; margin: 18px auto 0;
+  padding: 10px 28px; background: #ffd700; color: #0a1830;
+  border: 0; font-family: inherit; font-weight: 700; font-size: 0.9rem;
+  letter-spacing: 0.12em; cursor: pointer;
+}
+
 .mobile-interact-btn:active {
   background: rgba(255, 215, 0, 1) !important;
   transform: translateX(-50%) scale(0.95) !important;

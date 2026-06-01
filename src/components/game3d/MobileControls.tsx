@@ -2,6 +2,8 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 
+const MOBILE_HINT_KEY = "fnv_mobile_hint_seen";
+
 // Global input state that FirstPersonControls reads each frame
 export const mobileInput = {
   moveX: 0, // -1 to 1 (left/right)
@@ -24,6 +26,7 @@ export function MobileControls({
   hoverLabel?: string | null;
 }) {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   // Dynamic stick positions — appear where you touch
   const [leftPos, setLeftPos] = useState<{ x: number; y: number } | null>(null);
@@ -40,7 +43,16 @@ export function MobileControls({
   const rightCenter = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    setIsTouchDevice("ontouchstart" in window);
+    const touch = "ontouchstart" in window;
+    setIsTouchDevice(touch);
+    if (touch && !localStorage.getItem(MOBILE_HINT_KEY)) {
+      setShowHint(true);
+    }
+  }, []);
+
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    try { localStorage.setItem(MOBILE_HINT_KEY, "1"); } catch { /* ignore */ }
   }, []);
 
   // Zero out look deltas each frame
@@ -143,6 +155,24 @@ export function MobileControls({
 
   return (
     <>
+      {/* One-time mobile control card */}
+      {showHint && (
+        <div className="mobile-hint-card" onClick={dismissHint}>
+          <div className="mobile-hint-box">
+            <h3>HOW TO PLAY</h3>
+            <p><b>Drag left half</b> — walk through the store</p>
+            <p><b>Drag right half</b> — look around</p>
+            <p><b>Tap a yellow button</b> — interact (tapes, doors, NPCs)</p>
+            <p className="mobile-hint-tip">Look for the EMPLOYEES ONLY door in the back corner…</p>
+            <button onClick={dismissHint}>GOT IT</button>
+          </div>
+        </div>
+      )}
+
+      {/* Persistent faint joystick base indicators */}
+      <div className="mobile-stick-hint mobile-stick-hint-left" aria-hidden />
+      <div className="mobile-stick-hint mobile-stick-hint-right" aria-hidden />
+
       {/* Left touch zone — left half of screen */}
       <div
         style={{ position: 'fixed', top: 0, left: 0, width: '40%', height: '100%', zIndex: 10, touchAction: 'none' }}
