@@ -3756,6 +3756,43 @@
   50%      { opacity: 1; }
 }
 
+/* ── Backrooms overlay (Unity WebGL embed via Employees Only door) ──── */
+.g3-backrooms-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: #000;
+}
+
+.g3-backrooms-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.g3-backrooms-exit {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 8px 14px;
+  font-family: var(--fnv-font-game);
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  color: var(--fnv-gold);
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(212, 201, 122, 0.4);
+  cursor: pointer;
+}
+
+.g3-backrooms-exit:hover {
+  background: rgba(0, 0, 0, 0.85);
+  border-color: var(--fnv-gold);
+}
+
 /* ── Apartment overlay (leave button) ────────────────────── */
 .g3-apartment-overlay {
   position: fixed;

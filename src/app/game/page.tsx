@@ -20,6 +20,7 @@ import { EraSelectorOverlay } from "@/components/game/overlays/EraSelectorOverla
 import { TutorialOverlay } from "@/components/game/overlays/TutorialOverlay";
 import { DialogueOverlay as VinnyDialogueOverlay } from "@/components/game/overlays/DialogueOverlay";
 import { SceneTransitionOverlay } from "@/components/game/SceneTransitionOverlay";
+import { BackroomsOverlay } from "@/components/game/BackroomsOverlay";
 import { SplashScreen } from "@/components/game/SplashScreen";
 import { TopDownIndicator } from "@/components/game/TopDownIndicator";
 import { LoadingOverlay } from "@/components/game/LoadingOverlay";
@@ -147,6 +148,7 @@ export default function GamePage() {
     }
   }, []);
   const [inApartment, setInApartment] = useState(false);
+  const [inBackrooms, setInBackrooms] = useState(false);
   const [sceneTransition, setSceneTransition] = useState<string | null>(null);
   // Apartment-only state: which tape is currently in the player's hand.
   const [apartmentHeldTape, setApartmentHeldTape] = useState<{ id: number; title: string; slotKey?: string } | null>(null);
@@ -261,6 +263,20 @@ export default function GamePage() {
       setInApartment(true);
       setSceneTransition(null);
     }, 1500);
+  }, []);
+
+  const handleEnterBackrooms = useCallback(() => {
+    setSceneTransition("...");
+    setTimeout(() => {
+      setInBackrooms(true);
+      setSceneTransition(null);
+    }, 1500);
+  }, []);
+
+  const handleExitBackrooms = useCallback(() => {
+    setSceneTransition("BACK TO THE FLOOR...");
+    setInBackrooms(false);
+    setTimeout(() => setSceneTransition(null), 1500);
   }, []);
 
   const handleLeaveApartment = useCallback(() => {
@@ -390,6 +406,7 @@ export default function GamePage() {
     setShelfBrowse,
     trackQuestNpcTalk, trackQuestGenreVisit, trackQuestMoviePickup,
     handleTierUp, triggerXpPopup, showQuestNotif, startPuzzle,
+    onEnterBackrooms: handleEnterBackrooms,
   });
 
   // startChallenge is now provided by useChallenge hook
@@ -508,6 +525,11 @@ export default function GamePage() {
       {/* Scene transition overlay */}
       {sceneTransition && (
         <SceneTransitionOverlay label={sceneTransition} />
+      )}
+
+      {/* Backrooms (Unity WebGL embed) — opened via Employees Only door */}
+      {inBackrooms && (
+        <BackroomsOverlay onExit={handleExitBackrooms} />
       )}
 
       {/* Apartment scene */}

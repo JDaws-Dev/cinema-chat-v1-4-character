@@ -79,6 +79,7 @@ interface UseInteractionParams {
   triggerXpPopup: (xp: number) => void;
   showQuestNotif: (msg: string) => void;
   startPuzzle: () => void;
+  onEnterBackrooms: () => void;
 }
 
 export function useInteraction(params: UseInteractionParams) {
@@ -93,10 +94,17 @@ export function useInteraction(params: UseInteractionParams) {
     setShelfBrowse,
     trackQuestNpcTalk, trackQuestGenreVisit,
     handleTierUp, triggerXpPopup, showQuestNotif, startPuzzle,
+    onEnterBackrooms,
   } = params;
 
   const handleInteract = useCallback((type: string, data?: string) => {
     if (overlay !== "none") return;
+
+    if (type === "employees_door") {
+      playSFX("door_open");
+      onEnterBackrooms();
+      return;
+    }
 
     if (type === "snack" && data) {
       try {
@@ -420,7 +428,8 @@ export function useInteraction(params: UseInteractionParams) {
       setMysteryHintsUsed, setMysteryClue, setMysteryWrongMsg, setHeldMovies, setPropsCount,
       setChallengeComplete, setChallenge, setRewardProp, setQuote, setSynopsis, setQuizAnswer,
       setRpgDialogue, setRpgNode, setRpgHistory, setNpcChatTarget, setShelfBrowse,
-      trackQuestNpcTalk, trackQuestGenreVisit, handleTierUp, triggerXpPopup, showQuestNotif, startPuzzle]);
+      trackQuestNpcTalk, trackQuestGenreVisit, handleTierUp, triggerXpPopup, showQuestNotif, startPuzzle,
+      onEnterBackrooms]);
 
   return handleInteract;
 }
