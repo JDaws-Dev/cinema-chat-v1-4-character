@@ -778,7 +778,9 @@ export default function GamePage() {
       )}
 
       {/* Mobile touch controls */}
-      {!hasOverlay && <MobileControls hoverLabel={hoverLabel} />}
+      {started && eraChosen && !hasOverlay && !inApartment && !inBackrooms && (
+        <MobileControls hoverLabel={hoverLabel} />
+      )}
 
       {/* Mobile quest log button removed — quests/challenges merged; the
           challenge HUD is always visible during a challenge, no log needed. */}
