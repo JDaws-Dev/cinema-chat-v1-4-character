@@ -27,6 +27,27 @@ const nextConfig: NextConfig = {
           { key: "Content-Type", value: "application/octet-stream" },
         ],
       },
+      {
+        source: "/v2/Build/:file*.wasm.br",
+        headers: [
+          { key: "Content-Encoding", value: "br" },
+          { key: "Content-Type", value: "application/wasm" },
+        ],
+      },
+      {
+        source: "/v2/Build/:file*.js.br",
+        headers: [
+          { key: "Content-Encoding", value: "br" },
+          { key: "Content-Type", value: "application/javascript" },
+        ],
+      },
+      {
+        source: "/v2/Build/:file*.data.br",
+        headers: [
+          { key: "Content-Encoding", value: "br" },
+          { key: "Content-Type", value: "application/octet-stream" },
+        ],
+      },
     ];
   },
 };
