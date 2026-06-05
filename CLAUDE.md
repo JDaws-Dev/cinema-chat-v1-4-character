@@ -6,18 +6,18 @@ A 3D Blockbuster-style video store game. Player walks in, finds movies, talks to
 
 **Two live surfaces:**
 - **`/game`** — the original React Three Fiber build. Polished, has Vinny chat, apartment scene, challenges, dialogue NPCs. Still the canonical R3F implementation.
-- **`/v2`** — a Unity 6 / URP rebuild deployed as a WebGL bundle from `cinema-chat-unity/`. Lighter mechanic set (FPS controller, raycast pickup, drop-where-they-belong, Backrooms portal), but has the spatial bones and a working "arrival in the parking lot" moment. Active development as of 2026-06-02.
+- **`/v2`** — a Unity 6 / URP rebuild deployed as a WebGL bundle from `cinema-chat-unity/`. Lighter mechanic set (FPS controller, raycast pickup, drop-where-they-belong, Backrooms portal), but has the spatial bones, a working "arrival in the parking lot" moment, filmic post-processing, and an alphabetized, sign-posted store. Active development as of 2026-06-04.
 - **`/layout-editor`** — top-down drag-and-drop editor (gondolas, counter, NPCs, cars, parking lot, strip-mall buildings, floor decal). Outputs JSON that gets applied to the Unity scene.
 
 **Stack:** Next.js 16 + React 19 + React Three Fiber (R3F build), Unity 6 + URP (v2 build), Convex, OpenAI (Vinny chat), ElevenLabs (TTS), TMDB (movies + posters), localStorage persistence.
 
 **Live:** [www.fridaynightvideo.app](https://www.fridaynightvideo.app)
 
-## Active direction (2026-06-02)
+## Active direction (2026-06-04)
 
 The project is mid-transition. Three threads in parallel:
 
-1. **Unity v2 maturity.** The Unity port has rough parity with R3F for the *spatial* loop (walk in, browse, pick up tapes, return them to matching shelves, enter the Backrooms via the Employees Only door) and the *arrival moment* (parking-lot spawn → storefront sign → warm interior). Polishing layout + lighting via `Tools/FNV/Capture Security Cams` and `/layout-editor` — see memory `reference_r3f_to_unity_port_lessons.md` for the prioritized port queue.
+1. **Unity v2 maturity.** The Unity port has rough parity with R3F for the *spatial* loop (walk in, browse, pick up tapes, return them to matching shelves, enter the Backrooms via the Employees Only door) and the *arrival moment* (parking-lot spawn → storefront sign → warm interior). Polishing layout + lighting via `Tools/FNV/Capture Security Cams` and `/layout-editor` — see memory `reference_r3f_to_unity_port_lessons.md` for the prioritized port queue. **Recently shipped (2026-06-02→04):** NEW RELEASES rebuilt as a 10m densely-stocked wall (new-release titles only); filmic post-processing (the `PostFX_Store` volume profile — it was wired but had no profile, which was the single biggest visual jump — see memory `reference_v2_rendering_levers.md`); VHS tapes alphabetized A–Z within each gondola and seated back against the shelf spine; genre top-cap labels snapped onto the gondolas (both faces). **Next-biggest visual levers:** lighting rebalance + tape gloss/materials; verify post-processing perf on mobile.
 
 2. **Personal-collection pivot.** Strategic decision 2026-06-01 to stop catalog-faking with TMDB and use Jeremiah's actual film archive (`/Users/jeremiahdaws/Projects/DEMO REEL/public/movies.html`: 50-film Letterboxd diary + 966-film library). Full phased plan in `TRANSITION-PLAN.md`. Not started yet — gated on v2 being in a "feel-right" state first.
 
@@ -59,7 +59,7 @@ All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
 
 
 
-## Game state — what's IN, what's OUT (2026-06-02)
+## Game state — what's IN, what's OUT (2026-06-04)
 
 ### R3F build (`/game`) — shipped & in maintenance
 
@@ -85,7 +85,7 @@ All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
 **Shipped:**
 - Parking-lot spawn at `(3, 1.55, 11)` facing the storefront (the arrival moment)
 - 14 gondolas in a 4-row × 4-col grid, each named `Gondola_<genre>` with matching `VHS_<genre>_<id>` children
-- NEW RELEASES centerpiece — 3m featured display under a 4m marquee, 16 tapes in 4 movie clusters at canonical scale `(0.14, 0.23, 0.03)`
+- NEW RELEASES wall (`NewReleasesWall` on the 21m `BackWall`) — widened to a 10m featured display + 6 rails under a 10m gold marquee, densely stocked with ~240 tapes drawn **only** from the curated new-release set (`M_NR_*` materials, ~30 titles) repeated as vertical stacks. ~10 are interactive (`VhsTape`); the rest are static `NR_Fill_*` dressing (no colliders, SRP-batched). Tapes at canonical scale `(0.14, 0.23, 0.03)` — never scale, add copies.
 - Cashier counter parallel to storefront on the left side, monitors facing the window
 - Employees Only door at back-left corner, opens into the Backrooms scene
 - Pizza Palace and Laundromat as ambient strip-mall facades (no interaction)
@@ -99,6 +99,9 @@ All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
 - Editor tooling: `Tools/FNV/Build Employees Door + Portal` · `Tools/FNV/Audit + Fix Sign Orientation` · `Tools/FNV/Capture Security Cams` (11 canonical PNGs to `Assets/Screenshots/cams/`)
 - Runtime `TextDepthFixer` enforces `ZTest LessEqual` on all 3D text so signage no longer bleeds through opaque walls (glass still shows through)
 - `/layout-editor` web UI: drag-and-drop, multi-select, align/distribute, undo (Cmd-Z), duplicate (Cmd-D), absolute-yaw presets, building rotation, FloorDecal resize. Outputs JSON; applied to scene via `execute_code`.
+- Filmic post-processing — `Assets/Settings/PostFX_Store.asset` (Neutral tonemap, bloom on signage, warm color grade + white balance, vignette, subtle film grain) on the `Global Volume`. The volume + camera post flag pre-existed but had **no profile assigned**; plugging one in was the biggest perceived-quality jump. Desktop `PC_RPAsset` active; lighter `Mobile_RPAsset` tier exists (verify post perf there).
+- VHS tapes alphabetized A–Z by title within each gondola (front face then back, top→bottom, left→right) and seated back against the shelf spine (`localPosition.z ±0.05`). Titles resolved id→title from the web catalog, baked to `Assets/Arrival/Data/movie_titles.tsv`.
+- Genre top-cap labels (`SignLabel`/`SignPanel`, TMP navy-on-gold) parented onto each gondola, both faces. Note: TMP's readable face points −Z at `rotY=0`, so a +Z-facing label needs `rotY=180`, else it renders mirrored.
 
 **Unity v2 missing vs R3F (queued, ranked by feel-per-hour):**
 - NPC height-variance (squat/eye-level/reach-up for browse animations)
@@ -106,7 +109,6 @@ All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
 - Vinny clerk + menu + chat
 - Era selector + apartment scene + rewind mechanic
 - Challenges (Movie Night, Speed Run, etc.)
-- Post-processing (Bloom/Vignette/ChromaticAberration desktop-only)
 
 ### Removed / intentionally absent (in both)
 - Pizza Palace + Tony as a *rentable* second store (cut from R3F to avoid esthetic creep; Pizza facade kept in Unity as ambient strip-mall only)
@@ -122,7 +124,8 @@ All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
 - **Style:** Low-poly box geometry, PBR materials, Blockbuster-inspired palette
 - **State:** React hooks + localStorage. No database.
 - **Routes:** `/game` (R3F 3D), `/v2` (Unity 3D), `/layout-editor` (top-down scene editor), `/chat` (chat-only with Vinny), `/editor/3d` + `/editor/dual` (R3F debug)
-- **Unity project:** `/Users/jeremiahdaws/Projects/jarvis-builds/cinema-chat-unity` (separate git repo, initial commit `aa8f886`). Scene of record: `Assets/Scenes/Arrival.unity` (build index 0); `Assets/Backrooms/Scenes/Backrooms.unity` (build index 1).
+- **Unity project:** `/Users/jeremiahdaws/Projects/jarvis-builds/cinema-chat-unity` (separate git repo). Scene of record: `Assets/Scenes/Arrival.unity` (build index 0); `Assets/Backrooms/Scenes/Backrooms.unity` (build index 1).
+- **v2 build + deploy pipeline:** build WebGL (Brotli/IL2CPP, ~5 min) to `cinema-chat-unity/Builds/WebGL` → copy the 4 `WebGL.*` files into `cinema-chat/public/v2/Build/` → commit → `vercel --prod --yes`. Incremental builds only change `WebGL.data.br` when no C# changed. Neither repo has a git remote — commits are local; the deploy goes straight from the working tree. Full detail in memory `reference_v2_build_deploy_pipeline.md`.
 
 ## Art style & scale
 

@@ -2,17 +2,19 @@
 
 Drafted 2026-06-01. The fictional Blockbuster catalog becomes Jeremiah's real archive: 50-film Letterboxd diary + 966-film library from `/Users/jeremiahdaws/Projects/DEMO REEL/public/movies.html`.
 
-## Status as of 2026-06-02
+## Status as of 2026-06-04
 
-**Where we are:** Phase 0 not started. The Unity v2 build is the more likely host for the personal-collection content (rather than R3F `/game`), so the runway question shifted to "is v2 good enough as a vessel?" before pivoting.
+**Where we are:** Phase 0 not started. The Unity v2 build is the more likely host for the personal-collection content (rather than R3F `/game`), so the runway question shifted to "is v2 good enough as a vessel?" before pivoting. v2 took a real step toward "feel-right" in early June (post-processing + a properly merchandised store), but the gate below is still open.
 
 **Recent v2 progress that affects this plan:**
-- The store has bones now (parking-lot arrival, NEW RELEASES centerpiece, drop-where-they-belong, zone-pool lighting, Employees Only → Backrooms portal)
-- VHS GameObjects are individually-instantiated with `VHS_<genre>_<id>` naming + Interactable + HeldItem + Rigidbody — when we hydrate from the personal diary, each tape can carry its own metadata cleanly
-- The NEW RELEASES wall is intentionally narrow (3m featured display, 16 tapes) — perfect host for the diary's most recent ~12 entries with no further fixture changes
-- A `Tools/FNV/Capture Security Cams` editor harness exists, so visual changes can be validated pre-rebuild
+- The store has bones now (parking-lot arrival, NEW RELEASES wall, drop-where-they-belong, zone-pool lighting, Employees Only → Backrooms portal)
+- Filmic post-processing now in (`PostFX_Store` volume profile) — the store finally reads as a warm Blockbuster at night instead of a flat viewport. Biggest visual win to date.
+- VHS GameObjects are individually-instantiated with `VHS_<genre>_<id>` naming + Interactable + HeldItem + Rigidbody — when we hydrate from the personal diary, each tape can carry its own metadata cleanly. They're now alphabetized A–Z within each gondola, seated on the shelves, with genre top-cap labels.
+- id→title resolution for the catalog is baked at `cinema-chat-unity/Assets/Arrival/Data/movie_titles.tsv` (extracted from the web `generated-era-catalog.ts`) — a useful precedent for hydrating tape metadata.
+- The NEW RELEASES wall was widened to 10m and densely stocked from the curated new-release set (`M_NR_*`) — when we pivot, this is the host for the diary's most recent entries (swap the `M_NR_*` materials for diary posters; fixture is already sized).
+- A `Tools/FNV/Capture Security Cams` editor harness exists, so visual changes can be validated pre-rebuild.
 
-**Gate before starting Phase 0:** v2 needs (a) NPC height-variance + ambient pair dialogue to feel like a real store, and (b) at least basic Vinny-equivalent so the personal context has a voice to deliver. Without these, the personal collection lands in a quieter space than R3F's `/game` and loses meaning.
+**Gate before starting Phase 0 (still open):** v2 needs (a) NPC height-variance + ambient pair dialogue to feel like a real store, and (b) at least basic Vinny-equivalent so the personal context has a voice to deliver. Without these, the personal collection lands in a quieter space than R3F's `/game` and loses meaning. Visuals/merchandising are now in good shape; **liveliness (NPCs + a voice) is the remaining blocker.**
 
 **Where we're going next (in order):**
 1. Land NPC liveliness + a stub Vinny voice in v2 (1–2 evenings).
