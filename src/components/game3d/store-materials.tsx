@@ -3,6 +3,7 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Text } from "@react-three/drei";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { getCuratedShelfPosterData, getEraIdFromYears, type EraId } from "@/lib/curated-movie-catalog";
 
 // ── Legacy export for any code that references it ──
@@ -19,16 +20,22 @@ function getSharedMaterial(color: string, opts?: {
   side?: THREE.Side;
   emissive?: string;
   emissiveIntensity?: number;
+  map?: THREE.Texture | null;
+  mapKey?: string;
 }): THREE.MeshStandardMaterial {
   const r = opts?.roughness ?? 0.7;
   const m = opts?.metalness ?? 0.0;
-  const key = `${color}|${r}|${m}|${opts?.transparent ?? false}|${opts?.opacity ?? 1}|${opts?.side ?? 0}|${opts?.emissive ?? ''}|${opts?.emissiveIntensity ?? 0}`;
+  // mapKey participates in the cache key so two surfaces sharing a color but
+  // using different texture maps (navy wall vs navy shelf sign) don't collide
+  // onto one material.
+  const key = `${color}|${r}|${m}|${opts?.transparent ?? false}|${opts?.opacity ?? 1}|${opts?.side ?? 0}|${opts?.emissive ?? ''}|${opts?.emissiveIntensity ?? 0}|${opts?.mapKey ?? ''}`;
   let mat = matCache.get(key);
   if (!mat) {
     mat = new THREE.MeshStandardMaterial({
       color,
       roughness: r,
       metalness: m,
+      ...(opts?.map ? { map: opts.map } : {}),
       ...(opts?.transparent !== undefined && { transparent: opts.transparent }),
       ...(opts?.opacity !== undefined && { opacity: opts.opacity }),
       ...(opts?.side !== undefined && { side: opts.side }),
@@ -42,7 +49,7 @@ function getSharedMaterial(color: string, opts?: {
 
 /** Drop-in PBR material — MeshStandardMaterial with proper roughness/metalness, cached & shared */
 export function Mat(props: Record<string, unknown>) {
-  const { roughness, metalness, color, transparent, opacity, side, emissive, emissiveIntensity, ...rest } = props;
+  const { roughness, metalness, color, transparent, opacity, side, emissive, emissiveIntensity, map, mapKey, ...rest } = props;
   const material = useMemo(
     () => getSharedMaterial(
       (color as string) ?? '#ffffff',
@@ -54,19 +61,31 @@ export function Mat(props: Record<string, unknown>) {
         side: side as THREE.Side | undefined,
         emissive: emissive as string | undefined,
         emissiveIntensity: emissiveIntensity as number | undefined,
+        map: map as THREE.Texture | null | undefined,
+        mapKey: mapKey as string | undefined,
       }
     ),
-    [color, roughness, metalness, transparent, opacity, side, emissive, emissiveIntensity]
+    [color, roughness, metalness, transparent, opacity, side, emissive, emissiveIntensity, map, mapKey]
   );
   return <primitive object={material} attach="material" {...rest} />;
 }
+
+// Shared bevelled tape body. Was a fresh THREE.BoxGeometry constructed inside
+// every PosterBox — several hundred separate hard-edged geometries. One shared
+// rounded geometry instead: fewer allocations, and a lit edge down each side of
+// every tape rather than a sharp slab.
+const sharedTapeGeometry = new RoundedBoxGeometry(0.20, 0.34, 0.035, 1, 0.008);
 
 // ── Poster texture cache + throttled loader ─────────────────
 const posterTextureCache = new Map<string, THREE.Texture>();
 const pendingCallbacks = new Map<string, { onTexture: (t: THREE.Texture) => void; onFail?: () => void }[]>();
 const pendingLoads: (() => void)[] = [];
 let activeLoads = 0;
-const MAX_CONCURRENT_LOADS = 6; // limit concurrent image fetches to avoid ERR_INSUFFICIENT_RESOURCES
+// Raised from 6 alongside the w154→w342 quality bump. Bigger images at the same
+// concurrency meant shelves sat on their genre-color placeholder noticeably
+// longer on a cold load — the whole store visibly filling in around you. Still
+// bounded, to avoid the ERR_INSUFFICIENT_RESOURCES this cap was added for.
+const MAX_CONCURRENT_LOADS = 12;
 const checkedOutCardCache = new Map<string, THREE.Texture>();
 
 function processQueue() {
@@ -504,7 +523,7 @@ export function PosterBox({
   slotKey?: string;
   hideWithSlotKey?: boolean;
 }) {
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const matRef = useRef<THREE.MeshStandardMaterial>(null);
   const loadedRef = useRef(false);
   const isUnavailable = slotKey
     ? (hideWithSlotKey && heldMovieSlotKeys.has(slotKey))
@@ -517,19 +536,31 @@ export function PosterBox({
   useEffect(() => {
     if (isUnavailable) return;
     loadedRef.current = false;
+    // Desktop keeps the full w342 the catalog already asks for. This used to
+    // downgrade to w154 — a 154px-wide image stretched across a tape face you
+    // can walk right up to, which is why every poster in the store read as a
+    // smear. The bandwidth saving was never real: w342 is ~25KB and they're
+    // cached and de-duped by URL. Mobile stays reduced, but at w185 rather than
+    // w92, which was well past the point of being legible.
     const isMob = typeof window !== "undefined" && ("ontouchstart" in window || window.innerWidth < 768);
-    const imgUrl = url.startsWith("https://image.tmdb.org/")
-      ? isMob ? url.replace("/w342/", "/w92/") : url.replace("/w342/", "/w154/")
+    const imgUrl = url.startsWith("https://image.tmdb.org/") && isMob
+      ? url.replace("/w342/", "/w185/")
       : url;
 
-    // 5-second fallback: show genre color if texture hasn't loaded
+    // Fallback to genre color if the texture still hasn't arrived. Extended
+    // from 5s to 14s: at w342 with ~200 posters behind a concurrency cap, a
+    // 5-second deadline fired on whole shelves that were merely queued, so
+    // gondolas locked to flat navy while the store was still filling in. The
+    // load callback does repaint over this if it lands later, but a shelf that
+    // goes solid-colored and then pops into art is worse to look at than one
+    // that stays dark a moment longer.
     const fallbackColor = genreColor || "#5a5a7a";
     const fallbackTimer = setTimeout(() => {
       if (!loadedRef.current && matRef.current) {
         matRef.current.color.set(fallbackColor);
         matRef.current.needsUpdate = true;
       }
-    }, 5000);
+    }, 14000);
 
     getOrCreatePosterTexture(imgUrl, (t) => {
       loadedRef.current = true;
@@ -565,9 +596,8 @@ export function PosterBox({
       {/* VHS body bumped to 0.20 × 0.34 × 0.035 so the poster on the front
           face reads at a normal browsing distance. Was 0.15 × 0.26 × 0.025. */}
       {!isUnavailable && (
-        <mesh userData={userData}>
-          <boxGeometry args={[0.20, 0.34, 0.035]} />
-          <meshBasicMaterial color="#1a1a2a" />
+        <mesh userData={userData} geometry={sharedTapeGeometry} castShadow>
+          <meshStandardMaterial color="#1a1a2a" roughness={0.55} />
         </mesh>
       )}
       {isUnavailable && (
@@ -589,7 +619,13 @@ export function PosterBox({
       {!isUnavailable && (
         <mesh position={[0, 0, -0.019]} rotation={[0, Math.PI, 0]}>
           <planeGeometry args={[0.19, 0.33]} />
-          <meshBasicMaterial ref={matRef} color="#2a2a3a" side={THREE.DoubleSide} />
+          {/* Was meshBasicMaterial — completely unlit, so every poster rendered
+              at full brightness no matter where it was in the store. That's why
+              they read as stickers pasted onto the shelves instead of objects
+              in the room, and why they stayed the brightest thing on screen
+              even in the dim back aisles. Standard material puts them under the
+              same lights as everything else. */}
+          <meshStandardMaterial ref={matRef} color="#2a2a3a" roughness={0.62} side={THREE.DoubleSide} />
         </mesh>
       )}
     </group>

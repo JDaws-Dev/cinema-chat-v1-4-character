@@ -15,6 +15,7 @@ import { BuildingShell } from "./props/BuildingShell";
 // ── Module imports ──
 import { ROOM_W, ROOM_D, ROOM_H, WALL_COLOR, FLOOR_COLOR, CEILING_COLOR, SHELF_COLOR } from "./store-constants";
 import { Mat, PosterBox, setEraYears, getShelfMovies, setHeldMovieIds, setHeldMovieSlotKeys } from "./store-materials";
+import { getCarpetTexture, getCeilingTileTexture, getWallTexture } from "./procedural-textures";
 import { StaffPicksShelf } from "./store-shelves";
 import { CharlieCharacter, VinnyCharacter, EarlCharacter, KenneyModel } from "./store-characters";
 import { NPCManager } from "./NPCManager";
@@ -125,14 +126,38 @@ function MergedArchitecture({ topDown }: { topDown: boolean }) {
     };
   }, [wallGeo, floorGeo, ceilingGeo, accentGeo, baseboardGeo]);
 
+  // Generated once, cached module-side. useMemo keeps them out of the render path.
+  const carpetTex = useMemo(() => getCarpetTexture(11), []);
+  const ceilingTex = useMemo(() => getCeilingTileTexture(10), []);
+  const wallTex = useMemo(() => getWallTexture(6), []);
+
   return (
     <>
-      {/* Merged walls */}
-      {wallGeo && <mesh geometry={wallGeo}><Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} /></mesh>}
-      {/* Merged floor */}
-      {floorGeo && <mesh geometry={floorGeo}><Mat color={FLOOR_COLOR} roughness={0.95} /></mesh>}
-      {/* Merged ceiling + soffits */}
-      {ceilingGeo && <mesh geometry={ceilingGeo}><Mat color={CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} /></mesh>}
+      {/* Merged walls — roller stipple so the falloff from the zone lights
+          gradates instead of banding across a flat fill */}
+      {wallGeo && (
+        <mesh geometry={wallGeo} receiveShadow>
+          <Mat color={WALL_COLOR} roughness={0.85} side={THREE.DoubleSide} map={wallTex} mapKey="wall" />
+        </mesh>
+      )}
+      {/* Merged floor — patterned commercial carpet. receiveShadow so the
+          gondolas actually sit on it instead of hovering. */}
+      {/* NOTE: color is white wherever a full-color map is supplied. Standard
+          materials multiply color × map, so passing FLOOR_COLOR here as well as
+          an already-navy carpet map squared the darkness and turned the aisles
+          black. The carpet/wood/ceiling maps carry their own albedo; only the
+          wall map is greyscale and still takes WALL_COLOR as a tint. */}
+      {floorGeo && (
+        <mesh geometry={floorGeo} receiveShadow>
+          <Mat color={carpetTex ? "#ffffff" : FLOOR_COLOR} roughness={0.95} map={carpetTex} mapKey="carpet" />
+        </mesh>
+      )}
+      {/* Merged ceiling + soffits — acoustic tile on a 2ft grid */}
+      {ceilingGeo && (
+        <mesh geometry={ceilingGeo}>
+          <Mat color={ceilingTex ? "#ffffff" : CEILING_COLOR} roughness={0.9} side={THREE.DoubleSide} map={ceilingTex} mapKey="ceiling" />
+        </mesh>
+      )}
       {/* Merged yellow accent stripes */}
       {accentGeo && <mesh geometry={accentGeo}><Mat color="#ffd700" emissive="#ffd700" emissiveIntensity={0.3} /></mesh>}
       {/* Merged baseboards */}
@@ -251,23 +276,57 @@ export function Store({
       {[-4, 0, 4].map(z => (<mesh key={`cgz${z}`} position={[0, ROOM_H - 0.03, z]}><boxGeometry args={[ROOM_W, 0.01, 0.02]} /><Mat color="#8f897d" transparent opacity={0.45} /></mesh>))}
       </>}
 
-      {/* ── LIGHTING — zone spots to break flat ambient (≤ 8 lights, mobile perf-safe) ── */}
-      {/* Reduced ambient so zone spots can pool — was 1.6, felt flat */}
-      <ambientLight intensity={1.1} color="#f5edd8" />
-      {/* Hemisphere: warm ceiling → cool floor for depth without extra lights */}
-      <hemisphereLight args={["#fff6e4", "#3a4560", 0.7]} />
-      {/* Key directional: simulates all overhead fluorescent panels in one light */}
-      <directionalLight position={[2, 8, 1]} intensity={1.7} color="#fff3dc" />
-      {/* Cool fill from back — separates shelves from wall */}
-      <directionalLight position={[-4, 5, -8]} intensity={0.45} color="#c0d0e8" />
+      {/* ── LIGHTING — 7:31 PM. It is NIGHT outside. ──────────────────────────
+          The fluorescents are the ONLY meaningful light source in here. Ambient
+          exists only to keep unlit faces from crushing to pure black; if you
+          raise it past ~0.25 the zone lights stop reading as pools and the
+          store goes flat again (it sat at 1.1 for months — that was the bug). */}
+      <ambientLight intensity={0.18} color="#8d93b5" />
+      {/* Hemisphere: faint warm ceiling bounce → cool floor. Depth, not illumination. */}
+      <hemisphereLight args={["#ffe9c4", "#161c2e", 0.22]} />
+      {/* Residual dusk through the storefront glass — front of house only, very soft.
+          NOT a sun. If this reads as directional daylight it's too strong. */}
+      <directionalLight position={[2, 6, 9]} intensity={0.14} color="#4a5a86" />
+      {/* ── The one shadow caster ──────────────────────────────────────────
+          Point lights cast via cube maps (6 renders each), so the four zone
+          lights above stay non-casting and this single overhead directional
+          does all the shadow work. Nearly straight down, because ceiling
+          fluorescents put contact shadows directly under the fixtures — an
+          angled key would rake shadows sideways and read as sunlight.
+          Intensity has to be a real FRACTION of the total light hitting the
+          floor or the shadow is invisible: a shadow only reads as the absence
+          of this light, so at 0.55 against four 3.5-intensity zone lights it
+          left no perceptible dark spot. The zone lights below were pulled down
+          to compensate, keeping overall exposure the same.
+          Shadow camera is hand-fit to the store footprint so all 2048px of the
+          map land on the sales floor. */}
+      <directionalLight
+        position={[1.5, 9, 1]}
+        intensity={1.7}
+        color="#ffeccc"
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-left={-ROOM_W / 2 - 1}
+        shadow-camera-right={ROOM_W / 2 + 1}
+        shadow-camera-top={ROOM_D / 2 + 1}
+        shadow-camera-bottom={-ROOM_D / 2 - 1}
+        shadow-camera-near={0.5}
+        shadow-camera-far={20}
+        shadow-bias={-0.0012}
+        shadow-normalBias={0.02}
+      />
+      {/* Zone pools. Pulled down from ~3.5 when the shadow key went up to 1.7 —
+          total exposure is about the same, but a larger share now comes from a
+          light that casts, so objects have contact shadows instead of floating. */}
       {/* Back aisle warm zone — HORROR/CLASSICS area */}
-      <pointLight position={[-5, 2.9, -4.5]} intensity={1.2} distance={7.5} decay={1.8} color="#ffd9a0" />
+      <pointLight position={[-5, 2.9, -4.5]} intensity={2.7} distance={9} decay={1.6} color="#ffd9a0" />
       {/* Middle aisle warm zone — COMEDY/ACTION */}
-      <pointLight position={[5, 2.9, -1.5]} intensity={1.1} distance={7.5} decay={1.8} color="#ffd9a0" />
+      <pointLight position={[5, 2.9, -1.5]} intensity={2.5} distance={9} decay={1.6} color="#ffd9a0" />
       {/* Front aisle warm zone — NEW RELEASES near entrance */}
-      <pointLight position={[0, 2.9, 2.5]} intensity={1.0} distance={7.0} decay={1.8} color="#ffe4b8" />
-      {/* Counter warm spot — stronger focal pool */}
-      <pointLight position={[7, 2.8, 5.5]} intensity={1.3} distance={6} decay={1.7} color="#ffc888" />
+      <pointLight position={[0, 2.9, 2.5]} intensity={2.4} distance={8.5} decay={1.6} color="#ffe4b8" />
+      {/* Counter warm spot — the warmest pool in the store, the social anchor */}
+      <pointLight position={[7, 2.8, 5.5]} intensity={2.9} distance={7.5} decay={1.5} color="#ffc888" />
 
       {/* Fluorescent ceiling fixtures (hidden in top-down) */}
       {!topDown && <CeilingFixtures />}
@@ -287,7 +346,12 @@ export function Store({
       {/* Employees only door */}
       <group position={[-ROOM_W / 2 + 0.07, 0, getObjectById("employees-door")?.z ?? -5.19]} rotation={[0, Math.PI / 2, 0]}>
         <AnimatedEmployeeDoor open={false}>
-          <group userData={{ interactType: "employees_door", label: "Employees Only" }}>
+          {/* Backrooms DISABLED — the Unity WebGL embed behind this door is broken,
+              so the door is scenery for now. To re-enable, restore the userData:
+              userData={{ interactType: "employees_door", label: "Employees Only" }}
+              The handler (handleEnterBackrooms) and BackroomsOverlay are still
+              wired in game/page.tsx and need no changes. */}
+          <group>
             <mesh position={[0, 1.15, 0]}><boxGeometry args={[0.9, 2.3, 0.04]} /><Mat color="#4a3020" roughness={0.8} /></mesh>
             <mesh position={[0.32, 1.0, 0.03]}><sphereGeometry args={[0.04, 8, 8]} /><Mat color="#b8960a" roughness={0.3} metalness={0.6} /></mesh>
             <mesh position={[0, 1.7, 0.03]}><boxGeometry args={[0.5, 0.15, 0.01]} /><Mat color="#cc2222" roughness={0.5} /></mesh>

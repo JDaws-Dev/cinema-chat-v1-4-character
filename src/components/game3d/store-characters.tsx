@@ -972,10 +972,9 @@ export function CharlieCharacter() {
           <boxGeometry args={[0.08, 0.025, 0.02]} /><Mat color="#c07060" roughness={0.8} />
         </mesh>
       </group>
-      {/* ── Billboard name label ── */}
-      <Billboard position={[0, 1.6, 0]}>
-        <Text fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>CHARLIE</Text>
-      </Billboard>
+      {/* Name label removed — floating nametags read as debug UI and, at close
+          range, rendered larger than the aisle signage. You learn who Charlie is
+          from the [E] TALK TO CHARLIE prompt and from him talking to you. */}
       {/* ── Shadow circle ── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
         <circleGeometry args={[0.25, 16]} /><Mat color="#000000" transparent opacity={0.18} />
@@ -1192,10 +1191,8 @@ export function VinnyCharacter() {
           <boxGeometry args={[0.08, 0.025, 0.02]} /><Mat color="#c07060" roughness={0.8} />
         </mesh>
       </group>
-      {/* ── Billboard name label ── */}
-      <Billboard position={[0, 1.55, 0]}>
-        <Text fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>VINNY</Text>
-      </Billboard>
+      {/* Name label removed — see CharlieCharacter. The counter signage and the
+          [E] prompt carry the wayfinding. */}
       {/* ── Shadow circle ── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
         <circleGeometry args={[0.3, 16]} /><Mat color="#000000" transparent opacity={0.2} />
@@ -1321,10 +1318,7 @@ export function TonyCharacter() {
           <boxGeometry args={[0.08, 0.025, 0.02]} /><Mat color="#c07060" roughness={0.8} />
         </mesh>
       </group>
-      {/* ── Billboard name label ── */}
-      <Billboard position={[0, 1.55, 0]}>
-        <Text fontSize={0.1} color="#ffd700" anchorX="center" font={undefined}>TONY</Text>
-      </Billboard>
+      {/* Name label removed — see CharlieCharacter. */}
       {/* ── Shadow circle ── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
         <circleGeometry args={[0.3, 16]} /><Mat color="#000000" transparent opacity={0.18} />

@@ -6,18 +6,33 @@ A 3D Blockbuster-style video store game. Player walks in, finds movies, talks to
 
 **Two live surfaces:**
 - **`/game`** — the original React Three Fiber build. Polished, has Vinny chat, apartment scene, challenges, dialogue NPCs. Still the canonical R3F implementation.
-- **`/v2`** — a Unity 6 / URP rebuild deployed as a WebGL bundle from `cinema-chat-unity/`. Lighter mechanic set (FPS controller, raycast pickup, drop-where-they-belong, Backrooms portal), but has the spatial bones, a working "arrival in the parking lot" moment, filmic post-processing, and an alphabetized, sign-posted store. Active development as of 2026-06-04.
+- **`/v2`** — a Unity 6 / URP rebuild deployed as a WebGL bundle from `cinema-chat-unity/`. Lighter mechanic set (FPS controller, raycast pickup, drop-where-they-belong, Backrooms portal), but has the spatial bones, a working "arrival in the parking lot" moment, filmic post-processing, and an alphabetized, sign-posted store. Active build (last commit 2026-06-04; live-evaled 2026-06-09 — loads and plays headless, see eval notes below).
 - **`/layout-editor`** — top-down drag-and-drop editor (gondolas, counter, NPCs, cars, parking lot, strip-mall buildings, floor decal). Outputs JSON that gets applied to the Unity scene.
 
 **Stack:** Next.js 16 + React 19 + React Three Fiber (R3F build), Unity 6 + URP (v2 build), Convex, OpenAI (Vinny chat), ElevenLabs (TTS), TMDB (movies + posters), localStorage persistence.
 
 **Live:** [www.fridaynightvideo.app](https://www.fridaynightvideo.app)
 
-## Active direction (2026-06-04)
+## Active direction (2026-07-25) — v3 web rebuild
+
+**Repo moved.** This project now lives at `/Users/jeremiahdaws/Projects/friday-night-video` (was `jarvis-builds/cinema-chat`, which had been relocated to `/Volumes/Daws_SSD/Artios-Migration/...`). The SSD copy is still present as a backup. **The 8 commits from `ac98609`→`8af1388` — all of the Unity v2 work — are local-only and have never been pushed to `origin`.**
+
+**Decision (2026-07-25): build a v3 on the web/R3F stack, not Unity.** The reason is iteration loop, not rendering ceiling: on the web build the whole cycle (change → run → screenshot → judge → fix) is self-contained, whereas every Unity visual change needs the Editor open and a ~5-minute WebGL rebuild. For a project whose success metric is a *feel* question, the fast loop wins. Unity v2 (`cinema-chat-unity`, 18 GB, on the SSD) is parked, not deleted.
+
+**Order of work:** (1) visual quality bar, (2) liveliness, (3) content. The catalog stays the fictional era-curated TMDB set for now — the personal-collection pivot is deferred until the place looks right. See `TRANSITION-PLAN.md`.
+
+**v3 shape:** a new `/v3` route in this repo sharing `src/lib/` (catalog, game state, audio) so it's a new render layer over existing work rather than a third parallel build. Planned foundation work, in order:
+1. Replace the toon instancing path with a **poster-atlas instanced material** (one atlas of catalog posters, per-instance UV offsets) so shelf tapes show real spine art in a couple of draw calls.
+2. Toon → standard PBR, real tonemapping (ACES/AgX), one shadow-casting key light, warm pooled fill.
+3. Drop exterior ambient hard so the storefront glows into the parking lot — it must read as *night*.
+4. Bloom on neon + signage, film grain, vignette.
+5. Convert billboarded labels to physical world-scale signs.
+
+## Superseded direction (2026-06-09) — kept for history
 
 The project is mid-transition. Three threads in parallel:
 
-1. **Unity v2 maturity.** The Unity port has rough parity with R3F for the *spatial* loop (walk in, browse, pick up tapes, return them to matching shelves, enter the Backrooms via the Employees Only door) and the *arrival moment* (parking-lot spawn → storefront sign → warm interior). Polishing layout + lighting via `Tools/FNV/Capture Security Cams` and `/layout-editor` — see memory `reference_r3f_to_unity_port_lessons.md` for the prioritized port queue. **Recently shipped (2026-06-02→04):** NEW RELEASES rebuilt as a 10m densely-stocked wall (new-release titles only); filmic post-processing (the `PostFX_Store` volume profile — it was wired but had no profile, which was the single biggest visual jump — see memory `reference_v2_rendering_levers.md`); VHS tapes alphabetized A–Z within each gondola and seated back against the shelf spine; genre top-cap labels snapped onto the gondolas (both faces). **Next-biggest visual levers:** lighting rebalance + tape gloss/materials; verify post-processing perf on mobile.
+1. **Unity v2 maturity.** The Unity port has rough parity with R3F for the *spatial* loop (walk in, browse, pick up tapes, return them to matching shelves, enter the Backrooms via the Employees Only door) and the *arrival moment* (parking-lot spawn → storefront sign → warm interior). Polishing layout + lighting via `Tools/FNV/Capture Security Cams` and `/layout-editor` — see memory `reference_r3f_to_unity_port_lessons.md` for the prioritized port queue. **Recently shipped (2026-06-02→04):** NEW RELEASES rebuilt as a 10m densely-stocked wall (new-release titles only); filmic post-processing (the `PostFX_Store` volume profile — it was wired but had no profile, which was the single biggest visual jump — see memory `reference_v2_rendering_levers.md`); VHS tapes alphabetized A–Z within each gondola and seated back against the shelf spine; genre top-cap labels snapped onto the gondolas (both faces). **Next-biggest visual levers:** lighting rebalance + tape gloss/materials; verify post-processing perf on mobile. **2026-06-09 live eval:** v2 loads clean (splash → exterior in ~20s even headless) and the store reads stocked, but the interior renders washed-out/milky (suspects: `postExposure 0.32` + ambient 0.85 + bloom stacking — verify in a real browser first, headless GPU may exaggerate it), and the exterior marquee has dark quads overlapping the sign text (covers the G in NIGHT + part of the tagline — real geometry overlap). Also verify the storefront glass has a collider: a headless player reached the interior from spawn with nothing but W held.
 
 2. **Personal-collection pivot.** Strategic decision 2026-06-01 to stop catalog-faking with TMDB and use Jeremiah's actual film archive (`/Users/jeremiahdaws/Projects/DEMO REEL/public/movies.html`: 50-film Letterboxd diary + 966-film library). Full phased plan in `TRANSITION-PLAN.md`. Not started yet — gated on v2 being in a "feel-right" state first.
 
@@ -45,9 +60,27 @@ Audit identified a sensory inventory of what makes a Friday-night Blockbuster *f
 5. **Fix the immersion-pops from the eval** (see "Eval findings" below). Broken atmosphere is worse than no atmosphere.
 6. **The drive home.** Even a fixed-shot cutscene — tape on passenger seat, suburban houses going past, your apartment light on. Closes the emotional loop.
 
-## Eval findings — 2026-05-29 capture pass
+## ⚠️ CORRECTION (2026-07-25) — the lighting diagnosis below is WRONG
 
-From `node scripts/capture-security-cams.mjs` against current `main` (60c0e1a):
+Re-verified against `8af1388` using **real player-viewport screenshots** (`scripts/capture-player-view.mjs`) rather than the security-cam harness. The store does not have a lighting problem. Three corrections, in order of how much wasted effort they explain:
+
+1. **Shelf tapes cannot show posters — there is no poster material on them.** `src/components/game3d/InstancedVHSBoxes.tsx` renders solid-colored boxes: `MeshToonMaterial({ color, gradientMap })`, no `map`, no texture support, by design for single-draw-call instancing. The 2026-06-09 note below ("posters are served fine but invisible… this is a *lighting* problem… don't debug the fetch path again") is half right — it isn't the fetch path, but it isn't lighting either. Only wall-display copies (JAWS, Indiana Jones) carry real posters, which is exactly why those show and every gondola tape is a flat blue block. **No amount of light tuning can fix this.** The fix is a poster-atlas instanced material.
+2. **`MeshToonMaterial` is why the whole store reads flat.** Toon shading bands and discards most PBR light response, so the scene cannot look lit no matter what happens to the lights.
+3. **"Back third of store is near-black" is a capture artifact, not a runtime fact.** `capture-security-cams.mjs` renders via a secondary camera (`gl.render(scene, cam)`) that bypasses R3F's frame loop; several interior cams return uniform navy with zero geometry in frame. In the live player view the interior is evenly lit — arguably *too* evenly. **Do not trust the security-cam harness for lighting judgements.**
+
+**Real visual problems, ranked by damage (player-view evidence, 2026-07-25):**
+1. **Billboarded labels at absurd screen scale.** NPC names ("CHARLIE", "Tommy") render frame-filling and overlap the aisle signs. Worst immersion break in the build — reads as debug UI, not a store. Fix: physical world-scale signs.
+2. **Every shelf tape is a flat colored block.** A video store's entire visual identity is walls of poster art; this is walls of navy rectangles.
+3. **No night.** It's 7:31 PM in 1989 but the parking lot is as bright as the interior, so the storefront never reads as a warm glowing box. There's no glow because there's no dark.
+4. **No shadows, no bloom.** Neon tubes render as flat white lines.
+
+## Eval findings — 2026-05-29 capture pass (⚠️ superseded by the correction above)
+
+**2026-06-09 re-run** of the full capture harness against `main` (8af1388): every finding below is unchanged. Two additions from that run:
+- ~~**Posters are served fine but invisible.** Server log shows all `/api/catalog-poster` + image-proxy requests returning 200 — the TMDB pipeline is healthy. The gondola tapes still read as black slabs in every interior capture. This is a *lighting* problem, not a data problem. Don't debug the fetch path again.~~ **WRONG — see correction above.**
+- **NEW RELEASES wall confirmed at 2 visible posters** (Jaws, Blade Runner, far edges of an otherwise bare slot grid) — worse than the "~5" estimate below. For the marquee feature wall this is the single biggest feel-breaker in `/game`.
+
+Original findings (2026-05-29, against 60c0e1a):
 - **Mirrored billboard labels** (YNNIV / EILRAHC / OPEN). Root cause: drei's `<Billboard>` tracks the main R3F camera via `useFrame`; `SecurityCameras.tsx` renders with a secondary camera via `gl.render(scene, cam)` that bypasses the frame loop. Fix: call R3F's `advance(t, true, scene, cam)` before each `gl.render` so all `useFrame` subscribers re-evaluate with the capture camera. *Note: this is a capture-script bug, not a runtime bug — labels are correct in the live game. But it makes the capture script lie, which is dangerous.*
 - **Back third of store is near-black** in `overhead.png`, `back_wall.png`, upper half of `ceiling_back.png`. Needs a second ceiling light at z ≈ −3 or an intensity bump.
 - **NEW RELEASES wall is sparse** — only ~5 posters across the whole back wall in `back_wall_face.png`. Investigate slot count vs TMDB fetch.
@@ -55,7 +88,9 @@ From `node scripts/capture-security-cams.mjs` against current `main` (60c0e1a):
 - **`vacant_front.png`** — pitch-black interior behind FOR LEASE placard reads as render failure. See backlog item 4 (replace the whole storefront instead).
 - **`back_alley.png`, `service_doors.png`** — nearly pure black. Add a dim sodium lamp if keeping; cheaper to never camera in here.
 
-All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
+All 24 capture PNGs in `/tmp/fnv-cams/` (refreshed by the 2026-06-09 run; Unity v2 headless shots in `/tmp/fnv-v2/`).
+
+**Note on priorities:** these `/game` findings stay parked per the feel-first rule — `/game` is in maintenance and the fix energy belongs in v2 (liveliness + lighting) and then the personal-collection pivot. They're recorded here so nobody re-diagnoses them from scratch.
 
 
 
@@ -110,6 +145,8 @@ All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
 - Era selector + apartment scene + rewind mechanic
 - Challenges (Movie Night, Speed Run, etc.)
 
+The 2026-06-09 live eval confirmed this list is the felt gap: v2 is a well-merchandised store with nobody in it — no clerk, no customers, no sound. `/game` has the life wrapped in broken atmosphere; v2 has the atmosphere with no life. Closing that (NPCs + stub Vinny voice) is the gate on the personal-collection pivot.
+
 ### Removed / intentionally absent (in both)
 - Pizza Palace + Tony as a *rentable* second store (cut from R3F to avoid esthetic creep; Pizza facade kept in Unity as ambient strip-mall only)
 - XP / Tier (Bronze/Silver/Gold) UI surfaces — state exists but never rendered
@@ -124,8 +161,9 @@ All 24 capture PNGs in `/tmp/fnv-cams/` at pause time.
 - **Style:** Low-poly box geometry, PBR materials, Blockbuster-inspired palette
 - **State:** React hooks + localStorage. No database.
 - **Routes:** `/game` (R3F 3D), `/v2` (Unity 3D), `/layout-editor` (top-down scene editor), `/chat` (chat-only with Vinny), `/editor/3d` + `/editor/dual` (R3F debug)
-- **Unity project:** `/Users/jeremiahdaws/Projects/jarvis-builds/cinema-chat-unity` (separate git repo). Scene of record: `Assets/Scenes/Arrival.unity` (build index 0); `Assets/Backrooms/Scenes/Backrooms.unity` (build index 1).
-- **v2 build + deploy pipeline:** build WebGL (Brotli/IL2CPP, ~5 min) to `cinema-chat-unity/Builds/WebGL` → copy the 4 `WebGL.*` files into `cinema-chat/public/v2/Build/` → commit → `vercel --prod --yes`. Incremental builds only change `WebGL.data.br` when no C# changed. Neither repo has a git remote — commits are local; the deploy goes straight from the working tree. Full detail in memory `reference_v2_build_deploy_pipeline.md`.
+- **Unity project:** `/Volumes/Daws_SSD/Artios-Migration/Projects/jarvis-builds/cinema-chat-unity` (separate git repo, 18 GB, **external drive only**). Scene of record: `Assets/Scenes/Arrival.unity` (build index 0); `Assets/Backrooms/Scenes/Backrooms.unity` (build index 1). Parked as of 2026-07-25 — see "Active direction" above.
+- **v2 build + deploy pipeline:** build WebGL (Brotli/IL2CPP, ~5 min) to `cinema-chat-unity/Builds/WebGL` → copy the 4 `WebGL.*` files into `public/v2/Build/` → commit → `vercel --prod --yes`. Incremental builds only change `WebGL.data.br` when no C# changed. Full detail in memory `reference_v2_build_deploy_pipeline.md`.
+- **⚠️ Backup risk.** This repo *does* have a remote (`JDaws-Dev/cinema-chat-v1-4-character`) but is 8 commits ahead of it — all the Unity v2 work is unpushed. `cinema-chat-unity` (18 GB) and `backrooms-unity` (14 GB) have **no remote at all and exist only on the Daws_SSD external drive**. If that drive dies, the entire Unity port is gone. Pushing them needs `.gitignore` for `Library/` and Git LFS for assets.
 
 ## Art style & scale
 
@@ -175,12 +213,22 @@ Other genre names (war, animated, mystery, crime) produce empty/fallback content
 
 ## Verification — required for visual changes
 
+**Use the player-view harness. It is the only one that tells the truth.**
+
 ```bash
 npm run dev                                  # in one terminal
-node scripts/capture-security-cams.mjs       # in another
+node scripts/capture-player-view.mjs         # in another
 ```
 
-Reads/writes `/tmp/fnv-cams/`. The script pre-seeds `localStorage.fnv_user_email` so it can blow past the splash. Use the `Read` tool on the PNGs to inspect.
+Writes to `/tmp/fnv-player/`. Screenshots the **actual player viewport** — real camera, real fog, real post-processing — so what you see is what a player sees. Walks forward in stages (spawn → doorway → front aisle → mid store → back wall) plus look-left/look-right. Use the `Read` tool on the PNGs.
+
+It clears both gates that silently invalidate captures: the **"CHOOSE YOUR ERA"** modal and the **"GOT IT"** tutorial. Both dim the scene behind them, and both appear on a delay — so it polls for them rather than checking once. If you add another modal, add its button text to the `GATES` array or every capture will be the same greyed-out frame.
+
+```bash
+node scripts/capture-security-cams.mjs       # legacy — treat output as suspect
+```
+
+Writes `/tmp/fnv-cams/`. Renders via a secondary camera with `gl.render(scene, cam)`, bypassing R3F's frame loop. Consequences: billboards face the wrong way (mirrored YNNIV / EILRAHC labels), and **several interior cams return uniform navy with no geometry at all** — which is what produced the bogus "back third is near-black" finding. Useful for exterior/geometry spot-checks; do not judge lighting or materials from it.
 
 For 3D bugs: do the geometry math from numbers (position + size + rotation), don't trust comments. `PlaneGeometry` without rotation is a horizontal slab in XY by default — not a wall. `side={DoubleSide}` masks orientation bugs.
 

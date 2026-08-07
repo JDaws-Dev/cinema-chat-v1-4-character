@@ -1082,8 +1082,13 @@ function tickMovement(npc: ActiveNPC, dt: number): void {
       return;
     }
 
-    // Face movement direction — +PI so face meshes (at -Z local) point forward
-    npc.facing = Math.atan2(nx, nz) + Math.PI;
+    // Face movement direction. NO +PI here: rotation.y = atan2(dx, dz) already
+    // points local +Z along the travel vector, and the character meshes are
+    // authored facing +Z. The three other facing sites (waypoint facingAngle,
+    // handleArrival, and the face-each-other code in tickConversations) all use
+    // this bare convention — this line used to add PI and was the odd one out,
+    // which is exactly why NPCs moonwalked.
+    npc.facing = Math.atan2(nx, nz);
   }
 }
 

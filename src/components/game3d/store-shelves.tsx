@@ -8,29 +8,76 @@ import { getObjectById } from "@/lib/store-layout";
 import { ROOM_D, ROOM_W, SHELF_COLOR, SHELF_ROWS } from "./store-constants";
 import { Mat, PosterBox, usePosterUrls, getOrCreatePosterTexture, toonGradientTexture } from "./store-materials";
 import { InstancedVHSBoxes as InstancedVHSBoxesNew, SharedVHSBox, type VHSInstanceConfig } from "./InstancedVHSBoxes";
+import { getWoodTexture } from "./procedural-textures";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
 // ── Shared shelf plank geometries & materials ──────────────────────
 // Reused across all ShelfUnit / WallShelf / NewReleasesWall instances
 // so the GPU stores each shape once instead of per-plank.
 
+// Bevelled, not boxy.
+//
+// Every fixture in the store was a hard-edged BoxGeometry, which is the single
+// biggest reason the place read as blocky: a sharp 90° edge between two faces
+// at similar angles produces almost no value change, so boxes flatten into
+// silhouettes. A small bevel gives each edge a narrow band angled differently
+// from both faces, which catches a highlight and draws the corner. It costs a
+// handful of triangles and does more for "this is a real fixture" than any
+// amount of light tuning.
+//
+// Radius must stay under half the smallest dimension or the geometry inverts —
+// these boards are only 0.04 thick, hence 0.012.
+
 /** ShelfUnit horizontal boards (gondola planks) — 2.76 x 0.04 x 0.35 */
-const sharedPlankGeometry = new THREE.BoxGeometry(2.76, 0.04, 0.35);
+const sharedPlankGeometry = new RoundedBoxGeometry(2.76, 0.04, 0.35, 1, 0.012);
 /** ShelfUnit top cap — 2.85 x 0.04 x 0.38 */
-const sharedTopCapGeometry = new THREE.BoxGeometry(2.85, 0.04, 0.38);
+const sharedTopCapGeometry = new RoundedBoxGeometry(2.85, 0.04, 0.38, 1, 0.014);
 
 /** NewReleasesWall shelf boards — 7.8 x 0.04 x 0.32 */
-const sharedNRBoardGeometry = new THREE.BoxGeometry(7.8, 0.04, 0.32);
+const sharedNRBoardGeometry = new RoundedBoxGeometry(7.8, 0.04, 0.32, 1, 0.012);
 
-/** Shared brown wood material for shelf planks (#6a4226) — toon-shaded to match Mat */
-const sharedPlankMaterial = new THREE.MeshToonMaterial({
-  color: "#6a4226",
-  gradientMap: toonGradientTexture,
-});
-/** Shared honey/oak material for top caps (#8a6838) — toon-shaded to match Mat */
-const sharedTopCapMaterial = new THREE.MeshToonMaterial({
-  color: "#8a6838",
-  gradientMap: toonGradientTexture,
-});
+/** Front price rail — the lip along the leading edge of each shelf board.
+    Real retail gondolas have one; it also breaks the flat board silhouette. */
+const sharedRailGeometry = new RoundedBoxGeometry(2.76, 0.045, 0.022, 1, 0.009);
+
+/** End post — vertical trim at each end of the unit, proud of the shelf depth
+    so the gondola has a visible frame instead of a flush slab edge. */
+const sharedEndPostGeometry = new RoundedBoxGeometry(0.07, 1.56, 0.43, 1, 0.022);
+
+// Shelf boards were the last MeshToonMaterial in the store (toonGradientTexture
+// has been a null stub since the PBR conversion, so these were toon-shaded with
+// no gradient — i.e. flat brown slabs that ignored the zone lights entirely).
+// Now standard PBR with wood grain, so boards catch the warm falloff and read
+// as fixtures. Textures are created lazily: this module is evaluated during SSR
+// where there's no document to draw a canvas on.
+// The wood map carries its own brown albedo, so color stays white when it's
+// present — tinting a brown map with a brown color multiplies to mud. The
+// literal colors are kept only as the no-canvas (SSR) fallback.
+let _plankMat: THREE.MeshStandardMaterial | null = null;
+function getPlankMaterial(): THREE.MeshStandardMaterial {
+  if (!_plankMat) {
+    const t = getWoodTexture(6, 1);
+    _plankMat = new THREE.MeshStandardMaterial({
+      color: t ? "#ffffff" : "#6a4226",
+      roughness: 0.78,
+    });
+    if (t) _plankMat.map = t;
+  }
+  return _plankMat;
+}
+let _topCapMat: THREE.MeshStandardMaterial | null = null;
+function getTopCapMaterial(): THREE.MeshStandardMaterial {
+  if (!_topCapMat) {
+    const t = getWoodTexture(6, 1);
+    _topCapMat = new THREE.MeshStandardMaterial({
+      // Slight warm lift so the cap still reads a shade lighter than the boards.
+      color: t ? "#c9a877" : "#8a6838",
+      roughness: 0.7,
+    });
+    if (t) _topCapMat.map = t;
+  }
+  return _topCapMat;
+}
 
 export { SHELF_ROWS };
 
@@ -123,25 +170,31 @@ export function ShelfUnit({
           side of the gondola hit the matching genre (was a single mesh with
           frontUserData on both sides, which made the back side open the front
           genre's browser). */}
-      <mesh position={[0, 0.75, -0.02]} userData={frontUserData}>
+      {/* castShadow is on the gondola STRUCTURE only — panels, sides, cap,
+          boards. Deliberately not on the ~30 tapes per unit: they'd multiply the
+          shadow pass by an order of magnitude for contact shadows nobody can see
+          behind a poster. The carcass is what needs to sit on the carpet. */}
+      <mesh position={[0, 0.75, -0.02]} userData={frontUserData} castShadow receiveShadow>
         <boxGeometry args={[2.8, 1.5, 0.02]} />
         <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
-      <mesh position={[0, 0.75, 0.02]} userData={backUserData}>
+      <mesh position={[0, 0.75, 0.02]} userData={backUserData} castShadow receiveShadow>
         <boxGeometry args={[2.8, 1.5, 0.02]} />
         <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
-      {/* Side panels */}
-      <mesh position={[-1.4, 0.75, 0]}>
-        <boxGeometry args={[0.04, 1.5, 0.35]} />
-        <Mat color="#4a2818" roughness={0.8} />
+      {/* ── End posts ──────────────────────────────────────────────────────
+          Replaces the flush 0.04 side slabs. These are deeper than the shelf
+          (0.43 vs 0.35) and taller than the carcass, so they stand proud at
+          both ends — the gondola now has a frame rather than a sheared edge,
+          which is most of what stops it reading as an extruded rectangle. */}
+      <mesh position={[-1.42, 0.78, 0]} geometry={sharedEndPostGeometry} castShadow receiveShadow>
+        <Mat color="#4a2818" roughness={0.78} />
       </mesh>
-      <mesh position={[1.4, 0.75, 0]}>
-        <boxGeometry args={[0.04, 1.5, 0.35]} />
-        <Mat color="#4a2818" roughness={0.8} />
+      <mesh position={[1.42, 0.78, 0]} geometry={sharedEndPostGeometry} castShadow receiveShadow>
+        <Mat color="#4a2818" roughness={0.78} />
       </mesh>
       {/* Top cap — shared geometry + material */}
-      <mesh position={[0, 1.52, 0]} geometry={sharedTopCapGeometry} material={sharedTopCapMaterial} />
+      <mesh position={[0, 1.52, 0]} geometry={sharedTopCapGeometry} material={getTopCapMaterial()} castShadow receiveShadow />
       {/* Genre sign on top — Blockbuster blue with yellow text */}
       {/* Front side (faces -z in local space) */}
       <mesh position={[0, 1.62, -0.12]}>
@@ -159,9 +212,19 @@ export function ShelfUnit({
           <Text position={[0, 1.62, 0.14]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{backGenre}</Text>
         </>
       )}
-      {/* 3 visible shelf boards — shared geometry + material */}
+      {/* 3 visible shelf boards, each with a price rail on both leading edges.
+          Board depth is 0.35 (spans z −0.175..+0.175) and the gondola is
+          double-sided, so each board gets a rail front and back. */}
       {[0.02, 0.50, 1.0].map((sy, i) => (
-        <mesh key={`board-${i}`} position={[0, sy, 0]} geometry={sharedPlankGeometry} material={sharedPlankMaterial} />
+        <React.Fragment key={`board-${i}`}>
+          <mesh position={[0, sy, 0]} geometry={sharedPlankGeometry} material={getPlankMaterial()} castShadow receiveShadow />
+          <mesh position={[0, sy + 0.03, -0.171]} geometry={sharedRailGeometry} castShadow>
+            <Mat color="#3a2010" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, sy + 0.03, 0.171]} geometry={sharedRailGeometry} castShadow>
+            <Mat color="#3a2010" roughness={0.6} />
+          </mesh>
+        </React.Fragment>
       ))}
 
       {/* VHS Boxes — PosterBoxes when loaded, solid-color placeholders otherwise so shelves never look bare */}
@@ -173,7 +236,16 @@ export function ShelfUnit({
           const sidePosters = isBack ? backPosters : frontPosters;
           const sideColor = isBack ? bColor : color;
           const sideIdx = positions.filter(p => p.side === pos.side).indexOf(pos);
-          const poster = sidePosters[sideIdx] ?? null;
+          // Wrap instead of running off the end. Thin genres return fewer than the
+          // 15 slots a gondola face has (getCuratedShelfPosterData slices the genre
+          // catalog across placements), which used to leave the tail as solid navy
+          // blocks — the single ugliest thing in the store. Cycling fills every slot
+          // with real art, and stacking multiple copies of a title is what an actual
+          // video store looked like. Safe for pickup: PosterBox keys availability off
+          // the per-slot slotKey, not movieId, so copies check out independently.
+          const poster = sidePosters.length > 0
+            ? sidePosters[sideIdx % sidePosters.length]
+            : null;
           const flipRot = isBack ? Math.PI : 0;
           if (poster) {
             posterElements.push(
@@ -442,7 +514,7 @@ export function NewReleasesWall({
       </mesh>
       {/* Shelf boards — shared geometry + material */}
       {[1.61, 1.11, 0.61, 0.02].map((y, i) => (
-        <mesh key={`shelf-${i}`} position={[0, y, 0.05]} geometry={sharedNRBoardGeometry} material={sharedPlankMaterial} />
+        <mesh key={`shelf-${i}`} position={[0, y, 0.05]} geometry={sharedNRBoardGeometry} material={getPlankMaterial()} />
       ))}
       {/* Shelf bracket supports — metal L-brackets under each shelf */}
       {[1.61, 1.11, 0.61].map((y, i) =>

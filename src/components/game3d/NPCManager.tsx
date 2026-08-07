@@ -85,8 +85,9 @@ function NPCMesh({
   const rightArmRef = useRef<THREE.Group>(null);
   const torsoRef = useRef<THREE.Mesh>(null);
   const headRef = useRef<THREE.Group>(null);
-  const leftEyeRef = useRef<THREE.Mesh>(null);
-  const rightEyeRef = useRef<THREE.Mesh>(null);
+  // Groups, not meshes — the blink scales the whole eye (white + pupil).
+  const leftEyeRef = useRef<THREE.Group>(null);
+  const rightEyeRef = useRef<THREE.Group>(null);
   const mouthRef = useRef<THREE.Mesh>(null);
   const leftHandRef = useRef<THREE.Mesh>(null);
   const rightHandRef = useRef<THREE.Mesh>(null);
@@ -436,54 +437,96 @@ function NPCMesh({
     }
   });
 
+  // Head scale factor: 0.26 / 0.35. Applied to the whole head group so every
+  // feature (hair variants, eyes, nose, mouth) trims together and the existing
+  // offsets stay valid.
+  const HEAD_TRIM = 0.743;
+
   // ── Priority 10: Body proportion tweaks by personality (Minecraft/Crossy Road style) ──
   const pType = npc.config.personalityType;
-  const torsoW = pType === "parent" ? 0.38 : 0.35; // parent: wider
-  const torsoD = pType === "parent" ? 0.22 : 0.2;
-  const legH = pType === "teenager" ? 0.4 : 0.35; // teenager: slightly longer legs
-  const headScale = pType === "kid" ? 1.1 : 1.0; // kid: slightly larger head
+
+  // Per-NPC build variance.
+  //
+  // `height` (0.85–1.15) is applied as a uniform scale on the root group, which
+  // gives different STATURES but identical BUILDS — every customer was the same
+  // person at a different zoom level, which is what made a crowd read as clones.
+  // These offsets vary limb and torso dimensions independently of that scale, so
+  // two NPCs of the same height can still be a lanky one and a stocky one.
+  // Hashed off the stable config id rather than random, so a given customer
+  // looks the same every visit instead of reshuffling their body each spawn.
+  // Not memoised on purpose: it's a pure deterministic hash of a stable string,
+  // cheap enough to recompute, and adding a hook this far down the component
+  // body risks hook-ordering problems for no gain.
+  let buildSeed = 0;
+  for (let i = 0; i < npc.config.id.length; i++) {
+    buildSeed = (buildSeed * 31 + npc.config.id.charCodeAt(i)) | 0;
+  }
+  // Two decorrelated values in -1..1 from the one hash.
+  const vBuild = (((buildSeed >>> 3) & 255) / 127.5) - 1;
+  const vLeg = (((buildSeed >>> 13) & 255) / 127.5) - 1;
+
+  const torsoW = (pType === "parent" ? 0.38 : 0.35) + vBuild * 0.035;
+  const torsoD = (pType === "parent" ? 0.22 : 0.2) + vBuild * 0.018;
+  const legH = (pType === "teenager" ? 0.4 : 0.35) + vLeg * 0.045;
+  const headScale = pType === "kid" ? 1.15 : 1.0; // kid: proportionally bigger head
 
   return (
     <group ref={groupRef} scale={height * 1.6}>
       <group rotation={[0, Math.PI, 0]}>
       {/* ── Legs (short, stubby — Vinny proportions) ── */}
       <group ref={leftLegRef} position={[-0.08, legH, 0]}>
-        <mesh position={[0, -legH / 2, 0]}>
-          <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
-        </mesh>
-        <mesh position={[0, -legH + 0.025, 0]}>
-          <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
-        </mesh>
+        <RoundedBox args={[0.12, legH, 0.12]} radius={0.022} smoothness={2} position={[0, -legH / 2, 0]} castShadow>
+          <meshStandardMaterial color={pantsColor} />
+        </RoundedBox>
+        <RoundedBox args={[0.13, 0.05, 0.15]} radius={0.016} smoothness={2} position={[0, -legH + 0.025, -0.005]} castShadow>
+          <meshStandardMaterial color="#2a2a2a" roughness={0.55} />
+        </RoundedBox>
       </group>
       <group ref={rightLegRef} position={[0.08, legH, 0]}>
-        <mesh position={[0, -legH / 2, 0]}>
-          <boxGeometry args={[0.12, legH, 0.12]} /><meshStandardMaterial color={pantsColor} />
-        </mesh>
-        <mesh position={[0, -legH + 0.025, 0]}>
-          <boxGeometry args={[0.13, 0.05, 0.14]} /><meshStandardMaterial color="#2a2a2a" />
-        </mesh>
+        <RoundedBox args={[0.12, legH, 0.12]} radius={0.022} smoothness={2} position={[0, -legH / 2, 0]} castShadow>
+          <meshStandardMaterial color={pantsColor} />
+        </RoundedBox>
+        <RoundedBox args={[0.13, 0.05, 0.15]} radius={0.016} smoothness={2} position={[0, -legH + 0.025, -0.005]} castShadow>
+          <meshStandardMaterial color="#2a2a2a" roughness={0.55} />
+        </RoundedBox>
       </group>
       {/* ── Belt ── */}
       <mesh position={[0, legH + 0.02, 0]}>
         <boxGeometry args={[torsoW + 0.01, 0.04, torsoD + 0.01]} /><meshStandardMaterial color="#2a2a2a" />
       </mesh>
-      {/* ── Torso (short and wide — matches Vinny) ── */}
-      <RoundedBox ref={torsoRef} args={[torsoW, 0.35, torsoD]} radius={0.03} smoothness={2} position={[0, legH + 0.2, 0]}>
+      {/* ── Torso ── */}
+      <RoundedBox ref={torsoRef} args={[torsoW, 0.35, torsoD]} radius={0.03} smoothness={2} position={[0, legH + 0.2, 0]} castShadow>
         <meshStandardMaterial color={shirtColor} />
       </RoundedBox>
-      {/* ── Arms (short stubby) ── */}
-      <group ref={leftArmRef} position={[-(torsoW / 2 + 0.06), legH + 0.4, 0]}>
-        <mesh position={[0, -0.15, 0]}>
-          <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
-        </mesh>
+      {/* ── Shoulder yoke ──────────────────────────────────────────────────
+          A slightly wider, shallow slab across the top of the torso. This is
+          what turns the silhouette from "box with a head on it" into
+          something with a shoulder line — the single cheapest read of a
+          human shape. Sits flush with the torso top (legH + 0.375). */}
+      <mesh position={[0, legH + 0.355, 0]} castShadow>
+        <boxGeometry args={[torsoW + 0.05, 0.075, torsoD + 0.005]} />
+        <meshStandardMaterial color={shirtColor} />
+      </mesh>
+      {/* ── Neck ── the gap that stops the head reading as welded on */}
+      <mesh position={[0, legH + 0.425, 0]} castShadow>
+        <boxGeometry args={[0.085, 0.075, 0.085]} />
+        <meshStandardMaterial color={skinTone} />
+      </mesh>
+      {/* ── Arms ── inset closer to the ribs (was +0.06 off the torso edge,
+          which left them floating with a visible air gap) and dropped to the
+          new shoulder line. */}
+      <group ref={leftArmRef} position={[-(torsoW / 2 + 0.035), legH + 0.36, 0]}>
+        <RoundedBox args={[0.085, 0.3, 0.095]} radius={0.02} smoothness={2} position={[0, -0.15, 0]} castShadow>
+          <meshStandardMaterial color={shirtColor} />
+        </RoundedBox>
         <mesh ref={leftHandRef} position={[0, -0.33, 0]}>
           <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
         </mesh>
       </group>
-      <group ref={rightArmRef} position={[(torsoW / 2 + 0.06), legH + 0.4, 0]}>
-        <mesh position={[0, -0.15, 0]}>
-          <boxGeometry args={[0.1, 0.3, 0.1]} /><meshStandardMaterial color={shirtColor} />
-        </mesh>
+      <group ref={rightArmRef} position={[(torsoW / 2 + 0.035), legH + 0.36, 0]}>
+        <RoundedBox args={[0.085, 0.3, 0.095]} radius={0.02} smoothness={2} position={[0, -0.15, 0]} castShadow>
+          <meshStandardMaterial color={shirtColor} />
+        </RoundedBox>
         <mesh ref={rightHandRef} position={[0, -0.33, 0]}>
           <sphereGeometry args={[0.04, 8, 8]} /><meshStandardMaterial color={skinTone} />
         </mesh>
@@ -492,9 +535,16 @@ function NPCMesh({
           <boxGeometry args={[0.08, 0.05, 0.02]} /><meshStandardMaterial color={vhsGenreColor} />
         </mesh>
       </group>
-      {/* ── Head (BIG, Minecraft-style) ── */}
-      <group ref={headRef} position={[0, legH + 0.54, 0]} scale={headScale}>
-        <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.04} smoothness={2} position={[0, 0, 0]}>
+      {/* ── Head ────────────────────────────────────────────────────────────
+          Was a 0.35 cube on a 0.35-wide torso — the head was exactly as wide
+          as the body, which is what made these read as placeholder rather
+          than as a chosen blocky style. HEAD_TRIM scales the whole head group
+          (skull, all 7 hair variants, eyes, nose, mouth) as one unit, so the
+          proportions change without having to re-tune every feature offset.
+          Sits on top of the neck: neck top (legH+0.4625) + half of the
+          trimmed skull. */}
+      <group ref={headRef} position={[0, legH + 0.592, 0]} scale={headScale * HEAD_TRIM}>
+        <RoundedBox args={[0.35, 0.35, 0.35]} radius={0.04} smoothness={2} position={[0, 0, 0]} castShadow>
           <meshStandardMaterial color={skinTone} />
         </RoundedBox>
         {/* Hair variants */}
@@ -522,23 +572,35 @@ function NPCMesh({
         {hairStyle === "afro" && (
           <mesh position={[0, 0.12, 0]}><boxGeometry args={[0.38, 0.2, 0.38]} /><meshStandardMaterial color={hairColor} /></mesh>
         )}
-        {/* Eyes */}
-        <mesh position={[-0.08, 0.02, -0.17]}>
-          <sphereGeometry args={[0.03, 8, 8]} /><meshStandardMaterial color="#ffffff" />
-        </mesh>
-        <mesh position={[0.08, 0.02, -0.17]}>
-          <sphereGeometry args={[0.03, 8, 8]} /><meshStandardMaterial color="#ffffff" />
-        </mesh>
-        {/* Pupils */}
-        <mesh ref={leftEyeRef} position={[-0.08, 0.02, -0.2]}>
-          <sphereGeometry args={[0.018, 8, 8]} /><meshStandardMaterial color="#1a1a1a" />
-        </mesh>
-        <mesh ref={rightEyeRef} position={[0.08, 0.02, -0.2]}>
-          <sphereGeometry args={[0.018, 8, 8]} /><meshStandardMaterial color="#1a1a1a" />
-        </mesh>
-        {/* Nose */}
-        <mesh position={[0, -0.03, -0.18]}>
-          <sphereGeometry args={[0.02, 8, 8]} /><meshStandardMaterial color={skinTone} />
+        {/* ── Eyes ────────────────────────────────────────────────────────
+            Were sphere-on-sphere: a 0.03 white ball at z=-0.17 with a 0.018
+            pupil ball in FRONT of it at z=-0.20, so the pupils stuck ~4cm
+            proud of a face whose front plane is z=-0.175. Fine at aisle
+            distance, googly at conversation range. Now flat discs sitting on
+            the face plane. The ref moved from the pupil to the eye group so a
+            blink closes the whole eye rather than squashing the pupil inside a
+            staring white ball. circleGeometry faces local +Z, so each disc is
+            turned to face -Z (the front of the head) rather than relying on
+            DoubleSide to paper over the orientation. */}
+        <group ref={leftEyeRef} position={[-0.075, 0.02, -0.176]}>
+          <mesh rotation={[0, Math.PI, 0]}>
+            <circleGeometry args={[0.032, 14]} /><meshStandardMaterial color="#f4f1ea" />
+          </mesh>
+          <mesh position={[0, 0, -0.002]} rotation={[0, Math.PI, 0]}>
+            <circleGeometry args={[0.016, 12]} /><meshStandardMaterial color="#1a1a1a" />
+          </mesh>
+        </group>
+        <group ref={rightEyeRef} position={[0.075, 0.02, -0.176]}>
+          <mesh rotation={[0, Math.PI, 0]}>
+            <circleGeometry args={[0.032, 14]} /><meshStandardMaterial color="#f4f1ea" />
+          </mesh>
+          <mesh position={[0, 0, -0.002]} rotation={[0, Math.PI, 0]}>
+            <circleGeometry args={[0.016, 12]} /><meshStandardMaterial color="#1a1a1a" />
+          </mesh>
+        </group>
+        {/* Nose — kept as a small proud form; noses are meant to stick out */}
+        <mesh position={[0, -0.035, -0.178]}>
+          <sphereGeometry args={[0.017, 8, 8]} /><meshStandardMaterial color={skinTone} />
         </mesh>
         {/* Mouth */}
         <mesh ref={mouthRef} position={[0, -0.1, -0.17]}>
@@ -593,11 +655,8 @@ function ManagedNPC({
       <NPCMesh npc={npc} groupRef={groupRef} allNpcs={allNpcs} />
       {/* Name label — raised for big-head Minecraft proportions */}
       <group position={[npc.position[0], 2.0, npc.position[2]]}>
-        <Billboard>
-          <Text fontSize={0.07} color="#e0e0e0" anchorX="center" font={undefined}>
-            {npc.config.name}
-          </Text>
-        </Billboard>
+        {/* Name label removed — customers in a video store don't wear nametags.
+            Their names still surface through overheard dialogue and subtitles. */}
       </group>
       {/* Speech bubble when in conversation */}
       {speechLine && (

@@ -232,10 +232,16 @@
   font-size: 0.7rem;
   font-weight: 400;
   color: #fff;
-  background: rgba(0, 0, 0, 0.95);
-  padding: 12px 24px;
+  /* Was a 95%-opaque black box in a 3px gold frame with a hard drop shadow —
+     once the HUD stopped being a slab, this became the heaviest object on
+     screen and read like a debug console. Softened to a scrim that still keeps
+     the line readable over a bright storefront without punching a hole in the
+     middle of the room. */
+  background: rgba(0, 0, 0, 0.55);
+  padding: 10px 22px;
   border-radius: 0;
-  border: 3px solid #ffd700;
+  border: none;
+  border-bottom: 2px solid rgba(255, 215, 0, 0.5);
   z-index: 13;
   pointer-events: none;
   max-width: 75%;
@@ -243,7 +249,6 @@
   font-style: normal;
   font-family: var(--fnv-font-pixel);
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);
-  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.6);
   animation: subtitle-in 0.15s steps(3);
   image-rendering: pixelated;
 }
@@ -562,22 +567,31 @@
 }
 
 /* ── HUD top bar — retro game header ─────────────────────── */
+/* The HUD was a 980px opaque black slab pinned to the top-left at 86% alpha,
+   with a gold border and a drop shadow — it occupied the top ~15% of every
+   frame and was the first thing the eye landed on in any screenshot. For a
+   piece whose whole point is the room, the chrome was outcompeting the set.
+   Now it floats: no panel fill, no border, no shadow. The text carries its own
+   legibility via a shadow, so it reads over both the bright storefront and the
+   dark aisles without needing a box behind it. */
 .g3-hud {
   position: fixed;
   top: 12px;
   left: 12px;
   right: auto;
-  width: min(980px, calc(100vw - 24px));
+  width: min(860px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 4px 6px;
   z-index: 10;
   pointer-events: none;
-  background: rgba(3, 6, 16, 0.86);
-  border: 1px solid rgba(255, 215, 0, 0.34);
-  border-radius: 6px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.7);
+  opacity: 0.82;
   font-family: var(--fnv-font-pixel);
 }
 
@@ -659,10 +673,12 @@
   align-items: baseline;
   gap: 6px;
   min-width: 0;
-  min-height: 26px;
-  padding: 4px 9px;
-  background: rgba(0, 0, 0, 0.72);
-  border: 1px solid rgba(255, 215, 0, 0.14);
+  min-height: 24px;
+  padding: 3px 7px;
+  /* Pills keep a whisper of fill so the numbers stay parseable against a
+     bright storefront, but nothing like the solid black chips they were. */
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 215, 0, 0.10);
   color: #fff1b2;
 }
 
@@ -689,10 +705,10 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 8px 10px;
-  background: rgba(8, 12, 22, 0.64);
-  border: 1px solid rgba(255, 215, 0, 0.16);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 4px 2px;
+  background: none;
+  border: none;
+  box-shadow: none;
 }
 
 .g3-hud-mission-copy {

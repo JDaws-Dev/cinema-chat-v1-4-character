@@ -99,6 +99,10 @@ export function setMuted(m: boolean) {
     stopAmbient();
   } else {
     startAmbient();
+    // stopAmbient() cleared chatterTimeout, and startAmbient() only restores the
+    // looping beds — without this the overheard conversations never come back and
+    // the store goes permanently silent after one AUDIO off/on toggle.
+    startCustomerChatter();
   }
 }
 export function isMuted(): boolean { return muted; }
@@ -467,8 +471,11 @@ function scheduleNextChatter() {
 
 export function startCustomerChatter() {
   if (chatterTimeout || customerInterval) return;
-  // Play first clip after 5-10s
-  setTimeout(() => {
+  // Play first clip after 5-10s. Assign chatterTimeout up front — the guard above
+  // only works if the opening delay is tracked too, otherwise repeated calls
+  // (mute toggling, re-entering the store) stack parallel chatter chains and the
+  // store starts talking over itself.
+  chatterTimeout = setTimeout(() => {
     playRandomCustomerClip();
     // After first clip finishes, start the alternating schedule
     const waitForFirst = () => {

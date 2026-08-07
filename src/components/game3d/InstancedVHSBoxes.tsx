@@ -2,6 +2,7 @@
 
 import React, { useRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { toonGradientTexture } from "./store-materials";
 
 /**
@@ -9,7 +10,12 @@ import { toonGradientTexture } from "./store-materials";
  * Bumped from 0.15 × 0.26 × 0.025 → 0.20 × 0.34 × 0.035 so titles read clearly
  * from a normal browsing distance (was too small to read on shelf).
  */
-const sharedVHSGeometry = new THREE.BoxGeometry(0.20, 0.34, 0.035);
+// Bevelled rather than a hard box. There are several hundred of these on
+// screen at once, so a sharp-edged slab repeated across every shelf is a large
+// share of why the store read as blocky. Radius is capped by the 0.035
+// thickness (must stay under half), so 0.008 is about the maximum here — small,
+// but enough to put a lit edge down each side of every tape.
+const sharedVHSGeometry = new RoundedBoxGeometry(0.20, 0.34, 0.035, 1, 0.008);
 
 /**
  * Material cache — one meshToonMaterial per color string.

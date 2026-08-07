@@ -642,16 +642,20 @@ export default function GamePage() {
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div onClick={() => { if (isMobile && hoverLabel && !hasOverlay) { mobileInput.interact = true; } }}>
       <Canvas
-        shadows={false}
+        // Shadows were off on the grounds of cost. Re-tested at 57 FPS with ~1100
+        // draw calls of headroom: one shadow-casting light (see Store.tsx) is
+        // affordable, and without it nothing in the store has any weight.
+        // Desktop only — mobile keeps the old flat path.
+        shadows={isMobile ? false : "soft"}
         gl={{ antialias: !isMobile, failIfMajorPerformanceCaveat: false, preserveDrawingBuffer: true }}
         camera={{ fov: 70, near: 0.1, far: 50 }}
         dpr={isMobile ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
-        style={{ background: "#1a2a48", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
-        onCreated={({ gl }) => { gl.setClearColor("#1a2a48"); setTimeout(() => setLoading(false), 500); }}
+        style={{ background: "#070a12", position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+        onCreated={({ gl }) => { gl.setClearColor("#070a12"); setTimeout(() => setLoading(false), 500); }}
       >
         <Suspense fallback={null}>
-          <fogExp2 attach="fog" args={["#0a0e18", 0.02]} />
+          <fogExp2 attach="fog" args={["#070a12", 0.045]} />
           <Store
             isMobile={isMobile}
             eraYears={selectedEra.years}

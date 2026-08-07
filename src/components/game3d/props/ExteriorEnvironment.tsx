@@ -42,13 +42,20 @@ export function ExteriorEnvironment({ topDown }: { topDown: boolean }) {
         </mesh>
       ))}
 
-      {/* Exterior nighttime lighting */}
-      <pointLight position={[0, 3.2, ROOM_D / 2 + 1.2]} intensity={0.7} distance={10} color="#ffe0a0" />
-      <pointLight position={[0, 2.0, ROOM_D / 2 + 0.8]} intensity={0.5} distance={6} color="#ffd700" />
-      <pointLight position={[1.18, 3.0, 18.41]} intensity={0.8} distance={8} color="#ffe4a0" />
-      <pointLight position={[-5.94, 3.0, 18.2]} intensity={0.8} distance={8} color="#ffe4a0" />
-      <pointLight position={[-4.76, 0.6, 11.5]} intensity={0.3} distance={4} color="#fff8e0" />
-      <pointLight position={[0, 2, ROOM_D / 2]} intensity={0.15} distance={8} color="#2244aa" />
+      {/* Exterior nighttime lighting. These were balanced against the old ambient
+          of 1.1 — once ambient dropped to 0.18 to make it actually read as night,
+          they were contributing almost nothing and the lot went to near-black.
+          Scaled up to match, and given a sodium-vapour pole light over the lot so
+          the asphalt reads as a surface rather than a void. Keep the lot dimmer
+          than the interior: the storefront only glows if there's dark around it. */}
+      <pointLight position={[0, 3.2, ROOM_D / 2 + 1.2]} intensity={2.6} distance={13} decay={1.7} color="#ffe0a0" />
+      <pointLight position={[0, 2.0, ROOM_D / 2 + 0.8]} intensity={1.8} distance={8} decay={1.7} color="#ffd700" />
+      <pointLight position={[1.18, 3.0, 18.41]} intensity={2.4} distance={11} decay={1.7} color="#ffe4a0" />
+      <pointLight position={[-5.94, 3.0, 18.2]} intensity={2.4} distance={11} decay={1.7} color="#ffe4a0" />
+      <pointLight position={[-4.76, 0.6, 11.5]} intensity={0.9} distance={5} decay={1.7} color="#fff8e0" />
+      <pointLight position={[0, 2, ROOM_D / 2]} intensity={0.4} distance={9} color="#2244aa" />
+      {/* Sodium-vapour lot lamp — the orange pool every strip-mall lot had */}
+      <pointLight position={[6.5, 5.0, 14.0]} intensity={5.0} distance={16} decay={1.5} color="#ffb066" />
 
       {/* Curb */}
       <mesh position={[0, 0.05, ROOM_D / 2 + 1.5]}><boxGeometry args={[36, 0.1, 0.15]} /><meshBasicMaterial color="#555555" /></mesh>

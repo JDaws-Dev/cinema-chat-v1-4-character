@@ -2,9 +2,21 @@
 
 Drafted 2026-06-01. The fictional Blockbuster catalog becomes Jeremiah's real archive: 50-film Letterboxd diary + 966-film library from `/Users/jeremiahdaws/Projects/DEMO REEL/public/movies.html`.
 
-## Status as of 2026-06-04
+## Status as of 2026-07-25 — deferred, and the host changed
+
+**Deferred by decision.** The catalog stays the fictional era-curated TMDB set for now. Order of work is (1) visual quality bar, (2) liveliness, (3) content — this plan is step 3.
+
+**The host is no longer Unity v2.** As of 2026-07-25 the project is rebuilding on web/R3F as `/v3` (reasoning in `CLAUDE.md` → "Active direction"). So the Phase 1–5 wording below, which assumes Unity fixtures (`M_NR_*` materials, `Assets/Arrival/Data/movie_titles.tsv`, gondola GameObjects), needs re-targeting at R3F equivalents before anyone starts. The *phasing* still holds; the implementation notes don't.
+
+**The gate moved too.** The old gate was "v2 needs NPC liveliness + a Vinny voice." That was written believing the store looked right and only lacked life. It doesn't look right yet: shelf tapes are untextured flat blocks (`InstancedVHSBoxes` has no poster material at all — see the CORRECTION section in `CLAUDE.md`), and the scene is toon-shaded, shadowless, and never reads as night. **New gate: the poster-atlas + PBR/lighting foundation lands first.** Hydrating a personal collection into shelves that render as navy rectangles would waste the whole point — the diary's poster art *is* the payoff.
+
+**Still true and still valuable:** the per-tape metadata approach (each tape a distinct object carrying its own movie id), the diary→New Releases wall mapping, and the Backrooms-as-unrated-archive idea all survive the engine change intact.
+
+## Status as of 2026-06-09 (superseded)
 
 **Where we are:** Phase 0 not started. The Unity v2 build is the more likely host for the personal-collection content (rather than R3F `/game`), so the runway question shifted to "is v2 good enough as a vessel?" before pivoting. v2 took a real step toward "feel-right" in early June (post-processing + a properly merchandised store), but the gate below is still open.
+
+**2026-06-09 live eval (full repo + runtime check):** v2 loads and plays, including headless (~20s splash→exterior); the arrival moment and merchandised store hold up. Three issues logged for the next editor session: interior renders washed-out/milky (verify in a real browser before tuning — suspects: postExposure + ambient + bloom stacking), dark quads overlap the exterior marquee text, and the storefront glass may be missing a collider (headless player walked in with just W). The R3F `/game` eval-debt (empty NEW RELEASES wall, near-black aisles, FOR LEASE void) was re-verified as all still present but stays parked — fix energy belongs here, not there. The eval's bottom line matched this plan's gate: **v2 is a beautiful store with nobody in it; liveliness (NPCs + a Vinny voice) is the blocker, then Phase 0.**
 
 **Recent v2 progress that affects this plan:**
 - The store has bones now (parking-lot arrival, NEW RELEASES wall, drop-where-they-belong, zone-pool lighting, Employees Only → Backrooms portal)
