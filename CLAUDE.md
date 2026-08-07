@@ -21,12 +21,17 @@ A 3D Blockbuster-style video store game. Player walks in, finds movies, talks to
 
 **Order of work:** (1) visual quality bar, (2) liveliness, (3) content. The catalog stays the fictional era-curated TMDB set for now — the personal-collection pivot is deferred until the place looks right. See `TRANSITION-PLAN.md`.
 
-**v3 shape:** a new `/v3` route in this repo sharing `src/lib/` (catalog, game state, audio) so it's a new render layer over existing work rather than a third parallel build. Planned foundation work, in order:
-1. Replace the toon instancing path with a **poster-atlas instanced material** (one atlas of catalog posters, per-instance UV offsets) so shelf tapes show real spine art in a couple of draw calls.
-2. Toon → standard PBR, real tonemapping (ACES/AgX), one shadow-casting key light, warm pooled fill.
-3. Drop exterior ambient hard so the storefront glows into the parking lot — it must read as *night*.
-4. Bloom on neon + signage, film grain, vignette.
-5. Convert billboarded labels to physical world-scale signs.
+**v3 shape:** a new `/v3` route in this repo sharing `src/lib/` (catalog, game state, audio) so it's a new render layer over existing work rather than a third parallel build.
+
+**⚠️ Most of the v3 foundation list was done in-place on `/game` instead (2026-08-07, commit `9a37e65`).** Rather than stand up a parallel route, the render work landed directly in the existing build. Status of the original five:
+
+1. ~~Poster-atlas instanced material.~~ **Not needed for the stated reason, and not urgent.** Shelf tapes already carry real poster art — `PosterBox` maps the catalog poster onto each tape; the solid-colored `InstancedVHSBoxes` path is only the fallback for slots past the end of a thin genre's catalog, and that list now wraps so it rarely triggers. The remaining case for an atlas is draw-call count on mobile, not visuals. Measured: ~2500 draws at spawn, holding ~57 FPS on desktop.
+2. ~~Toon → PBR, tonemapping, one shadow key, warm pooled fill.~~ **Done.** The store was already PBR (`Mat` is a `MeshStandardMaterial` cache; `toonGradientTexture` is a null stub); the last toon holdouts were the shelf boards, now converted. R3F already defaults to ACESFilmic — no tonemapping change was ever needed. One overhead shadow-casting directional added, zone lights rebalanced to pool.
+3. ~~Drop exterior ambient so the storefront glows into the lot.~~ **Done.** Interior ambient 1.1 → 0.18, dropped the daylight directional, exterior lights rescaled, sodium pole lamp added.
+4. ~~Bloom on neon + signage, grain, vignette.~~ **Mostly pre-existing and now effective.** `PostEffects.tsx` always had bloom at `luminanceThreshold 0.8`; it did nothing because ambient washed everything to a similar luminance. It started working the moment the lights came down — no post-processing change was required.
+5. ~~Billboarded labels → physical signs.~~ **Resolved by deletion.** The floating NPC nametags are gone; the `[E] TALK TO …` prompt does the wayfinding. Aisle signs are real geometry with a bezel and depth.
+
+**Still open on the visual bar:** wall-run shelving, storefront trim and window frames, gondola-top genre panels, and ceiling fixtures are all still hard-edged boxes. Store dressing is sparse (no standees, danglers, ceiling banners, games section). Palette skews brown-navy.
 
 ## Superseded direction (2026-06-09) — kept for history
 
@@ -64,15 +69,17 @@ Audit identified a sensory inventory of what makes a Friday-night Blockbuster *f
 
 Re-verified against `8af1388` using **real player-viewport screenshots** (`scripts/capture-player-view.mjs`) rather than the security-cam harness. The store does not have a lighting problem. Three corrections, in order of how much wasted effort they explain:
 
-1. **Shelf tapes cannot show posters — there is no poster material on them.** `src/components/game3d/InstancedVHSBoxes.tsx` renders solid-colored boxes: `MeshToonMaterial({ color, gradientMap })`, no `map`, no texture support, by design for single-draw-call instancing. The 2026-06-09 note below ("posters are served fine but invisible… this is a *lighting* problem… don't debug the fetch path again") is half right — it isn't the fetch path, but it isn't lighting either. Only wall-display copies (JAWS, Indiana Jones) carry real posters, which is exactly why those show and every gondola tape is a flat blue block. **No amount of light tuning can fix this.** The fix is a poster-atlas instanced material.
-2. **`MeshToonMaterial` is why the whole store reads flat.** Toon shading bands and discards most PBR light response, so the scene cannot look lit no matter what happens to the lights.
+1. ~~**Shelf tapes cannot show posters — there is no poster material on them.**~~ **ALSO WRONG (corrected 2026-08-07).** `InstancedVHSBoxes` is only the *placeholder* path. The real renderer is `PosterBox` in `store-materials.tsx`, which maps the catalog poster onto every tape that has one — gondola tapes included, not just wall displays. Solid blocks appeared only where a genre's catalog slice ran shorter than the shelf's 15 slots. See the corrected item 2 above.
+2. ~~**`MeshToonMaterial` is why the whole store reads flat.**~~ **WRONG (corrected 2026-08-07).** The store was already PBR when this was written — `Mat` is a `MeshStandardMaterial` cache and `toonGradientTexture` is `export const toonGradientTexture = null`, a legacy stub. The only real toon holdouts were the shelf boards (toon-shaded with a *null* gradient, so effectively flat unlit brown), now converted. What actually made the store read flat was `ambientLight intensity={1.1}` drowning the zone lights. **Do not re-plan a toon→PBR conversion; it happened.** The branch where everything was cel-shaded is `prefab-editor-phase1`, which is 104 commits behind and unmerged.
 3. **"Back third of store is near-black" is a capture artifact, not a runtime fact.** `capture-security-cams.mjs` renders via a secondary camera (`gl.render(scene, cam)`) that bypasses R3F's frame loop; several interior cams return uniform navy with zero geometry in frame. In the live player view the interior is evenly lit — arguably *too* evenly. **Do not trust the security-cam harness for lighting judgements.**
 
-**Real visual problems, ranked by damage (player-view evidence, 2026-07-25):**
-1. **Billboarded labels at absurd screen scale.** NPC names ("CHARLIE", "Tommy") render frame-filling and overlap the aisle signs. Worst immersion break in the build — reads as debug UI, not a store. Fix: physical world-scale signs.
-2. **Every shelf tape is a flat colored block.** A video store's entire visual identity is walls of poster art; this is walls of navy rectangles.
-3. **No night.** It's 7:31 PM in 1989 but the parking lot is as bright as the interior, so the storefront never reads as a warm glowing box. There's no glow because there's no dark.
-4. **No shadows, no bloom.** Neon tubes render as flat white lines.
+**Real visual problems, ranked by damage (player-view evidence, 2026-07-25) — ALL FOUR FIXED 2026-08-07 in `9a37e65`:**
+1. ~~**Billboarded labels at absurd screen scale.**~~ Fixed by removing the floating nametags entirely. Note the diagnosis was wrong: they weren't mis-scaled, they were `fontSize={0.1}` and physically correct — Charlie simply walks close enough that 10cm of text fills the frame. Either way it read as debug UI.
+2. ~~**Every shelf tape is a flat colored block.**~~ **This was never true.** `PosterBox` has always mapped real poster art onto tapes; the solid blocks were only slots past the end of a thin genre's catalog slice (`getCuratedShelfPosterData` divides a genre across placements). The slot list now wraps, so every slot carries art — and stacking copies of a title is what a real store looked like. Two separate compounding bugs made this look worse than it was: posters were downscaled `w342 → w154` on desktop (a 154px image stretched across a tape face), and poster faces used `meshBasicMaterial` so they were unlit and read as stickers.
+3. ~~**No night.**~~ Fixed. The cause was a single number: `ambientLight intensity={1.1}` plus a `1.7` directional "sun", which together swamped the fluorescents. That value had been there across every branch, unchanged, through the entire toon→PBR conversion.
+4. ~~**No shadows, no bloom.**~~ Shadows on (desktop). Bloom was already configured and always had been — it did nothing because ambient washed the whole scene to a similar luminance, so nothing crossed its `0.8` threshold. It started working the instant the lights came down.
+
+**Method note worth keeping:** three of these four were misdiagnosed in this file before being fixed, each time by reasoning from a screenshot instead of from the code. Read the material and the light values before theorizing. `scripts/perf-probe.mjs` exists for the same reason — "shadows are too expensive" was a five-year-old assumption that measured at ~2 FPS.
 
 ## Eval findings — 2026-05-29 capture pass (⚠️ superseded by the correction above)
 
@@ -236,11 +243,13 @@ For 3D bugs: do the geometry math from numbers (position + size + rotation), don
 
 - Max ~10 dynamic NPCs (desktop), 5 (mobile)
 - Max 6 lights per zone
-- No real-time shadows (too expensive)
+- **Shadows: ON for desktop, off for mobile.** The old "no real-time shadows (too expensive)" rule was never measured; when it finally was, one shadow-casting directional cost ~2 FPS. Point lights each need a 6-face cube map, so exactly one directional does the casting and the zone point lights stay non-casting. Gondola *structure* casts; the ~400 tapes deliberately don't.
 - Post-processing: desktop only (Bloom, Vignette, ChromaticAberration)
 - Target: 30+ FPS on mid-range laptop
 - Prefer InstancedMesh for repeated objects (VHS boxes via `InstancedVHSBoxes`)
-- Reuse materials — `Mat` already does shared-material caching
+- Reuse materials — `Mat` already does shared-material caching (now supports `map`/`mapKey`; `mapKey` is part of the cache key so two surfaces sharing a color but not a texture don't collide)
+- Surface textures are generated at runtime in `procedural-textures.ts` (carpet, ceiling tile, wood, wall) — canvas-drawn, seeded, seamlessly tiling, no image assets
+- **Measure before optimizing or deferring.** `node scripts/perf-probe.mjs` reports real draw calls and FPS from the player viewport. Baseline after the 2026-08-07 overhaul: ~2500 draws at spawn, ~1900 mid-store, ~57 FPS.
 
 ## What "Done" means
 
