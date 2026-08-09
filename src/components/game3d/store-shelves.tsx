@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useMemo, useEffect } from "react";
-import { Text } from "@react-three/drei";
+import { Text, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import type { LayoutInteraction } from "@/lib/store-layout";
 import { getObjectById } from "@/lib/store-layout";
@@ -43,6 +43,12 @@ const sharedRailGeometry = new RoundedBoxGeometry(2.76, 0.045, 0.022, 1, 0.009);
 /** End post — vertical trim at each end of the unit, proud of the shelf depth
     so the gondola has a visible frame instead of a flush slab edge. */
 const sharedEndPostGeometry = new RoundedBoxGeometry(0.07, 1.56, 0.43, 1, 0.022);
+
+/** Gondola-top genre sign: gold bezel + navy face raised proud of it. Same
+    construction as the hanging aisle signs, so all signage in the store reads
+    as one system of physical objects rather than a mix of panels and decals. */
+const sharedGenreBezelGeometry = new RoundedBoxGeometry(1.24, 0.19, 0.045, 1, 0.013);
+const sharedGenreFaceGeometry = new RoundedBoxGeometry(1.18, 0.135, 0.065, 1, 0.009);
 
 // Shelf boards were the last MeshToonMaterial in the store (toonGradientTexture
 // has been a null stub since the PBR conversion, so these were toon-shaded with
@@ -195,21 +201,27 @@ export function ShelfUnit({
       </mesh>
       {/* Top cap — shared geometry + material */}
       <mesh position={[0, 1.52, 0]} geometry={sharedTopCapGeometry} material={getTopCapMaterial()} castShadow receiveShadow />
-      {/* Genre sign on top — Blockbuster blue with yellow text */}
+      {/* Genre sign on top — gold bezel with a raised navy face, matching the
+          aisle signs and wall runs. These were 0.02-thick decals stuck to the
+          air above the cap. */}
       {/* Front side (faces -z in local space) */}
-      <mesh position={[0, 1.62, -0.12]}>
-        <boxGeometry args={[1.2, 0.16, 0.02]} />
+      <mesh position={[0, 1.62, -0.125]} geometry={sharedGenreBezelGeometry} castShadow>
+        <Mat color="#ffd700" roughness={0.45} metalness={0.15} />
+      </mesh>
+      <mesh position={[0, 1.62, -0.125]} geometry={sharedGenreFaceGeometry}>
         <Mat color="#00006e" roughness={0.5} />
       </mesh>
-      <Text position={[0, 1.62, -0.14]} rotation={[0, Math.PI, 0]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{genre}</Text>
+      <Text position={[0, 1.62, -0.163]} rotation={[0, Math.PI, 0]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{genre}</Text>
       {/* Back side (faces +z in local space) */}
       {backGenre && (
         <>
-          <mesh position={[0, 1.62, 0.12]}>
-            <boxGeometry args={[1.2, 0.16, 0.02]} />
+          <mesh position={[0, 1.62, 0.125]} geometry={sharedGenreBezelGeometry} castShadow>
+            <Mat color="#ffd700" roughness={0.45} metalness={0.15} />
+          </mesh>
+          <mesh position={[0, 1.62, 0.125]} geometry={sharedGenreFaceGeometry}>
             <Mat color="#00006e" roughness={0.5} />
           </mesh>
-          <Text position={[0, 1.62, 0.14]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{backGenre}</Text>
+          <Text position={[0, 1.62, 0.163]} fontSize={0.065} color="#ffd700" anchorX="center" anchorY="middle" font={undefined}>{backGenre}</Text>
         </>
       )}
       {/* 3 visible shelf boards, each with a price rail on both leading edges.
@@ -316,20 +328,29 @@ export function WallShelf({
         <Mat color={SHELF_COLOR} roughness={0.8} />
       </mesh>
 
-      {/* 3 shelf boards */}
+      {/* 3 shelf boards, bevelled, each with a front price rail — same
+          treatment as the gondolas. Wall runs are single-sided so they only
+          need one rail, on the +z face. */}
       {[0.15, 0.65, 1.15].map((y, i) => (
-        <mesh key={`ws-board-${i}`} position={[0, y, 0.1]}>
-          <boxGeometry args={[width - 0.1, 0.04, 0.2]} />
-          <Mat color="#6a4226" roughness={0.7} />
-        </mesh>
+        <React.Fragment key={`ws-board-${i}`}>
+          <RoundedBox args={[width - 0.1, 0.04, 0.2]} radius={0.012} smoothness={2} position={[0, y, 0.1]} castShadow receiveShadow>
+            <Mat color="#6a4226" roughness={0.7} />
+          </RoundedBox>
+          <RoundedBox args={[width - 0.1, 0.045, 0.022]} radius={0.009} smoothness={2} position={[0, y + 0.03, 0.197]} castShadow>
+            <Mat color="#3a2010" roughness={0.6} />
+          </RoundedBox>
+        </React.Fragment>
       ))}
 
-      {/* Genre sign at top — Blockbuster blue with yellow text for readability */}
-      <mesh position={[0, 1.85, 0.05]}>
-        <boxGeometry args={[Math.min(width, 2), 0.2, 0.03]} />
+      {/* Genre sign — gold bezel with the navy face raised proud of it, so it
+          has an edge that catches light instead of being a flat decal. */}
+      <RoundedBox args={[Math.min(width, 2), 0.23, 0.05]} radius={0.014} smoothness={2} position={[0, 1.85, 0.05]} castShadow>
+        <Mat color="#ffd700" roughness={0.45} metalness={0.15} />
+      </RoundedBox>
+      <RoundedBox args={[Math.min(width, 2) - 0.06, 0.16, 0.07]} radius={0.01} smoothness={2} position={[0, 1.85, 0.05]}>
         <Mat color="#00006e" roughness={0.6} />
-      </mesh>
-      <Text position={[0, 1.85, 0.08]} fontSize={0.12} color="#ffd700" anchorX="center" font={undefined}>
+      </RoundedBox>
+      <Text position={[0, 1.85, 0.09]} fontSize={0.12} color="#ffd700" anchorX="center" font={undefined}>
         {genre}
       </Text>
 
@@ -337,7 +358,10 @@ export function WallShelf({
       {[0.32, 0.82, 1.32].map((ty, tier) => {
         const startX = -(tapeCount - 1) * 0.22 * 0.5;
         return Array.from({ length: tapeCount }).map((_, i) => {
-          const poster = posters[tier * tapeCount + i];
+          // Wrap, same as the gondolas — a genre whose slice is shorter than
+          // the wall run's slot count used to leave the tail as solid blocks.
+          const wallIdx = tier * tapeCount + i;
+          const poster = posters.length > 0 ? posters[wallIdx % posters.length] : undefined;
           return poster ? (
             <PosterBox key={`wt-${tier}-${i}`}
               url={poster.url}

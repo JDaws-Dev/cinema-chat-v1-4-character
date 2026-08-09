@@ -2,6 +2,34 @@
 
 A practical reference for building visually appealing 3D environments in React Three Fiber / Three.js -- procedurally, without external modeling tools.
 
+> ## ⚠️ Two rules below are superseded (2026-08-07, commits `9a37e65` / follow-up)
+>
+> The general technique in this guide still holds. Two specific rules do not, and
+> following them will reproduce problems that have since been fixed:
+>
+> **1. "`meshToonMaterial` — our primary material" is no longer true.** The store
+> runs on `MeshStandardMaterial` throughout. `Mat` in `store-materials.tsx` is a
+> PBR cache, and `toonGradientTexture` is `export const toonGradientTexture = null`
+> — a legacy stub. The last real toon holdouts (gondola shelf boards) were
+> converted; because their gradient map was that null stub, they had been
+> toon-shaded with *no gradient*, i.e. flat unlit brown that ignored every light
+> in the room. Do not add new toon materials. The cel-shaded branch is
+> `prefab-editor-phase1`, unmerged and 104 commits behind.
+>
+> **2. "Never enable `castShadow` on more than 2 lights" understates what's
+> affordable.** Measured rather than assumed: one shadow-casting directional
+> costs ~2 FPS in this scene. The store now ships with exactly one, on desktop.
+> The underlying point is still right — *point* lights each need a 6-face cube
+> map, so keep those non-casting — but "shadows are too expensive" as a blanket
+> rule cost this project a long time. Measure with `node scripts/perf-probe.mjs`
+> before deferring on performance grounds.
+>
+> Also added since this guide was written: `procedural-textures.ts` generates
+> carpet, ceiling tile, wood grain and wall stipple to canvas at runtime (seeded,
+> seamlessly tiling, no image assets), and `Mat` accepts `map`/`mapKey`. When you
+> pass a full-color map, set `color` to white — standard materials multiply
+> `color × map`, and tinting an already-colored map squares the darkness.
+
 ---
 
 ## Table of Contents

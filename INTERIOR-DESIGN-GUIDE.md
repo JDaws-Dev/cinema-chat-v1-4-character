@@ -1,5 +1,33 @@
 # Friday Night Video — Interior Design Guide & Directive
 
+> ## ⚠️ Superseded lighting directive (2026-08-07, commit `9a37e65`)
+>
+> **This document's core lighting instruction was the bug.** It diagnosed the
+> problem correctly — ambient washing out all directionality — and then set the
+> target far too high. It said drop ambient 1.85 → 0.9 and called that "the
+> single highest-impact change." The code sat at 1.1 for months and the store
+> still read completely flat, because 0.9–1.1 of undirected fill is *still* an
+> order of magnitude more than the fluorescents were contributing.
+>
+> **Shipping values are now:** ambient `0.18`, hemisphere `0.22`, no daylight
+> directional at all (it's 7:31 PM), zone point lights `2.4–2.9`, plus one
+> overhead shadow-casting directional at `1.7`. See `Store.tsx`.
+>
+> Two other rules here are also out of date:
+> - **"Cel-shaded" / toon gradient:** the store is `MeshStandardMaterial`
+>   throughout. `toonGradientTexture` is a null stub. Don't add toon materials.
+> - **"No shadows":** correct for *point* lights (6 cube-map renders each, still
+>   avoided), wrong as a blanket rule. One directional caster measured at ~2 FPS
+>   and ships on desktop.
+>
+> The philosophy line below — "a bright fluorescent retail box, not moody or
+> dark" — is the one substantive thing worth re-litigating rather than simply
+> correcting. The current build deliberately goes the other way: a dark 7:31 PM
+> lot with the storefront glowing into it. That reads far better in the player
+> view, and it's what makes the place feel like Friday night rather than a
+> Tuesday afternoon. If the bright-box direction is ever revived, it should be a
+> deliberate choice, not an inherited default.
+
 ## Design Philosophy
 Low-poly cel-shaded 1992 Blockbuster video store. The goal is "believable nostalgia" not photorealism. Color choices and clutter do the heavy lifting, not complex lighting. The store should feel like a bright fluorescent retail box — not moody or dark.
 

@@ -1,20 +1,32 @@
 "use client";
 
 import React from "react";
+import * as THREE from "three";
 import { ROOM_H } from "../store-constants";
 import { Mat } from "../store-materials";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
-/** Fluorescent ceiling light fixture — housing + glowing diffuser tube */
+// Troffer housing and diffuser, shared across all ~17 fixtures. Bevelled: the
+// housing hangs at eye-line in most of the frame and a hard-edged slab up there
+// was one of the more visible boxes left in the store.
+const housingGeo = new RoundedBoxGeometry(1.8, 0.07, 0.3, 1, 0.018);
+const diffuserGeo = new RoundedBoxGeometry(1.7, 0.02, 0.25, 1, 0.008);
+// The lit element is a tube, so it's a cylinder. A box "fluorescent tube" reads
+// wrong even at a glance, and this is the brightest object in the room — it's
+// what bloom picks up, so its silhouette gets seen more than anything else.
+const tubeGeo = new THREE.CylinderGeometry(0.032, 0.032, 1.6, 10);
+tubeGeo.rotateZ(Math.PI / 2);
+
+/** Fluorescent ceiling light fixture — housing + diffuser + glowing tube */
 function Fixture({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
       {/* Housing */}
-      <mesh><boxGeometry args={[1.8, 0.05, 0.3]} /><Mat color="#d0d0c8" roughness={0.6} /></mesh>
-      {/* Diffuser panel (slightly translucent) */}
-      <mesh position={[0, -0.01, 0]}><boxGeometry args={[1.7, 0.01, 0.25]} /><Mat color="#f0efe8" roughness={0.2} /></mesh>
+      <mesh geometry={housingGeo}><Mat color="#d0d0c8" roughness={0.6} /></mesh>
+      {/* Diffuser panel */}
+      <mesh position={[0, -0.02, 0]} geometry={diffuserGeo}><Mat color="#f0efe8" roughness={0.2} /></mesh>
       {/* Glowing tube — emissive for bloom pickup */}
-      <mesh position={[0, -0.04, 0]}>
-        <boxGeometry args={[1.6, 0.03, 0.06]} />
+      <mesh position={[0, -0.05, 0]} geometry={tubeGeo}>
         <meshStandardMaterial
           color="#fffae8"
           emissive="#fff8e0"

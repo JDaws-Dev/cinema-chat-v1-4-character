@@ -31,7 +31,18 @@ A 3D Blockbuster-style video store game. Player walks in, finds movies, talks to
 4. ~~Bloom on neon + signage, grain, vignette.~~ **Mostly pre-existing and now effective.** `PostEffects.tsx` always had bloom at `luminanceThreshold 0.8`; it did nothing because ambient washed everything to a similar luminance. It started working the moment the lights came down — no post-processing change was required.
 5. ~~Billboarded labels → physical signs.~~ **Resolved by deletion.** The floating NPC nametags are gone; the `[E] TALK TO …` prompt does the wayfinding. Aisle signs are real geometry with a bezel and depth.
 
-**Still open on the visual bar:** wall-run shelving, storefront trim and window frames, gondola-top genre panels, and ceiling fixtures are all still hard-edged boxes. Store dressing is sparse (no standees, danglers, ceiling banners, games section). Palette skews brown-navy.
+**De-boxing pass (2026-08-07/08).** The store was built entirely from axis-aligned `BoxGeometry`, which is most of why it read as blocky regardless of lighting: a sharp 90° edge between two faces at similar angles produces almost no value change, so boxes collapse into flat silhouettes. A small bevel gives each corner a band angled differently from both faces, which catches a highlight and *draws* the edge. Done so far:
+
+- **Gondolas** — bevelled boards, top caps and end posts; front price rails on every shelf face (both sides — they're double-sided). End posts are deeper than the shelf and taller than the carcass so the unit has a frame rather than a sheared edge.
+- **Signage is now one system.** Aisle signs, gondola-top genre panels, and wall-run genre signs all use the same construction: a gold bezel with real depth and a navy face raised proud of it. Previously all three were ~0.02-thick decals. Aisle signs also hang from two cylindrical rods at the quarter points instead of one square rod at the centre of a 6.2m sign.
+- **Wall-run shelving** — bevelled boards + front rail, bezel sign.
+- **Ceiling fixtures** — bevelled housing/diffuser, and the lit element is a **cylinder**, not a box. It's the brightest object in the room, so it's what bloom picks up and its silhouette gets seen more than almost anything else.
+- **VHS tapes** — bevelled, and `PosterBox` now uses one shared geometry instead of allocating a fresh `BoxGeometry` per tape.
+- **NPCs** — see the character notes; heads trimmed, neck + shoulder yoke added, limbs bevelled, eyes flattened from protruding spheres to discs on the face plane.
+
+**⚠️ Recurring bug — poster slot indexing.** Shelf code indexes a genre's poster list by slot number, but `getCuratedShelfPosterData` returns only a *slice* of the genre catalog per placement. When the slice is shorter than the slot count the tail falls through to solid-colored placeholder boxes. This has now been found and fixed **twice** — gondolas (`sideIdx % sidePosters.length`) and wall runs (`wallIdx % posters.length`). If you see flat navy tapes anywhere, look for a third instance before theorizing about materials or lighting.
+
+**Still open on the visual bar:** storefront trim and window frames are still hard boxes. Store dressing is sparse (no standees, danglers, ceiling banners, games section) — emptiness reads as unfinished no matter how well lit. Palette skews brown-navy; Blockbuster's identity was saturated blue and gold. Character faces are crude at conversation range even after the eye fix.
 
 ## Superseded direction (2026-06-09) — kept for history
 
@@ -230,6 +241,22 @@ node scripts/capture-player-view.mjs         # in another
 Writes to `/tmp/fnv-player/`. Screenshots the **actual player viewport** — real camera, real fog, real post-processing — so what you see is what a player sees. Walks forward in stages (spawn → doorway → front aisle → mid store → back wall) plus look-left/look-right. Use the `Read` tool on the PNGs.
 
 It clears both gates that silently invalidate captures: the **"CHOOSE YOUR ERA"** modal and the **"GOT IT"** tutorial. Both dim the scene behind them, and both appear on a delay — so it polls for them rather than checking once. If you add another modal, add its button text to the `GATES` array or every capture will be the same greyed-out frame.
+
+**Three things it will not tell you** (learned the hard way, 2026-08-07):
+- **The stages are not reproducible.** Each stage holds a key for N ms, but NPCs collide with the player and deflect the walk, so `03_front_aisle` can be a different spot and a different heading on every run. Fine for coverage; **useless for before/after comparison of a specific object.** To judge one change, find it in several shots or the difference you're "seeing" may just be a different camera.
+- **A cold browser is a cold cache.** Every run is a fresh Playwright context, so all ~200 poster textures re-download. A shelf showing flat placeholder color in an early stage is usually still loading, not broken — check a late stage before diagnosing. (See the loader notes in `store-materials.tsx`: concurrency 12, placeholder deadline 14s.)
+- **It has no audio and cannot show motion.** Anything about gait, walk direction, or sound has to be confirmed by a human in the live game.
+
+```bash
+node scripts/perf-probe.mjs                  # dev server must be running
+```
+
+Patches the WebGL draw entrypoints before page scripts run and samples real draw calls + FPS from the player viewport at three positions. **Use this before deferring anything on performance grounds** — the long-standing "no real-time shadows, too expensive" rule had never been measured and turned out to cost ~2 FPS. Baseline after the 2026-08-07/08 overhaul: ~2620 draws at spawn, ~1960 mid-store, ~57 FPS.
+
+**Shell gotcha when reporting checks:** `npx tsc --noEmit | head -12 && echo "TYPECHECK OK"` always prints OK, because `head` exits 0 regardless of what `tsc` said. That pattern printed a false pass directly underneath real type errors during this work. Use:
+```bash
+out=$(npx tsc --noEmit -p tsconfig.json 2>&1); [ -z "$out" ] && echo "CLEAN" || echo "$out" | head -20
+```
 
 ```bash
 node scripts/capture-security-cams.mjs       # legacy — treat output as suspect

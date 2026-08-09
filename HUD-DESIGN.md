@@ -1,5 +1,28 @@
 # Friday Night Video -- HUD Overhaul Design Spec
 
+> ## ⚠️ Chrome stripped since this spec (2026-08-07, commit `9a37e65`)
+>
+> The panel treatment specified here — `--fnv-panel-bg: rgba(6, 8, 16, 0.92)`
+> with a gold border and drop shadow — shipped, and in a 3D build it was
+> outcompeting the thing it framed. `.g3-hud` was a 980px opaque slab pinned
+> top-left through roughly the top 15% of every frame; it was the first object
+> the eye landed on in every screenshot taken of this game.
+>
+> **Now:** `.g3-hud` has no fill, no border, no shadow. Legibility comes from
+> `text-shadow`, so it reads over both a bright storefront and a dark aisle.
+> Pills keep a faint `rgba(0,0,0,0.28)` so numbers stay parseable. The subtitle
+> lost its 3px gold frame and hard drop shadow and is now a `0.55` scrim with a
+> single bottom rule — once the HUD stopped being a slab, the subtitle became
+> the heaviest object on screen by default.
+>
+> The layout, information architecture, and element inventory below are all
+> still accurate and still worth following. It's specifically the *panel
+> chrome* that was wrong. General principle for this project: the room is the
+> product, and UI that competes with it loses even when the UI is well made.
+>
+> Not yet done, and still the right idea: fading the HUD out when idle and
+> restoring it on input.
+
 ## 1. Full Audit of Current UI
 
 ### 1.1 Element Inventory
